@@ -1,5 +1,41 @@
 import cv2
 import numpy as np
+import os
+
+def test_blob_detector():
+    blue_min = (77,40,77)
+    blue_max = (101, 255, 255) 
+    
+    #--- Define area limit [x_min, y_min, x_max, y_max] adimensional (0.0 to 1.0) starting from top left corner
+    window = [0.25, 0.25, 0.65, 0.75]
+    image_list = []
+    image_list.append(cv2.imread(os.path.join(
+        'assets',
+        'blob.jpg'
+    )))
+
+
+    for image in image_list:
+        #-- Detect keypoints
+        keypoints, _ = blob_detect(image, blue_min, blue_max, blur=5,
+                                    blob_params=None, search_window=window, imshow=True)
+
+        image    = blur_outside(image, blur=15, window_adim=window)
+        cv2.imshow("Outside Blur", image)
+        cv2.waitKey(0)
+
+        image     = draw_window(image, window, imshow=True)
+        #-- enter to proceed
+        cv2.waitKey(0)
+
+        #-- click ENTER on the image window to proceed
+        image     = draw_keypoints(image, keypoints, imshow=True)
+        cv2.waitKey(0)
+        #-- Draw search window
+
+        image    = draw_frame(image)
+        cv2.imshow("Frame", image)
+        cv2.waitKey(0)
 
 #---------- Blob detecting function: returns keypoints and mask
 #-- return keypoints, reversemask
@@ -15,10 +51,6 @@ def blob_detect(image,                  #-- The frame (cv standard)
     #- Blur image to remove noise
     if blur > 0: 
         image    = cv2.blur(image, (blur, blur))
-        #- Show result
-        if imshow:
-            cv2.imshow("Blur", image)
-            cv2.waitKey(0)
         
     #- Search window
     if search_window is None: search_window = [0.0, 0.0, 1.0, 1.0]

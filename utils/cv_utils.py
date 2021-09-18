@@ -11,7 +11,7 @@ def test_blob_detector():
     image_list = []
     image_list.append(cv2.imread(os.path.join(
         'assets',
-        'blob.jpg'
+        'blob2.jpeg'
     )))
 
 
@@ -41,7 +41,7 @@ def test_blob_detector():
         #-- Draw search window
 
         image    = draw_frame(image)
-        cv2.imwrite(os.path.join('assets', 'blob_out.jpg'), image)
+        cv2.imwrite(os.path.join('assets', 'blob2_out.jpeg'), image)
 
 #---------- Blob detecting function: returns keypoints and mask
 #-- return keypoints, reversemask

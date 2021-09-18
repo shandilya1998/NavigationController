@@ -17,8 +17,15 @@ def test_blob_detector():
 
     for image in image_list:
         #-- Detect keypoints
-        keypoints, _ = blob_detect(image, blue_min, blue_max, blur=5,
-                                    blob_params=None, search_window=window, imshow=True)
+        keypoints, _ = blob_detect(
+            image,
+            blue_min,
+            blue_max,
+            blur = 5,
+            blob_params = None,
+            search_window = window,
+            imshow = False
+        )
 
         image    = blur_outside(image, blur=15, window_adim=window)
         cv2.imshow("Outside Blur", image)
@@ -34,8 +41,7 @@ def test_blob_detector():
         #-- Draw search window
 
         image    = draw_frame(image)
-        cv2.imshow("Frame", image)
-        cv2.waitKey(0)
+        cv2.imwrite(os.path.join('assets', 'blob_out.jpg'), image)
 
 #---------- Blob detecting function: returns keypoints and mask
 #-- return keypoints, reversemask

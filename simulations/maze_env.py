@@ -15,11 +15,12 @@ from typing import Any, List, Optional, Tuple, Type
 import gym
 import numpy as np
 
-from mujoco_maze import maze_env_utils, maze_task
-from mujoco_maze.agent_model import AgentModel
+from simulations import maze_env_utils, maze_task
+from simulations.agent_model import AgentModel
+from utils.env_utils import convert_observation_to_space
 
 # Directory that contains mujoco xml files.
-MODEL_DIR = os.path.dirname(os.path.abspath(__file__)) + "/assets"
+MODEL_DIR = os.path.join(os.getcwd(), 'assets', 'xml')
 
 
 class MazeEnv(gym.Env):
@@ -41,11 +42,8 @@ class MazeEnv(gym.Env):
         self._maze_height = height = maze_height
         self._maze_size_scaling = size_scaling = maze_size_scaling
         self._inner_reward_scaling = inner_reward_scaling
-        self._observe_blocks = self._task.OBSERVE_BLOCKS
         self._put_spin_near_agent = self._task.PUT_SPIN_NEAR_AGENT
         # Observe other objectives
-        self._observe_balls = self._task.OBSERVE_BALLS
-        self._top_down_view = self._task.TOP_DOWN_VIEW
         self._restitution_coef = restitution_coef
 
         self._maze_structure = structure = self._task.create_maze()
@@ -190,30 +188,18 @@ class MazeEnv(gym.Env):
         tree.write(file_path)
         self.world_tree = tree
         self.wrapped_env = model_cls(file_path=file_path, **kwargs)
-        self.observation_space = self._get_obs_space()
+        ob = self._get_obs()
+        self._set_observation_space(ob)
         self._websock_port = websock_port
         self._mj_offscreen_viewer = None
         self._websock_server_pipe = None
 
-    @property
-    def has_extended_obs(self) -> bool:
-        return self._top_down_view or self._observe_blocks or self._observe_balls
-
     def get_ori(self) -> float:
         return self.wrapped_env.get_ori()
 
-    def _get_obs_space(self) -> gym.spaces.Box:
-        shape = self._get_obs().shape
-        high = np.inf * np.ones(shape, dtype=np.float32)
-        low = -high
-        # Set velocity limits
-        wrapped_obs_space = self.wrapped_env.observation_space
-        high[: wrapped_obs_space.shape[0]] = wrapped_obs_space.high
-        low[: wrapped_obs_space.shape[0]] = wrapped_obs_space.low
-        # Set coordinate limits
-        low[0], high[0], low[1], high[1] = self._xy_limits()
-        # Set orientation limits
-        return gym.spaces.Box(low, high)
+    def _set_observation_space(self, observation):
+        self.observation_space = convert_observation_to_space(observation)
+        return self.observation_space
 
     def _xy_limits(self) -> Tuple[float, float, float, float]:
         xmin, ymin, xmax, ymax = 100, 100, -100, -100
@@ -320,40 +306,18 @@ class MazeEnv(gym.Env):
 
     def _get_obs(self) -> np.ndarray:
         wrapped_obs = self.wrapped_env._get_obs()
-        if self._top_down_view:
-            view = [self.get_top_down_view().flat]
-        else:
-            view = []
-
         additional_obs = []
-
-        if self._observe_balls:
-            for name in self.object_balls:
-                additional_obs.append(self.wrapped_env.get_body_com(name))
-
-        if self._observe_blocks:
-            for name in self.movable_blocks:
-                additional_obs.append(self.wrapped_env.get_body_com(name))
-
         obs = np.concatenate([wrapped_obs[:3]] + additional_obs + [wrapped_obs[3:]])
-        return np.concatenate([obs, *view, np.array([self.t * 0.001])])
+        return np.concatenate([obs, np.array([self.t * self.wrapped_env.dt])])
 
     def reset(self) -> np.ndarray:
         self.t = 0
         self.wrapped_env.reset()
-        # Samples a new goal
-        if self._task.sample_goals():
-            self.set_marker()
         # Samples a new start position
         if len(self._init_positions) > 1:
             xy = np.random.choice(self._init_positions)
             self.wrapped_env.set_xy(xy)
         return self._get_obs()
-
-    def set_marker(self) -> None:
-        for i, goal in enumerate(self._task.goals):
-            idx = self.model.site_name2id(f"goal{i}")
-            self.data.site_xpos[idx][: len(goal.pos)] = goal.pos
 
     @property
     def viewer(self) -> Any:

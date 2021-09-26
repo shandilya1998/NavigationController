@@ -1,6 +1,6 @@
 <mujoco>
     <compiler inertiafromgeom="true" angle="degree" coordinate="local" />
-    <option timestep="0.02" integrator="RK4" />
+    <option timestep="0.005" integrator="RK4" />
     <default>
         <joint limited="false" armature="0" damping="0" />
         <geom condim="3" conaffinity="0" margin="0" friction="1.0 0.5 0.5" rgba="0.8 0.6 0.4 1" density="100" />
@@ -23,6 +23,7 @@
             <joint name="ballx" type="slide" axis="1 0 0" pos="0 0 0" />
             <joint name="bally" type="slide" axis="0 1 0" pos="0 0 0" />
             <joint name="rot" type="hinge" axis="0 0 1" pos="0 0 0" limited="false" />
+            <camera name="mtdcam" mode="fixed" pos="2.1 0 0.5" xyaxes="-1 0 0 0 0 1"/>
         </body>
     </worldbody>
     <actuator>

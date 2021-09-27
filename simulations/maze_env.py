@@ -170,7 +170,7 @@ class MazeEnv(gym.Env):
 
         # Set goals
         for i, goal in enumerate(self._task.goals):
-            z = goal.pos[2] if goal.dim >= 3 else 0.0
+            z = goal.pos[2] if goal.dim >= 3 else 0.1 *  maze_size_scaling
             if goal.custom_size is None:
                 size = f"{maze_size_scaling * 0.1}"
             else:
@@ -183,7 +183,7 @@ class MazeEnv(gym.Env):
                 size=f"{maze_size_scaling * 0.1}",
                 rgba=goal.rgb.rgba_str(),
             )
-
+        
         _, file_path = tempfile.mkstemp(text=True, suffix=".xml")
         tree.write(file_path)
         self.world_tree = tree

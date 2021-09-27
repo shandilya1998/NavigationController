@@ -73,7 +73,7 @@ class MazeTask(ABC):
 
     def termination(self, obs: np.ndarray) -> bool:
         for goal in self.goals:
-            if True:
+            if goal.neighbor(obs):
                 return True
         return False
 
@@ -271,18 +271,15 @@ class GoalReward4Rooms(MazeTask):
     PENALTY: float = -0.0001
     MAZE_SIZE_SCALING: Scaling = Scaling(4.0, 4.0, 4.0)
 
-    def __init__(self, scale: float) -> None:
+    def __init__(self, scale: float, goal: Tuple[int, int] = (6.0, -6.0)) -> None:
         super().__init__(scale)
-        self.goals = [MazeGoal(np.array([6.0 * scale, -6.0 * scale]))]
+        self.goals = [MazeGoal(np.array(goal) * scale)]
 
     def reward(self, obs: np.ndarray) -> float:
-        return 0.0
-        """
         for goal in self.goals:
             if goal.neighbor(obs):
                 return goal.reward_scale
         return self.PENALTY
-        """
 
     @staticmethod
     def create_maze() -> List[List[MazeCell]]:
@@ -304,13 +301,22 @@ class DistReward4Rooms(GoalReward4Rooms, DistRewardMixIn):
     pass
 
 
-class SubGoal4Rooms(GoalReward4Rooms):
-    def __init__(self, scale: float) -> None:
-        super().__init__(scale)
+class CustomGoalReward4Rooms(GoalReward4Rooms):
+    def __init__(self,
+        scale: float,
+        goal: Tuple[int, int] = (6.0, -6.0),
+        danger: List[Tuple[int, int]] = [
+            (0.0, -6.0),
+            (6.0, 0.0),
+        ]) -> None:
+        super().__init__(scale, goal)
         self.goals += [
             MazeGoal(np.array([0.0 * scale, -6.0 * scale]), 0.5, GREEN),
             MazeGoal(np.array([6.0 * scale, 0.0 * scale]), 0.5, GREEN),
         ]
+
+    def reward(self, obs: np.ndarray) -> float:
+        return 0.0
 
 
 class GoalRewardTRoom(MazeTask):
@@ -535,7 +541,7 @@ class TaskRegistry:
         "Push": [DistRewardPush, GoalRewardPush],
         "Fall": [DistRewardFall, GoalRewardFall],
         "2Rooms": [DistReward2Rooms, GoalReward2Rooms, SubGoal2Rooms],
-        "4Rooms": [DistReward4Rooms, GoalReward4Rooms, SubGoal4Rooms],
+        "4Rooms": [DistReward4Rooms, GoalReward4Rooms, CustomGoalReward4Rooms],
         "TRoom": [DistRewardTRoom, GoalRewardTRoom, SubGoalTRoom],
         "BlockMaze": [DistRewardBlockMaze, GoalRewardBlockMaze],
         "Corridor": [DistRewardCorridor, GoalRewardCorridor, NoRewardCorridor],

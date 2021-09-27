@@ -305,10 +305,7 @@ class MazeEnv(gym.Env):
         return self._view
 
     def _get_obs(self) -> np.ndarray:
-        wrapped_obs = self.wrapped_env._get_obs()
-        additional_obs = []
-        obs = np.concatenate([wrapped_obs[:3]] + additional_obs + [wrapped_obs[3:]])
-        return np.concatenate([obs, np.array([self.t * self.wrapped_env.dt])])
+        return self.wrapped_env._get_obs()
 
     def reset(self) -> np.ndarray:
         self.t = 0

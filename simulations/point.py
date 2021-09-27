@@ -56,11 +56,10 @@ class PointEnv(AgentModel):
         return next_obs, 0.0, False, {}
 
     def _get_obs(self):
-        return np.concatenate(
-            [
-                self.sim.data.qpos.flat[:3],  # Only point-relevant coords.
-                self.sim.data.qvel.flat[:3],
-            ]
+        return self.sim.render(
+            width = 480,
+            height = 360,
+            camera_name = 'mtdcam'
         )
 
     def reset_model(self):

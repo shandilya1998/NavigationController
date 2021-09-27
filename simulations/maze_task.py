@@ -73,7 +73,7 @@ class MazeTask(ABC):
 
     def termination(self, obs: np.ndarray) -> bool:
         for goal in self.goals:
-            if goal.neighbor(obs):
+            if True:
                 return True
         return False
 
@@ -276,10 +276,13 @@ class GoalReward4Rooms(MazeTask):
         self.goals = [MazeGoal(np.array([6.0 * scale, -6.0 * scale]))]
 
     def reward(self, obs: np.ndarray) -> float:
+        return 0.0
+        """
         for goal in self.goals:
             if goal.neighbor(obs):
                 return goal.reward_scale
         return self.PENALTY
+        """
 
     @staticmethod
     def create_maze() -> List[List[MazeCell]]:

@@ -1,11 +1,10 @@
 """Maze tasks that are defined by their map, termination condition, and goals.
 """
-
+import cv2
 from abc import ABC, abstractmethod
 from typing import Dict, List, NamedTuple, Optional, Tuple, Type
-
 import numpy as np
-
+from utils.cv_utils import blob_detect
 from simulations.maze_env_utils import MazeCell
 
 
@@ -17,11 +16,17 @@ class Rgb(NamedTuple):
     def rgba_str(self) -> str:
         return f"{self.red} {self.green} {self.blue} 1"
 
-
 RED = Rgb(0.7, 0.1, 0.1)
 GREEN = Rgb(0.1, 0.7, 0.1)
 BLUE = Rgb(0.1, 0.1, 0.7)
 
+def get_hsv_ranges(rgb):
+    if rgb == RED:
+        return (161, 155, 84), (179, 255, 255)
+    elif rgb == GREEN:
+        return (25, 52, 72), (102, 255, 255)
+    elif rgb == BLUE:
+        return (94, 80, 2), (126, 255, 255)
 
 class MazeGoal:
     def __init__(
@@ -45,6 +50,8 @@ class MazeGoal:
 
     def euc_dist(self, obs: np.ndarray) -> float:
         return np.sum(np.square(obs[: self.dim] - self.pos)) ** 0.5
+
+
 
 
 class Scaling(NamedTuple):
@@ -300,6 +307,39 @@ class GoalReward4Rooms(MazeTask):
 class DistReward4Rooms(GoalReward4Rooms, DistRewardMixIn):
     pass
 
+class MazeVisualGoal(MazeGoal):
+    def __init__(
+        self,
+        pos: np.ndarray,
+        reward_scale: float = 1.0,
+        rgb: Rgb = RED,
+        threshold: float = 0.6,
+        custom_size: Optional[float] = None,
+    ):
+        super(MazeVisualGoal, self).__init__(pos,
+            reward_scale,
+            rgb,
+            threshold,
+            custom_size,
+        )
+        self.min_range, self.max_range = get_hsv_ranges(rgb)
+
+    def inframe(self, obs):
+        out = cv2.cvtColor(obs, cv2.COLOR_RGB2BGR)
+        keypoints, _ = blob_detect(
+            out,
+            self.min_range,
+            self.max_range
+        )
+        if len(keypoints) == 0:
+            return False
+        return True
+
+    def termination(self, obs: np.ndarray) -> bool:
+        for goal in self.goals:
+            if goal.inframe(obs):
+                return True
+        return False
 
 class CustomGoalReward4Rooms(GoalReward4Rooms):
     def __init__(self,
@@ -310,13 +350,21 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
             (6.0, 0.0),
         ]) -> None:
         super().__init__(scale, goal)
-        self.goals += [
-            MazeGoal(np.array([0.0 * scale, -6.0 * scale]), 0.5, GREEN),
-            MazeGoal(np.array([6.0 * scale, 0.0 * scale]), 0.5, GREEN),
+        self.goals = [
+            MazeVisualGoal(np.array([6.0 * scale, -6.0 * scale])),
+            MazeVisualGoal(np.array([0.0 * scale, -6.0 * scale]), 0.5, GREEN),
+            MazeVisualGoal(np.array([6.0 * scale, 0.0 * scale]), 0.5, GREEN),
         ]
 
     def reward(self, obs: np.ndarray) -> float:
-        return 0.0
+        reward = 0.0
+        for i, goal in enumerate(self.goals):
+            sign = -1
+            if i == 0:
+                sign = 1 
+            if goal.inframe(obs):
+                reward += goal.reward_scale * sign
+        return reward
 
 
 class GoalRewardTRoom(MazeTask):

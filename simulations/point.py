@@ -56,11 +56,11 @@ class PointEnv(AgentModel):
         return next_obs, 0.0, False, {}
 
     def _get_obs(self):
-        return self.sim.render(
+        return np.flipud(self.sim.render(
             width = 480,
             height = 360,
             camera_name = 'mtdcam'
-        )
+        ))
 
     def reset_model(self):
         qpos = self.init_qpos + self.np_random.uniform(

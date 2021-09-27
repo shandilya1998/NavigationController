@@ -40,11 +40,7 @@ class PointEnv(AgentModel):
     def _set_action_space(self):
         bounds = self.model.actuator_ctrlrange.copy().astype(np.float32)
         low, high = bounds.T
-        """
-        self.action_dim = params['input_size_low_level_control']
-        low = -1.2 * np.ones(self.action_dim, dtype = np.float32) * self.VELOCITY_LIMITS
-        high = -low
-        """
+        self.action_dim = low.shape[-1]
         self.action_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
         return self.action_space
 
@@ -53,28 +49,6 @@ class PointEnv(AgentModel):
         return self.observation_space
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
-        """
-        qpos = self.sim.data.qpos.copy()
-        qpos[2] += action[-1] * self.dt * self.frame_skip
-        penalty = 0.0
-        if np.any(np.abs(action[2:-1]) > 0.0):
-            penalty += -1.0
-        # Clip orientation
-        if qpos[2] < -np.pi:
-            qpos[2] += np.pi * 2
-        elif np.pi < qpos[2]:
-            qpos[2] -= np.pi * 2
-        # Compute increment in each direction
-        qpos[0] += action[0] * self.dt
-        qpos[1] += action[1] * self.dt
-        qvel = self.sim.data.qvel.copy()
-        #qvel[0] = action[0]
-        #qvel[1] = action[1]
-        #qvel[2] = action[-1]
-        qvel = np.clip(qvel, -self.VELOCITY_LIMITS, self.VELOCITY_LIMITS)
-        self.set_state(qpos, qvel)
-        #ac = np.array([action[0], action[1], action[-1]], dtype = np.float32)
-        """
         self.sim.data.ctrl[:] = action
         for _ in range(0, self.frame_skip):
             self.sim.step()

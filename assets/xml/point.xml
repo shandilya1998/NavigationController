@@ -23,12 +23,13 @@
             <joint name="ballx" type="slide" axis="1 0 0" pos="0 0 0" />
             <joint name="bally" type="slide" axis="0 1 0" pos="0 0 0" />
             <joint name="rot" type="hinge" axis="0 0 1" pos="0 0 0" limited="false" />
-            <camera name="mtdcam" mode="fixed" pos="2.1 0 0.5" xyaxes="-1 0 0 0 0 1"/>
+            <camera name="mtdcam" mode="fixed" pos="1.1 0 0.5" xyaxes="-1 0 0 0 0 1"/>
         </body>
     </worldbody>
     <actuator>
         <!-- Those are just dummy actuators for providing ranges -->
-        <motor joint="ballx" ctrlrange="-1 1" ctrllimited="true" />
-        <motor joint="rot" ctrlrange="-0.25 0.25" ctrllimited="true" />
+        <velocity joint="ballx" ctrlrange="-12 12" ctrllimited="true" kv="100"/>
+        <velocity joint="bally" ctrlrange="-12 12" ctrllimited="true" kv="100"/>
+        <velocity joint="rot" ctrlrange="-12 12" ctrllimited="true" kv="100"/>
     </actuator>
 </mujoco>

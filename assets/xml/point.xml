@@ -5,6 +5,9 @@
         <joint limited="false" armature="0" damping="0" />
         <geom condim="3" conaffinity="0" margin="0" friction="1.0 0.5 0.5" rgba="0.8 0.6 0.4 1" density="100" />
     </default>
+    <visual>
+        <map znear="0.001" zfar="1000"/>
+    </visual>
     <asset>
         <texture type="skybox" builtin="gradient" width="100" height="100" rgb1="1 1 1" rgb2="0 0 0" />
         <texture name="texgeom" type="cube" builtin="flat" mark="cross" width="127" height="1278" rgb1="0.8 0.6 0.4" rgb2="0.8 0.6 0.4" markrgb="1 1 1" random="0.01" />

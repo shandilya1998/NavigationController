@@ -17,6 +17,7 @@ import networkx as nx
 from simulations import maze_env_utils, maze_task
 from simulations.agent_model import AgentModel
 from utils.env_utils import convert_observation_to_space
+import random
 
 # Directory that contains mujoco xml files.
 MODEL_DIR = os.path.join(os.getcwd(), 'assets', 'xml')
@@ -203,6 +204,21 @@ class MazeEnv(gym.Env):
         self._mj_offscreen_viewer = None
         self._websock_server_pipe = None
         self.__create_maze_graph()
+        self.sampled_path = self.__sample_path()
+
+    def __sample_path(self):
+        robot_pos = self.wrapped_env.sim.data.qpos[:2]
+        row, col = self._xy_to_rowcol(robot_pos[0], robot_pos[1])
+        source = self._structure_to_graph_index(row, col)
+        goal_pos = self._task.goals[0].pos[:2]
+        row, col = self._xy_to_rowcol(goal_pos[0], goal_pos[1])
+        target = self._structure_to_graph_index(row, col)
+        paths = list(nx.algorithms.shortest_paths.generic.all_shortest_paths(
+            self._maze_graph,
+            source,
+            target
+        ))
+        return random.choice(paths)
 
     def _graph_to_structure_index(self, index):
         row = int(index / len(self._maze_structure))

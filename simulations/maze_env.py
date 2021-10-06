@@ -79,13 +79,19 @@ class MazeEnv(gym.Env):
         else:
             self._collision = None
 
+        def func(x):
+            x, x_frac = int(x), x % 1
+            if x_frac > 0.5:
+                x += 1
+            return x
+
         self._xy_to_rowcol = lambda x, y: (
-            2 + (y + size_scaling / 2) / size_scaling,
-            2 + (x + size_scaling / 2) / size_scaling,
+            func((y + torso_y) / size_scaling),
+            func((x + torso_x) / size_scaling),
         )
         self._rowcol_to_xy = lambda r, c: (
-            (c - 2) * size_scaling - size_scaling / 2,
-            (r - 2) * size_scaling - size_scaling / 2
+            c * size_scaling - torso_x,
+            r * size_scaling - torso_y
         )
         # walls (immovable), chasms (fall), movable blocks
         self._view = np.zeros([5, 5, 3])
@@ -218,7 +224,7 @@ class MazeEnv(gym.Env):
             valid[1] = False
         return valid[0] and valid[1]
 
-    def __add_neighbors_to_maze_graph(self, node):
+    def __add_edges_to_maze_graph(self, node):
         neighbors = [
             (node['row'] - 1, node['col']),
             (node['row'], node['col'] - 1),
@@ -269,7 +275,7 @@ class MazeEnv(gym.Env):
 
         for i in range(num_col):
             for j in range(num_row):
-                self.__add_neighbors_to_maze_graph(self._maze_graph.nodes[
+                self.__add_edges_to_maze_graph(self._maze_graph.nodes[
                     self._structure_to_graph_index(i, j)
                 ])
 
@@ -293,95 +299,6 @@ class MazeEnv(gym.Env):
         xmin, xmax = (xmin - 0.5) * scaling - x0, (xmax + 0.5) * scaling - x0
         ymin, ymax = (ymin - 0.5) * scaling - y0, (ymax + 0.5) * scaling - y0
         return xmin, xmax, ymin, ymax
-
-    def get_top_down_view(self) -> np.ndarray:
-        self._view = np.zeros_like(self._view)
-
-        def valid(row, col):
-            return self._view.shape[0] > row >= 0 and self._view.shape[1] > col >= 0
-
-        def update_view(x, y, d, row=None, col=None):
-            if row is None or col is None:
-                x = x - self._robot_x
-                y = y - self._robot_y
-
-                row, col = self._xy_to_rowcol(x, y)
-                update_view(x, y, d, row=row, col=col)
-                return
-
-            row, row_frac, col, col_frac = int(row), row % 1, int(col), col % 1
-            if row_frac < 0:
-                row_frac += 1
-            if col_frac < 0:
-                col_frac += 1
-
-            if valid(row, col):
-                self._view[row, col, d] += (
-                    min(1.0, row_frac + 0.5) - max(0.0, row_frac - 0.5)
-                ) * (min(1.0, col_frac + 0.5) - max(0.0, col_frac - 0.5))
-            if valid(row - 1, col):
-                self._view[row - 1, col, d] += (max(0.0, 0.5 - row_frac)) * (
-                    min(1.0, col_frac + 0.5) - max(0.0, col_frac - 0.5)
-                )
-            if valid(row + 1, col):
-                self._view[row + 1, col, d] += (max(0.0, row_frac - 0.5)) * (
-                    min(1.0, col_frac + 0.5) - max(0.0, col_frac - 0.5)
-                )
-            if valid(row, col - 1):
-                self._view[row, col - 1, d] += (
-                    min(1.0, row_frac + 0.5) - max(0.0, row_frac - 0.5)
-                ) * (max(0.0, 0.5 - col_frac))
-            if valid(row, col + 1):
-                self._view[row, col + 1, d] += (
-                    min(1.0, row_frac + 0.5) - max(0.0, row_frac - 0.5)
-                ) * (max(0.0, col_frac - 0.5))
-            if valid(row - 1, col - 1):
-                self._view[row - 1, col - 1, d] += (max(0.0, 0.5 - row_frac)) * max(
-                    0.0, 0.5 - col_frac
-                )
-            if valid(row - 1, col + 1):
-                self._view[row - 1, col + 1, d] += (max(0.0, 0.5 - row_frac)) * max(
-                    0.0, col_frac - 0.5
-                )
-            if valid(row + 1, col + 1):
-                self._view[row + 1, col + 1, d] += (max(0.0, row_frac - 0.5)) * max(
-                    0.0, col_frac - 0.5
-                )
-            if valid(row + 1, col - 1):
-                self._view[row + 1, col - 1, d] += (max(0.0, row_frac - 0.5)) * max(
-                    0.0, 0.5 - col_frac
-                )
-
-        # Draw ant.
-        robot_x, robot_y = self.wrapped_env.get_body_com("torso")[:2]
-        self._robot_x = robot_x
-        self._robot_y = robot_y
-
-        structure = self._maze_structure
-        size_scaling = self._maze_size_scaling
-
-        # Draw immovable blocks and chasms.
-        for i in range(len(structure)):
-            for j in range(len(structure[0])):
-                if structure[i][j].is_block():  # Wall.
-                    update_view(
-                        j * size_scaling - self._init_torso_x,
-                        i * size_scaling - self._init_torso_y,
-                        0,
-                    )
-                if structure[i][j].is_chasm():  # Chasm.
-                    update_view(
-                        j * size_scaling - self._init_torso_x,
-                        i * size_scaling - self._init_torso_y,
-                        1,
-                    )
-
-        # Draw movable blocks.
-        for block_name in self.movable_blocks:
-            block_x, block_y = self.wrapped_env.get_body_com(block_name)[:2]
-            update_view(block_x, block_y, 2)
-
-        return self._view
 
     def _get_obs(self) -> np.ndarray:
         return self.wrapped_env._get_obs()

@@ -11,10 +11,9 @@ import os
 import tempfile
 import xml.etree.ElementTree as ET
 from typing import Any, List, Optional, Tuple, Type
-
 import gym
 import numpy as np
-
+import networkx as nx
 from simulations import maze_env_utils, maze_task
 from simulations.agent_model import AgentModel
 from utils.env_utils import convert_observation_to_space
@@ -83,6 +82,10 @@ class MazeEnv(gym.Env):
         self._xy_to_rowcol = lambda x, y: (
             2 + (y + size_scaling / 2) / size_scaling,
             2 + (x + size_scaling / 2) / size_scaling,
+        )
+        self._rowcol_to_xy = lambda r, c: (
+            (c - 2) * size_scaling - size_scaling / 2,
+            (r - 2) * size_scaling - size_scaling / 2
         )
         # walls (immovable), chasms (fall), movable blocks
         self._view = np.zeros([5, 5, 3])
@@ -193,6 +196,82 @@ class MazeEnv(gym.Env):
         self._websock_port = websock_port
         self._mj_offscreen_viewer = None
         self._websock_server_pipe = None
+        self.__create_maze_graph()
+
+    def _graph_to_structure_index(self, index):
+        row = int(index / len(self._maze_structure))
+        col = index % len(self._maze_structures[0])
+        return row, col
+
+    def _structure_to_graph_index(self, row, col):
+        return row * len(self._maze_structure) + col
+
+    def __check_structure_index_validity(self, i, j):
+        valid = [True, True]
+        if i < 0:
+            valid[0] = False
+        elif i >= len(self._maze_structure):
+            valid[0] = False
+        if j < 0:
+            valid[1] = False
+        elif j >= len(self._maze_structure[0]):
+            valid[1] = False
+        return valid[0] and valid[1]
+
+    def __add_neighbors_to_maze_graph(self, node):
+        neighbors = [
+            (node['row'] - 1, node['col']),
+            (node['row'], node['col'] - 1),
+            (node['row'] + 1, node['col']),
+            (node['row'], node['col'] + 1),
+        ]
+        for neighbor in neighbors:
+            if self.__check_structure_index_validity(
+                neighbor[0],
+                neighbor[1]
+            ):
+                if not self._maze_graph.nodes[
+                    self._structure_to_graph_index(
+                        neighbor[0],
+                        neighbor[1]
+                    )
+                ]['struct'].is_wall_or_chasm():
+                    self._maze_graph.add_edge(
+                        node['index'],
+                        self._maze_graph.nodes[self._structure_to_graph_index(
+                            neighbor[0],
+                            neighbor[1]
+                        )]['index']
+                    )
+
+    def __create_maze_graph(self):
+        num_row = len(self._maze_structure)
+        num_col = len(self._maze_structure[0])
+        num_vertices = num_row * num_col
+        self._maze_graph = nx.DiGraph()
+        self._maze_graph.add_nodes_from(np.arange(
+            0, len(self._maze_structure) * len(self._maze_structure[0])
+        ))
+        for i in range(num_col):
+            for j in range(num_row):
+                self._maze_graph.nodes[
+                    self._structure_to_graph_index(i, j)
+                ]['struct'] = self._maze_structure[i][j]
+                self._maze_graph.nodes[
+                    self._structure_to_graph_index(i, j)
+                ]['row'] = i
+                self._maze_graph.nodes[
+                    self._structure_to_graph_index(i, j)
+                ]['col'] = j
+                self._maze_graph.nodes[
+                    self._structure_to_graph_index(i, j)
+                ]['index'] = self._structure_to_graph_index(i, j)
+
+        for i in range(num_col):
+            for j in range(num_row):
+                self.__add_neighbors_to_maze_graph(self._maze_graph.nodes[
+                    self._structure_to_graph_index(i, j)
+                ])
 
     def get_ori(self) -> float:
         return self.wrapped_env.get_ori()

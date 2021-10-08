@@ -81,10 +81,10 @@ class MazeEnv(gym.Env):
             self._collision = None
 
         def func(x):
-            x, x_frac = int(x), x % 1
+            x_int, x_frac = int(x), x % 1
             if x_frac > 0.5:
-                x += 1
-            return x
+                x_int += 1
+            return x_int
 
         self._xy_to_rowcol = lambda x, y: (
             func((y + torso_y) / size_scaling),
@@ -205,6 +205,7 @@ class MazeEnv(gym.Env):
         self._websock_server_pipe = None
         self.__create_maze_graph()
         self.sampled_path = self.__sample_path()
+        self._current_cell = 0
 
     def __sample_path(self):
         robot_pos = self.wrapped_env.sim.data.qpos[:2]
@@ -219,6 +220,48 @@ class MazeEnv(gym.Env):
             target
         ))
         return random.choice(paths)
+
+    def get_action(self):
+        current_pos = self.wrapped_env.sim.data.qpos[:2]
+        row, col = self._xy_to_rowcol(current_pos[0], current_pos[1])
+        cell_x, cell_y = self._rowcol_to_xy(row, col)
+        next_cell_row, next_cell_col = self._graph_to_structure_index(
+            self._current_cell + 1
+        )
+        next_cell_x, next_cell_y = self._rowcol_to_xy(
+            next_cell_row, next_cell_col
+        )
+        direction = np.array([
+            next_cell_x - cell_x,
+            next_cell_y - cell_y
+        ], dtype = np.float32)
+        limits = np.array([
+            [
+                next_cell_x + \
+                    direction[0] * 0.5 * self._maze_size_scaling + \
+                    np.sqrt(
+                        1 - direction[0] ** 2
+                    ) * 0.5 * self._maze_size_scaling,
+                next_cell_y + \
+                    direction[0] * 0.5 * self._maze_size_scaling + \
+                    np.sqrt(
+                        1 - direction[0] ** 2
+                    ) * 0.5 * self._maze_size_scaling
+            ],
+            [
+                next_cell_x + \
+                    direction[0] * 0.5 * self._maze_size_scaling - \
+                    np.sqrt(
+                        1 - direction[0] ** 2
+                    ) * 0.5 * self._maze_size_scaling,
+                next_cell_y + \
+                    direction[0] * 0.5 * self._maze_size_scaling - \
+                    np.sqrt(
+                        1 - direction[0] ** 2
+                    ) * 0.5 * self._maze_size_scaling
+            ],
+        ], dtype = np.float32)
+        raise NotImplementedError 
 
     def _graph_to_structure_index(self, index):
         row = int(index / len(self._maze_structure))
@@ -326,6 +369,7 @@ class MazeEnv(gym.Env):
         if len(self._init_positions) > 1:
             xy = np.random.choice(self._init_positions)
             self.wrapped_env.set_xy(xy)
+        self.sampled_path = self.__sample_path()
         return self._get_obs()
 
     @property

@@ -1,3 +1,26 @@
 params = {
     'input_size_low_level_control': 6,
+    'track_list'                  : [ 
+                                        'joint_pos',
+                                        'action',
+                                        'velocity',
+                                        'position',
+                                        'true_joint_pos',
+                                        'sensordata',
+                                        'qpos',
+                                        'qvel',
+                                        'achieved_goal',
+                                        'observation',
+                                        'heading_ctrl',
+                                        'omega',
+                                        'z',
+                                        'mu',
+                                        'd1',
+                                        'd2',
+                                        'd3',
+                                        'stability',
+                                        'omega_o',
+                                        'reward',
+                                        'rewards'
+                                    ],
 }

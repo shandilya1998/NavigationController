@@ -16,8 +16,9 @@ import numpy as np
 import networkx as nx
 from simulations import maze_env_utils, maze_task
 from simulations.agent_model import AgentModel
-from utils.env_utils import convert_observation_to_space
+from utils.env_utils import convert_observation_to_space, quintic_polynomials_planner
 import random
+import copy
 
 # Directory that contains mujoco xml files.
 MODEL_DIR = os.path.join(os.getcwd(), 'assets', 'xml')
@@ -205,11 +206,87 @@ class MazeEnv(gym.Env):
         self._websock_server_pipe = None
         self.__create_maze_graph()
         self.sampled_path = self.__sample_path()
-        self._current_cell = 0
+        self._previous_cell = -1
+        self._current_cell = copy.deepcopy(self.sampled_path[0])
+        self._previous_cell = copy.deepcopy(self._current_cell)
+        self._next_cell = self.sampled_path[1]
+        self.cells_passed = 0
+        self.__setup_vel_control()
+
+    def __setup_vel_control(self):
+        self.count = 0
+        self.cells_passed += 1
+        next_cell_row, next_cell_col = self._graph_to_structure_index(
+            self._next_cell
+        )
+        self.__next_cell_x, self.__next_cell_y = self._rowcol_to_xy(
+            next_cell_row, next_cell_col
+        )
+        next_index = self.sampled_path.index(self._next_cell)
+        if self.cells_passed == 1:
+            sv = 0.0  # start speed [m/s]
+            sa = 0.0  # start accel [m/ss]
+        else:
+            sv = copy.deepcopy(self.gv)
+            sa = copy.deepcopy(self.ga)
+        self.gyaw = 0.0
+        self.gv = 0.0
+        self.ga = 0.0
+        
+        if not next_index == len(self.sampled_path) - 1:
+            next_next_index = self.sampled_path[next_index + 1]
+            next_next_row, next_next_col = self._graph_to_structure_index(
+                next_next_index
+            )
+            next_next_x, next_next_y = self._rowcol_to_xy(
+                next_next_row, next_next_col
+            )
+            self.gyaw = np.arctan2(
+                self.__next_cell_y - next_next_y,
+                self.__next_cell_x - next_next_x
+            )
+            self.gv = np.random.uniform(
+                low = 0.0,
+                high = self.wrapped_env.VELOCITY_LIMITS
+            )
+            self.ga = 0.1
+        self.__init_robot_x, self.__init_robot_y = self.wrapped_env.get_xy()
+        self.__init_robot_ori = self.wrapped_env.get_ori()
+        if self.__init_robot_ori > np.pi:
+            self.__init_robot_ori -= 2 * np.pi
+        sx = self.__init_robot_x  # start x position [m]
+        sy = self.__init_robot_y  # start y position [m]
+        syaw = self.__init_robot_ori  # start yaw angle [rad]
+        gx = self.__next_cell_x  # goal x position [m]
+        gy = self.__next_cell_y  # goal y position [m]
+        max_accel = 10.0  # max accel [m/ss]
+        max_jerk = 1.0  # max jerk [m/sss]
+        dt = self.wrapped_env.dt  # time tick [s]
+        self.time, self.x, self.y, \
+            self.yaw, self.v, self.vx, self.vy, self.a, \
+            self.j = quintic_polynomials_planner(
+                sx, sy, syaw,
+                sv, sa, gx,
+                gy, self.gyaw, self.gv,
+                self.ga, max_accel,
+                max_jerk, dt
+            )
+
+        self.time = np.array(self.time)
+        self.vyaw = np.gradient(np.array(self.yaw), self.time, axis = 0)
+        self.__init_distance = np.array([
+            np.abs(self.__next_cell_x - self.__init_robot_x),
+            np.abs(self.__next_cell_y - self.__init_robot_y)
+        ])
+        self.__init_ori = (np.arctan2(
+            self.__next_cell_y - self.__init_robot_y,
+            self.__next_cell_x - self.__init_robot_x
+        ) - self.__init_robot_ori + np.pi) % (2 * np.pi) - np.pi
 
     def __sample_path(self):
-        robot_pos = self.wrapped_env.sim.data.qpos[:2]
-        row, col = self._xy_to_rowcol(robot_pos[0], robot_pos[1])
+        robot_x, robot_y = self.wrapped_env.get_xy()
+        robot_ori = self.wrapped_env.get_ori()
+        row, col = self._xy_to_rowcol(robot_x, robot_y)
         source = self._structure_to_graph_index(row, col)
         goal_pos = self._task.goals[0].pos[:2]
         row, col = self._xy_to_rowcol(goal_pos[0], goal_pos[1])
@@ -222,50 +299,47 @@ class MazeEnv(gym.Env):
         return random.choice(paths)
 
     def get_action(self):
-        current_pos = self.wrapped_env.sim.data.qpos[:2]
-        row, col = self._xy_to_rowcol(current_pos[0], current_pos[1])
-        cell_x, cell_y = self._rowcol_to_xy(row, col)
-        next_cell_row, next_cell_col = self._graph_to_structure_index(
-            self._current_cell + 1
-        )
-        next_cell_x, next_cell_y = self._rowcol_to_xy(
-            next_cell_row, next_cell_col
-        )
-        direction = np.array([
-            next_cell_x - cell_x,
-            next_cell_y - cell_y
-        ], dtype = np.float32)
-        limits = np.array([
-            [
-                next_cell_x + \
-                    direction[0] * 0.5 * self._maze_size_scaling + \
-                    np.sqrt(
-                        1 - direction[0] ** 2
-                    ) * 0.5 * self._maze_size_scaling,
-                next_cell_y + \
-                    direction[0] * 0.5 * self._maze_size_scaling + \
-                    np.sqrt(
-                        1 - direction[0] ** 2
-                    ) * 0.5 * self._maze_size_scaling
-            ],
-            [
-                next_cell_x + \
-                    direction[0] * 0.5 * self._maze_size_scaling - \
-                    np.sqrt(
-                        1 - direction[0] ** 2
-                    ) * 0.5 * self._maze_size_scaling,
-                next_cell_y + \
-                    direction[0] * 0.5 * self._maze_size_scaling - \
-                    np.sqrt(
-                        1 - direction[0] ** 2
-                    ) * 0.5 * self._maze_size_scaling
-            ],
-        ], dtype = np.float32)
-        raise NotImplementedError 
+        robot_x, robot_y = self.wrapped_env.get_xy()
+        robot_ori = self.wrapped_env.get_ori()
+        robot_ori = robot_ori % (2 * np.pi)
+        if robot_ori > np.pi:
+            robot_ori -= 2 * np.pi
+        
+        """
+        dist = np.array([
+            np.abs(robot_x - self.__next_cell_x),
+            np.abs(robot_y - self.__next_cell_y)
+        ])  
+        ori = np.arctan2(
+            robot_y - self.__next_cell_y,
+            robot_x - self.__next_cell_x
+        )   
+        acc = (0.5 - np.divide(
+            dist,
+            self.__init_distance,
+            out = np.zeros_like(dist),
+            where = self.__init_distance != 0
+        ))
+        self.sampled_action[:2] = \
+            self.sampled_action[:2] + acc * self.wrapped_env.dt
+        acc_w = (0.5 - np.divide(
+            ori,
+            self.__init_ori,
+            out = np.zeros_like(self.__init_ori),
+            where = self.__init_ori != 0))
+        self.sampled_action[2] = self.sampled_action[2] + \
+            self.sampled_action[2] * self.wrapped_env.dt
+        """
+        self.sampled_action = np.array([
+            self.vx[self.count],
+            self.vy[self.count],
+            self.vyaw[self.count]
+        ])
+        return self.sampled_action
 
     def _graph_to_structure_index(self, index):
         row = int(index / len(self._maze_structure))
-        col = index % len(self._maze_structures[0])
+        col = index % len(self._maze_structure[0])
         return row, col
 
     def _structure_to_graph_index(self, row, col):
@@ -289,6 +363,10 @@ class MazeEnv(gym.Env):
             (node['row'], node['col'] - 1),
             (node['row'] + 1, node['col']),
             (node['row'], node['col'] + 1),
+            (node['row'] + 1, node['col'] - 1),
+            (node['row'] - 1, node['col'] + 1),
+            (node['row'] + 1, node['col'] + 1),
+            (node['row'] - 1, node['col'] - 1)
         ]
         for neighbor in neighbors:
             if self.__check_structure_index_validity(
@@ -370,6 +448,15 @@ class MazeEnv(gym.Env):
             xy = np.random.choice(self._init_positions)
             self.wrapped_env.set_xy(xy)
         self.sampled_path = self.__sample_path()
+        self._previous_cell = -1
+        self._current_cell = copy.deepcopy(self.sampled_path[0])
+        self._previous_cell = copy.deepcopy(self._current_cell)
+        self._next_cell = self.sampled_path[1]
+        self.__setup_vel_control()
+        self.sampled_action = np.zeros(
+            self.action_space.shape,
+            dtype = np.float32
+        )
         return self._get_obs()
 
     @property
@@ -459,7 +546,27 @@ class MazeEnv(gym.Env):
         outer_reward = self._task.reward(next_obs)
         done = False#self._task.termination(next_obs)
         info["position"] = self.wrapped_env.get_xy()
+        index = self.__get_current_cell()  
+        self.count += 1
+        if self.count == len(self.time) - 1:
+            self._previous_cell = copy.deepcopy(self._current_cell)
+            self._current_cell = copy.deepcopy(index)
+            if not index == self.sampled_path[-1]:
+                self._next_cell = self.sampled_path[
+                    self.sampled_path.index(self._next_cell) + 1
+                ]
+            else:
+                self._next_cell = copy.deepcopy(self._current_cell)
+            self.__setup_vel_control()
+
         return next_obs, inner_reward + outer_reward, done, info
+
+    def __get_current_cell(self):
+        robot_x, robot_y = self.wrapped_env.get_xy()
+        robot_ori = self.wrapped_env.get_ori()
+        row, col = self._xy_to_rowcol(robot_x, robot_y)
+        index = self._structure_to_graph_index(row, col)
+        return index
 
     def close(self) -> None:
         self.wrapped_env.close()

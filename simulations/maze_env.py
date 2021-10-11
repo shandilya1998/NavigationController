@@ -16,13 +16,14 @@ import numpy as np
 import networkx as nx
 from simulations import maze_env_utils, maze_task
 from simulations.agent_model import AgentModel
-from utils.env_utils import convert_observation_to_space, quintic_polynomials_planner
+from utils.env_utils import convert_observation_to_space, \
+    quintic_polynomials_planner, proportional_control, \
+    pure_pursuit_steer_control, State, TargetCourse, States
 import random
 import copy
 
 # Directory that contains mujoco xml files.
 MODEL_DIR = os.path.join(os.getcwd(), 'assets', 'xml')
-
 
 class MazeEnv(gym.Env):
     def __init__(
@@ -249,7 +250,7 @@ class MazeEnv(gym.Env):
                 low = 0.0,
                 high = self.wrapped_env.VELOCITY_LIMITS
             )
-            self.ga = 0.1
+            self.ga = 1.0
         self.__init_robot_x, self.__init_robot_y = self.wrapped_env.get_xy()
         self.__init_robot_ori = self.wrapped_env.get_ori()
         if self.__init_robot_ori > np.pi:
@@ -259,21 +260,42 @@ class MazeEnv(gym.Env):
         syaw = self.__init_robot_ori  # start yaw angle [rad]
         gx = self.__next_cell_x  # goal x position [m]
         gy = self.__next_cell_y  # goal y position [m]
-        max_accel = 10.0  # max accel [m/ss]
-        max_jerk = 1.0  # max jerk [m/sss]
+        max_accel = 1000.0  # max accel [m/ss]
+        max_jerk = 100.0  # max jerk [m/sss]
         dt = self.wrapped_env.dt  # time tick [s]
         self.time, self.x, self.y, \
-            self.yaw, self.v, self.vx, self.vy, self.a, \
-            self.j = quintic_polynomials_planner(
+            self.yaw, self.v, self.vx, self.vy, \
+            self.target_a, self.j = quintic_polynomials_planner(
                 sx, sy, syaw,
                 sv, sa, gx,
                 gy, self.gyaw, self.gv,
                 self.ga, max_accel,
                 max_jerk, dt
             )
-
-        self.time = np.array(self.time)
-        self.vyaw = np.gradient(np.array(self.yaw), self.time, axis = 0)
+        self.vyaw = np.gradient(
+            self.yaw,
+            self.time ,
+            axis = 0)
+        self.vyaw[0] = 0
+        self.vyaw[1] = self.vyaw[2] / 2
+        self.state = State(
+            x = self.wrapped_env.sim.data.qpos[0],
+            y = self.wrapped_env.sim.data.qpos[1],
+            yaw = self.wrapped_env.sim.data.qpos[2],
+            v = np.sqrt(
+                np.square(
+                    self.wrapped_env.sim.data.qvel[0]
+                ) + np.square(
+                    self.wrapped_env.sim.data.qvel[1]
+                )
+            ),
+            WB = 1.0 * self._maze_size_scaling
+        )
+        self.lastIndex = len(self.x) - 1
+        self.states = States()
+        self.states.append(self.count * self.wrapped_env.dt, self.state)
+        self.target_course = TargetCourse(self.x, self.y)
+        self.target_ind, _ = self.target_course.search_target_index(self.state)
         self.__init_distance = np.array([
             np.abs(self.__next_cell_x - self.__init_robot_x),
             np.abs(self.__next_cell_y - self.__init_robot_y)
@@ -330,10 +352,19 @@ class MazeEnv(gym.Env):
         self.sampled_action[2] = self.sampled_action[2] + \
             self.sampled_action[2] * self.wrapped_env.dt
         """
+        ai = proportional_control(self.v[self.count], self.state.v)
+        di, self.target_ind = pure_pursuit_steer_control(
+            self.state, self.target_course, self.target_ind, self.state.WB
+        )
+        self.state.update(ai, di)
+        self.count += 1
+        vx = self.state.v * np.cos(self.state.yaw)
+        vy = self.state.v * np.sin(self.state.yaw)
+        vyaw = self.state.v / self.state.WB * np.tan(di)
         self.sampled_action = np.array([
-            self.vx[self.count],
-            self.vy[self.count],
-            self.vyaw[self.count]
+            vx,
+            vy,
+            vyaw
         ])
         return self.sampled_action
 
@@ -453,10 +484,6 @@ class MazeEnv(gym.Env):
         self._previous_cell = copy.deepcopy(self._current_cell)
         self._next_cell = self.sampled_path[1]
         self.__setup_vel_control()
-        self.sampled_action = np.zeros(
-            self.action_space.shape,
-            dtype = np.float32
-        )
         return self._get_obs()
 
     @property
@@ -547,11 +574,12 @@ class MazeEnv(gym.Env):
         done = False#self._task.termination(next_obs)
         info["position"] = self.wrapped_env.get_xy()
         index = self.__get_current_cell()  
-        self.count += 1
         if self.count == len(self.time) - 1:
             self._previous_cell = copy.deepcopy(self._current_cell)
             self._current_cell = copy.deepcopy(index)
-            if not index == self.sampled_path[-1]:
+            if not self.sampled_path.index(self._next_cell) == \
+                len(self.sampled_path) - 1 and \
+                not index == self.sampled_path[-1]:
                 self._next_cell = self.sampled_path[
                     self.sampled_path.index(self._next_cell) + 1
                 ]

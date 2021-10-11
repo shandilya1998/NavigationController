@@ -3,6 +3,9 @@ import gym
 from collections import defaultdict
 import math
 import matplotlib.pyplot as plt
+import bisect
+from constants import params
+import sys
 
 def convert_observation_to_space(observation, maximum = float('inf')):
     if isinstance(observation, dict):
@@ -19,11 +22,6 @@ def convert_observation_to_space(observation, maximum = float('inf')):
 
     return space
 
-# parameter
-MAX_T = 100.0  # maximum time to the goal [s]
-MIN_T = 1.0  # minimum time to the goal[s]
-
-show_animation = False
 
 
 class QuinticPolynomial:
@@ -106,7 +104,10 @@ def quintic_polynomials_planner(sx, sy, syaw, sv, sa, gx, gy, gyaw, gv, ga, max_
 
     time, rx, ry, ryaw, rv, rvx, rvy, ra, rj = [], [], [], [], [], [], [], [], []
 
-    for T in np.arange(MIN_T, MAX_T, MIN_T):
+    for T in np.arange(
+        params['min_simulation_time'], params['max_simulation_time'],
+        params['min_simulation_time']
+    ):
         xqp = QuinticPolynomial(sx, vxs, axs, gx, vxg, axg, T)
         yqp = QuinticPolynomial(sy, vys, ays, gy, vyg, ayg, T)
 
@@ -143,7 +144,7 @@ def quintic_polynomials_planner(sx, sy, syaw, sv, sa, gx, gy, gyaw, gv, ga, max_
         if max([abs(i) for i in ra]) <= max_accel and max([abs(i) for i in rj]) <= max_jerk:
             break
 
-    if show_animation:  # pragma: no cover
+    if params['show_animation']:  # pragma: no cover
         for i, _ in enumerate(time):
             plt.cla()
             # for stopping simulation with the esc key.
@@ -163,7 +164,6 @@ def quintic_polynomials_planner(sx, sy, syaw, sv, sa, gx, gy, gyaw, gv, ga, max_
 
     return time, rx, ry, ryaw, rv, rvx, rvy, ra, rj
 
-
 def plot_arrow(x, y, yaw, length=1.0, width=0.5, fc="r", ec="k"):  # pragma: no cover
     """
     Plot arrow
@@ -175,4 +175,122 @@ def plot_arrow(x, y, yaw, length=1.0, width=0.5, fc="r", ec="k"):  # pragma: no 
     else:
         plt.arrow(x, y, length * math.cos(yaw), length * math.sin(yaw),
                   fc=fc, ec=ec, head_width=width, head_length=width)
-        olt.plot(x, y)
+        plt.plot(x, y)
+
+k = 0.1  # look forward gain
+Lfc = 2.0  # [m] look-ahead distance
+Kp = 1.0  # speed proportional gain
+dt = 0.1  # [s] time tick
+WB = 1.0   # [m] wheel base of vehicle
+
+show_animation = True
+
+
+class State:
+
+    def __init__(self, x=0.0, y=0.0, yaw=0.0, v=0.0, WB = 4.0):
+        self.x = x
+        self.y = y
+        self.yaw = yaw
+        self.v = v
+        self.WB = WB
+        self.rear_x = self.x - ((self.WB / 2) * math.cos(self.yaw))
+        self.rear_y = self.y - ((self.WB / 2) * math.sin(self.yaw))
+
+    def update(self, a, delta):
+        self.x += self.v * math.cos(self.yaw) * params['dt']
+        self.y += self.v * math.sin(self.yaw) * params['dt']
+        self.yaw += self.v / self.WB * math.tan(delta) * params['dt']
+        self.v += a * params['dt']
+        self.rear_x = self.x - ((self.WB / 2) * math.cos(self.yaw))
+        self.rear_y = self.y - ((self.WB / 2) * math.sin(self.yaw))
+
+    def calc_distance(self, point_x, point_y):
+        dx = self.rear_x - point_x
+        dy = self.rear_y - point_y
+        return math.hypot(dx, dy)
+
+
+class States:
+
+    def __init__(self):
+        self.x = []
+        self.y = []
+        self.yaw = []
+        self.v = []
+        self.t = []
+
+    def append(self, t, state):
+        self.x.append(state.x)
+        self.y.append(state.y)
+        self.yaw.append(state.yaw)
+        self.v.append(state.v)
+        self.t.append(t)
+
+
+def proportional_control(target, current):
+    a = Kp * (target - current)
+
+    return a
+
+
+class TargetCourse:
+
+    def __init__(self, cx, cy):
+        self.cx = cx
+        self.cy = cy
+        self.old_nearest_point_index = None
+
+    def search_target_index(self, state):
+
+        # To speed up nearest point search, doing it at only first time.
+        if self.old_nearest_point_index is None:
+            # search nearest point index
+            dx = [state.rear_x - icx for icx in self.cx]
+            dy = [state.rear_y - icy for icy in self.cy]
+            d = np.hypot(dx, dy)
+            ind = np.argmin(d)
+            self.old_nearest_point_index = ind
+        else:
+            ind = self.old_nearest_point_index
+            distance_this_index = state.calc_distance(self.cx[ind],
+                                                      self.cy[ind])
+            while True:
+                distance_next_index = state.calc_distance(self.cx[ind + 1],
+                                                          self.cy[ind + 1])
+                if distance_this_index < distance_next_index:
+                    break
+                ind = ind + 1 if (ind + 1) < len(self.cx) else ind
+                distance_this_index = distance_next_index
+            self.old_nearest_point_index = ind
+
+        Lf = k * state.v + Lfc  # update look ahead distance
+
+        # search look ahead target point index
+        while Lf > state.calc_distance(self.cx[ind], self.cy[ind]):
+            if (ind + 1) >= len(self.cx):
+                break  # not exceed goal
+            ind += 1
+
+        return ind, Lf
+
+
+def pure_pursuit_steer_control(state, trajectory, pind, WB = 4.0):
+    ind, Lf = trajectory.search_target_index(state)
+
+    if pind >= ind:
+        ind = pind
+
+    if ind < len(trajectory.cx):
+        tx = trajectory.cx[ind]
+        ty = trajectory.cy[ind]
+    else:  # toward goal
+        tx = trajectory.cx[-1]
+        ty = trajectory.cy[-1]
+        ind = len(trajectory.cx) - 1
+
+    alpha = math.atan2(ty - state.rear_y, tx - state.rear_x) - state.yaw
+
+    delta = math.atan2(2.0 * WB * math.sin(alpha) / Lf, 1.0)
+
+    return delta, ind

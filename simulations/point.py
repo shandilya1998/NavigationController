@@ -53,6 +53,7 @@ class PointEnv(AgentModel):
         for _ in range(0, self.frame_skip):
             self.sim.step()
         next_obs = self._get_obs()
+    
         return next_obs, 0.0, False, {}
 
     def _get_obs(self):
@@ -84,3 +85,8 @@ class PointEnv(AgentModel):
 
     def get_ori(self):
         return self.sim.data.qpos[self.ORI_IND]
+
+    def set_ori(self, ori):
+        qpos = self.sim.data.qpos.copy()
+        qpos[self.ORI_IND] = ori
+        self.set_state(qpos, self.data.qvel)

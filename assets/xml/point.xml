@@ -1,6 +1,6 @@
 <mujoco>
     <compiler inertiafromgeom="true" angle="degree" coordinate="local" />
-    <option timestep="0.005" integrator="RK4" />
+    <option timestep="0.02" integrator="RK4" />
     <default>
         <joint limited="false" armature="0" damping="0" />
         <geom condim="3" conaffinity="0" margin="0" friction="1.0 0.5 0.5" rgba="0.8 0.6 0.4 1" density="100" />

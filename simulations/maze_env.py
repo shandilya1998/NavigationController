@@ -583,7 +583,7 @@ class MazeEnv(gym.Env):
                 self._next_cell = self.sampled_path[
                     self.sampled_path.index(self._next_cell) + 1
                 ]
-            else:
+            elif self._current_cell in self.sampled_path:
                 self._next_cell = copy.deepcopy(self._current_cell)
             self.__setup_vel_control()
 

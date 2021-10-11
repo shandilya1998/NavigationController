@@ -152,7 +152,8 @@ def quintic_polynomials_planner(sx, sy, syaw, sv, sa, gx, gy, gyaw, gv, ga, max_
                                          lambda event: [exit(0) if event.key == 'escape' else None])
             plt.grid(True)
             plt.axis("equal")
-            plot_arrow(sx, sy, syaw)
+            plt.plot(sx, sy)
+            #plot_arrow(sx, sy, ryaw[0])
             plot_arrow(gx, gy, gyaw)
             plot_arrow(rx[i], ry[i], ryaw[i])
             plt.title("Time[s]:" + str(time[i])[0:4] +

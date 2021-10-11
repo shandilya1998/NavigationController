@@ -21,6 +21,7 @@ from utils.env_utils import convert_observation_to_space, \
     pure_pursuit_steer_control, State, TargetCourse, States
 import random
 import copy
+from constants import params
 
 # Directory that contains mujoco xml files.
 MODEL_DIR = os.path.join(os.getcwd(), 'assets', 'xml')
@@ -586,6 +587,9 @@ class MazeEnv(gym.Env):
             elif self._current_cell in self.sampled_path:
                 self._next_cell = copy.deepcopy(self._current_cell)
             self.__setup_vel_control()
+
+        if self._current_cell == self.sampled_path[-1]:
+            done = True
 
         return next_obs, inner_reward + outer_reward, done, info
 

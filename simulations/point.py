@@ -29,7 +29,7 @@ class PointEnv(AgentModel):
             'xml',
             file_path
         )
-        super().__init__(file_path, 5)
+        super().__init__(file_path, 1)
         high = np.inf * np.ones(6, dtype=np.float32)
         high[3:] = self.VELOCITY_LIMITS * 1.2
         high[self.ORI_IND] = np.pi

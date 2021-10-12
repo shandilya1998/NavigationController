@@ -89,9 +89,17 @@ class MazeEnv(gym.Env):
                 x_int += 1
             return x_int
 
+        def func2(x):
+            x_int, x_frac = int(x), x % 1 
+            return x_int, x_frac
+
         self._xy_to_rowcol = lambda x, y: (
             func((y + torso_y) / size_scaling),
             func((x + torso_x) / size_scaling),
+        )
+        self._xy_to_rowcol_v2 = lambda x, y: (
+            func2((y + torso_y) / size_scaling),
+            func2((x + torso_x) / size_scaling), 
         )
         self._rowcol_to_xy = lambda r, c: (
             c * size_scaling - torso_x,

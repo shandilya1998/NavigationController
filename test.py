@@ -13,7 +13,7 @@ img = np.zeros(
 
 X = []
 Y = []
-
+YAW = []
 done = False
 
 steps = 0
@@ -24,4 +24,58 @@ while not done or steps > 10000:
         break
     ob, reward, done, info = env.step(ac)
     steps += 1
+    pos = env.wrapped_env.sim.data.qpos.copy()
+    X.append(pos[0])
+    Y.append(pos[1])
+    YAW.append(pos[2])
+    env.render()
 
+img = np.zeros(
+    (200 * len(env._maze_structure), 200 * len(env._maze_structure[0]), 3)
+)
+
+for i in range(len(env._maze_structure)):
+    for j in range(len(env._maze_structure[0])):
+        if  env._maze_structure[i][j].is_wall_or_chasm():
+            img[
+                200 * i: 200 * (i + 1),
+                200 * j: 200 * (j + 1)
+            ] = 0.5
+
+
+def xy_to_imgrowcol(x, y):
+    (row, row_frac), (col, col_frac) = env._xy_to_rowcol_v2(x, y)
+    row = 200 * row + int((row_frac) * 200) + 100
+    col = 200 * col + int((col_frac) * 200) + 100
+    return row, col
+
+for index in range(len(env.sampled_path)):
+    i, j = env._graph_to_structure_index(env.sampled_path[index])
+    img[
+        200 * i + 80: 200 * (i + 1) - 80,
+        200 * j + 80: 200 * (j + 1) - 80
+    ] = [1, 0, 0]
+    if index > 0:
+        i_prev, j_prev = env._graph_to_structure_index(env.sampled_path[index - 1])
+        delta_x = 1
+        delta_y = 1
+        if i_prev > i:
+            delta_x = -1
+        if j_prev > j:
+            delta_y = -1
+        x_points = np.arange(200 * i_prev + 100, 200 * i + 100, delta_x, dtype = np.int32)
+        y_points = np.arange(200 * j_prev + 100, 200 * j + 100, delta_y, dtype = np.int32)
+        if i_prev == i:
+            x_points = np.array([200 * i_prev + 100] * 200, dtype = np.int32)
+        if j_prev == j:
+            y_points = np.array([200 * j_prev + 100] * 200, dtype = np.int32)
+        for x, y in zip(x_points, y_points):
+            img[x - 4: x + 4, y - 4: y + 4] = [0, 1, 0]
+
+
+for x, y in zip(X, Y):
+    row, col = xy_to_imgrowcol(x, y)
+    img[row - 4: row + 4, col - 4: col + 4] = [0, 0, 1]
+
+plt.imshow(img)
+plt.show()

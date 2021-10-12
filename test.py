@@ -77,5 +77,5 @@ for x, y in zip(X, Y):
     row, col = xy_to_imgrowcol(x, y)
     img[row - 4: row + 4, col - 4: col + 4] = [0, 0, 1]
 
-plt.imshow(img)
+plt.imshow(np.flipud(img))
 plt.show()

@@ -14,12 +14,26 @@ class Imitate:
     def __init__(self, logdir, datapath):
         self.logdir = logdir
         self.datapath = datapath
-        self.env = MazeEnv(PointEnv, CustomGoalReward4Rooms)
-        self.eval_env = MazeEnv(PointEnv, CustomGoalReward4Rooms)
+        self.env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
+            sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
+                lambda : sb3.common.monitor.Monitor(MazeEnv(
+                    PointEnv,
+                    CustomGoalReward4Rooms
+                ))  
+            ])  
+        )
+        self.eval_env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
+            sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
+                lambda : sb3.common.monitor.Monitor(MazeEnv(
+                    PointEnv,
+                    CustomGoalReward4Rooms
+                ))
+            ])
+        )
         self.__set_il_callback()
         self.il_model = ImitationLearning(
             'MlpPolicy',
-            sb3.common.monitor.Monitor(self.env),
+            self.env,
             tensorboard_log = os.path.join(self.logdir, 'tensorboard'),
             learning_starts = params['learning_starts'],
             train_freq = (5, "step"),

@@ -89,6 +89,9 @@ class PointEnv(AgentModel):
     def get_ori(self):
         return self.sim.data.qpos[self.ORI_IND]
 
+    def get_v(self):
+        return np.linalg.norm(self.sim.data.qvel[:2])
+
     def set_ori(self, ori):
         qpos = self.sim.data.qpos.copy()
         qpos[self.ORI_IND] = ori

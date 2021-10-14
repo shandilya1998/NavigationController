@@ -18,11 +18,8 @@ INFO = []
 done = False
 
 steps = 0
-while not done or steps > 10000:
-    try:
-        ac = env.get_action()
-    except IndexError:
-        break
+while not done:
+    ac = env.get_action()
     ob, reward, done, info = env.step(ac)
     steps += 1
     pos = env.wrapped_env.sim.data.qpos.copy()

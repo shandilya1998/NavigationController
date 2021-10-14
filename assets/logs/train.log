@@ -1,0 +1,31 @@
+/hdd/Desktop/NavigationController
+Using cpu device
+Logging to assets/logs/tensorboard/TD3_6
+Traceback (most recent call last):
+  File "train.py", line 3, in <module>
+    model.learn()
+  File "/hdd/Desktop/NavigationController/learning/imitate.py", line 95, in learn
+    callback = self.il_callback
+  File "/home/shandilya/py36/lib/python3.6/site-packages/stable_baselines3/td3/td3.py", line 211, in learn
+    reset_num_timesteps=reset_num_timesteps,
+  File "/home/shandilya/py36/lib/python3.6/site-packages/stable_baselines3/common/off_policy_algorithm.py", line 359, in learn
+    log_interval=log_interval,
+  File "/home/shandilya/py36/lib/python3.6/site-packages/stable_baselines3/common/off_policy_algorithm.py", line 563, in collect_rollouts
+    action, buffer_action = self._sample_action(learning_starts, action_noise)
+  File "/hdd/Desktop/NavigationController/utils/il_utils.py", line 186, in _sample_action
+    [env.env.get_action() for env in self.env.envs],
+  File "/hdd/Desktop/NavigationController/utils/il_utils.py", line 186, in <listcomp>
+    [env.env.get_action() for env in self.env.envs],
+  File "/hdd/Desktop/NavigationController/simulations/maze_env.py", line 341, in get_action
+    self.state, self.target_course, self.target_ind, self.state.WB
+  File "/hdd/Desktop/NavigationController/utils/env_utils.py", line 285, in pure_pursuit_steer_control
+    ind, Lf = trajectory.search_target_index(state)
+  File "/hdd/Desktop/NavigationController/utils/env_utils.py", line 265, in search_target_index
+    distance_next_index = state.calc_distance(self.cx[ind + 1],
+IndexError: list index out of range
+/hdd/Desktop/NavigationController
+Using cpu device
+Logging to assets/logs/tensorboard/TD3_7
+/hdd/Desktop/NavigationController
+Using cpu device
+Logging to assets/logs/tensorboard/TD3_8

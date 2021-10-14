@@ -18,7 +18,8 @@ from simulations import maze_env_utils, maze_task
 from simulations.agent_model import AgentModel
 from utils.env_utils import convert_observation_to_space, \
     quintic_polynomials_planner, proportional_control, \
-    pure_pursuit_steer_control, State, TargetCourse, States
+    pure_pursuit_steer_control, State, TargetCourse, States, \
+    calc_spline_course, Spline2D, Spline
 import random
 import copy
 from constants import params
@@ -216,77 +217,37 @@ class MazeEnv(gym.Env):
         self._websock_server_pipe = None
         self.__create_maze_graph()
         self.sampled_path = self.__sample_path()
-        self._previous_cell = -1
         self._current_cell = copy.deepcopy(self.sampled_path[0])
-        self._previous_cell = copy.deepcopy(self._current_cell)
-        self._next_cell = self.sampled_path[1]
-        self.cells_passed = 0
+        self.__find_all_waypoints()
+        self.__find_cubic_spline_path()
         self.__setup_vel_control()
 
+    def __find_all_waypoints(self):
+        self.wx = []
+        self.wy = []
+        for cell in self.sampled_path:
+            row, col = self._graph_to_structure_index(cell)
+            x, y = self._rowcol_to_xy(row, col)
+            self.wx.append(copy.deepcopy(x))
+            self.wy.append(copy.deepcopy(y))
+
+    def __find_cubic_spline_path(self):
+        sp = Spline2D(self.wx, self.wy)
+        s = np.arange(0, sp.s[-1], params['ds'])
+        self.x, self.y, self.yaw, self.k = [], [], [], []
+        for i_s in s:
+            ix, iy = sp.calc_position(i_s)
+            self.x.append(ix)
+            self.y.append(iy)
+            self.yaw.append(sp.calc_yaw(i_s))
+            self.k.append(sp.calc_curvature(i_s))
+
     def __setup_vel_control(self):
-        self.count = 0
-        self.cells_passed += 1
-        next_cell_row, next_cell_col = self._graph_to_structure_index(
-            self._next_cell
+        self.target_speed = np.random.uniform(
+            low = 0.0,
+            high = self.wrapped_env.VELOCITY_LIMITS
+
         )
-        self.__next_cell_x, self.__next_cell_y = self._rowcol_to_xy(
-            next_cell_row, next_cell_col
-        )
-        next_index = self.sampled_path.index(self._next_cell)
-        if self.cells_passed == 1:
-            sv = 0.0  # start speed [m/s]
-            sa = 0.0  # start accel [m/ss]
-        else:
-            sv = copy.deepcopy(self.gv)
-            sa = copy.deepcopy(self.ga)
-        self.gyaw = 0.0
-        self.gv = 0.0
-        self.ga = 0.0
-        
-        if not next_index == len(self.sampled_path) - 1:
-            next_next_index = self.sampled_path[next_index + 1]
-            next_next_row, next_next_col = self._graph_to_structure_index(
-                next_next_index
-            )
-            next_next_x, next_next_y = self._rowcol_to_xy(
-                next_next_row, next_next_col
-            )
-            self.gyaw = np.arctan2(
-                self.__next_cell_y - next_next_y,
-                self.__next_cell_x - next_next_x
-            )
-            self.gv = np.random.uniform(
-                low = 0.0,
-                high = self.wrapped_env.VELOCITY_LIMITS
-            )
-            self.ga = 1.0
-        self.__init_robot_x, self.__init_robot_y = self.wrapped_env.get_xy()
-        self.__init_robot_ori = self.wrapped_env.get_ori()
-        if self.__init_robot_ori > np.pi:
-            self.__init_robot_ori -= 2 * np.pi
-        sx = self.__init_robot_x  # start x position [m]
-        sy = self.__init_robot_y  # start y position [m]
-        syaw = self.__init_robot_ori  # start yaw angle [rad]
-        gx = self.__next_cell_x  # goal x position [m]
-        gy = self.__next_cell_y  # goal y position [m]
-        max_accel = 1000.0  # max accel [m/ss]
-        max_jerk = 100.0  # max jerk [m/sss]
-        dt = params['dt'] # time tick [s]
-        self.time, self.x, self.y, \
-            self.yaw, self.v, self.vx, self.vy, \
-            self.target_a, self.j = quintic_polynomials_planner(
-                sx, sy, syaw,
-                sv, sa, gx,
-                gy, self.gyaw, self.gv,
-                self.ga, max_accel,
-                max_jerk, dt
-            )
-        self.vyaw = np.gradient(
-            self.yaw,
-            self.time ,
-            axis = 0)
-        self.vyaw[0] = 0
-        self.vyaw[1] = self.vyaw[2] / 2
         self.state = State(
             x = self.wrapped_env.sim.data.qpos[0],
             y = self.wrapped_env.sim.data.qpos[1],
@@ -302,17 +263,9 @@ class MazeEnv(gym.Env):
         )
         self.lastIndex = len(self.x) - 1
         self.states = States()
-        self.states.append(self.count * params['dt'], self.state)
+        self.states.append(self.t * params['dt'], self.state)
         self.target_course = TargetCourse(self.x, self.y)
         self.target_ind, _ = self.target_course.search_target_index(self.state)
-        self.__init_distance = np.array([
-            np.abs(self.__next_cell_x - self.__init_robot_x),
-            np.abs(self.__next_cell_y - self.__init_robot_y)
-        ])
-        self.__init_ori = (np.arctan2(
-            self.__next_cell_y - self.__init_robot_y,
-            self.__next_cell_x - self.__init_robot_x
-        ) - self.__init_robot_ori + np.pi) % (2 * np.pi) - np.pi
 
     def __sample_path(self):
         robot_x, robot_y = self.wrapped_env.get_xy()
@@ -335,12 +288,10 @@ class MazeEnv(gym.Env):
         robot_ori = robot_ori % (2 * np.pi)
         if robot_ori > np.pi:
             robot_ori -= 2 * np.pi
-        
-        ai = proportional_control(self.v[self.count], self.state.v)
+        ai = proportional_control(self.target_speed, self.state.v)
         di, self.target_ind = pure_pursuit_steer_control(
             self.state, self.target_course, self.target_ind, self.state.WB
         )
-        self.count += 1
         self.sampled_action = np.array([
             ai, di
         ])
@@ -372,10 +323,6 @@ class MazeEnv(gym.Env):
             (node['row'], node['col'] - 1),
             (node['row'] + 1, node['col']),
             (node['row'], node['col'] + 1),
-            (node['row'] + 1, node['col'] - 1),
-            (node['row'] - 1, node['col'] + 1),
-            (node['row'] + 1, node['col'] + 1),
-            (node['row'] - 1, node['col'] - 1)
         ]
         for neighbor in neighbors:
             if self.__check_structure_index_validity(
@@ -464,10 +411,9 @@ class MazeEnv(gym.Env):
             xy = np.random.choice(self._init_positions)
             self.wrapped_env.set_xy(xy)
         self.sampled_path = self.__sample_path()
-        self._previous_cell = -1
         self._current_cell = copy.deepcopy(self.sampled_path[0])
-        self._previous_cell = copy.deepcopy(self._current_cell)
-        self._next_cell = self.sampled_path[1]
+        self.__find_all_waypoints()
+        self.__find_cubic_spline_path()
         self.__setup_vel_control()
         return self._get_obs()
 
@@ -532,6 +478,7 @@ class MazeEnv(gym.Env):
         prev_yaw = copy.deepcopy(self.state.yaw)
         prev_v = copy.deepcopy(self.state.v)
         self.state.update(ai, di)
+        self.states.append(self.t * params['dt'], self.state)
         delta_yaw = self.state.v / self.state.WB * \
             np.tan(di) * params['dt']
         delta_v = ai * params['dt']
@@ -572,20 +519,10 @@ class MazeEnv(gym.Env):
         done = False#self._task.termination(next_obs)
         info["position"] = self.wrapped_env.get_xy()
         index = self.__get_current_cell()  
-        if self.count == len(self.time) - 1:
-            self._previous_cell = copy.deepcopy(self._current_cell)
-            self._current_cell = copy.deepcopy(index)
-            if not self.sampled_path.index(self._next_cell) == \
-                len(self.sampled_path) - 1 and \
-                not index == self.sampled_path[-1]:
-                self._next_cell = self.sampled_path[
-                    self.sampled_path.index(self._next_cell) + 1
-                ]
-            elif self._current_cell in self.sampled_path:
-                self._next_cell = copy.deepcopy(self._current_cell)
-            self.__setup_vel_control()
-
+        self._current_cell = index
         if self._current_cell == self.sampled_path[-1]:
+            done = True
+        if self.t > params['max_episode_size']:
             done = True
         return next_obs, inner_reward + outer_reward, done, info
 

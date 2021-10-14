@@ -209,6 +209,7 @@ class MazeEnv(gym.Env):
         self.world_tree = tree
         self.wrapped_env = model_cls(file_path=file_path, **kwargs)
         ob = self._get_obs()
+        self._set_action_space()
         self._set_observation_space(ob)
         self._websock_port = websock_port
         self._mj_offscreen_viewer = None
@@ -427,6 +428,13 @@ class MazeEnv(gym.Env):
     def get_ori(self) -> float:
         return self.wrapped_env.get_ori()
 
+    def _set_action_space(self):
+        low = self.wrapped_env.action_space.low * 2 / self.wrapped_env.dt
+        high = self.wrapped_env.action_space.high * 2 / self.wrapped_env.dt
+        low = np.array([low[0] * np.sqrt(2), low[-1]], dtype = np.float32)
+        high = np.array([high[0] * np.sqrt(2), high[-1]], dtype = np.float32)
+        self._action_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
+
     def _set_observation_space(self, observation):
         self.observation_space = convert_observation_to_space(observation)
         return self.observation_space
@@ -493,7 +501,7 @@ class MazeEnv(gym.Env):
 
     @property
     def action_space(self):
-        return self.wrapped_env.action_space
+        return self._action_space
 
     def _find_robot(self) -> Tuple[float, float]:
         structure = self._maze_structure

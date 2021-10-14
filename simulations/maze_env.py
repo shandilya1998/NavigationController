@@ -105,8 +105,6 @@ class MazeEnv(gym.Env):
             c * size_scaling - torso_x,
             r * size_scaling - torso_y
         )
-        # walls (immovable), chasms (fall), movable blocks
-        self._view = np.zeros([5, 5, 3])
 
         # Let's create MuJoCo XML
         xml_path = os.path.join(MODEL_DIR, model_cls.FILE)
@@ -603,7 +601,6 @@ class MazeEnv(gym.Env):
 
     def __get_current_cell(self):
         robot_x, robot_y = self.wrapped_env.get_xy()
-        robot_ori = self.wrapped_env.get_ori()
         row, col = self._xy_to_rowcol(robot_x, robot_y)
         index = self._structure_to_graph_index(row, col)
         return index

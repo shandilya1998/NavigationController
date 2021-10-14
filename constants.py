@@ -26,5 +26,5 @@ params = {
     'max_simulation_time'         : 5.0,
     'min_simulation_time'         : 1.0,
     'show_animation'              : False,
-    'dt'                          : 0.02,
+    'dt'                          : 0.005,
 }

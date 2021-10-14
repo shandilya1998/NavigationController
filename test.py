@@ -11,9 +11,10 @@ img = np.zeros(
     dtype = np.float32
 )
 
-X = []
-Y = []
-YAW = []
+POS = []
+OBS = []
+REWARDS = []
+INFO = []
 done = False
 
 steps = 0
@@ -25,9 +26,12 @@ while not done or steps > 10000:
     ob, reward, done, info = env.step(ac)
     steps += 1
     pos = env.wrapped_env.sim.data.qpos.copy()
-    X.append(pos[0])
-    Y.append(pos[1])
-    YAW.append(pos[2])
+    cv2.imshow('stream', ob)
+    cv2.waitKey(1)
+    POS.append(pos.copy())
+    OBS.append(ob.copy())
+    REWARDS.append(reward)
+    INFO.append(info)
     env.render()
 
 img = np.zeros(
@@ -73,8 +77,8 @@ for index in range(len(env.sampled_path)):
             img[x - 4: x + 4, y - 4: y + 4] = [0, 1, 0]
 
 
-for x, y in zip(X, Y):
-    row, col = xy_to_imgrowcol(x, y)
+for pos in POS:
+    row, col = xy_to_imgrowcol(pos[0], pos[1])
     img[row - 4: row + 4, col - 4: col + 4] = [0, 0, 1]
 
 plt.imshow(np.flipud(img))

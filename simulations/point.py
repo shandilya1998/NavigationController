@@ -78,6 +78,9 @@ class PointEnv(AgentModel):
     def get_xy(self):
         return self.sim.data.qpos[:2].copy()
 
+    def get_speed(self):
+        return np.linalg.norm(self.sim.data.qvel[:2].copy())
+
     def set_xy(self, xy: np.ndarray) -> None:
         qpos = self.sim.data.qpos.copy()
         qpos[:2] = xy

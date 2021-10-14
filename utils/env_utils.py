@@ -181,7 +181,7 @@ def plot_arrow(x, y, yaw, length=1.0, width=0.5, fc="r", ec="k"):  # pragma: no 
 k = 0.1  # look forward gain
 Lfc = 2.0  # [m] look-ahead distance
 Kp = 1.0  # speed proportional gain
-dt = 0.1  # [s] time tick
+dt = 0.02  # [s] time tick
 WB = 1.0   # [m] wheel base of vehicle
 
 show_animation = True

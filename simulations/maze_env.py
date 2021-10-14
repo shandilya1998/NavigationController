@@ -123,6 +123,7 @@ class MazeEnv(gym.Env):
             default = tree.find(".//default")
             default.find(".//geom").set("solimp", ".995 .995 .01")
 
+        tree.find('.//option').set('timestep', str(params['dt']))
         self.movable_blocks = []
         self.object_balls = []
         for i in range(len(structure)):
@@ -269,7 +270,7 @@ class MazeEnv(gym.Env):
         gy = self.__next_cell_y  # goal y position [m]
         max_accel = 1000.0  # max accel [m/ss]
         max_jerk = 100.0  # max jerk [m/sss]
-        dt = self.wrapped_env.dt  # time tick [s]
+        dt = params['dt'] # time tick [s]
         self.time, self.x, self.y, \
             self.yaw, self.v, self.vx, self.vy, \
             self.target_a, self.j = quintic_polynomials_planner(
@@ -300,7 +301,7 @@ class MazeEnv(gym.Env):
         )
         self.lastIndex = len(self.x) - 1
         self.states = States()
-        self.states.append(self.count * self.wrapped_env.dt, self.state)
+        self.states.append(self.count * params['dt'], self.state)
         self.target_course = TargetCourse(self.x, self.y)
         self.target_ind, _ = self.target_course.search_target_index(self.state)
         self.__init_distance = np.array([
@@ -334,44 +335,13 @@ class MazeEnv(gym.Env):
         if robot_ori > np.pi:
             robot_ori -= 2 * np.pi
         
-        """
-        dist = np.array([
-            np.abs(robot_x - self.__next_cell_x),
-            np.abs(robot_y - self.__next_cell_y)
-        ])  
-        ori = np.arctan2(
-            robot_y - self.__next_cell_y,
-            robot_x - self.__next_cell_x
-        )   
-        acc = (0.5 - np.divide(
-            dist,
-            self.__init_distance,
-            out = np.zeros_like(dist),
-            where = self.__init_distance != 0
-        ))
-        self.sampled_action[:2] = \
-            self.sampled_action[:2] + acc * self.wrapped_env.dt
-        acc_w = (0.5 - np.divide(
-            ori,
-            self.__init_ori,
-            out = np.zeros_like(self.__init_ori),
-            where = self.__init_ori != 0))
-        self.sampled_action[2] = self.sampled_action[2] + \
-            self.sampled_action[2] * self.wrapped_env.dt
-        """
         ai = proportional_control(self.v[self.count], self.state.v)
         di, self.target_ind = pure_pursuit_steer_control(
             self.state, self.target_course, self.target_ind, self.state.WB
         )
-        self.state.update(ai, di)
         self.count += 1
-        vx = self.state.v * np.cos(self.state.yaw)
-        vy = self.state.v * np.sin(self.state.yaw)
-        vyaw = self.state.v / self.state.WB * np.tan(di)
         self.sampled_action = np.array([
-            vx,
-            vy,
-            vyaw
+            ai, di
         ])
         return self.sampled_action
 
@@ -549,6 +519,19 @@ class MazeEnv(gym.Env):
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         self.t += 1
+        ai = action[0]
+        di = action[1]
+        prev_yaw = copy.deepcopy(self.state.yaw)
+        prev_v = copy.deepcopy(self.state.v)
+        self.state.update(ai, di)
+        delta_yaw = self.state.v / self.state.WB * \
+            np.tan(di) * params['dt']
+        delta_v = ai * params['dt']
+        action = np.array([
+            (prev_v + delta_v) * np.cos(prev_yaw + delta_yaw),
+            (prev_v + delta_v) * np.sin(prev_yaw + delta_yaw),
+            delta_yaw / params['dt']
+        ])
         if self.wrapped_env.MANUAL_COLLISION:
             old_pos = self.wrapped_env.get_xy()
             old_objballs = self._objball_positions()
@@ -596,7 +579,6 @@ class MazeEnv(gym.Env):
 
         if self._current_cell == self.sampled_path[-1]:
             done = True
-
         return next_obs, inner_reward + outer_reward, done, info
 
     def __get_current_cell(self):

@@ -36,7 +36,7 @@ class Imitate:
             self.env,
             tensorboard_log = os.path.join(self.logdir, 'tensorboard'),
             learning_starts = params['learning_starts'],
-            train_freq = (5, "step"),
+            train_freq = (100, "step"),
             verbose = 2,
             batch_size = params['batch_size'],
             buffer_size = params['buffer_size'],

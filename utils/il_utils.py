@@ -111,9 +111,8 @@ class ImitationLearning(sb3.TD3):
         self._update_learning_rate([self.actor.optimizer, self.critic.optimizer])
 
         actor_losses, critic_losses = [], []
-
         for _ in range(gradient_steps):
-
+            
             self._n_updates += 1
             # Sample replay buffer
             replay_data = self.replay_buffer.sample(batch_size, env=self._vec_normalize_env)

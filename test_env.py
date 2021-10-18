@@ -29,7 +29,7 @@ while not done:
     OBS.append(ob.copy())
     REWARDS.append(reward)
     INFO.append(info)
-    env.render()
+    #env.render()
 
 img = np.zeros(
     (200 * len(env._maze_structure), 200 * len(env._maze_structure[0]), 3)

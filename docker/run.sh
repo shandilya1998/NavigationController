@@ -14,4 +14,8 @@ echo "Project Region: $REGION"
 # echo "Test"
 # echo $var
 
+IMAGE_REPO_NAME=navigation_controller_container
+IMAGE_TAG=navigation_controller_pytorch
+IMAGE_URI=gcr.io/$PROJECT_ID/$IMAGE_REPO_NAME:$IMAGE_TAG
+JOB_NAME=experiment_$(date +%Y%m%d_%H%M%S)
 

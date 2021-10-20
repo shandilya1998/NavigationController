@@ -5,6 +5,7 @@ from typing import Any, Dict
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
+from google.cloud import storage
 
 class SaveOnBestTrainingRewardCallback(sb3.common.callbacks.BaseCallback):
     """
@@ -105,4 +106,156 @@ class CustomCallback(sb3.common.callbacks.BaseCallback):
                 exclude=("stdout", "log", "json", "csv"),
             )
             print('done')
+        return True
+
+
+def save_model(model_dir, model_name):
+    """Saves the model to Google Cloud Storage"""
+    bucket = storage.Client().bucket(model_dir)
+    blob = bucket.blob('{}/{}'.format(
+        datetime.datetime.now().strftime('sonar_%Y%m%d_%H%M%S'),
+        model_name))
+    blob.upload_from_filename(model_name)
+
+class CheckpointCallback(sb3.common.callbacks.CheckpointCallback):
+    def __init__(self, save_freq: int, save_path: str, name_prefix: str = "rl_model", verbose: int = 0):
+        super(CheckpointCallback, self).__init__(
+            save_freq, save_path, name_prefix, verbose
+        )
+
+    def _init_callback(self) -> None:
+        pass
+
+    def _on_step(self) -> bool:
+        if self.n_calls % self.save_freq == 0:
+            path = "{}_{}_steps".format(
+                self.name_prefix, self.num_timesteps
+            )
+            self.model.save(path)
+            save_model(self.save_path, path)            
+            if self.verbose > 1:
+                print(f"Saving model checkpoint to {path}")
+        return True
+
+class EvalCallback(EventCallback):
+    """
+    Callback for evaluating an agent.
+    .. warning::
+      When using multiple environments, each call to  ``env.step()``
+      will effectively correspond to ``n_envs`` steps.
+      To account for that, you can use ``eval_freq = max(eval_freq // n_envs, 1)``
+    :param eval_env: The environment used for initialization
+    :param callback_on_new_best: Callback to trigger
+        when there is a new best model according to the ``mean_reward``
+    :param n_eval_episodes: The number of episodes to test the agent
+    :param eval_freq: Evaluate the agent every ``eval_freq`` call of the callback.
+    :param log_path: Path to a folder where the evaluations (``evaluations.npz``)
+        will be saved. It will be updated at each evaluation.
+    :param best_model_save_path: Path to a folder where the best model
+        according to performance on the eval env will be saved.
+    :param deterministic: Whether the evaluation should
+        use a stochastic or deterministic actions.
+    :param render: Whether to render or not the environment during evaluation
+    :param verbose:
+    :param warn: Passed to ``evaluate_policy`` (warns if ``eval_env`` has not been
+        wrapped with a Monitor wrapper)
+    """
+
+    def __init__(
+        self,
+        eval_env: Union[gym.Env, VecEnv],
+        callback_on_new_best: Optional[BaseCallback] = None,
+        n_eval_episodes: int = 5,
+        eval_freq: int = 10000,
+        best_model_save_path: Optional[str] = None,
+        deterministic: bool = True,
+        render: bool = False,
+        verbose: int = 1,
+        warn: bool = True,
+    ):
+        super(EvalCallback, self).__init__(
+            eval_env,
+            callback_on_new_best,
+            n_eval_episodes,
+            eval_freq,
+            None,
+            best_model_save_path,
+            deterministic,
+            render,
+            verbose,
+            warn
+        )
+
+    def _init_callback(self) -> None:
+        # Does not work in some corner cases, where the wrapper is not the same
+        if not isinstance(self.training_env, type(self.eval_env)):
+            warnings.warn("Training and eval env are not of the same type" f"{self.training_env} != {self.eval_env}")
+
+        # Create folders if needed
+        if self.best_model_save_path is not None:
+            pass
+        if self.log_path is not None:
+            pass 
+
+    def _on_step(self) -> bool:
+
+        if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
+            # Sync training and eval env if there is VecNormalize
+            if self.model.get_vec_normalize_env() is not None:
+                try:
+                    sync_envs_normalization(self.training_env, self.eval_env)
+                except AttributeError:
+                    raise AssertionError(
+                        "Training and eval env are not wrapped the same way, "
+                        "see https://stable-baselines3.readthedocs.io/en/master/guide/callbacks.html#evalcallback "
+                        "and warning above."
+                    )
+
+            # Reset success rate buffer
+            self._is_success_buffer = []
+
+            episode_rewards, episode_lengths = evaluate_policy(
+                self.model,
+                self.eval_env,
+                n_eval_episodes=self.n_eval_episodes,
+                render=self.render,
+                deterministic=self.deterministic,
+                return_episode_rewards=True,
+                warn=self.warn,
+                callback=self._log_success_callback,
+            )
+
+
+            mean_reward, std_reward = np.mean(episode_rewards), np.std(episode_rewards)
+            mean_ep_length, std_ep_length = np.mean(episode_lengths), np.std(episode_lengths)
+            self.last_mean_reward = mean_reward
+
+            if self.verbose > 0:
+                print(f"Eval num_timesteps={self.num_timesteps}, " f"episode_reward={mean_reward:.2f} +/- {std_reward:.2f}")
+                print(f"Episode length: {mean_ep_length:.2f} +/- {std_ep_length:.2f}")
+            # Add to current Logger
+            self.logger.record("eval/mean_reward", float(mean_reward))
+            self.logger.record("eval/mean_ep_length", mean_ep_length)
+
+            if len(self._is_success_buffer) > 0:
+                success_rate = np.mean(self._is_success_buffer)
+                if self.verbose > 0:
+                    print(f"Success rate: {100 * success_rate:.2f}%")
+                self.logger.record("eval/success_rate", success_rate)
+
+            # Dump log so the evaluation results are printed with the correct timestep
+            self.logger.record("time/total_timesteps", self.num_timesteps, exclude="tensorboard")
+            self.logger.dump(self.num_timesteps)
+
+            if mean_reward > self.best_mean_reward:
+                if self.verbose > 0:
+                    print("New best mean reward!")
+                if self.best_model_save_path is not None:
+                    self.model.save("best_model")
+                    save_model(best_model_save_path, "best_model")
+                self.best_mean_reward = mean_reward
+                # Trigger callback if needed
+                if self.callback is not None:
+                    return self._on_event()
+
         return True

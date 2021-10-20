@@ -32,6 +32,7 @@ class MazeEnv(gym.Env):
         self,
         model_cls: Type[AgentModel],
         maze_task: Type[maze_task.MazeTask] = maze_task.MazeTask,
+        max_episode_size: int = 10000,
         include_position: bool = True,
         maze_height: float = 0.5,
         maze_size_scaling: float = 4.0,
@@ -42,6 +43,7 @@ class MazeEnv(gym.Env):
         **kwargs,
     ) -> None:
         self.t = 0  # time steps
+        self.max_episode_size = max_episode_size
         self._task = maze_task(maze_size_scaling, **task_kwargs)
         self._maze_height = height = maze_height
         self._maze_size_scaling = size_scaling = maze_size_scaling
@@ -522,7 +524,7 @@ class MazeEnv(gym.Env):
         self._current_cell = index
         if self._current_cell == self.sampled_path[-1]:
             done = True
-        if self.t > params['max_episode_size']:
+        if self.t > self.max_episode_size:
             done = True
         return next_obs, inner_reward + outer_reward, done, info
 

@@ -35,5 +35,4 @@ params = {
     'buffer_size'                 : 10000,
     'total_timesteps'             : int(1e6),
     'ds'                          : 0.1,
-    'max_episode_size'            : 5000,
 }

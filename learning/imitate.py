@@ -6,27 +6,29 @@ from simulations.maze_task import CustomGoalReward4Rooms
 import stable_baselines3 as sb3
 from utils.il_utils import ImitationLearning
 from constants import params
-from utils.callbacks import CustomCallback
+from utils.callbacks import CustomCallback, CheckpointCallback, EvalCallback
 import os
 import shutil
 
 class Imitate:
-    def __init__(self, logdir, datapath):
+    def __init__(self, logdir, batch_size, max_episode_size):
         self.logdir = logdir
-        self.datapath = datapath
+        self.batch_size = batch_size
         self.env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
             sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
                 lambda : sb3.common.monitor.Monitor(MazeEnv(
                     PointEnv,
-                    CustomGoalReward4Rooms
-                ))  
-            ])  
+                    CustomGoalReward4Rooms,
+                    max_episode_size
+                ))
+            ])
         )
         self.eval_env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
             sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
                 lambda : sb3.common.monitor.Monitor(MazeEnv(
                     PointEnv,
-                    CustomGoalReward4Rooms
+                    CustomGoalReward4Rooms,
+                    max_episode_size
                 ))
             ])
         )
@@ -36,9 +38,9 @@ class Imitate:
             self.env,
             tensorboard_log = os.path.join(self.logdir, 'tensorboard'),
             learning_starts = params['learning_starts'],
-            train_freq = (100, "step"),
+            train_freq = (5, "step"),
             verbose = 2,
-            batch_size = params['batch_size'],
+            batch_size = self.batch_size,
             buffer_size = params['buffer_size'],
             policy_kwargs = {
                 'features_extractor_class' : sb3.common.torch_layers.NatureCNN
@@ -50,36 +52,14 @@ class Imitate:
             self.eval_env,
             render_freq = params['render_freq']
         )
-        if os.path.exists(os.path.join(
-            self.logdir, 'checkpoints'
-        )):
-            shutil.rmtree(os.path.join(
-                self.logdir, 'checkpoints'
-            ))
-        os.mkdir(os.path.join(
-                self.logdir, 'checkpoints'
-        ))
-        checkpointcallback = sb3.common.callbacks.CheckpointCallback(
+        checkpointcallback = CheckpointCallback(
             save_freq = params['save_freq'],
-            save_path = os.path.join(self.logdir, 'checkpoints'),
+            save_path = self.logdir,
             name_prefix = 'il_model'
         )
-        if os.path.exists(os.path.join(
-            self.logdir, 'best_model'
-        )):
-            shutil.rmtree(os.path.join(
-                self.logdir,
-                'best_model'
-            ))
-        os.mkdir(os.path.join(
-            self.logdir,
-            'best_model'
-        ))
-        evalcallback = sb3.common.callbacks.EvalCallback(
+        evalcallback = EvalCallback(
             self.eval_env,
-            best_model_save_path = os.path.join(
-                self.logdir, 'best_model'
-            ),
+            best_model_save_path = self.logdir,
             eval_freq = params['eval_freq'],
             log_path = self.logdir
         )
@@ -89,8 +69,8 @@ class Imitate:
             evalcallback,
         ])
 
-    def learn(self):
+    def learn(self, timesteps):
         self.il_model.learn(
-            total_timesteps = params['total_timesteps'],
+            total_timesteps = timesteps,
             callback = self.il_callback
         )

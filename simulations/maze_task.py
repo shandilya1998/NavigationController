@@ -52,8 +52,6 @@ class MazeGoal:
         return np.sum(np.square(obs[: self.dim] - self.pos)) ** 0.5
 
 
-
-
 class Scaling(NamedTuple):
     ant: Optional[float]
     point: Optional[float]
@@ -66,7 +64,7 @@ class MazeTask(ABC):
     MAZE_SIZE_SCALING: Scaling = Scaling(8.0, 4.0, 4.0)
     INNER_REWARD_SCALING: float = 0.01
     # For Fall/Push/BlockMaze
-    # For Billiard
+    # For Billiar   
     OBJECT_BALL_SIZE: float = 1.0
     # Unused now
     PUT_SPIN_NEAR_AGENT: bool = False
@@ -335,12 +333,6 @@ class MazeVisualGoal(MazeGoal):
             return False
         return True
 
-    def termination(self, obs: np.ndarray) -> bool:
-        for goal in self.goals:
-            if goal.inframe(obs):
-                return True
-        return False
-
 class CustomGoalReward4Rooms(GoalReward4Rooms):
     def __init__(self,
         scale: float,
@@ -365,6 +357,9 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
             if goal.inframe(obs):
                 reward += goal.reward_scale * sign
         return reward
+
+    def termination(self, obs: np.ndarray) -> bool:
+        return False
 
 
 class GoalRewardTRoom(MazeTask):

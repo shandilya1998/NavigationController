@@ -36,7 +36,7 @@ class Imitate:
         self.il_model = ImitationLearning(
             'MlpPolicy',
             self.env,
-            tensorboard_log = os.path.join(self.logdir, 'tensorboard'),
+            tensorboard_log = self.logdir,
             learning_starts = params['learning_starts'],
             train_freq = (5, "step"),
             verbose = 2,
@@ -61,7 +61,6 @@ class Imitate:
             self.eval_env,
             best_model_save_path = self.logdir,
             eval_freq = params['eval_freq'],
-            log_path = self.logdir
         )
         self.il_callback = sb3.common.callbacks.CallbackList([
             checkpointcallback,

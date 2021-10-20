@@ -2,3 +2,4 @@
 *.icloud
 *.npy
 *.zip
+*logs

@@ -6,6 +6,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from google.cloud import storage
+from typing import Any, Callable, Dict, List, Optional, Union
 
 class SaveOnBestTrainingRewardCallback(sb3.common.callbacks.BaseCallback):
     """
@@ -137,7 +138,7 @@ class CheckpointCallback(sb3.common.callbacks.CheckpointCallback):
                 print(f"Saving model checkpoint to {path}")
         return True
 
-class EvalCallback(EventCallback):
+class EvalCallback(sb3.common.callbacks.EvalCallback):
     """
     Callback for evaluating an agent.
     .. warning::
@@ -163,8 +164,8 @@ class EvalCallback(EventCallback):
 
     def __init__(
         self,
-        eval_env: Union[gym.Env, VecEnv],
-        callback_on_new_best: Optional[BaseCallback] = None,
+        eval_env: Union[gym.Env, sb3.common.vec_env.VecEnv],
+        callback_on_new_best: Optional[sb3.common.callbacks.BaseCallback] = None,
         n_eval_episodes: int = 5,
         eval_freq: int = 10000,
         best_model_save_path: Optional[str] = None,
@@ -203,7 +204,7 @@ class EvalCallback(EventCallback):
             # Sync training and eval env if there is VecNormalize
             if self.model.get_vec_normalize_env() is not None:
                 try:
-                    sync_envs_normalization(self.training_env, self.eval_env)
+                    sb3.common.vec_env.sync_envs_normalization(self.training_env, self.eval_env)
                 except AttributeError:
                     raise AssertionError(
                         "Training and eval env are not wrapped the same way, "
@@ -214,7 +215,7 @@ class EvalCallback(EventCallback):
             # Reset success rate buffer
             self._is_success_buffer = []
 
-            episode_rewards, episode_lengths = evaluate_policy(
+            episode_rewards, episode_lengths = sb3.common.evaluation.evaluate_policy(
                 self.model,
                 self.eval_env,
                 n_eval_episodes=self.n_eval_episodes,

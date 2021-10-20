@@ -518,7 +518,7 @@ class MazeEnv(gym.Env):
         next_obs = self._get_obs()
         inner_reward = self._inner_reward_scaling * inner_reward
         outer_reward = self._task.reward(next_obs)
-        done = False#self._task.termination(next_obs)
+        done = self._task.termination(next_obs)
         info["position"] = self.wrapped_env.get_xy()
         index = self.__get_current_cell()  
         self._current_cell = index

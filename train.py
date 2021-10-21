@@ -1,4 +1,6 @@
 from learning.imitate import Imitate
+from mujoco_py import GlfwContext
+GlfwContext(offscreen=True)
 
 import argparse
 

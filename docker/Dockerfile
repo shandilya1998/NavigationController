@@ -1,5 +1,4 @@
-FROM nvidia/cuda:9.0-cudnn7-runtime
-
+FROM nvidia/cuda@sha256:4df157f2afde1cb6077a191104ab134ed4b2fd62927f27b69d788e8e79a45fa1
 
 RUN apt-get update
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends apt-utils
@@ -8,22 +7,32 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 wget curl xz-utils build-essential zlib1g-dev zip unzip \
 libreadline-gplv2-dev libncursesw5-dev libssl-dev libosmesa6-dev \
 libsqlite3-dev tk-dev libgdbm-dev libc6-dev libbz2-dev \
-libgl1-mesa-glx libgl1-mesa-dev patchelf libglfw3-dev \
-libsqlite3-dev libpng-dev libjpeg-dev git-all && \
+libgl1-mesa-glx libgl1-mesa-dev patchelf libglfw3-dev libglew-dev \
+libsqlite3-dev libpng-dev libjpeg-dev git-all liblzma-dev \
+software-properties-common net-tools vim xpra xserver-xorg-dev  && \
+apt-get clean && \
 rm -rf /var/lib/apt/lists/*
 
 RUN wget https://www.python.org/ftp/python/3.6.10/Python-3.6.10.tar.xz && \
 tar -xJf Python-3.6.10.tar.xz && cd Python-3.6.10 && \
 ./configure && make && make install && \
-pip3 install --upgrade pip wheel setuptools \
-numpy pandas cffi Cython lockfile glfw imageio
+pip3 install --upgrade pip wheel setuptools sphinx_rtd_theme numpydoc  \
+ipdb scipy sphinx numpy pandas cffi Cython lockfile glfw imageio
+
+ENV LANG C.UTF-8
 
 RUN mkdir /root/.mujoco && cd /root/.mujoco && \
 wget https://www.roboti.us/download/mjpro150_linux.zip && \
 unzip mjpro150_linux.zip && \
 wget https://www.roboti.us/file/mjkey.txt
 
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/root/.mujoco/mjpro150/bin
+ENV LD_LIBRARY_PATH /root/.mujoco/mjpro150/bin:${LD_LIBRARY_PATH}
+ENV LD_LIBRARY_PATH /usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
+
+COPY vendor/Xdummy /usr/local/bin/Xdummy
+RUN chmod +x /usr/local/bin/Xdummy
+COPY vendor/10_nvidia.json /usr/share/glvnd/egl_vendor.d/10_nvidia.json
+
 
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
@@ -50,5 +59,6 @@ RUN pip install tensorflow
 
 RUN mkdir /root/trainer
 COPY . /root/trainer/
+WORKDIR /root/trainer
 
-RUN which python3
+# ENTRYPOINT ["python3", "train.py"]

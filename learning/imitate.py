@@ -44,7 +44,8 @@ class Imitate:
             buffer_size = params['buffer_size'],
             policy_kwargs = {
                 'features_extractor_class' : sb3.common.torch_layers.NatureCNN
-            }
+            },
+            device = 'auto'
         )
 
     def __set_il_callback(self):

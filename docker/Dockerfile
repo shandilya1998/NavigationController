@@ -1,15 +1,18 @@
 FROM nvidia/cuda@sha256:4df157f2afde1cb6077a191104ab134ed4b2fd62927f27b69d788e8e79a45fa1
 
+ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends apt-utils
+RUN apt-get install -y --no-install-recommends apt-utils
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
 wget curl xz-utils build-essential zlib1g-dev zip unzip \
 libreadline-gplv2-dev libncursesw5-dev libssl-dev libosmesa6-dev \
 libsqlite3-dev tk-dev libgdbm-dev libc6-dev libbz2-dev \
 libgl1-mesa-glx libgl1-mesa-dev patchelf libglfw3-dev libglew-dev \
-libsqlite3-dev libpng-dev libjpeg-dev git-all liblzma-dev \
+libsqlite3-dev libpng-dev libjpeg-dev git-all liblzma-dev tzdata \
 software-properties-common net-tools vim xpra xserver-xorg-dev  && \
+ln -fs /usr/share/zoneinfo/Asia/Kolkata /etc/localtime && \
+dpkg-reconfigure --frontend noninteractive tzdata && \
 apt-get clean && \
 rm -rf /var/lib/apt/lists/*
 
@@ -61,4 +64,4 @@ RUN mkdir /root/trainer
 COPY . /root/trainer/
 WORKDIR /root/trainer
 
-# ENTRYPOINT ["python3", "train.py"]
+ENTRYPOINT ["python3", "train.py"]

@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from google.cloud import storage
 from typing import Any, Callable, Dict, List, Optional, Union
+import datetime
 
 class SaveOnBestTrainingRewardCallback(sb3.common.callbacks.BaseCallback):
     """
@@ -112,7 +113,7 @@ class CustomCallback(sb3.common.callbacks.BaseCallback):
 
 def save_model(model_dir, model_name):
     """Saves the model to Google Cloud Storage"""
-    bucket = storage.Client().bucket(model_dir)
+    bucket = storage.Client().bucket(model_dir[5:])
     blob = bucket.blob('{}/{}'.format(
         datetime.datetime.now().strftime('sonar_%Y%m%d_%H%M%S'),
         model_name))
@@ -133,7 +134,7 @@ class CheckpointCallback(sb3.common.callbacks.CheckpointCallback):
                 self.name_prefix, self.num_timesteps
             )
             self.model.save(path)
-            save_model(self.save_path, path)            
+            save_model(self.save_path, '{}.zip'.format(path))            
             if self.verbose > 1:
                 print(f"Saving model checkpoint to {path}")
         return True
@@ -253,7 +254,7 @@ class EvalCallback(sb3.common.callbacks.EvalCallback):
                     print("New best mean reward!")
                 if self.best_model_save_path is not None:
                     self.model.save("best_model")
-                    save_model(best_model_save_path, "best_model")
+                    save_model(self.best_model_save_path, "best_model.zip")
                 self.best_mean_reward = mean_reward
                 # Trigger callback if needed
                 if self.callback is not None:

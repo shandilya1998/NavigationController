@@ -58,8 +58,6 @@ ENV PATH $PATH:/root/tools/google-cloud-sdk/bin
 # Make sure gsutil will use the default service account
 RUN echo '[GoogleCompute]\nservice_account = default' > /etc/boto.cfg
 
-RUN pip install tensorflow
-
 RUN mkdir /root/trainer
 COPY . /root/trainer/
 WORKDIR /root/trainer

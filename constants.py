@@ -30,9 +30,9 @@ params = {
     'learning_starts'             : 100,
     'batch_size'                  : 2,
     'render_freq'                 : 20000,
-    'save_freq'                   : 5000,
-    'eval_freq'                   : 5000,
-    'buffer_size'                 : 10000,
+    'save_freq'                   : 10000,
+    'eval_freq'                   : 10000,
+    'buffer_size'                 : 100000,
     'total_timesteps'             : int(1e6),
     'ds'                          : 0.1,
 }

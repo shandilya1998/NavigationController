@@ -489,6 +489,8 @@ class MazeEnv(gym.Env):
             (prev_v + delta_v) * np.sin(prev_yaw + delta_yaw),
             delta_yaw / params['dt']
         ])
+        collision_penalty = 0.0
+        info = {}
         if self.wrapped_env.MANUAL_COLLISION:
             old_pos = self.wrapped_env.get_xy()
             old_objballs = self._objball_positions()
@@ -504,6 +506,7 @@ class MazeEnv(gym.Env):
                     self.wrapped_env.set_xy(old_pos)
                 else:
                     self.wrapped_env.set_xy(pos)
+                    collision_penalty += -2.0 * self._inner_reward_scaling
             # Do the same check for object balls
             for name, old, new in zip(self.object_balls, old_objballs, new_objballs):
                 collision = self._objball_collision.detect(old, new)
@@ -526,7 +529,7 @@ class MazeEnv(gym.Env):
             done = True
         if self.t > self.max_episode_size:
             done = True
-        return next_obs, inner_reward + outer_reward, done, info
+        return next_obs, inner_reward + outer_reward + collision_penalty, done, info
 
     def __get_current_cell(self):
         robot_x, robot_y = self.wrapped_env.get_xy()

@@ -31,8 +31,8 @@ gcloud ai-platform jobs submit training $JOB_NAME \
   --config docker/config.yaml \
   -- \
   --logdir=gs://$BUCKET_NAME \
-  --timesteps=1000 \
+  --timesteps=1000000 \
   --batch_size=128 \
-  --max_episode_size=50
+  --max_episode_size=5000
 
 gcloud ai-platform jobs stream-logs $JOB_NAME

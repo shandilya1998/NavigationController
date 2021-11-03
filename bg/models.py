@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torchvision as tv
+from constants import params
 
 class BasalGanglia(torch.nn.Module):
     def __init__(self,
@@ -9,7 +10,6 @@ class BasalGanglia(torch.nn.Module):
         num_gpe = 20, 
         num_stn = 300,
         num_gpi = 2,
-        units_snc = [64, 128, 64],
         FF_Dim_in = 20, 
         FF_steps = 20, 
         stn_gpe_iter = 50, 
@@ -54,16 +54,6 @@ class BasalGanglia(torch.nn.Module):
         self.fc_kd1 = torch.nn.Linear(self.num_ctx, self.FF_Dim_in)
         self.fc_kd2 = torch.nn.Linear(self.num_ctx, self.FF_Dim_in)
 
-        self.vf = torch.nn.Sequential(
-            torch.nn.Linear(self.num_ctx, units_snc[0]),
-            torch.nn.ReLU(),
-            torch.nn.Linear(units_snc[0], units_snc[1]),
-            torch.nn.ReLU(),
-            torch.nn.Linear(units_snc[1], units_snc[2]),
-            torch.nn.ReLU(),
-            torch.nn.Linear(units_snc[2], 1)
-        )
-
         self.thalamus = torch.nn.LSTMCell(
             self.num_gpi, self.num_out
         )
@@ -71,7 +61,6 @@ class BasalGanglia(torch.nn.Module):
 
     def forward(self, inputs):
         stimulus, deltavf = inputs
-        vt = torch.tanh(self.vf(stimulus))
         batch_size = stimulus.shape[0]
         V_D1 = torch.zeros((batch_size, self.FF_Dim_in)).to(stimulus.device)
         V_D2 = torch.zeros((batch_size, self.FF_Dim_in)).to(stimulus.device)
@@ -106,7 +95,7 @@ class BasalGanglia(torch.nn.Module):
             V_GPi = V_GPi + dvgpi
             Ith = -V_GPi
             hx, cx = self.thalamus(Ith, (hx, cx))
-        return hx, vt
+        return hx
 
 def set_parameter_requires_grad(model, feature_extracting):
     if feature_extracting:
@@ -138,3 +127,108 @@ class VisualCortex(torch.nn.Module):
             where ob is the visual observation from the environment
         """
         return torch.tanh(self.model_ft(img))
+
+
+class MotorCortex(torch.nn.Module):
+    def __init__(self, num_ctx = 300, num_bg_out = 20, action_dim = 2):
+        super(MotorCortex, self).__init__()
+        layers = []
+        input_size = num_ctx
+        for units in params['motor_cortex'][0]:
+            layers.append(torch.nn.Linear(input_size, units))
+            layers.append(torch.nn.ReLU())
+            input_size = units
+        layers.append(torch.nn.Linear(input_size, num_bg_out))
+        input_size = num_bg_out
+        self.fc_1 = torch.nn.Sequential(
+            *layers
+        )
+        layers = []
+        for units in params['motor_cortex'][1]:
+            layers.append(torch.nn.Linear(input_size, units))
+            layers.append(torch.nn.ReLU())
+            input_size = units
+        layers.append(torch.nn.Linear(input_size, action_dim))
+        layers.append(torch.nn.Tanh())
+        self.fc_2 = torch.nn.Sequential(
+            *layers
+        )
+
+    def forward(self, inputs):
+        stimulus, bg_out = inputs
+        x = self.fc_1(stimulus)
+        x = x + bg_out
+        action = self.fc_2(x)
+        return action
+
+
+class ControlNetwork(torch.nn.Module):
+    def __init__(self,
+        action_dim = 2,
+        num_bg_out = 20, 
+        num_ctx = 300,
+        num_gpe = 20, 
+        num_stn = 300,
+        num_gpi = 2,
+        units_snc = [64, 128, 64],
+        FF_Dim_in = 20, 
+        FF_steps = 20, 
+        stn_gpe_iter = 50, 
+        eta_gpe = 1,
+        eta_gpi = 0.1,
+        eta_th = 0.01,
+        wsg = 2,
+        wgs = -2, 
+        a1 = 1,
+        a2 = 1,
+        thetad1 = 0,
+        thetad2 = 0,
+        use_pretrained_visual_cortex = True,
+        feature_extracting_visual_cortex = False
+    ):
+        super(ControlNetwork, self).__init__()
+        self.bg = BasalGanglia(
+            num_bg_out,
+            num_ctx,
+            num_gpe, 
+            num_stn,
+            num_gpi,
+            FF_Dim_in, 
+            FF_steps, 
+            stn_gpe_iter, 
+            eta_gpe,
+            eta_gpi,
+            eta_th,
+            wsg,
+            wgs, 
+            a1,
+            a2,
+            thetad1,
+            thetad2,
+        )
+        self.vc = VisualCortex(
+            use_pretrained_visual_cortex,
+            feature_extracting_visual_cortex,
+            num_ctx
+        )
+        self.mc = MotorCortex(
+            num_ctx, num_bg_out, action_dim
+        )
+        self.vf = torch.nn.Sequential(
+            torch.nn.Linear(num_ctx, units_snc[0]),
+            torch.nn.ReLU(),
+            torch.nn.Linear(units_snc[0], units_snc[1]),
+            torch.nn.ReLU(),
+            torch.nn.Linear(units_snc[1], units_snc[2]),
+            torch.nn.ReLU(),
+            torch.nn.Linear(units_snc[2], 1)
+        )
+
+    def forward(self, inputs):
+        img, vt_1 = inputs
+        stimulus = self.vc(img)
+        vt = torch.tanh(self.vf(stimulus))
+        deltavf = vt - vt_1
+        bg_out  = self.bg([stimulus, deltavf])
+        action = self.mc([stimulus, bg_out])
+        return action, vt

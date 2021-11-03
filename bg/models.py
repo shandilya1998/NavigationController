@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import torchvision as tv
 
 class BasalGanglia(torch.nn.Module):
     def __init__(self,
@@ -8,9 +9,10 @@ class BasalGanglia(torch.nn.Module):
         num_gpe = 20, 
         num_stn = 300,
         num_gpi = 2,
+        units_snc = [64, 128, 64],
         FF_Dim_in = 20, 
-        FF_steps = 2, 
-        stn_gpe_iter = 5, 
+        FF_steps = 20, 
+        stn_gpe_iter = 50, 
         eta_gpe = 1,
         eta_gpi = 0.1,
         eta_th = 0.01,
@@ -52,6 +54,16 @@ class BasalGanglia(torch.nn.Module):
         self.fc_kd1 = torch.nn.Linear(self.num_ctx, self.FF_Dim_in)
         self.fc_kd2 = torch.nn.Linear(self.num_ctx, self.FF_Dim_in)
 
+        self.vf = torch.nn.Sequential(
+            torch.nn.Linear(self.num_ctx, units_snc[0]),
+            torch.nn.ReLU(),
+            torch.nn.Linear(units_snc[0], units_snc[1]),
+            torch.nn.ReLU(),
+            torch.nn.Linear(units_snc[1], units_snc[2]),
+            torch.nn.ReLU(),
+            torch.nn.Linear(units_snc[2], 1)
+        )
+
         self.thalamus = torch.nn.LSTMCell(
             self.num_gpi, self.num_out
         )
@@ -59,6 +71,7 @@ class BasalGanglia(torch.nn.Module):
 
     def forward(self, inputs):
         stimulus, deltavf = inputs
+        vt = torch.tanh(self.vf(stimulus))
         batch_size = stimulus.shape[0]
         V_D1 = torch.zeros((batch_size, self.FF_Dim_in)).to(stimulus.device)
         V_D2 = torch.zeros((batch_size, self.FF_Dim_in)).to(stimulus.device)
@@ -71,8 +84,8 @@ class BasalGanglia(torch.nn.Module):
             K_D2 = self.fc_kd2(stimulus)
             V_D1= J_D1 * (1 - V_D1) + (1 - K_D1) * V_D1
             V_D2= J_D2 * (1 - V_D2) + (1 - K_D2) * V_D2
-            V_D1 = torch.sigmoid(V_D1)
-            V_D2 = torch.sigmoid(V_D2)
+            V_D1 = torch.sigmoid(lamd1 * V_D1)
+            V_D2 = torch.sigmoid(lamd2 * V_D2)
         V_GPi_DP = self.fc_d1gpi(V_D1)
         V_GPi = torch.zeros((batch_size, self.num_gpi)).to(stimulus.device)
         xgpe = torch.zeros((batch_size, self.num_gpe)).to(stimulus.device)
@@ -93,7 +106,35 @@ class BasalGanglia(torch.nn.Module):
             V_GPi = V_GPi + dvgpi
             Ith = -V_GPi
             hx, cx = self.thalamus(Ith, (hx, cx))
-        return hx
+        return hx, vt
 
+def set_parameter_requires_grad(model, feature_extracting):
+    if feature_extracting:
+        for param in model.parameters():
+            param.requires_grad = False
 
+class VisualCortex(torch.nn.Module):
+    def __init__(self, 
+        use_pretrained = True,
+        feature_extracting = False,
+        num_ctx = 300,
+    ):
+        super(VisualCortex, self).__init__()
+        self.model_ft = tv.models.resnet18(pretrained=use_pretrained)
+        set_parameter_requires_grad(self.model_ft, feature_extracting)
+        num_ftrs = self.model_ft.fc.in_features
+        self.model_ft.fc = torch.nn.Linear(num_ftrs, num_ctx)
 
+    def forward(self, img):
+        """
+            Input to this model need to be preprocessed as follows
+            img = torch.unsqueeze(
+                torch.permute(
+                    torch.from_numpy(
+                        ob.astype('float32')/255
+                    ), (2, 0, 1)
+                ), 0
+            )
+            where ob is the visual observation from the environment
+        """
+        return torch.tanh(self.model_ft(img))

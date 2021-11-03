@@ -136,23 +136,7 @@ class CustomCallback(sb3.common.callbacks.BaseCallback):
         return True
 
 
-import torch as th
-from torch import nn
-
-from stable_baselines3.common.policies import BasePolicy, ContinuousCritic, register_policy
-from stable_baselines3.common.preprocessing import get_action_dim
-from stable_baselines3.common.torch_layers import (
-    BaseFeaturesExtractor,
-    CombinedExtractor,
-    FlattenExtractor,
-    NatureCNN,
-    create_mlp,
-    get_actor_critic_arch,
-)
-from stable_baselines3.common.type_aliases import Schedule
-
-
-class Actor(BasePolicy):
+class Actor(sb3.common.policies.BasePolicy):
     """
     Actor network (policy) for TD3.
 
@@ -160,7 +144,7 @@ class Actor(BasePolicy):
     :param action_space: Action space
     :param net_arch: Network architecture
     :param features_extractor: Network to extract features
-        (a CNN when using images, a nn.Flatten() layer otherwise)
+        (a CNN when using images, a torch.nn.Flatten() layer otherwise)
     :param features_dim: Number of features
     :param activation_fn: Activation function
     :param normalize_images: Whether to normalize images or not,
@@ -172,9 +156,9 @@ class Actor(BasePolicy):
         observation_space: gym.spaces.Space,
         action_space: gym.spaces.Space,
         net_arch: List[int],
-        features_extractor: nn.Module,
+        features_extractor: torch.nn.Module,
         features_dim: int,
-        activation_fn: Type[nn.Module] = nn.ReLU,
+        activation_fn: Type[torch.nn.Module] = torch.nn.ReLU,
         normalize_images: bool = True,
     ):
         super(Actor, self).__init__(
@@ -189,14 +173,14 @@ class Actor(BasePolicy):
         self.features_dim = features_dim
         self.activation_fn = activation_fn
 
-        action_dim = get_action_dim(self.action_space)
+        action_dim = sb3.common.preprocessing.get_action_dim(self.action_space)
         """
             Requires addition of the basal ganglia model here in the next two
             statements
         """
-        actor_net = create_mlp(features_dim, action_dim, net_arch, activation_fn, squash_output=True)
+        actor_net = sb3.common.torch_layers.create_mlp(features_dim, action_dim, net_arch, activation_fn, squash_output=True)
         # Deterministic action
-        self.mu = nn.Sequential(*actor_net)
+        self.mu = torch.nn.Sequential(*actor_net)
 
     def _get_constructor_parameters(self) -> Dict[str, Any]:
         data = super()._get_constructor_parameters()
@@ -249,10 +233,10 @@ class TD3BGPolicy(BasePolicy):
         self,
         observation_space: gym.spaces.Space,
         action_space: gym.spaces.Space,
-        lr_schedule: Schedule,
+        lr_schedule: sb3.common.type_aliase.Schedule,
         net_arch: Optional[Union[List[int], Dict[str, List[int]]]] = None,
-        activation_fn: Type[nn.Module] = nn.ReLU,
-        features_extractor_class: Type[BaseFeaturesExtractor] = FlattenExtractor,
+        activation_fn: Type[torch.nn.Module] = torch.nn.ReLU,
+        features_extractor_class: Type[sb3.common.torch_layers.BaseFeaturesExtractor] = sb3.common.torch_layers.FlattenExtractor,
         features_extractor_kwargs: Optional[Dict[str, Any]] = None,
         normalize_images: bool = True,
         optimizer_class: Type[torch.optim.Optimizer] = torch.optim.Adam,
@@ -272,12 +256,12 @@ class TD3BGPolicy(BasePolicy):
 
         # Default network architecture, from the original paper
         if net_arch is None:
-            if features_extractor_class == NatureCNN:
+            if features_extractor_class == sb3.common.torch_layers.NatureCNN:
                 net_arch = []
             else:
                 net_arch = [400, 300]
 
-        actor_arch, critic_arch = get_actor_critic_arch(net_arch)
+        actor_arch, critic_arch = sb3.common.torch_layers.get_actor_critic_arch(net_arch)
 
         self.net_arch = net_arch
         self.activation_fn = activation_fn
@@ -304,7 +288,7 @@ class TD3BGPolicy(BasePolicy):
 
         self._build(lr_schedule)
 
-    def _build(self, lr_schedule: Schedule) -> None:
+    def _build(self, lr_schedule: sb3.common.type_aliase.Schedule) -> None:
         # Create actor and target
         # the features extractor should not be shared
         self.actor = self.make_actor(features_extractor=None)
@@ -352,13 +336,13 @@ class TD3BGPolicy(BasePolicy):
         )
         return data
 
-    def make_actor(self, features_extractor: Optional[BaseFeaturesExtractor] = None) -> Actor:
+    def make_actor(self, features_extractor: Optional[sb3.common.torch_layers.BaseFeaturesExtractor] = None) -> Actor:
         actor_kwargs = self._update_features_extractor(self.actor_kwargs, features_extractor)
         return Actor(**actor_kwargs).to(self.device)
 
-    def make_critic(self, features_extractor: Optional[BaseFeaturesExtractor] = None) -> ContinuousCritic:
+    def make_critic(self, features_extractor: Optional[sb3.common.torch_layers.BaseFeaturesExtractor] = None) -> sb3.common.policies.ContinuousCritic:
         critic_kwargs = self._update_features_extractor(self.critic_kwargs, features_extractor)
-        return ContinuousCritic(**critic_kwargs).to(self.device)
+        return sb3.common.policies.ContinuousCritic(**critic_kwargs).to(self.device)
 
     def forward(self, observation: torch.Tensor, deterministic: bool = False) -> torch.Tensor:
         return self._predict(observation, deterministic=deterministic)

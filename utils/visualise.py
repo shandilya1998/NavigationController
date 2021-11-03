@@ -1,4 +1,4 @@
-from bg.model import BasalGanglia
+from bg.models import BasalGanglia
 from torchviz import make_dot
 import hiddenlayer as hl
 import torch

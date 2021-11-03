@@ -9,6 +9,9 @@ def visualise_bg():
     deltavf = torch.rand((1,1))
     out = model([stimulus, deltavf])
     make_dot(out,
-            params=dict(list(model.named_parameters()))).render("bg_torchviz_backward", format="png")
-    graph = hl.build_graph(model, [stimulus, deltavf])
-    graph.save('bg_torchviz_forward', format = 'png')
+            params=dict(list(model.named_parameters()))).render("assets/plots/bg_torchviz_backward", format="png")
+    transforms = [
+        hl.transforms.FoldDuplicates()
+    ] + hl.transforms.SIMPLICITY_TRANSFORMS
+    graph = hl.build_graph(model, [stimulus, deltavf], transforms = transforms)
+    graph.save('assets/plots/bg_torchviz_forward', format = 'png')

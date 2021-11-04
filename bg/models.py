@@ -11,8 +11,8 @@ class BasalGanglia(torch.nn.Module):
         num_stn = 300,
         num_gpi = 2,
         FF_Dim_in = 20, 
-        FF_steps = 20, 
-        stn_gpe_iter = 50, 
+        FF_steps = 2, 
+        stn_gpe_iter = 2, 
         eta_gpe = 1,
         eta_gpi = 0.1,
         eta_th = 0.01,
@@ -57,7 +57,6 @@ class BasalGanglia(torch.nn.Module):
         self.thalamus = torch.nn.LSTMCell(
             self.num_gpi, self.num_out
         )
-
 
     def forward(self, inputs):
         stimulus, deltavf = inputs
@@ -170,7 +169,6 @@ class ControlNetwork(torch.nn.Module):
         num_gpe = 20, 
         num_stn = 300,
         num_gpi = 2,
-        units_snc = [64, 128, 64],
         FF_Dim_in = 20, 
         FF_steps = 20, 
         stn_gpe_iter = 50, 
@@ -215,14 +213,15 @@ class ControlNetwork(torch.nn.Module):
             num_ctx, num_bg_out, action_dim
         )
         self.vf = torch.nn.Sequential(
-            torch.nn.Linear(num_ctx, units_snc[0]),
+            torch.nn.Linear(num_ctx, params['snc'][0]),
             torch.nn.ReLU(),
-            torch.nn.Linear(units_snc[0], units_snc[1]),
+            torch.nn.Linear(params['snc'][0], params['snc'][1]),
             torch.nn.ReLU(),
-            torch.nn.Linear(units_snc[1], units_snc[2]),
+            torch.nn.Linear(params['snc'][1], params['snc'][2]),
             torch.nn.ReLU(),
-            torch.nn.Linear(units_snc[2], 1)
+            torch.nn.Linear(params['snc'][2], 1)
         )
+
 
     def forward(self, inputs):
         img, vt_1 = inputs

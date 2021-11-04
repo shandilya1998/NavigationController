@@ -6,6 +6,17 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from bg.models import ControlNetwork
+import warnings
+from abc import ABC, abstractmethod
+
+from stable_baselines3.common.type_aliases import (
+    DictReplayBufferSamples,
+    DictRolloutBufferSamples,
+    ReplayBufferSamples,
+    RolloutBufferSamples,
+)
+from stable_baselines3.common.vec_env import
 
 class SaveOnBestTrainingRewardCallback(sb3.common.callbacks.BaseCallback):
     """
@@ -136,9 +147,16 @@ class CustomCallback(sb3.common.callbacks.BaseCallback):
         return True
 
 
-class Actor(sb3.common.policies.BasePolicy):
+class PassAsIsFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
+    def __init__(self, observation_space: gym.Space):
+        super(PassAsIsFeatureExtractor, self).__init__(observation_space, get_flattened_obs_dim(observation_space))
+
+    def forward(self, observations):
+        return observations
+
+class ActorBG(sb3.common.policies.BasePolicy):
     """
-    Actor network (policy) for TD3.
+    Actor network (policy) for TD3BG.
 
     :param observation_space: Obervation space
     :param action_space: Action space
@@ -155,13 +173,11 @@ class Actor(sb3.common.policies.BasePolicy):
         self,
         observation_space: gym.spaces.Space,
         action_space: gym.spaces.Space,
-        net_arch: List[int],
+        net_params: Dict[str, Any],
         features_extractor: torch.nn.Module,
-        features_dim: int,
-        activation_fn: Type[torch.nn.Module] = torch.nn.ReLU,
         normalize_images: bool = True,
     ):
-        super(Actor, self).__init__(
+        super(ActorBG, self).__init__(
             observation_space,
             action_space,
             features_extractor=features_extractor,
@@ -169,42 +185,36 @@ class Actor(sb3.common.policies.BasePolicy):
             squash_output=True,
         )
 
-        self.net_arch = net_arch
-        self.features_dim = features_dim
-        self.activation_fn = activation_fn
-
         action_dim = sb3.common.preprocessing.get_action_dim(self.action_space)
         """
             Requires addition of the basal ganglia model here in the next two
             statements
         """
-        actor_net = sb3.common.torch_layers.create_mlp(features_dim, action_dim, net_arch, activation_fn, squash_output=True)
         # Deterministic action
-        self.mu = torch.nn.Sequential(*actor_net)
+        self.net_params = net_params
+        net_params['action_dim'] = action_dim
+        self.mu = ControlNetwork(**net_params)
 
     def _get_constructor_parameters(self) -> Dict[str, Any]:
         data = super()._get_constructor_parameters()
 
         data.update(
             dict(
-                net_arch=self.net_arch,
-                features_dim=self.features_dim,
-                activation_fn=self.activation_fn,
+                net_params=self.net_params,
                 features_extractor=self.features_extractor,
             )
         )
         return data
 
-    def forward(self, obs: torch.Tensor) -> torch.Tensor:
+    def forward(self, obs: List[torch.Tensor]) -> Tuple[torch.Tensor]:
         # assert deterministic, 'The TD3 actor only outputs deterministic actions'
         features = self.extract_features(obs)
         return self.mu(features)
 
-    def _predict(self, observation: torch.Tensor, deterministic: bool = False) -> torch.Tensor:
+    def _predict(self, observation: List[torch.Tensor], deterministic: bool = False) -> Tuple[torch.Tensor]:
         # Note: the deterministic deterministic parameter is ignored in the case of TD3.
         #   Predictions are always deterministic.
         return self.forward(observation)
-
 
 class TD3BGPolicy(BasePolicy):
     """
@@ -234,9 +244,8 @@ class TD3BGPolicy(BasePolicy):
         observation_space: gym.spaces.Space,
         action_space: gym.spaces.Space,
         lr_schedule: sb3.common.type_aliase.Schedule,
-        net_arch: Optional[Union[List[int], Dict[str, List[int]]]] = None,
-        activation_fn: Type[torch.nn.Module] = torch.nn.ReLU,
-        features_extractor_class: Type[sb3.common.torch_layers.BaseFeaturesExtractor] = sb3.common.torch_layers.FlattenExtractor,
+        net_params: Optional[Dict[str, int]] = None,
+        features_extractor_class: Type[sb3.common.torch_layers.BaseFeaturesExtractor] = PassAsIsFeatureExtractor,
         features_extractor_kwargs: Optional[Dict[str, Any]] = None,
         normalize_images: bool = True,
         optimizer_class: Type[torch.optim.Optimizer] = torch.optim.Adam,
@@ -254,22 +263,15 @@ class TD3BGPolicy(BasePolicy):
             squash_output=True,
         )
 
-        # Default network architecture, from the original paper
-        if net_arch is None:
-            if features_extractor_class == sb3.common.torch_layers.NatureCNN:
-                net_arch = []
-            else:
-                net_arch = [400, 300]
+        _, critic_arch = sb3.common.torch_layers.get_actor_critic_arch(
+            params['critic_net_arch']
+        )
 
-        actor_arch, critic_arch = sb3.common.torch_layers.get_actor_critic_arch(net_arch)
-
-        self.net_arch = net_arch
-        self.activation_fn = activation_fn
+        self.net_params = net_params
         self.net_args = {
             "observation_space": self.observation_space,
             "action_space": self.action_space,
-            "net_arch": actor_arch,
-            "activation_fn": self.activation_fn,
+            "net_params": self.net_params,
             "normalize_images": normalize_images,
         }
         self.actor_kwargs = self.net_args.copy()
@@ -323,10 +325,9 @@ class TD3BGPolicy(BasePolicy):
 
         data.update(
             dict(
-                net_arch=self.net_arch,
-                activation_fn=self.net_args["activation_fn"],
+                net_params=self.net_params,
                 n_critics=self.critic_kwargs["n_critics"],
-                lr_schedule=self._dummy_schedule,  # dummy lr schedule, not needed for loading policy alone
+                lr_schedule=self._dummy_schedule,  
                 optimizer_class=self.optimizer_class,
                 optimizer_kwargs=self.optimizer_kwargs,
                 features_extractor_class=self.features_extractor_class,
@@ -344,11 +345,11 @@ class TD3BGPolicy(BasePolicy):
         critic_kwargs = self._update_features_extractor(self.critic_kwargs, features_extractor)
         return sb3.common.policies.ContinuousCritic(**critic_kwargs).to(self.device)
 
-    def forward(self, observation: torch.Tensor, deterministic: bool = False) -> torch.Tensor:
+    def forward(self, observation: List[torch.Tensor], deterministic: bool = False) -> Tuple[torch.Tensor]:
         return self._predict(observation, deterministic=deterministic)
 
 
-    def _predict(self, observation: torch.Tensor, deterministic: bool = False) -> torch.Tensor:
+    def _predict(self, observation: List[torch.Tensor], deterministic: bool = False) -> Tuple[torch.Tensor]:
         # Note: the deterministic deterministic parameter is ignored in the case of TD3.
         #   Predictions are always deterministic.
         return self.actor(observation)
@@ -364,6 +365,144 @@ class TD3BGPolicy(BasePolicy):
         self.actor.set_training_mode(mode)
         self.critic.set_training_mode(mode)
         self.training = mode
+
+class ReplayBuffer(BaseBuffer):
+    """
+    Replay buffer used in off-policy algorithms like SAC/TD3.
+    :param buffer_size: Max number of element in the buffer
+    :param observation_space: Observation space
+    :param action_space: Action space
+    :param device:
+    :param n_envs: Number of parallel environments
+    :param optimize_memory_usage: Enable a memory efficient variant
+        of the replay buffer which reduces by almost a factor two the memory used,
+        at a cost of more complexity.
+        See https://github.com/DLR-RM/stable-baselines3/issues/37#issuecomment-637501195
+        and https://github.com/DLR-RM/stable-baselines3/pull/28#issuecomment-637559274
+    :param handle_timeout_termination: Handle timeout termination (due to timelimit)
+        separately and treat the task as infinite horizon task.
+        https://github.com/DLR-RM/stable-baselines3/issues/284
+    """
+
+    def __init__(
+        self,
+        buffer_size: int,
+        observation_space: gym.spaces.Space,
+        action_space: gym.spaces.Space,
+        device: Union[th.device, str] = "cpu",
+        n_envs: int = 1,
+        optimize_memory_usage: bool = False,
+        handle_timeout_termination: bool = True,
+    ):
+        super(ReplayBuffer, self).__init__(buffer_size, observation_space, action_space, device, n_envs=n_envs)
+
+        assert n_envs == 1, "Replay buffer only support single environment for now"
+
+        # Check that the replay buffer can fit into the memory
+        if psutil is not None:
+            mem_available = psutil.virtual_memory().available
+
+        self.optimize_memory_usage = optimize_memory_usage
+
+        self.observations = np.zeros((self.buffer_size, self.n_envs) + self.obs_shape, dtype=observation_space.dtype)
+
+        if optimize_memory_usage:
+            # `observations` contains also the next observation
+            self.next_observations = None
+        else:
+            self.next_observations = np.zeros((self.buffer_size, self.n_envs) + self.obs_shape, dtype=observation_space.dtype)
+
+        self.actions = np.zeros((self.buffer_size, self.n_envs, self.action_dim), dtype=action_space.dtype)
+
+        self.rewards = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
+        self.dones = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
+        # Handle timeouts termination properly if needed
+        # see https://github.com/DLR-RM/stable-baselines3/issues/284
+        self.handle_timeout_termination = handle_timeout_termination
+        self.timeouts = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
+
+        if psutil is not None:
+            total_memory_usage = self.observations.nbytes + self.actions.nbytes + self.rewards.nbytes + self.dones.nbytes
+
+            if self.next_observations is not None:
+                total_memory_usage += self.next_observations.nbytes
+
+            if total_memory_usage > mem_available:
+                # Convert to GB
+                total_memory_usage /= 1e9
+                mem_available /= 1e9
+                warnings.warn(
+                    "This system does not have apparently enough memory to store the complete "
+                    f"replay buffer {total_memory_usage:.2f}GB > {mem_available:.2f}GB"
+                )
+
+    def add(
+        self,
+        obs: np.ndarray,
+        next_obs: np.ndarray,
+        action: np.ndarray,
+        reward: np.ndarray,
+        done: np.ndarray,
+        infos: List[Dict[str, Any]],
+    ) -> None:
+        # Copy to avoid modification by reference
+        self.observations[self.pos] = np.array(obs).copy()
+
+        if self.optimize_memory_usage:
+            self.observations[(self.pos + 1) % self.buffer_size] = np.array(next_obs).copy()
+        else:
+            self.next_observations[self.pos] = np.array(next_obs).copy()
+
+        self.actions[self.pos] = np.array(action).copy()
+        self.rewards[self.pos] = np.array(reward).copy()
+        self.dones[self.pos] = np.array(done).copy()
+
+        if self.handle_timeout_termination:
+            self.timeouts[self.pos] = np.array([info.get("TimeLimit.truncated", False) for info in infos])
+
+        self.pos += 1
+        if self.pos == self.buffer_size:
+            self.full = True
+            self.pos = 0
+
+    def sample(self, batch_size: int, env: Optional[sb3.common.vec_env.VecNormalize] = None) -> ReplayBufferSamples:
+        """
+        Sample elements from the replay buffer.
+        Custom sampling when using memory efficient variant,
+        as we should not sample the element with index `self.pos`
+        See https://github.com/DLR-RM/stable-baselines3/pull/28#issuecomment-637559274
+        :param batch_size: Number of element to sample
+        :param env: associated gym VecEnv
+            to normalize the observations/rewards when sampling
+        :return:
+        """
+        if not self.optimize_memory_usage:
+            return super().sample(batch_size=batch_size, env=env)
+        # Do not sample the element with index `self.pos` as the transitions is invalid
+        # (we use only one array to store `obs` and `next_obs`)
+        if self.full:
+            batch_inds = (np.random.randint(1, self.buffer_size, size=batch_size) + self.pos) % self.buffer_size
+        else:
+            batch_inds = np.random.randint(0, self.pos, size=batch_size)
+        return self._get_samples(batch_inds, env=env)
+
+    def _get_samples(self, batch_inds: np.ndarray, env: Optional[sb3.common.vec_env.VecNormalize] = None) -> ReplayBufferSamples:
+
+        if self.optimize_memory_usage:
+            next_obs = self._normalize_obs(self.observations[(batch_inds + 1) % self.buffer_size, 0, :], env)
+        else:
+            next_obs = self._normalize_obs(self.next_observations[batch_inds, 0, :], env)
+
+        data = (
+            self._normalize_obs(self.observations[batch_inds, 0, :], env),
+            self.actions[batch_inds, 0, :],
+            next_obs,
+            # Only use dones that are not due to timeouts
+            # deactivated by default (timeouts is initialized as an array of False)
+            self.dones[batch_inds] * (1 - self.timeouts[batch_inds]),
+            self._normalize_reward(self.rewards[batch_inds], env),
+        )
+        return ReplayBufferSamples(*tuple(map(self.to_torch, data)))
 
 class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
     """

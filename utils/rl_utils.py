@@ -208,7 +208,7 @@ class ActorBG(sb3.common.policies.BasePolicy):
         #   Predictions are always deterministic.
         return self.forward(observation)
 
-class TD3BGPolicy(BasePolicy):
+class TD3BGPolicy(sb3.common.policies.BasePolicy):
     """
     Policy class (with both actor and critic in the same network) for TD3BG.
 
@@ -316,10 +316,10 @@ class TD3BGPolicy(BasePolicy):
         self.training = mode
 
 class ReplayBufferSamplesBG(NamedTuple):
-    observations: List[th.Tensor]
-    actions: List[th.Tensor]
-    dones: th.Tensor
-    rewards: th.Tensor
+    observations: List[torch.Tensor]
+    actions: List[torch.Tensor]
+    dones: torch.Tensor
+    rewards: torch.Tensor
 
 class ReplayBufferBG(BaseBuffer):
     """
@@ -342,16 +342,14 @@ class ReplayBufferBG(BaseBuffer):
     def __init__(
         self,
         buffer_size: int,
-        n_steps: int,
         observation_space: gym.spaces.Space,
         action_space: gym.spaces.Space,
-        device: Union[th.device, str] = "cpu",
+        device: Union[torch.device, str] = "cpu",
         n_envs: int = 1,
         optimize_memory_usage: bool = False,
         handle_timeout_termination: bool = True,
     ):
         super(ReplayBufferBG, self).__init__(buffer_size, observation_space, action_space, device, n_envs=n_envs)
-        self.n_steps = n_steps
         assert n_envs == 1, "Replay buffer only support single environment for now"
 
         # Check that the replay buffer can fit into the memory
@@ -361,6 +359,8 @@ class ReplayBufferBG(BaseBuffer):
         self.optimize_memory_usage = optimize_memory_usage
 
         self.observations = np.zeros((self.buffer_size, self.n_envs) + self.obs_shape, dtype=observation_space.dtype)
+        self.vts = np.zeros((self.buffer_size, self.n_envs, 1), dtype = observation_space.dtype)
+        self.ats = np.zeros((self.buffer_size, self.n_envs, 1), dtype = observation_space.dtype)
 
         if optimize_memory_usage:
             # `observations` contains also the next observation
@@ -397,6 +397,8 @@ class ReplayBufferBG(BaseBuffer):
         obs: np.ndarray,
         next_obs: np.ndarray,
         action: np.ndarray,
+        vt: np.ndarray,
+        at: np.ndarray,
         reward: np.ndarray,
         done: np.ndarray,
         infos: List[Dict[str, Any]],
@@ -409,6 +411,8 @@ class ReplayBufferBG(BaseBuffer):
         else:
             self.next_observations[self.pos] = np.array(next_obs).copy()
 
+        self.vts[self.pos] = np.array(vt).copy()
+        self.ats[self.pos] = np.array(at).copy()
         self.actions[self.pos] = np.array(action).copy()
         self.rewards[self.pos] = np.array(reward).copy()
         self.dones[self.pos] = np.array(done).copy()
@@ -421,7 +425,7 @@ class ReplayBufferBG(BaseBuffer):
             self.full = True
             self.pos = 0
 
-    def sample(self, batch_size: int, env: Optional[sb3.common.vec_env.VecNormalize] = None) -> ReplayBufferSamplesBG:
+    def sample(self, n_steps: int, batch_size: int, env: Optional[sb3.common.vec_env.VecNormalize] = None) -> ReplayBufferSamplesBG:
         """
         Sample elements from the replay buffer.
         Custom sampling when using memory efficient variant,
@@ -433,29 +437,33 @@ class ReplayBufferBG(BaseBuffer):
         :return:
         """
         if not self.optimize_memory_usage:
-            return super().sample(batch_size=batch_size, env=env)
+            raise NotImplementedError
         # Do not sample the element with index `self.pos` as the transitions is invalid
         # (we use only one array to store `obs` and `next_obs`)
         if self.full:
-            batch_inds = (np.random.randint(1, self.buffer_size - self.n_steps, size=batch_size) + self.pos) % self.buffer_size
+            batch_inds = (np.random.randint(1, self.buffer_size - n_steps, size=batch_size) + self.pos) % self.buffer_size
         else:
-            batch_inds = np.random.randint(0, self.pos - self.n_steps, size=batch_size)
-        return self._get_samples(batch_inds, env=env)
+            batch_inds = np.random.randint(0, self.pos - n_steps, size=batch_size)
+        return self._get_samples(n_steps, batch_inds, env=env)
 
-    def _get_samples(self, batch_inds: np.ndarray, env: Optional[sb3.common.vec_env.VecNormalize] = None) -> ReplayBufferSamplesBG:
+    def _get_samples(self, n_steps: int, batch_inds: np.ndarray, env: Optional[sb3.common.vec_env.VecNormalize] = None) -> ReplayBufferSamplesBG:
         obs = self._normalize_obs(self.observations[
-            batch_inds: batch_inds + self.n_steps, 0, :)
+            batch_inds: batch_inds + n_steps, 0, :)
         ], env)
-        actions = self.actions[batch_inds: self.n_steps + batch_inds, 0, :]
+        actions = self.actions[batch_inds: n_steps + batch_inds, 0, :]
         dones = self.dones[
-            batch_inds: batch_inds + self.n_steps
+            batch_inds: batch_inds + n_steps
         ] * (1 - self.timeouts[
-            batch_inds: batch_inds + self.n_steps
+            batch_inds: batch_inds + n_steps
         ])
-        rewards = self._normalize_reward(self.rewards[batch_inds: self.n_steps + batch_inds], env)
+        rewards = self._normalize_reward(self.rewards[batch_inds: n_steps + batch_inds], env)
+        vts = self.vts[batch_inds: n_steps + batch_inds]
+        ats = self.ats[batch_inds: n_steps + batch_inds]
         data = (
-            obs,
+            [obs, vts],
             actions,
+            vts,
+            ats,
             dones,
             rewards
         )
@@ -536,7 +544,7 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         train_freq: Union[int, Tuple[int, str]] = (1, "episode"),
         gradient_steps: int = -1,
         action_noise: Optional[sb3.common.noise.ActionNoise] = None,
-        replay_buffer_class: Optional[sb3.common.buffers.ReplayBuffer] = None,
+        replay_buffer_class: ReplayBufferBG = ReplayBufferBG,
         replay_buffer_kwargs: Optional[Dict[str, Any]] = None,
         optimize_memory_usage: bool = False,
         policy_delay: int = 2,
@@ -659,22 +667,278 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         eval_env: Optional[sb3.common.type_aliases.GymEnv] = None,
         eval_freq: int = -1,
         n_eval_episodes: int = 5,
-        tb_log_name: str = "TD3BG",
+        tb_log_name: str = "run",
         eval_log_path: Optional[str] = None,
         reset_num_timesteps: bool = True,
-    ) -> sb3.common.off_policy_algorithm.OffPolicyAlgorithm:
+    ) -> "OffPolicyAlgorithm":
 
-        return super(TD3BG, self).learn(
-            total_timesteps=total_timesteps,
-            callback=callback,
-            log_interval=log_interval,
-            eval_env=eval_env,
-            eval_freq=eval_freq,
-            n_eval_episodes=n_eval_episodes,
-            tb_log_name=tb_log_name,
-            eval_log_path=eval_log_path,
-            reset_num_timesteps=reset_num_timesteps,
+        total_timesteps, callback = self._setup_learn(
+            total_timesteps,
+            eval_env,
+            callback,
+            eval_freq,
+            n_eval_episodes,
+            eval_log_path,
+            reset_num_timesteps,
+            tb_log_name,
         )
+
+        callback.on_training_start(locals(), globals())
+
+        while self.num_timesteps < total_timesteps:
+            rollout = self.collect_rollouts(
+                self.env,
+                train_freq=self.train_freq,
+                action_noise=self.action_noise,
+                callback=callback,
+                learning_starts=self.learning_starts,
+                replay_buffer=self.replay_buffer,
+                log_interval=log_interval,
+            )
+
+            if rollout.continue_training is False:
+                break
+
+            if self.num_timesteps > 0 and self.num_timesteps > self.learning_starts:
+                # If no `gradient_steps` is specified,
+                # do as many gradients steps as steps performed during the rollout
+                gradient_steps = self.gradient_steps if self.gradient_steps >= 0 else rollout.episode_timesteps
+                # Special case when the user passes `gradient_steps=0`
+                if gradient_steps > 0:
+                    self.train(batch_size=self.batch_size, gradient_steps=gradient_steps)
+
+        callback.on_training_end()
+
+        return self
+
+    def predict(
+        self,
+        observation: Union[List[np.ndarray], np.ndarray],
+        state: Optional[np.ndarray] = None,
+        mask: Optional[np.ndarray] = None,
+        deterministic: bool = False,
+    ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
+        """
+        Get the model's action(s) from an observation
+        :param observation: the input observation
+        :param state: The last states (can be None, used in recurrent policies)
+        :param mask: The last masks (can be None, used in recurrent policies)
+        :param deterministic: Whether or not to return deterministic actions.
+        :return: the model's action and the next state
+            (used in recurrent policies)
+        """
+        return self.policy.predict(observation, state, mask, deterministic)
+
+    def _sample_action(
+        self, learning_starts: int, action_noise: Optional[[sb3.common.noise.ActionNoise] = None
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Sample an action according to the exploration policy.
+        This is either done by sampling the probability distribution of the policy,
+        or sampling a random action (from a uniform distribution over the action space)
+        or by adding noise to the deterministic output.
+        :param action_noise: Action noise that will be used for exploration
+            Required for deterministic policy (e.g. TD3). This can also be used
+            in addition to the stochastic policy for SAC.
+        :param learning_starts: Number of steps before learning for the warm-up phase.
+        :return: action to take in the environment
+            and scaled action that will be stored in the replay buffer.
+            The two differs when the action space is not normalized (bounds are not [-1, 1]).
+        """
+        # Select action randomly or according to policy
+        if self.num_timesteps < learning_starts and not (self.use_sde and self.use_sde_at_warmup):
+            # Warmup phase
+            unscaled_action = np.array([self.action_space.sample()])
+        else:
+            # Note: when using continuous actions,
+            # we assume that the policy uses tanh to scale the action
+            # We use non-deterministic action in the case of SAC, for TD3, it does not matter
+            (unscaled_action, vt, at), _ = self.predict(self._last_obs, deterministic=False)
+
+        # Rescale the action from [low, high] to [-1, 1]
+        if isinstance(self.action_space, gym.spaces.Box):
+            scaled_action = self.policy.scale_action(unscaled_action)
+
+            # Add noise to the action (improve exploration)
+            if action_noise is not None:
+                scaled_action = np.clip(scaled_action + action_noise(), -1, 1)
+
+            # We store the scaled action in the buffer
+            buffer_action = scaled_action
+            action = self.policy.unscale_action(scaled_action)
+        else:
+            # Discrete case, no need to normalize or clip
+            buffer_action = unscaled_action
+            action = buffer_action
+        return action, vt, at, buffer_action
+
+    def _store_transition(
+        self,
+        replay_buffer: ReplayBufferBG,
+        buffer_action: np.ndarray,
+        new_obs: np.ndarray,
+        vt: np.ndarray,
+        at: np.ndarray,
+        reward: np.ndarray,
+        done: np.ndarray,
+        infos: List[Dict[str, Any]],
+    ) -> None:
+        """
+        Store transition in the replay buffer.
+        We store the normalized action and the unnormalized observation.
+        It also handles terminal observations (because VecEnv resets automatically).
+        :param replay_buffer: Replay buffer object where to store the transition.
+        :param buffer_action: normalized action
+        :param new_obs: next observation in the current episode
+            or first observation of the episode (when done is True)
+        :param reward: reward for the current transition
+        :param done: Termination signal
+        :param infos: List of additional information about the transition.
+            It may contain the terminal observations and information about timeout.
+        """
+        # Store only the unnormalized version
+        if self._vec_normalize_env is not None:
+            new_obs_ = self._vec_normalize_env.get_original_obs()
+            reward_ = self._vec_normalize_env.get_original_reward()
+        else:
+            # Avoid changing the original ones
+            self._last_original_obs, new_obs_, reward_ = self._last_obs, new_obs, reward
+
+        # As the VecEnv resets automatically, new_obs is already the
+        # first observation of the next episode
+        if done and infos[0].get("terminal_observation") is not None:
+            next_obs = infos[0]["terminal_observation"]
+            # VecNormalize normalizes the terminal observation
+            if self._vec_normalize_env is not None:
+                next_obs = self._vec_normalize_env.unnormalize_obs(next_obs)
+        else:
+            next_obs = new_obs_
+
+        replay_buffer.add(
+            self._last_original_obs,
+            next_obs,
+            buffer_action,
+            vt,
+            at,
+            reward_,
+            done,
+            infos,
+        )
+
+        self._last_obs = new_obs
+        # Save the unnormalized observation
+        if self._vec_normalize_env is not None:
+            self._last_original_obs = new_obs_
+
+    def collect_rollouts(
+        self,
+        env: sb3.common.vec_env.VecEnv,
+        callback: sb3.common.callbacks.BaseCallback,
+        train_freq: sb3.common.type_aliases.TrainFreq,
+        replay_buffer: ReplayBufferBG,
+        action_noise: Optional[sb3.common.noise.ActionNoise] = None,
+        learning_starts: int = 0,
+        log_interval: Optional[int] = None,
+    ) -> sb3.common.type_aliases.RolloutReturn:
+        """
+        Collect experiences and store them into a ``ReplayBuffer``.
+        :param env: The training environment
+        :param callback: Callback that will be called at each step
+            (and at the beginning and end of the rollout)
+        :param train_freq: How much experience to collect
+            by doing rollouts of current policy.
+            Either ``TrainFreq(<n>, TrainFrequencyUnit.STEP)``
+            or ``TrainFreq(<n>, TrainFrequencyUnit.EPISODE)``
+            with ``<n>`` being an integer greater than 0.
+        :param action_noise: Action noise that will be used for exploration
+            Required for deterministic policy (e.g. TD3). This can also be used
+            in addition to the stochastic policy for SAC.
+        :param learning_starts: Number of steps before learning for the warm-up phase.
+        :param replay_buffer:
+        :param log_interval: Log data every ``log_interval`` episodes
+        :return:
+        """
+        # Switch to eval mode (this affects batch norm / dropout)
+        self.policy.set_training_mode(False)
+
+        episode_rewards, total_timesteps = [], []
+        num_collected_steps, num_collected_episodes = 0, 0
+
+        assert isinstance(env, sb3.common.vec_env.VecEnv), "You must pass a VecEnv"
+        assert env.num_envs == 1, "OffPolicyAlgorithm only support single environment"
+        assert train_freq.frequency > 0, "Should at least collect one step or episode."
+
+        if self.use_sde:
+            self.actor.reset_noise()
+
+        callback.on_rollout_start()
+        continue_training = True
+
+        while sb3.common.utils.should_collect_more_steps(train_freq, num_collected_steps, num_collected_episodes):
+            done = False
+            episode_reward, episode_timesteps = 0.0, 0
+
+            while not done:
+
+                if self.use_sde and self.sde_sample_freq > 0 and num_collected_steps % self.sde_sample_freq == 0:
+                    # Sample a new noise matrix
+                    self.actor.reset_noise()
+                # Select action randomly or according to policy
+                action, vt, at, buffer_action = self._sample_action(learning_starts, action_noise)
+
+                # Rescale and perform action
+                new_obs, reward, done, infos = env.step(action)
+
+                self.num_timesteps += 1
+                episode_timesteps += 1
+                num_collected_steps += 1
+
+                # Give access to local variables
+                callback.update_locals(locals())
+                # Only stop training if return value is False, not when it is None.
+                if callback.on_step() is False:
+                    return sb3.common.type_aliases.RolloutReturn(0.0, num_collected_steps, num_collected_episodes, continue_training=False)
+
+                episode_reward += reward
+
+                # Retrieve reward and episode length if using Monitor wrapper
+                self._update_info_buffer(infos, done)
+
+                # Store data in replay buffer (normalized action and unnormalized observation)
+                """
+                    HERE
+                """
+                self._store_transition(replay_buffer, buffer_action, new_obs, vt, at, reward, done, infos)
+
+                self._update_current_progress_remaining(self.num_timesteps, self._total_timesteps)
+
+                # For DQN, check if the target network should be updated
+                # and update the exploration schedule
+                # For SAC/TD3, the update is done as the same time as the gradient update
+                # see https://github.com/hill-a/stable-baselines/issues/900
+                self._on_step()
+
+                if not sb3.common.utils.should_collect_more_steps(train_freq, num_collected_steps, num_collected_episodes):
+                    break
+
+            if done:
+                num_collected_episodes += 1
+                self._episode_num += 1
+                episode_rewards.append(episode_reward)
+                total_timesteps.append(episode_timesteps)
+
+                if action_noise is not None:
+                    action_noise.reset()
+
+                # Log training infos
+                if log_interval is not None and self._episode_num % log_interval == 0:
+                    self._dump_logs()
+
+        mean_reward = np.mean(episode_rewards) if num_collected_episodes > 0 else 0.0
+
+        callback.on_rollout_end()
+
+        return sb3.common.type_aliases.RolloutReturn(mean_reward, num_collected_steps, num_collected_episodes, continue_training)
 
     def _excluded_save_params(self) -> List[str]:
         return super(TD3BG, self)._excluded_save_params() + ["actor", "critic", "actor_target", "critic_target"]

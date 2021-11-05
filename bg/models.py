@@ -212,16 +212,28 @@ class ControlNetwork(torch.nn.Module):
         self.mc = MotorCortex(
             num_ctx, num_bg_out, action_dim
         )
-        self.vf = torch.nn.Sequential(
-            torch.nn.Linear(num_ctx, params['snc'][0]),
-            torch.nn.ReLU(),
-            torch.nn.Linear(params['snc'][0], params['snc'][1]),
-            torch.nn.ReLU(),
-            torch.nn.Linear(params['snc'][1], params['snc'][2]),
-            torch.nn.ReLU(),
-            torch.nn.Linear(params['snc'][2], 1)
-        )
 
+        input_size = num_ctx
+        layers = []
+        for units in params['snc']:
+            layers.append(torch.nn.Linear(num_ctx, units))
+            layers.append(torch.nn.ReLU())
+            input_size = units
+
+        self.vf = torch.nn.Sequential(
+            *layers
+        )
+        
+        input_size = num_ctx + action_dim
+        layers = []
+        for units in params['snc']:
+            layers.append(torch.nn.Linear(num_ctx, units))
+            layers.append(torch.nn.ReLU())
+            input_size = units
+
+        self.af = torch.nn.Sequential(
+            *layers
+        )
 
     def forward(self, inputs):
         img, vt_1 = inputs
@@ -230,4 +242,5 @@ class ControlNetwork(torch.nn.Module):
         deltavf = vt - vt_1
         bg_out  = self.bg([stimulus, deltavf])
         action = self.mc([stimulus, bg_out])
-        return action, vt
+        at = torch.tanh(self.af(torch.cat([stimulus, action], -1)))
+        return action, vt, at

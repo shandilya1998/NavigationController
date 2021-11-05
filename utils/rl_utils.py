@@ -5,18 +5,10 @@ from typing import Any, Dict
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Tuple, Type, Union, NamedTuple
 from bg.models import ControlNetwork
 import warnings
 from abc import ABC, abstractmethod
-
-from stable_baselines3.common.type_aliases import (
-    DictReplayBufferSamples,
-    DictRolloutBufferSamples,
-    ReplayBufferSamples,
-    RolloutBufferSamples,
-)
-from stable_baselines3.common.vec_env import
 
 class SaveOnBestTrainingRewardCallback(sb3.common.callbacks.BaseCallback):
     """
@@ -218,7 +210,7 @@ class ActorBG(sb3.common.policies.BasePolicy):
 
 class TD3BGPolicy(BasePolicy):
     """
-    Policy class (with both actor and critic) for TD3.
+    Policy class (with both actor and critic in the same network) for TD3BG.
 
     :param observation_space: Observation space
     :param action_space: Action space
@@ -234,9 +226,6 @@ class TD3BGPolicy(BasePolicy):
         ``torch.optim.Adam`` by default
     :param optimizer_kwargs: Additional keyword arguments,
         excluding the learning rate, to pass to the optimizer
-    :param n_critics: Number of critic networks to create.
-    :param share_features_extractor: Whether to share or not the features extractor
-        between the actor and the critic (this saves computation time)
     """
 
     def __init__(
@@ -250,7 +239,6 @@ class TD3BGPolicy(BasePolicy):
         normalize_images: bool = True,
         optimizer_class: Type[torch.optim.Optimizer] = torch.optim.Adam,
         optimizer_kwargs: Optional[Dict[str, Any]] = None,
-        n_critics: int = 2,
         share_features_extractor: bool = True,
     ):
         super(TD3BGPolicy, self).__init__(
@@ -263,10 +251,6 @@ class TD3BGPolicy(BasePolicy):
             squash_output=True,
         )
 
-        _, critic_arch = sb3.common.torch_layers.get_actor_critic_arch(
-            params['critic_net_arch']
-        )
-
         self.net_params = net_params
         self.net_args = {
             "observation_space": self.observation_space,
@@ -275,19 +259,9 @@ class TD3BGPolicy(BasePolicy):
             "normalize_images": normalize_images,
         }
         self.actor_kwargs = self.net_args.copy()
-        self.critic_kwargs = self.net_args.copy()
-        self.critic_kwargs.update(
-            {
-                "n_critics": n_critics,
-                "net_arch": critic_arch,
-                "share_features_extractor": share_features_extractor,
-            }
-        )
 
         self.actor, self.actor_target = None, None
-        self.critic, self.critic_target = None, None
         self.share_features_extractor = share_features_extractor
-
         self._build(lr_schedule)
 
     def _build(self, lr_schedule: sb3.common.type_aliase.Schedule) -> None:
@@ -300,25 +274,8 @@ class TD3BGPolicy(BasePolicy):
 
         self.actor.optimizer = self.optimizer_class(self.actor.parameters(), lr=lr_schedule(1), **self.optimizer_kwargs)
 
-        if self.share_features_extractor:
-            self.critic = self.make_critic(features_extractor=self.actor.features_extractor)
-            # Critic target should not share the features extactor with critic
-            # but it can share it with the actor target as actor and critic are sharing
-            # the same features_extractor too
-            # NOTE: as a result the effective poliak (soft-copy) coefficient for the features extractor
-            # will be 2 * tau instead of tau (updated one time with the actor, a second time with the critic)
-            self.critic_target = self.make_critic(features_extractor=self.actor_target.features_extractor)
-        else:
-            # Create new features extractor for each network
-            self.critic = self.make_critic(features_extractor=None)
-            self.critic_target = self.make_critic(features_extractor=None)
-
-        self.critic_target.load_state_dict(self.critic.state_dict())
-        self.critic.optimizer = self.optimizer_class(self.critic.parameters(), lr=lr_schedule(1), **self.optimizer_kwargs)
-
         # Target networks should always be in eval mode
         self.actor_target.set_training_mode(False)
-        self.critic_target.set_training_mode(False)
 
     def _get_constructor_parameters(self) -> Dict[str, Any]:
         data = super()._get_constructor_parameters()
@@ -326,13 +283,11 @@ class TD3BGPolicy(BasePolicy):
         data.update(
             dict(
                 net_params=self.net_params,
-                n_critics=self.critic_kwargs["n_critics"],
                 lr_schedule=self._dummy_schedule,  
                 optimizer_class=self.optimizer_class,
                 optimizer_kwargs=self.optimizer_kwargs,
                 features_extractor_class=self.features_extractor_class,
                 features_extractor_kwargs=self.features_extractor_kwargs,
-                share_features_extractor=self.share_features_extractor,
             )
         )
         return data
@@ -341,13 +296,8 @@ class TD3BGPolicy(BasePolicy):
         actor_kwargs = self._update_features_extractor(self.actor_kwargs, features_extractor)
         return Actor(**actor_kwargs).to(self.device)
 
-    def make_critic(self, features_extractor: Optional[sb3.common.torch_layers.BaseFeaturesExtractor] = None) -> sb3.common.policies.ContinuousCritic:
-        critic_kwargs = self._update_features_extractor(self.critic_kwargs, features_extractor)
-        return sb3.common.policies.ContinuousCritic(**critic_kwargs).to(self.device)
-
     def forward(self, observation: List[torch.Tensor], deterministic: bool = False) -> Tuple[torch.Tensor]:
         return self._predict(observation, deterministic=deterministic)
-
 
     def _predict(self, observation: List[torch.Tensor], deterministic: bool = False) -> Tuple[torch.Tensor]:
         # Note: the deterministic deterministic parameter is ignored in the case of TD3.
@@ -363,10 +313,15 @@ class TD3BGPolicy(BasePolicy):
         :param mode: if true, set to training mode, else set to evaluation mode
         """
         self.actor.set_training_mode(mode)
-        self.critic.set_training_mode(mode)
         self.training = mode
 
-class ReplayBuffer(BaseBuffer):
+class ReplayBufferSamplesBG(NamedTuple):
+    observations: List[th.Tensor]
+    actions: List[th.Tensor]
+    dones: th.Tensor
+    rewards: th.Tensor
+
+class ReplayBufferBG(BaseBuffer):
     """
     Replay buffer used in off-policy algorithms like SAC/TD3.
     :param buffer_size: Max number of element in the buffer
@@ -387,6 +342,7 @@ class ReplayBuffer(BaseBuffer):
     def __init__(
         self,
         buffer_size: int,
+        n_steps: int,
         observation_space: gym.spaces.Space,
         action_space: gym.spaces.Space,
         device: Union[th.device, str] = "cpu",
@@ -394,8 +350,8 @@ class ReplayBuffer(BaseBuffer):
         optimize_memory_usage: bool = False,
         handle_timeout_termination: bool = True,
     ):
-        super(ReplayBuffer, self).__init__(buffer_size, observation_space, action_space, device, n_envs=n_envs)
-
+        super(ReplayBufferBG, self).__init__(buffer_size, observation_space, action_space, device, n_envs=n_envs)
+        self.n_steps = n_steps
         assert n_envs == 1, "Replay buffer only support single environment for now"
 
         # Check that the replay buffer can fit into the memory
@@ -465,7 +421,7 @@ class ReplayBuffer(BaseBuffer):
             self.full = True
             self.pos = 0
 
-    def sample(self, batch_size: int, env: Optional[sb3.common.vec_env.VecNormalize] = None) -> ReplayBufferSamples:
+    def sample(self, batch_size: int, env: Optional[sb3.common.vec_env.VecNormalize] = None) -> ReplayBufferSamplesBG:
         """
         Sample elements from the replay buffer.
         Custom sampling when using memory efficient variant,
@@ -481,13 +437,30 @@ class ReplayBuffer(BaseBuffer):
         # Do not sample the element with index `self.pos` as the transitions is invalid
         # (we use only one array to store `obs` and `next_obs`)
         if self.full:
-            batch_inds = (np.random.randint(1, self.buffer_size, size=batch_size) + self.pos) % self.buffer_size
+            batch_inds = (np.random.randint(1, self.buffer_size - self.n_steps, size=batch_size) + self.pos) % self.buffer_size
         else:
-            batch_inds = np.random.randint(0, self.pos, size=batch_size)
+            batch_inds = np.random.randint(0, self.pos - self.n_steps, size=batch_size)
         return self._get_samples(batch_inds, env=env)
 
-    def _get_samples(self, batch_inds: np.ndarray, env: Optional[sb3.common.vec_env.VecNormalize] = None) -> ReplayBufferSamples:
-
+    def _get_samples(self, batch_inds: np.ndarray, env: Optional[sb3.common.vec_env.VecNormalize] = None) -> ReplayBufferSamplesBG:
+        obs = self._normalize_obs(self.observations[
+            batch_inds: batch_inds + self.n_steps, 0, :)
+        ], env)
+        actions = self.actions[batch_inds: self.n_steps + batch_inds, 0, :]
+        dones = self.dones[
+            batch_inds: batch_inds + self.n_steps
+        ] * (1 - self.timeouts[
+            batch_inds: batch_inds + self.n_steps
+        ])
+        rewards = self._normalize_reward(self.rewards[batch_inds: self.n_steps + batch_inds], env)
+        data = (
+            obs,
+            actions,
+            dones,
+            rewards
+        )
+        return ReplayBufferSamplesBG(*tuple(map(self.to_torch, data)))
+        """
         if self.optimize_memory_usage:
             next_obs = self._normalize_obs(self.observations[(batch_inds + 1) % self.buffer_size, 0, :], env)
         else:
@@ -502,7 +475,8 @@ class ReplayBuffer(BaseBuffer):
             self.dones[batch_inds] * (1 - self.timeouts[batch_inds]),
             self._normalize_reward(self.rewards[batch_inds], env),
         )
-        return ReplayBufferSamples(*tuple(map(self.to_torch, data)))
+        return ReplayBufferSamplesBG(*tuple(map(self.to_torch, data)))
+        """
 
 class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
     """

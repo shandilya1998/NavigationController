@@ -408,6 +408,7 @@ class MazeEnv(gym.Env):
     def reset(self) -> np.ndarray:
         self.t = 0
         self.wrapped_env.reset()
+        vt = action[2]
         # Samples a new start position
         if len(self._init_positions) > 1:
             xy = np.random.choice(self._init_positions)
@@ -417,6 +418,11 @@ class MazeEnv(gym.Env):
         self.__find_all_waypoints()
         self.__find_cubic_spline_path()
         self.__setup_vel_control()
+        next_obs = self._get_obs()
+        obs = {
+            'observation': next_obs,
+            'state_value': np.array([vt])
+        }
         return self._get_obs()
 
     @property
@@ -477,6 +483,7 @@ class MazeEnv(gym.Env):
         self.t += 1
         ai = action[0]
         di = action[1]
+        vt = action[2]
         prev_yaw = copy.deepcopy(self.state.yaw)
         prev_v = copy.deepcopy(self.state.v)
         self.state.update(ai, di)
@@ -529,6 +536,10 @@ class MazeEnv(gym.Env):
             done = True
         if self.t > self.max_episode_size:
             done = True
+        obs = {
+            'observation': next_obs,
+            'state_value': np.array([vt])
+        }
         return next_obs, inner_reward + outer_reward + collision_penalty, done, info
 
     def __get_current_cell(self):
@@ -541,7 +552,6 @@ class MazeEnv(gym.Env):
         self.wrapped_env.close()
         if self._websock_server_pipe is not None:
             self._websock_server_pipe.send(None)
-
 
 def _add_object_ball(
     worldbody: ET.Element, i: str, j: str, x: float, y: float, size: float

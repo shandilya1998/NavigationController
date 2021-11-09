@@ -217,7 +217,8 @@ class ControlNetwork(torch.nn.Module):
         layers = []
         for units in params['snc']:
             layers.append(torch.nn.Linear(input_size, units))
-            layers.append(torch.nn.ReLU())
+            if units != 1:
+                layers.append(torch.nn.ReLU())
             input_size = units
 
         self.vf = torch.nn.Sequential(
@@ -228,7 +229,8 @@ class ControlNetwork(torch.nn.Module):
         layers = []
         for units in params['snc']:
             layers.append(torch.nn.Linear(input_size, units))
-            layers.append(torch.nn.ReLU())
+            if units != 1:
+                layers.append(torch.nn.ReLU())
             input_size = units
 
         self.af = torch.nn.Sequential(

@@ -381,8 +381,8 @@ class MazeEnv(gym.Env):
     def _set_action_space(self):
         low = self.wrapped_env.action_space.low * 2 / self.wrapped_env.dt
         high = self.wrapped_env.action_space.high * 2 / self.wrapped_env.dt
-        low = np.array([low[0] * np.sqrt(2), low[-1], -1, -1], dtype = np.float32)
-        high = np.array([high[0] * np.sqrt(2), high[-1], 1, 1], dtype = np.float32)
+        low = np.array([low[0] * np.sqrt(2), low[-1], -np.inf, -np.inf], dtype = np.float32)
+        high = np.array([high[0] * np.sqrt(2), high[-1], np.inf, np.inf], dtype = np.float32)
         self._action_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
 
     def _set_observation_space(self, observation):

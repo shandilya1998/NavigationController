@@ -622,9 +622,9 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 current_value = replay_data.actions[:, 0, -2:-1].clone()
                 target_q_values = torch.zeros(current_value.size())
                 target_advantage_values = torch.zeros(current_value.size())
-                status = torch.ones((1 - replay_data.dones[:, 0, :]).size())
+                status = (1 - replay_data.dones[:, 0, :].clone())
                 for i in range(1, self.n_steps + 1):
-                    status = (1 - replay_data.dones[:, i, :]) * status
+                    status = (1 - replay_data.dones[:, i, :].clone()) * status
                     next_actions = self.actor_target({
                         key: replay_data.next_observations[key][:, i - 1, :] for key in replay_data.next_observations.keys()
                     })
@@ -636,7 +636,7 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     for j in range(i):
                         sum_reward += replay_data.rewards[:, j, :] * status * (self.gamma ** j)
                     target_advantage_values += (-current_value + sum_reward + next_value * (self.gamma ** i)) * (self.lmbda ** (i - 1))
-                    target_q_values += sum_reward + status * (self.gamma ** (i + 1)) * next_q_values
+                    target_q_values += sum_reward + status * (self.gamma ** i) * next_q_values
                 target_q_values = target_q_values / self.n_steps
                 target_advantage_values = (1 - self.lmbda) * target_advantage_values
 

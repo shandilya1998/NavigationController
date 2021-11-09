@@ -9,6 +9,13 @@ from typing import Any, Dict, List, Optional, Tuple, Type, Union, NamedTuple
 from bg.models import ControlNetwork
 import warnings
 from abc import ABC, abstractmethod
+import inspect
+
+try:
+    # Check memory used by replay buffer when possible
+    import psutil
+except ImportError:
+    psutil = None
 
 class SaveOnBestTrainingRewardCallback(sb3.common.callbacks.BaseCallback):
     """
@@ -141,10 +148,10 @@ class CustomCallback(sb3.common.callbacks.BaseCallback):
 
 class PassAsIsFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
     def __init__(self, observation_space: gym.Space):
-        super(PassAsIsFeatureExtractor, self).__init__(observation_space, get_flattened_obs_dim(observation_space))
+        super(PassAsIsFeaturesExtractor, self).__init__(observation_space, sb3.common.preprocessing.get_flattened_obs_dim(observation_space))
 
     def forward(self, observations):
-        return observations
+        return [observations['observation'], observations['state_value']]
 
 class ActorBG(sb3.common.policies.BasePolicy):
     """
@@ -167,6 +174,7 @@ class ActorBG(sb3.common.policies.BasePolicy):
         action_space: gym.spaces.Space,
         net_params: Dict[str, Any],
         features_extractor: torch.nn.Module,
+        features_dim: int,
         normalize_images: bool = True,
     ):
         super(ActorBG, self).__init__(
@@ -208,6 +216,14 @@ class ActorBG(sb3.common.policies.BasePolicy):
         #   Predictions are always deterministic.
         return self.forward(observation)
 
+    def set_training_mode(self, mode: bool) -> None:
+        """
+        Put the policy in either training or evaluation mode.
+        This affects certain modules, such as batch normalisation and dropout.
+        :param mode: if true, set to training mode, else set to evaluation mode
+        """
+        self.train(mode)
+
 class TD3BGPolicy(sb3.common.policies.BasePolicy):
     """
     Policy class (with both actor and critic in the same network) for TD3BG.
@@ -232,9 +248,9 @@ class TD3BGPolicy(sb3.common.policies.BasePolicy):
         self,
         observation_space: gym.spaces.Space,
         action_space: gym.spaces.Space,
-        lr_schedule: sb3.common.type_aliase.Schedule,
-        net_params: Optional[Dict[str, int]] = None,
-        features_extractor_class: Type[sb3.common.torch_layers.BaseFeaturesExtractor] = PassAsIsFeatureExtractor,
+        lr_schedule: sb3.common.type_aliases.Schedule,
+        net_params: Optional[Dict[str, int]] = {},
+        features_extractor_class: Type[sb3.common.torch_layers.BaseFeaturesExtractor] = PassAsIsFeaturesExtractor,
         features_extractor_kwargs: Optional[Dict[str, Any]] = None,
         normalize_images: bool = True,
         optimizer_class: Type[torch.optim.Optimizer] = torch.optim.Adam,
@@ -250,7 +266,6 @@ class TD3BGPolicy(sb3.common.policies.BasePolicy):
             optimizer_kwargs=optimizer_kwargs,
             squash_output=True,
         )
-
         self.net_params = net_params
         self.net_args = {
             "observation_space": self.observation_space,
@@ -264,7 +279,7 @@ class TD3BGPolicy(sb3.common.policies.BasePolicy):
         self.share_features_extractor = share_features_extractor
         self._build(lr_schedule)
 
-    def _build(self, lr_schedule: sb3.common.type_aliase.Schedule) -> None:
+    def _build(self, lr_schedule: sb3.common.type_aliases.Schedule) -> None:
         # Create actor and target
         # the features extractor should not be shared
         self.actor = self.make_actor(features_extractor=None)
@@ -292,9 +307,9 @@ class TD3BGPolicy(sb3.common.policies.BasePolicy):
         )
         return data
 
-    def make_actor(self, features_extractor: Optional[sb3.common.torch_layers.BaseFeaturesExtractor] = None) -> Actor:
+    def make_actor(self, features_extractor: Optional[sb3.common.torch_layers.BaseFeaturesExtractor] = None) -> ActorBG:
         actor_kwargs = self._update_features_extractor(self.actor_kwargs, features_extractor)
-        return Actor(**actor_kwargs).to(self.device)
+        return ActorBG(**actor_kwargs).to(self.device)
 
     def forward(self, observation: List[torch.Tensor], deterministic: bool = False) -> Tuple[torch.Tensor]:
         return self._predict(observation, deterministic=deterministic)
@@ -315,8 +330,9 @@ class TD3BGPolicy(sb3.common.policies.BasePolicy):
         self.actor.set_training_mode(mode)
         self.training = mode
 
+sb3.common.policies.register_policy('MlpBGPolicy', TD3BGPolicy)
 
-class DictReplayBufferBG(ReplayBuffer):
+class DictReplayBufferBG(sb3.common.buffers.DictReplayBuffer):
     """
     Dict Replay buffer used in off-policy algorithms like SAC/TD3.
     Extends the ReplayBuffer to use dictionary observations
@@ -337,15 +353,15 @@ class DictReplayBufferBG(ReplayBuffer):
         buffer_size: int,
         observation_space: gym.spaces.Space,
         action_space: gym.spaces.Space,
-        n_steps: int = 2,
-        device: Union[th.device, str] = "cpu",
+        device: Union[torch.device, str] = "cpu",
         n_envs: int = 1,
         optimize_memory_usage: bool = False,
         handle_timeout_termination: bool = True,
+        n_steps: int = 2,
     ):
-        super(ReplayBuffer, self).__init__(buffer_size, observation_space, action_space, device, n_envs=n_envs)
-        assert n_steps > 2, "n_steps must be greater than 1 to have multiple steps"
-        assert isinstance(self.obs_shape, dict), "DictReplayBuffer must be used with Dict obs space only"
+        self.n_steps = n_steps
+        super(DictReplayBufferBG, self).__init__(buffer_size, observation_space, action_space, device, n_envs=n_envs)
+        assert self.n_steps > 1, "n_steps must be greater than 1 to have multiple steps"
         assert n_envs == 1, "Replay buffer only support single environment for now"
 
         # Check that the replay buffer can fit into the memory
@@ -399,7 +415,7 @@ class DictReplayBufferBG(ReplayBuffer):
         # Copy to avoid modification by reference
         for key in self.observations.keys():
             self.observations[key][self.pos] = np.array(obs[key]).copy()
-            self.observations[key][(self.pos + 1) % (self.buffer_size + self.n_steps)] = np.array(next_obs).copy()
+            self.observations[key][(self.pos + 1) % (self.buffer_size + self.n_steps)] = np.array(next_obs[key]).copy()
 
         self.actions[self.pos] = np.array(action).copy()
         self.rewards[self.pos] = np.array(reward).copy()
@@ -438,7 +454,7 @@ class DictReplayBufferBG(ReplayBuffer):
         # Convert to torch tensor
         observations = {key: self.to_torch(obs) for key, obs in obs_.items()}
         next_observations = {key: self.to_torch(obs) for key, obs in next_obs_.items()}
-        actions = self.to_torch(self.actions[batch_inds.item(): (batch_inds + self.n_steps + 1]).item())
+        actions = self.to_torch(self.actions[batch_inds.item(): (batch_inds + self.n_steps + 1)].item())
         dones=self.to_torch(self.dones[batch_inds.item(): (batch_inds + self.n_steps + 1).item()] * (1 - self.timeouts[batch_inds.item(): (batch_inds + self.n_steps + 1).item()]))
         rewards=self.to_torch(self._normalize_reward(self.rewards[batch_inds: batch_inds + self.n_steps], env))
         return sb3.common.type_aliases.DictReplayBufferSamples(
@@ -511,7 +527,7 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         train_freq: Union[int, Tuple[int, str]] = (1, "episode"),
         gradient_steps: int = -1,
         action_noise: Optional[sb3.common.noise.ActionNoise] = None,
-        replay_buffer_class: ReplayBufferBG = ReplayBufferBG,
+        replay_buffer_class: DictReplayBufferBG = DictReplayBufferBG,
         replay_buffer_kwargs: Optional[Dict[str, Any]] = None,
         optimize_memory_usage: bool = False,
         policy_delay: int = 2,
@@ -525,7 +541,7 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         device: Union[torch.device, str] = "auto",
         _init_setup_model: bool = True,
     ):
-        self.lambda = lmbda
+        self.lmbda = lmbda
         self.n_steps = n_steps
         if replay_buffer_kwargs is None:
             replay_buffer_kwargs = {'n_steps' : n_steps}
@@ -556,7 +572,6 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             optimize_memory_usage=optimize_memory_usage,
             supported_action_spaces=(gym.spaces.Box),
         )
-
         self.policy_delay = policy_delay
         self.target_noise_clip = target_noise_clip
         self.target_policy_noise = target_policy_noise
@@ -571,15 +586,13 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
     def _create_aliases(self) -> None:
         self.actor = self.policy.actor
         self.actor_target = self.policy.actor_target
-        self.critic = self.policy.critic
-        self.critic_target = self.policy.critic_target
 
     def train(self, gradient_steps: int, batch_size: int = 100) -> None:
         # Switch to train mode (this affects batch norm / dropout)
         self.policy.set_training_mode(True)
 
         # Update learning rate according to lr schedule
-        self._update_learning_rate([self.actor.optimizer, self.critic.optimizer])
+        self._update_learning_rate([self.actor.optimizer])
 
         actor_losses, critic_losses = [], []
 
@@ -590,29 +603,29 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             replay_data = self.replay_buffer.sample(batch_size, env=self._vec_normalize_env)
 
             with torch.no_grad():
-                current_value = replay_data.actions[:, 0, 2:3].clone()
+                current_value = replay_data.actions[:, 0, -2:-1].clone()
                 target_q_values = torch.zeros(current_value.size())
                 target_advantage_values = torch.zeros(current_value.size())
                 status = torch.ones((1 - replay_data.dones[:, 0, :]).size())
                 for i in range(1, self.n_steps + 1):
                     status = (1 - replay_data.dones[:, i, :]) * status
                     next_actions = self.actor_target(replay_data.next_observations[:, i - 1, :])
-                    next_value = next_actions[:, 2:3].clone()
-                    next_advantage = next_actions[:, 3:4].clone()
+                    next_value = next_actions[:, -2:-1].clone()
+                    next_advantage = next_actions[:, -1:].clone()
                     next_q_values = next_value + next_advantage
-                    value = replay_data.actions[:, i, 2:3]
+                    value = replay_data.actions[:, i, -2:-1]
                     sum_reward = torch.zeros(replay_data.rewards[:, i, :].size())
                     for j in range(i):
                         sum_reward += replay_data.rewards[:, j, :] * status * (self.gamma ** j)
-                    target_advantage_values += (-current_value + sum_reward + next_value * (self.gamma ** i)) * (self.lambda ** (i - 1))
+                    target_advantage_values += (-current_value + sum_reward + next_value * (self.gamma ** i)) * (self.lmbda ** (i - 1))
                     target_q_values += sum_reward + status * (self.gamma ** (i + 1)) * next_q_values
                 target_q_values = target_q_values / self.n_steps
-                target_advantage = (1 - self.lambda) * target_advantage
+                target_advantage = (1 - self.lmbda) * target_advantage
 
             # Get current Q-values estimates for each critic network
             actions = self.actor(replay_data.observations[:, 0, :])
-            current_advantage_values = actions[:, 3:4]
-            current_q_values = actions[:, 2:3] + current_advantage_values
+            current_advantage_values = actions[:, -1:]
+            current_q_values = actions[:, -2:-1] + current_advantage_values
 
             # Compute critic loss
             critic_loss = torch.nn.functional.mse_loss(current_q_values, target_q_values) + torch.nn.functional(current_advantage_values, target_advantage_values)
@@ -621,12 +634,13 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             loss = critic_loss
             # Optimize the critics
             self.actor.optimizer.zero_grad()
-            critic_loss.backward()
 
             # Delayed policy updates
             if self._n_updates % self.policy_delay == 0:
                 # Compute actor loss
-                actor_loss = -self.critic.q1_forward(replay_data.observations, self.actor(replay_data.observations)).mean()
+                ac = self.actor(replay_data.observations).mean()
+                q = ac[:, -2:-1] + ac[:, -1:]
+                actor_loss = -q.mean()
                 actor_losses.append(actor_loss.item())
 
                 loss += actor_loss
@@ -645,17 +659,17 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
     def learn(
         self,
         total_timesteps: int,
-        callback: MaybeCallback = None,
+        callback: sb3.common.type_aliases.MaybeCallback = None,
         log_interval: int = 4,
-        eval_env: Optional[GymEnv] = None,
+        eval_env: Optional[sb3.common.type_aliases.GymEnv] = None,
         eval_freq: int = -1,
         n_eval_episodes: int = 5,
         tb_log_name: str = "TD3",
         eval_log_path: Optional[str] = None,
         reset_num_timesteps: bool = True,
-    ) -> OffPolicyAlgorithm:
+    ) -> sb3.common.off_policy_algorithm.OffPolicyAlgorithm:
 
-        return super(TD3, self).learn(
+        return super(TD3BG, self).learn(
             total_timesteps=total_timesteps,
             callback=callback,
             log_interval=log_interval,
@@ -668,8 +682,8 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         )
 
     def _excluded_save_params(self) -> List[str]:
-        return super(TD3BG, self)._excluded_save_params() + ["actor", "critic", "actor_target", "critic_target"]
+        return super(TD3BG, self)._excluded_save_params() + ["actor", "actor_target"]
 
     def _get_torch_save_params(self) -> Tuple[List[str], List[str]]:
-        state_dicts = ["policy", "actor.optimizer", "critic.optimizer"]
+        state_dicts = ["policy", "actor.optimizer",]
         return state_dicts, []

@@ -43,6 +43,7 @@ class MazeEnv(gym.Env):
         **kwargs,
     ) -> None:
         self.t = 0  # time steps
+        self.vt = np.array([0.0], dtype = np.float32)
         self.max_episode_size = max_episode_size
         self._task = maze_task(maze_size_scaling, **task_kwargs)
         self._maze_height = height = maze_height
@@ -380,8 +381,8 @@ class MazeEnv(gym.Env):
     def _set_action_space(self):
         low = self.wrapped_env.action_space.low * 2 / self.wrapped_env.dt
         high = self.wrapped_env.action_space.high * 2 / self.wrapped_env.dt
-        low = np.array([low[0] * np.sqrt(2), low[-1]], dtype = np.float32)
-        high = np.array([high[0] * np.sqrt(2), high[-1]], dtype = np.float32)
+        low = np.array([low[0] * np.sqrt(2), low[-1], -1, -1], dtype = np.float32)
+        high = np.array([high[0] * np.sqrt(2), high[-1], 1, 1], dtype = np.float32)
         self._action_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
 
     def _set_observation_space(self, observation):
@@ -403,12 +404,16 @@ class MazeEnv(gym.Env):
         return xmin, xmax, ymin, ymax
 
     def _get_obs(self) -> np.ndarray:
-        return self.wrapped_env._get_obs()
+        img = self.wrapped_env._get_obs()
+        return {
+            'observation' : img.copy(),
+            'state_value' : self.vt.copy()
+        }
 
     def reset(self) -> np.ndarray:
         self.t = 0
         self.wrapped_env.reset()
-        vt = action[2]
+        self.vt = np.array([0.0])
         # Samples a new start position
         if len(self._init_positions) > 1:
             xy = np.random.choice(self._init_positions)
@@ -418,11 +423,6 @@ class MazeEnv(gym.Env):
         self.__find_all_waypoints()
         self.__find_cubic_spline_path()
         self.__setup_vel_control()
-        next_obs = self._get_obs()
-        obs = {
-            'observation': next_obs,
-            'state_value': np.array([vt])
-        }
         return self._get_obs()
 
     @property
@@ -483,7 +483,7 @@ class MazeEnv(gym.Env):
         self.t += 1
         ai = action[0]
         di = action[1]
-        vt = action[2]
+        self.vt = action[-2]
         prev_yaw = copy.deepcopy(self.state.yaw)
         prev_v = copy.deepcopy(self.state.v)
         self.state.update(ai, di)
@@ -527,8 +527,8 @@ class MazeEnv(gym.Env):
             inner_next_obs, inner_reward, _, info = self.wrapped_env.step(action)
         next_obs = self._get_obs()
         inner_reward = self._inner_reward_scaling * inner_reward
-        outer_reward = self._task.reward(next_obs)
-        done = self._task.termination(next_obs)
+        outer_reward = self._task.reward(next_obs['observation'])
+        done = self._task.termination(next_obs['observation'])
         info["position"] = self.wrapped_env.get_xy()
         index = self.__get_current_cell()  
         self._current_cell = index
@@ -536,10 +536,6 @@ class MazeEnv(gym.Env):
             done = True
         if self.t > self.max_episode_size:
             done = True
-        obs = {
-            'observation': next_obs,
-            'state_value': np.array([vt])
-        }
         return next_obs, inner_reward + outer_reward + collision_penalty, done, info
 
     def __get_current_cell(self):

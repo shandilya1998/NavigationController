@@ -322,6 +322,35 @@ class TD3BGPolicy(sb3.common.policies.BasePolicy):
         #   Predictions are always deterministic.
         return self.actor(observation)
 
+    def scale_action(self, action: np.ndarray) -> np.ndarray:
+        """
+        Rescale the action from [low, high] to [-1, 1]
+        (no need for symmetric action space)
+        :param action: Action to scale
+        :return: Scaled action
+        """
+        low, high = self.action_space.low, self.action_space.high
+        low = low[:-2]
+        high = high[:-2]
+        ac = action[:, :-2]
+        values = ac[:, -2:]
+        scaled_ac = 2.0 * ((ac - low) / (high - low)) - 1.0
+        return np.concatenate([scaled_ac, values], -1)
+
+    def unscale_action(self, scaled_action: np.ndarray) -> np.ndarray:
+        """
+        Rescale the action from [-1, 1] to [low, high]
+        (no need for symmetric action space)
+        :param scaled_action: Action to un-scale
+        """
+        low, high = self.action_space.low, self.action_space.high
+        low = low[:-2]
+        high = high[:-2]
+        ac = scaled_action[:, :-2]
+        values = scaled_action[:, -2:]
+        unscaled_ac = low + (0.5 * (ac + 1.0) * (high - low))
+        return np.concatenate([unscaled_ac, values], -1)
+
     def set_training_mode(self, mode: bool) -> None:
         """
         Put the policy in either training or evaluation mode.
@@ -679,6 +708,50 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         if len(actor_losses) > 0:
             self.logger.record("train/actor_loss", np.mean(actor_losses))
         self.logger.record("train/critic_loss", np.mean(critic_losses))
+
+    def _sample_action(
+        self, learning_starts: int, action_noise: Optional[sb3.common.noise.ActionNoise] = None
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Sample an action according to the exploration policy.
+        This is either done by sampling the probability distribution of the policy,
+        or sampling a random action (from a uniform distribution over the action space)
+        or by adding noise to the deterministic output.
+        :param action_noise: Action noise that will be used for exploration
+            Required for deterministic policy (e.g. TD3). This can also be used
+            in addition to the stochastic policy for SAC.
+        :param learning_starts: Number of steps before learning for the warm-up phase.
+        :return: action to take in the environment
+            and scaled action that will be stored in the replay buffer.
+            The two differs when the action space is not normalized (bounds are not [-1, 1]).
+        """
+        # Select action randomly or according to policy
+        if self.num_timesteps < learning_starts and not (self.use_sde and self.use_sde_at_warmup):
+            # Warmup phase
+            unscaled_action = np.array([self.action_space.sample()])
+        else:
+            # Note: when using continuous actions,
+            # we assume that the policy uses tanh to scale the action
+            # We use non-deterministic action in the case of SAC, for TD3, it does not matter
+            unscaled_action, _ = self.predict(self._last_obs, deterministic=False)
+
+        # Rescale the action from [low, high] to [-1, 1]
+        if isinstance(self.action_space, gym.spaces.Box):
+            scaled_action = self.policy.scale_action(unscaled_action)
+
+            # Add noise to the action (improve exploration)
+            if action_noise is not None:
+                scaled_ac = np.clip(scaled_action[:, :-2] + action_noise(), -1, 1)
+                scaled_action = np.concatenate([scaled_ac, scaled_action[:, -2:]], -1)
+
+            # We store the scaled action in the buffer
+            buffer_action = scaled_action
+            action = self.policy.unscale_action(scaled_action)
+        else:
+            # Discrete case, no need to normalize or clip
+            buffer_action = unscaled_action
+            action = buffer_action
+        return action, buffer_action
 
     def learn(
         self,

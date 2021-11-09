@@ -237,13 +237,15 @@ class ControlNetwork(torch.nn.Module):
             *layers
         )
 
-    def forward(self, inputs):
+    def forward(self, inputs): 
         img, vt_1 = inputs
+        print(vt_1)
         stimulus = self.vc(img)
-        vt = torch.tanh(self.vf(stimulus))
+        vt = self.vf(stimulus)
         deltavf = vt - vt_1
         bg_out  = self.bg([stimulus, deltavf])
         action = self.mc([stimulus, bg_out])
-        at = torch.tanh(self.af(torch.cat([stimulus, action], -1)))
+        at = self.af(torch.cat([stimulus, action], -1))
         output = torch.cat([action, vt, at], -1)
+        print(output)
         return output

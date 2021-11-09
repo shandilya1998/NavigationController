@@ -480,6 +480,7 @@ class MazeEnv(gym.Env):
         ]
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
+        #print(action)
         self.t += 1
         ai = action[0]
         di = action[1]

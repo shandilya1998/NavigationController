@@ -18,6 +18,7 @@ IMAGE_REPO_NAME=navigation_controller_container
 IMAGE_TAG=navigation_controller_pytorch
 IMAGE_URI=gcr.io/$PROJECT_ID/$IMAGE_REPO_NAME:$IMAGE_TAG
 JOB_NAME=experiment_$(date +%Y%m%d_%H%M%S)
+LEARNING_TYPE=explore
 
 docker build -f docker/Dockerfile -t $IMAGE_URI ./
 docker push $IMAGE_URI
@@ -30,6 +31,7 @@ gcloud ai-platform jobs submit training $JOB_NAME \
   --master-image-uri $IMAGE_URI \
   --config docker/config.yaml \
   -- \
+  --learning_type=$LEARNING_TYPE \
   --logdir=gs://$BUCKET_NAME \
   --timesteps=1000000 \
   --batch_size=128 \

@@ -185,6 +185,7 @@ class ActorBG(sb3.common.policies.BasePolicy):
             squash_output=True,
         )
 
+        # 2 is being subtracted to account for the additional value and advantage values in the policy output
         action_dim = sb3.common.preprocessing.get_action_dim(self.action_space) - 2
         if action_dim <= 0:
             raise ValueError('Action Space Must contain atleast 3 dimensions, got 2 or less')

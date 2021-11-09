@@ -216,7 +216,7 @@ class ControlNetwork(torch.nn.Module):
         input_size = num_ctx
         layers = []
         for units in params['snc']:
-            layers.append(torch.nn.Linear(num_ctx, units))
+            layers.append(torch.nn.Linear(input_size, units))
             layers.append(torch.nn.ReLU())
             input_size = units
 
@@ -227,7 +227,7 @@ class ControlNetwork(torch.nn.Module):
         input_size = num_ctx + action_dim
         layers = []
         for units in params['snc']:
-            layers.append(torch.nn.Linear(num_ctx, units))
+            layers.append(torch.nn.Linear(input_size, units))
             layers.append(torch.nn.ReLU())
             input_size = units
 

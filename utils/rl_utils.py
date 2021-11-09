@@ -185,7 +185,9 @@ class ActorBG(sb3.common.policies.BasePolicy):
             squash_output=True,
         )
 
-        action_dim = sb3.common.preprocessing.get_action_dim(self.action_space)
+        action_dim = sb3.common.preprocessing.get_action_dim(self.action_space) - 2
+        if action_dim <= 0:
+            raise ValueError('Action Space Must contain atleast 3 dimensions, got 2 or less')
         """
             Requires addition of the basal ganglia model here in the next two
             statements
@@ -449,18 +451,32 @@ class DictReplayBufferBG(sb3.common.buffers.DictReplayBuffer):
 
     def _get_samples(self, batch_inds: np.ndarray, env: Optional[sb3.common.vec_env.VecNormalize] = None) -> sb3.common.type_aliases.DictReplayBufferSamples:
         # Normalize if needed and remove extra dimension (we are using only one env for now)
-        obs_ = self._normalize_obs({key: obs[batch_inds:(batch_inds + 1).item(), 0, :] for key, obs in self.observations.items()})
-        next_obs_ = self._normalize_obs({key: obs[(batch_inds + 1).item(): (batch_inds + self.n_steps + 1).item(), 0, :] for key, obs in self.observations.items()})
+        obs_ = {key: [] for key in self.observations.keys()}
+        next_obs_ = {key: [] for key in self.observations.keys()}
+        actions = []
+        dones = []
+        rewards = []
+        for i, index in enumerate(batch_inds):
+            ob = self._normalize_obs({key: obs[index:index + 1, 0, :] for key, obs in self.observations.items()})
+            next_ob = self._normalize_obs({key: obs[index + 1:index + 1 + self.n_steps, 0, :] for key, obs in self.observations.items()})
+            for key in self.observations.keys():
+                obs_[key].append(ob[key])
+                next_obs_[key].append(next_ob[key])
+            actions.append(self.actions[index: index + self.n_steps + 1])
+            dones.append(
+                self.dones[index: index + self.n_steps + 1] * (1 - self.timeouts[index: index + self.n_steps + 1])
+            )
+            rewards.append(self._normalize_reward(self.rewards[index: index + self.n_steps + 1], env))
+        obs_ = self._normalize_obs({key: self.to_torch(np.stack(ob, 0)) for key, ob in obs_.items()})
+        next_obs_ = self._normalize_obs({key: self.to_torch(np.stack(ob, 0)) for key, ob in next_obs_.items()})
         # Convert to torch tensor
-        observations = {key: self.to_torch(obs) for key, obs in obs_.items()}
-        next_observations = {key: self.to_torch(obs) for key, obs in next_obs_.items()}
-        actions = self.to_torch(self.actions[batch_inds.item(): (batch_inds + self.n_steps + 1)].item())
-        dones=self.to_torch(self.dones[batch_inds.item(): (batch_inds + self.n_steps + 1).item()] * (1 - self.timeouts[batch_inds.item(): (batch_inds + self.n_steps + 1).item()]))
-        rewards=self.to_torch(self._normalize_reward(self.rewards[batch_inds: batch_inds + self.n_steps], env))
+        actions = self.to_torch(np.stack(actions, 0))
+        dones=self.to_torch(np.stack(dones, 0))
+        rewards=self.to_torch(np.stack(rewards, 0))
         return sb3.common.type_aliases.DictReplayBufferSamples(
-            observations = observations,
+            observations = obs_,
             actions = actions,
-            next_observations = next_observations,
+            next_observations = next_obs_,
             # Only use dones that are not due to timeouts
             # deactivated by default (timeouts is initialized as an array of False)
             dones = dones,
@@ -609,7 +625,9 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 status = torch.ones((1 - replay_data.dones[:, 0, :]).size())
                 for i in range(1, self.n_steps + 1):
                     status = (1 - replay_data.dones[:, i, :]) * status
-                    next_actions = self.actor_target(replay_data.next_observations[:, i - 1, :])
+                    next_actions = self.actor_target({
+                        key: replay_data.next_observations[key][:, i - 1, :] for key in replay_data.next_observations.keys()
+                    })
                     next_value = next_actions[:, -2:-1].clone()
                     next_advantage = next_actions[:, -1:].clone()
                     next_q_values = next_value + next_advantage
@@ -620,15 +638,18 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     target_advantage_values += (-current_value + sum_reward + next_value * (self.gamma ** i)) * (self.lmbda ** (i - 1))
                     target_q_values += sum_reward + status * (self.gamma ** (i + 1)) * next_q_values
                 target_q_values = target_q_values / self.n_steps
-                target_advantage = (1 - self.lmbda) * target_advantage
+                target_advantage_values = (1 - self.lmbda) * target_advantage_values
 
             # Get current Q-values estimates for each critic network
-            actions = self.actor(replay_data.observations[:, 0, :])
+            actions = self.actor({
+                key: replay_data.observations[key][:, 0, :] for key in replay_data.observations.keys()
+            })
             current_advantage_values = actions[:, -1:]
             current_q_values = actions[:, -2:-1] + current_advantage_values
 
             # Compute critic loss
-            critic_loss = torch.nn.functional.mse_loss(current_q_values, target_q_values) + torch.nn.functional(current_advantage_values, target_advantage_values)
+            critic_loss = torch.nn.functional.mse_loss(current_q_values, target_q_values) + \
+                torch.nn.functional.mse_loss(current_advantage_values, target_advantage_values)
             critic_losses.append(critic_loss.item())
 
             loss = critic_loss
@@ -638,7 +659,9 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             # Delayed policy updates
             if self._n_updates % self.policy_delay == 0:
                 # Compute actor loss
-                ac = self.actor(replay_data.observations).mean()
+                ac = self.actor({
+                    key: replay_data.observations[key][:, 0, :] for key in replay_data.observations.keys()
+                })
                 q = ac[:, -2:-1] + ac[:, -1:]
                 actor_loss = -q.mean()
                 actor_losses.append(actor_loss.item())

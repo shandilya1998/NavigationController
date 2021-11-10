@@ -23,6 +23,7 @@ while not done:
     ob, reward, done, info = env.step(ac)
     steps += 1
     pos = env.wrapped_env.sim.data.qpos.copy()
+    
     cv2.imshow('stream', ob['observation'])
     cv2.waitKey(1)
     POS.append(pos.copy())

@@ -238,8 +238,8 @@ class ControlNetwork(torch.nn.Module):
         )
 
     def forward(self, inputs): 
-        img, vt_1 = inputs
-        stimulus = self.vc(img)
+        stimulus, vt_1 = inputs
+        stimulus = self.vc(stimulus)
         vt = self.vf(stimulus)
         deltavf = vt - vt_1
         bg_out  = self.bg([stimulus, deltavf])

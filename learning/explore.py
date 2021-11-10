@@ -39,7 +39,7 @@ class Explore:
             tensorboard_log = self.logdir,
             learning_starts = params['learning_starts'],
             train_freq = (5, "step"),
-            n_steps = 5,
+            n_steps = 10,
             verbose = 2,
             batch_size = self.batch_size,
             buffer_size = params['buffer_size'],

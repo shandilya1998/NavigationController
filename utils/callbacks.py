@@ -77,7 +77,6 @@ class CustomCallback(sb3.common.callbacks.BaseCallback):
     def _on_step(self) -> bool:
         if self.n_calls % self._render_freq == 0:
             screens = []
-            print('here')
             def grab_screens(
                 _locals: Dict[str, Any],
                 _globals: Dict[str, Any]
@@ -107,7 +106,6 @@ class CustomCallback(sb3.common.callbacks.BaseCallback):
                 sb3.common.logger.Video(torch.ByteTensor([screens]), fps=40),
                 exclude=("stdout", "log", "json", "csv"),
             )
-            print('done')
         return True
 
 

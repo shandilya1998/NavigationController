@@ -34,7 +34,7 @@ gcloud ai-platform jobs submit training $JOB_NAME \
   --learning_type=$LEARNING_TYPE \
   --logdir=gs://$BUCKET_NAME \
   --timesteps=1000000 \
-  --batch_size=128 \
+  --batch_size=64 \
   --max_episode_size=5000
 
 gcloud ai-platform jobs stream-logs $JOB_NAME

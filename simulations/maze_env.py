@@ -1,4 +1,5 @@
 """
+
 Mujoco Maze environment.
 Based on `models`_ and `rllab`_.
 
@@ -533,6 +534,32 @@ class MazeEnv(gym.Env):
         self.wrapped_env.close()
         if self._websock_server_pipe is not None:
             self._websock_server_pipe.send(None)
+
+    def xy_to_imgrowcol(self, x, y): 
+        (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(x, y)
+        row = 200 * row + int((row_frac) * 200) + 100 
+        col = 200 * col + int((col_frac) * 200) + 100 
+        return row, col 
+
+    def render(self, mode = None):
+        return self.get_top_view()
+
+    def get_top_view(self):
+        img = np.zeros(
+            (200 * len(self._maze_structure), 200 * len(self._maze_structure[0]), 3)
+        )
+        for i in range(len(self._maze_structure)):
+            for j in range(len(self._maze_structure[0])):
+                if  self._maze_structure[i][j].is_wall_or_chasm():
+                    img[
+                        200 * i: 200 * (i + 1),
+                        200 * j: 200 * (j + 1)
+                    ] = 0.5
+
+        x, y = self.wrapped_env.get_xy()
+        row, col = self.xy_to_imgrowcol(x, y)
+        img[row - 20: row + 20, col - 20: col + 20] = [1, 0, 0]
+        return img
 
 def _add_object_ball(
     worldbody: ET.Element, i: str, j: str, x: float, y: float, size: float

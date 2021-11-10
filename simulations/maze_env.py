@@ -6,6 +6,11 @@ Based on `models`_ and `rllab`_.
 .. _rllab: https://github.com/rll/rllab
 """
 
+"""
+    REFER TO THE FOLLOWING FOR GEOM AND BODY NAMES IN MODEL:
+        https://github.com/openai/mujoco-py/blob/9dd6d3e8263ba42bfd9499a988b36abc6b8954e9/mujoco_py/generated/wrappers.pxi
+"""
+
 import itertools as it
 import os
 import tempfile
@@ -65,27 +70,6 @@ class MazeEnv(gym.Env):
         self._init_positions = [
             (x - torso_x, y - torso_y) for x, y in self._find_all_robots()
         ]
-
-        if model_cls.MANUAL_COLLISION:
-            if model_cls.RADIUS is None:
-                raise ValueError("Manual collision needs radius of the model")
-            self._collision = maze_env_utils.CollisionDetector(
-                structure,
-                size_scaling,
-                torso_x,
-                torso_y,
-                model_cls.RADIUS,
-            )
-            # Now all object balls have size=1.0
-            self._objball_collision = maze_env_utils.CollisionDetector(
-                structure,
-                size_scaling,
-                torso_x,
-                torso_y,
-                self._task.OBJECT_BALL_SIZE,
-            )
-        else:
-            self._collision = None
 
         def func(x):
             x_int, x_frac = int(x), x % 1
@@ -497,35 +481,8 @@ class MazeEnv(gym.Env):
             (prev_v + delta_v) * np.sin(prev_yaw + delta_yaw),
             delta_yaw / params['dt']
         ])
-        collision_penalty = 0.0
         info = {}
-        if self.wrapped_env.MANUAL_COLLISION:
-            old_pos = self.wrapped_env.get_xy()
-            old_objballs = self._objball_positions()
-            inner_next_obs, inner_reward, _, info = self.wrapped_env.step(action)
-            new_pos = self.wrapped_env.get_xy()
-            new_objballs = self._objball_positions()
-            # Checks that the new_position is in the wall
-            collision = self._collision.detect(old_pos, new_pos)
-            if collision is not None:
-                pos = collision.point + self._restitution_coef * collision.rest()
-                if self._collision.detect(old_pos, pos) is not None:
-                    # If pos is also not in the wall, we give up computing the position
-                    self.wrapped_env.set_xy(old_pos)
-                else:
-                    self.wrapped_env.set_xy(pos)
-                    collision_penalty += -2.0 * self._inner_reward_scaling
-            # Do the same check for object balls
-            for name, old, new in zip(self.object_balls, old_objballs, new_objballs):
-                collision = self._objball_collision.detect(old, new)
-                if collision is not None:
-                    pos = collision.point + self._restitution_coef * collision.rest()
-                    if self._objball_collision.detect(old, pos) is not None:
-                        pos = old
-                    idx = self.wrapped_env.model.body_name2id(name)
-                    self.wrapped_env.data.xipos[idx][:2] = pos
-        else:
-            inner_next_obs, inner_reward, _, info = self.wrapped_env.step(action)
+        inner_next_obs, inner_reward, _, info = self.wrapped_env.step(action)
         next_obs = self._get_obs()
         inner_reward = self._inner_reward_scaling * inner_reward
         outer_reward = self._task.reward(next_obs['observation'])
@@ -537,7 +494,7 @@ class MazeEnv(gym.Env):
             done = True
         if self.t > self.max_episode_size:
             done = True
-        return next_obs, inner_reward + outer_reward + collision_penalty, done, info
+        return next_obs, inner_reward + outer_reward, done, info
 
     def __get_current_cell(self):
         robot_x, robot_y = self.wrapped_env.get_xy()
@@ -593,7 +550,6 @@ def _add_object_ball(
         type="hinge",
         limited="false",
     )
-
 
 def _add_movable_block(
     worldbody: ET.Element,

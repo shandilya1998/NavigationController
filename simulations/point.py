@@ -17,7 +17,6 @@ from utils.env_utils import convert_observation_to_space
 class PointEnv(AgentModel):
     FILE: str = "point.xml"
     ORI_IND: int = 2
-    MANUAL_COLLISION: bool = True
     RADIUS: float = 0.4
 
     VELOCITY_LIMITS: float = 10.0

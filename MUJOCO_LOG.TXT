@@ -16,3 +16,6 @@ ERROR: OpenGL version 1.5 or higher required
 Wed Nov  3 17:54:05 2021
 ERROR: Expired activation key
 
+Wed Nov 10 12:44:42 2021
+ERROR: OpenGL version 1.5 or higher required
+

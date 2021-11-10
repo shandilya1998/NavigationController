@@ -492,7 +492,7 @@ class MazeEnv(gym.Env):
         self.t += 1
         ai = action[0]
         di = action[1]
-        self.vt = action[-2]
+        self.vt = np.array([action[-2]])
         prev_yaw = copy.deepcopy(self.state.yaw)
         prev_v = copy.deepcopy(self.state.v)
         self.state.update(ai, di)

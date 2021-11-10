@@ -333,7 +333,7 @@ class TD3BGPolicy(sb3.common.policies.BasePolicy):
         low = low[:-2]
         high = high[:-2]
         ac = action[:, :-2]
-        values = ac[:, -2:]
+        values = action[:, -2:]
         scaled_ac = 2.0 * ((ac - low) / (high - low)) - 1.0
         return np.concatenate([scaled_ac, values], -1)
 

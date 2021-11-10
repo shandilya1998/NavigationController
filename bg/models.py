@@ -239,7 +239,6 @@ class ControlNetwork(torch.nn.Module):
 
     def forward(self, inputs): 
         img, vt_1 = inputs
-        print(vt_1)
         stimulus = self.vc(img)
         vt = self.vf(stimulus)
         deltavf = vt - vt_1
@@ -247,5 +246,4 @@ class ControlNetwork(torch.nn.Module):
         action = self.mc([stimulus, bg_out])
         at = self.af(torch.cat([stimulus, action], -1))
         output = torch.cat([action, vt, at], -1)
-        print(output)
         return output

@@ -232,6 +232,7 @@ class MazeEnv(gym.Env):
 
     def __find_cubic_spline_path(self):
         sp = Spline2D(self.wx, self.wy)
+        print(sp.s[-1])
         s = np.arange(0, sp.s[-1], params['ds'])
         self.x, self.y, self.yaw, self.k = [], [], [], []
         for i_s in s:
@@ -514,14 +515,15 @@ class MazeEnv(gym.Env):
         next_obs = self._get_obs()
         inner_reward = self._inner_reward_scaling * inner_reward
         outer_reward = self._task.reward(next_obs['observation'])
-        done = self._task.termination(next_obs['observation'])
+        done = self._task.termination(next_obs['observation'], self.wrapped_env.get_xy())
         info["position"] = self.wrapped_env.get_xy()
         index = self.__get_current_cell()  
         self._current_cell = index
         if self._current_cell == self.sampled_path[-1]:
-            done = True
+            done = self._task.termination(next_obs['observation'], self.wrapped_env.get_xy())
         if self.t > self.max_episode_size:
             done = True
+        print(inner_reward + outer_reward + collision_penalty)
         return next_obs, inner_reward + outer_reward + collision_penalty, done, info
 
     def __get_current_cell(self):

@@ -322,6 +322,9 @@ class MazeVisualGoal(MazeGoal):
         )
         self.min_range, self.max_range = get_hsv_ranges(rgb)
 
+    def neighbor(self, pos: np.ndarray) -> float:
+        return np.linalg.norm(pos[: self.dim] - self.pos) <= self.threshold
+
     def inframe(self, obs):
         out = cv2.cvtColor(obs, cv2.COLOR_RGB2BGR)
         keypoints, _ = blob_detect(
@@ -358,7 +361,10 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
                 reward += goal.reward_scale * sign
         return reward
 
-    def termination(self, obs: np.ndarray) -> bool:
+    def termination(self, obs: np.ndarray, pos: np.ndarray) -> bool:
+        if self.goals[0].inframe(obs):
+            if self.goals[0].neighbor(pos):
+                return True
         return False
 
 

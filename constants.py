@@ -34,7 +34,7 @@ params = {
     'eval_freq'                   : 10,
     'buffer_size'                 : 100,
     'total_timesteps'             : int(1e6),
-    'ds'                          : 0.1,
+    'ds'                          : 1.0,
     'motor_cortex'                : [[64, 256, 20], [128, 128, 2]],
     'snc'                         : [64, 256, 64, 1],
     'af'                          : [64, 256, 64, 1],

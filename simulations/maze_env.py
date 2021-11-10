@@ -196,6 +196,17 @@ class MazeEnv(gym.Env):
         tree.write(file_path)
         self.world_tree = tree
         self.wrapped_env = model_cls(file_path=file_path, **kwargs)
+        self.model = self.wrapped_env.model
+        self.data = self.wrapped_env.data
+        self.obstacles_ids = []
+        self.agent_ids = []
+        for name in self.model.geom_names:
+            if 'block' in name:
+                self.obstacles_ids.append(self.model._geom_name2id[name])
+            elif 'obj' in name:
+                self.obstacles_ids.append(self.model._geom_name2id[name])
+            elif name != 'floor':
+                self.agent_ids.append(self.model._geom_name2id[name])
         ob = self._get_obs()
         self._set_action_space()
         self._set_observation_space(ob)
@@ -463,8 +474,21 @@ class MazeEnv(gym.Env):
             self.wrapped_env.get_body_com(name)[:2].copy() for name in self.object_balls
         ]
 
+    def _is_in_collision(self):
+        for contact in self.data.contact:
+            geom1 = contact.geom1
+            geom2 = contact.geom2
+            if geom1 != 0 and geom2 != 0:
+                if geom1 in self.obstacles_ids:
+                    if geom2 in self.agent_ids:
+                        return True
+                if geom2 in self.obstacles_ids:
+                    if geom1 in self.agent_ids:
+                        return True
+            else:
+                return False
+
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
-        #print(action)
         self.t += 1
         ai = action[0]
         di = action[1]
@@ -483,6 +507,9 @@ class MazeEnv(gym.Env):
         ])
         info = {}
         inner_next_obs, inner_reward, _, info = self.wrapped_env.step(action)
+        collision_penalty = 0.0
+        if self._is_in_collision():
+            collision_penalty += -1.0 * self._inner_reward_scaling
         next_obs = self._get_obs()
         inner_reward = self._inner_reward_scaling * inner_reward
         outer_reward = self._task.reward(next_obs['observation'])
@@ -494,7 +521,7 @@ class MazeEnv(gym.Env):
             done = True
         if self.t > self.max_episode_size:
             done = True
-        return next_obs, inner_reward + outer_reward, done, info
+        return next_obs, inner_reward + outer_reward + collision_penalty, done, info
 
     def __get_current_cell(self):
         robot_x, robot_y = self.wrapped_env.get_xy()

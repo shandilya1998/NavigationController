@@ -24,8 +24,9 @@ while not done:
     steps += 1
     pos = env.wrapped_env.sim.data.qpos.copy()    
     img = cv2.cvtColor(ob['observation'], cv2.COLOR_RGB2BGR)
-    cv2.imshow('stream', img)
-    cv2.waitKey(1)
+    #env.render()
+    #cv2.imshow('stream', img)
+    #cv2.waitKey(1)
     POS.append(pos.copy())
     OBS.append(ob.copy())
     REWARDS.append(reward)

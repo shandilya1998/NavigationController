@@ -46,6 +46,10 @@ class MazeEnv(gym.Env):
         restitution_coef: float = 0.8,
         task_kwargs: dict = {},
         websock_port: Optional[int] = None,
+        camera_move_x: Optional[float] = None,
+        camera_move_y: Optional[float] = None,
+        camera_zoom: Optional[float] = None,
+        image_shape: Tuple[int, int] = (600, 480),
         **kwargs,
     ) -> None:
         self.t = 0  # time steps
@@ -212,6 +216,10 @@ class MazeEnv(gym.Env):
         self._set_action_space()
         self._set_observation_space(ob)
         self._websock_port = websock_port
+        self._camera_move_x = camera_move_x
+        self._camera_move_y = camera_move_y
+        self._camera_zoom = camera_zoom
+        self._image_shape = image_shape
         self._mj_offscreen_viewer = None
         self._websock_server_pipe = None
         self.__create_maze_graph()
@@ -232,7 +240,6 @@ class MazeEnv(gym.Env):
 
     def __find_cubic_spline_path(self):
         sp = Spline2D(self.wx, self.wy)
-        print(sp.s[-1])
         s = np.arange(0, sp.s[-1], params['ds'])
         self.x, self.y, self.yaw, self.k = [], [], [], []
         for i_s in s:
@@ -437,6 +444,22 @@ class MazeEnv(gym.Env):
             dtype=np.uint8,
         )
 
+    def _render_image(self) -> np.ndarray:
+        self._mj_offscreen_viewer._set_mujoco_buffers()
+        self._mj_offscreen_viewer.render(*self._image_shape)
+        pixels = self._mj_offscreen_viewer.read_pixels(*self._image_shape, depth=False)
+        return np.asarray(pixels[::-1, :, :], dtype=np.uint8)
+
+    def _maybe_move_camera(self, viewer: Any) -> None:
+        from mujoco_py import const
+
+        if self._camera_move_x is not None:
+            viewer.move_camera(const.MOUSE_ROTATE_V, self._camera_move_x, 0.0)
+        if self._camera_move_y is not None:
+            viewer.move_camera(const.MOUSE_ROTATE_H, 0.0, self._camera_move_y)
+        if self._camera_zoom is not None:
+            viewer.move_camera(const.MOUSE_ZOOM, 0, self._camera_zoom)
+
     def render(self, mode="human", **kwargs) -> Optional[np.ndarray]:
         if mode == "human" and self._websock_port is not None:
             if self._mj_offscreen_viewer is None:
@@ -511,19 +534,17 @@ class MazeEnv(gym.Env):
         inner_next_obs, inner_reward, _, info = self.wrapped_env.step(action)
         collision_penalty = 0.0
         if self._is_in_collision():
+            print('collision')
             collision_penalty += -1.0 * self._inner_reward_scaling
         next_obs = self._get_obs()
         inner_reward = self._inner_reward_scaling * inner_reward
         outer_reward = self._task.reward(next_obs['observation'])
-        done = self._task.termination(next_obs['observation'], self.wrapped_env.get_xy())
+        done = self._task.termination(self.wrapped_env.get_xy())
         info["position"] = self.wrapped_env.get_xy()
         index = self.__get_current_cell()  
         self._current_cell = index
-        if self._current_cell == self.sampled_path[-1]:
-            done = self._task.termination(next_obs['observation'], self.wrapped_env.get_xy())
         if self.t > self.max_episode_size:
             done = True
-        print(inner_reward + outer_reward + collision_penalty)
         return next_obs, inner_reward + outer_reward + collision_penalty, done, info
 
     def __get_current_cell(self):
@@ -543,8 +564,23 @@ class MazeEnv(gym.Env):
         col = 200 * col + int((col_frac) * 200) + 100 
         return row, col 
 
-    def render(self, mode = None):
-        return self.get_top_view()
+    def render(self, mode = 'human', **kwargs):
+        if mode == 'rgb_array':
+            return self.get_top_view()
+        elif mode == "human" and self._websock_port is not None:
+            if self._mj_offscreen_viewer is None:
+                from mujoco_py import MjRenderContextOffscreen as MjRCO
+                from mujoco_maze.websock_viewer import start_server
+
+                self._mj_offscreen_viewer = MjRCO(self.wrapped_env.sim)
+                self._maybe_move_camera(self._mj_offscreen_viewer)
+                self._websock_server_pipe = start_server(self._websock_port)
+            return self._websock_server_pipe.send(self._render_image())
+        else:
+            if self.wrapped_env.viewer is None:
+                self.wrapped_env.render(mode, **kwargs)
+                self._maybe_move_camera(self.wrapped_env.viewer)
+            return self.wrapped_env.render(mode, **kwargs) 
 
     def get_top_view(self):
         img = np.zeros(

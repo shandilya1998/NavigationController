@@ -327,6 +327,8 @@ class MazeVisualGoal(MazeGoal):
 
     def inframe(self, obs):
         out = cv2.cvtColor(obs, cv2.COLOR_RGB2BGR)
+        cv2.imshow('stream', out)
+        cv2.waitKey(1)
         keypoints, _ = blob_detect(
             out,
             self.min_range,
@@ -361,10 +363,9 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
                 reward += goal.reward_scale * sign
         return reward
 
-    def termination(self, obs: np.ndarray, pos: np.ndarray) -> bool:
-        if self.goals[0].inframe(obs):
-            if self.goals[0].neighbor(pos):
-                return True
+    def termination(self, pos: np.ndarray) -> bool:
+        if self.goals[0].neighbor(pos):
+            return True
         return False
 
 

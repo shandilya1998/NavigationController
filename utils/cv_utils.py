@@ -2,46 +2,44 @@ import cv2
 import numpy as np
 import os
 
-def test_blob_detector():
+def test_blob_detector(image_name, format = 'png'):
     blue_min = (77,40,77)
     blue_max = (101, 255, 255) 
     
     #--- Define area limit [x_min, y_min, x_max, y_max] adimensional (0.0 to 1.0) starting from top left corner
-    window = [0.25, 0.25, 0.65, 0.75]
-    image_list = []
-    image_list.append(cv2.imread(os.path.join(
-        'assets',
-        'blob2.jpeg'
-    )))
+    window = [0.0, 0.0, 1.0, 1.0]
+    image = cv2.imread(os.path.join(
+        'assets', 'plots', 'tests',
+        '{}.{}'.format(image_name, format)
+    ))
+    
 
+    #-- Detect keypoints
+    keypoints, _ = blob_detect(
+        image,
+        blue_min,
+        blue_max,
+        blur = 5,
+        blob_params = None,
+        search_window = window,
+        imshow = False
+    )
 
-    for image in image_list:
-        #-- Detect keypoints
-        keypoints, _ = blob_detect(
-            image,
-            blue_min,
-            blue_max,
-            blur = 5,
-            blob_params = None,
-            search_window = window,
-            imshow = False
-        )
+    image    = blur_outside(image, blur=15, window_adim=window)
+    #cv2.imshow("Outside Blur", image)
+    cv2.waitKey(0)
 
-        image    = blur_outside(image, blur=15, window_adim=window)
-        cv2.imshow("Outside Blur", image)
-        cv2.waitKey(0)
+    image     = draw_window(image, window, imshow=False)
+    #-- enter to proceed
+    cv2.waitKey(0)
 
-        image     = draw_window(image, window, imshow=True)
-        #-- enter to proceed
-        cv2.waitKey(0)
+    #-- click ENTER on the image window to proceed
+    image     = draw_keypoints(image, keypoints, imshow=False)
+    cv2.waitKey(0)
+    #-- Draw search window
 
-        #-- click ENTER on the image window to proceed
-        image     = draw_keypoints(image, keypoints, imshow=True)
-        cv2.waitKey(0)
-        #-- Draw search window
-
-        image    = draw_frame(image)
-        cv2.imwrite(os.path.join('assets', 'blob2_out.jpeg'), image)
+    image    = draw_frame(image)
+    cv2.imwrite(os.path.join('assets', 'plots', 'tests', '{}_out.{}'.format(image_name, format)), image)
 
 #---------- Blob detecting function: returns keypoints and mask
 #-- return keypoints, reversemask

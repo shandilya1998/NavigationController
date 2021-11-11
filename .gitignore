@@ -4,3 +4,4 @@
 *.zip
 *logs
 key.json
+assets/plots/tests/

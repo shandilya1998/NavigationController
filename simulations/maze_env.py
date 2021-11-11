@@ -136,7 +136,7 @@ class MazeEnv(gym.Env):
                         pos=f"{x} {y} {h}",
                         size=f"{size} {size} {h}",
                         type="box",
-                        material="",
+                        material="MatObj",
                         contype="1",
                         conaffinity="1",
                         rgba="0.9 0.9 0.9 1",
@@ -151,7 +151,7 @@ class MazeEnv(gym.Env):
                         pos=f"{x} {y} {h + height_offset}",
                         size=f"{size} {size} {h}",
                         type="box",
-                        material="",
+                        material="MatObj",
                         contype="1",
                         conaffinity="1",
                         rgba="0.4 0.4 0.4 1",
@@ -195,6 +195,7 @@ class MazeEnv(gym.Env):
                 pos=f"{goal.pos[0]} {goal.pos[1]} {z}",
                 size=f"{maze_size_scaling * 0.1}",
                 rgba=goal.rgb.rgba_str(),
+                material = "MatObj"
             )
         
         _, file_path = tempfile.mkstemp(text=True, suffix=".xml")
@@ -545,7 +546,8 @@ class MazeEnv(gym.Env):
         self._current_cell = index
         if self.t > self.max_episode_size:
             done = True
-        return next_obs, inner_reward + outer_reward + collision_penalty, done, info
+        reward = inner_reward + outer_reward + collision_penalty
+        return next_obs, reward, done, info
 
     def __get_current_cell(self):
         robot_x, robot_y = self.wrapped_env.get_xy()

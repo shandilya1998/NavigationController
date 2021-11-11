@@ -5,6 +5,13 @@ env = MazeEnv(PointEnv, CustomGoalReward4Rooms)
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
+from tqdm import tqdm
+import shutil
+import os
+
+if os.path.exists(os.path.join('assets', 'plots', 'tests')):
+    shutil.rmtree(os.path.join('assets', 'plots', 'tests'))
+os.mkdir(os.path.join('assets', 'plots', 'tests'))
 
 img = np.zeros(
     (200 * len(env._maze_structure), 200 * len(env._maze_structure[0])),
@@ -15,15 +22,20 @@ POS = []
 OBS = []
 REWARDS = []
 INFO = []
+IMAGES = []
 done = False
 
 steps = 0
+pbar = tqdm()
 while not done:
     ac = env.get_action()
     ob, reward, done, info = env.step(ac)
+    pbar.update(1)
     steps += 1
     pos = env.wrapped_env.sim.data.qpos.copy()    
     img = cv2.cvtColor(ob['observation'], cv2.COLOR_RGB2BGR)
+    cv2.imwrite(os.path.join('assets', 'plots', 'tests', 'test_image_{}.png'.format(steps)), img)
+    IMAGES.append(img)
     #env.render()
     #cv2.imshow('stream', img)
     #cv2.waitKey(1)
@@ -32,6 +44,7 @@ while not done:
     REWARDS.append(reward)
     INFO.append(info)
     #env.render()
+pbar.close()
 
 img = np.zeros(
     (200 * len(env._maze_structure), 200 * len(env._maze_structure[0]), 3)

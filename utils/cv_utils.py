@@ -1,44 +1,105 @@
 import cv2
 import numpy as np
 import os
+import math
 
-def test_blob_detector(image_name, format = 'png'):
-    blue_min = (77,40,77)
-    blue_max = (101, 255, 255) 
-    
-    #--- Define area limit [x_min, y_min, x_max, y_max] adimensional (0.0 to 1.0) starting from top left corner
-    window = [0.0, 0.0, 1.0, 1.0]
+
+def circle_detect_v2(img):
+    gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+    ret, thresh = cv2.threshold(gray,0,255,100)
+
+    # noise removal
+    kernel = np.ones((3,3),np.uint8)
+    opening = cv2.morphologyEx(thresh,cv2.MORPH_OPEN,kernel, iterations = 2)
+
+    # sure background area
+    sure_bg = cv2.dilate(opening,kernel,iterations=3)
+
+    # Finding sure foreground area
+    dist_transform = cv2.distanceTransform(opening,cv2.DIST_L2,5)
+    ret, sure_fg = cv2.threshold(dist_transform,0.7*dist_transform.max(),255,0)
+
+    # Finding unknown region
+    sure_fg = np.uint8(sure_fg)
+    unknown = cv2.subtract(sure_bg,sure_fg)
+
+    # Marker labelling
+    ret, markers = cv2.connectedComponents(sure_fg)
+
+    # Add one to all labels so that sure background is not 0, but 1
+    markers = markers+1
+
+    # Now, mark the region of unknown with zero
+    markers[unknown==255] = 0
+
+    markers = cv2.watershed(img,markers)
+    return markers
+
+def test_circle_detector_v2(image_name, format = 'png'):
+    image = cv2.imread(os.path.join('assets', 'plots', 'tests', '{}.{}'.format(image_name, format)))
+    markers = circle_detect_v2(image)
+    image[markers == -1] = [255,0,0]
+    cv2.imwrite(os.path.join('assets', 'plots', 'tests', '{}_out.{}'.format(image_name, format)), image)
+
+def supress(x, fs):
+    for f in fs:
+        distx = f.pt[0] - x.pt[0]
+        disty = f.pt[1] - x.pt[1]
+        dist = math.sqrt(distx*distx + disty*disty)
+        if (f.size > x.size) and (dist<f.size/2):
+            return True
+
+def circle_detect(image, detector):
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    image = cv2.blur(image, (7, 7))
+    fs = detector.detect(image)
+    fs.sort(key = lambda x: -x.size)
+    sfs = [x for x in fs if not supress(x, fs)]
+    return sfs
+
+def test_circle_detector(image_name, format = 'png'):
     image = cv2.imread(os.path.join(
-        'assets', 'plots', 'tests',
-        '{}.{}'.format(image_name, format)
+        'assets', 'plots', 'tests', '{}.{}'.format(image_name, format)
     ))
-    
+    detector = cv2.MSER_create()
+    circles = circle_detect(image, detector)
+    color = (255, 0, 0)
+    thickness = 2
+    if len(circles) > 0:
+        for circle in circles:
+            x = circle.pt[0]
+            y = circle.pt[1]
+            r = circle.size / 2
+            center_coordinates = (int(x), int(y))
+            image = cv2.circle(image, center_coordinates, int(r), color, thickness)
+    cv2.imwrite(os.path.join('assets', 'plots', 'tests', '{}_out.{}'.format(image_name, format)), image)
 
-    #-- Detect keypoints
-    keypoints, _ = blob_detect(
+
+
+def circle_detect_v1(image):
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    #image = cv2.blur(image, (3, 3))
+    circles = cv2.HoughCircles(
         image,
-        blue_min,
-        blue_max,
-        blur = 5,
-        blob_params = None,
-        search_window = window,
-        imshow = False
+        cv2.HOUGH_GRADIENT,
+        1,
+        20,
+        param1=95,
+        param2=25,
+        minRadius=0,
+        maxRadius=0
     )
+    return circles
 
-    image    = blur_outside(image, blur=15, window_adim=window)
-    #cv2.imshow("Outside Blur", image)
-    cv2.waitKey(0)
-
-    image     = draw_window(image, window, imshow=False)
-    #-- enter to proceed
-    cv2.waitKey(0)
-
-    #-- click ENTER on the image window to proceed
-    image     = draw_keypoints(image, keypoints, imshow=False)
-    cv2.waitKey(0)
-    #-- Draw search window
-
-    image    = draw_frame(image)
+def test_circle_detector_v1(image_name, format = 'png'):
+    image = cv2.imread(os.path.join(
+        'assets', 'plots', 'tests', '{}.{}'.format(image_name, format)
+    ))
+    circles = circle_detect_v1(image)
+    if circles is not None:
+        for pt in circles[0]:
+            a, b, r = int(pt[0]), int(pt[1]), int(pt[2])
+            image = cv2.circle(image, (a, b), r, (0, 255, 0), 2)
     cv2.imwrite(os.path.join('assets', 'plots', 'tests', '{}_out.{}'.format(image_name, format)), image)
 
 #---------- Blob detecting function: returns keypoints and mask
@@ -101,7 +162,7 @@ def blob_detect(image,                  #-- The frame (cv standard)
          
         # Filter by Area.
         params.filterByArea = True
-        params.minArea = 30
+        params.minArea = 10
         params.maxArea = 20000
          
         # Filter by Circularity
@@ -251,3 +312,50 @@ def get_blob_relative_position(image, keyPoint):
     x = (keyPoint.pt[0] - center_x)/(center_x)
     y = (keyPoint.pt[1] - center_y)/(center_y)
     return(x,y)
+
+def test_blob_detector(image_name, format = 'png'):
+    blue_min = (25, 52, 72)
+    blue_max = (102, 255, 255)
+
+    #--- Define area limit [x_min, y_min, x_max, y_max] adimensional (0.0 to 1.0) starting from top left corner
+    window = [0.0, 0.0, 1.0, 1.0]
+    image = cv2.imread(os.path.join(
+        'assets', 'plots', 'tests',
+        '{}.{}'.format(image_name, format)
+    ))
+
+    """
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+    image = cv2.split(image)
+    clahe = cv2.createCLAHE(clipLimit=2.0,tileGridSize=(8,8))
+    image[0] = clahe.apply(image[0])
+    image = cv2.merge(image)
+    image = cv2.cvtColor(image, cv2.COLOR_LAB2BGR)
+    """
+
+    #-- Detect keypoints
+    keypoints, _ = blob_detect(
+        image,
+        blue_min,
+        blue_max,
+        blur = 5,
+        blob_params = None,
+        search_window = window,
+        imshow = False
+    )
+
+    image    = blur_outside(image, blur=15, window_adim=window)
+    #cv2.imshow("Outside Blur", image)
+    cv2.waitKey(0)
+
+    image     = draw_window(image, window, imshow=False)
+    #-- enter to proceed
+    cv2.waitKey(0)
+
+    #-- click ENTER on the image window to proceed
+    image     = draw_keypoints(image, keypoints, imshow=False)
+    cv2.waitKey(0)
+    #-- Draw search window
+
+    image    = draw_frame(image)
+    cv2.imwrite(os.path.join('assets', 'plots', 'tests', '{}_out.{}'.format(image_name, format)), image)

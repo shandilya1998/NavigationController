@@ -327,8 +327,8 @@ class MazeVisualGoal(MazeGoal):
 
     def inframe(self, obs):
         out = cv2.cvtColor(obs, cv2.COLOR_RGB2BGR)
-        cv2.imshow('stream', out)
-        cv2.waitKey(1)
+        #cv2.imshow('stream', out)
+        #cv2.waitKey(1)
         keypoints, _ = blob_detect(
             out,
             self.min_range,

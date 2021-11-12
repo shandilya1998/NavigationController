@@ -516,7 +516,6 @@ class MazeEnv(gym.Env):
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         self.t += 1
-        print(self.t)
         ai = action[0]
         di = action[1]
         self.vt = np.array([action[-2]])
@@ -542,7 +541,6 @@ class MazeEnv(gym.Env):
             movement_reward += 0.1 * self._inner_reward_scaling 
         collision_penalty = 0.0
         if self._is_in_collision():
-            #print('collision')
             collision_penalty += -1.0 * self._inner_reward_scaling
         next_obs = self._get_obs()
         inner_reward = self._inner_reward_scaling * inner_reward

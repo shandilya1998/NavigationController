@@ -26,15 +26,15 @@ docker push $IMAGE_URI
 # docker run $IMAGE_URI --logdir assets/logs --timesteps 1000 \
 # --batch_size 1 --max_episode_size 100
 
-#gcloud ai-platform jobs submit training $JOB_NAME \
-#  --region $REGION \
-#  --master-image-uri $IMAGE_URI \
-#  --config docker/config.yaml \
-#  -- \
-#  --learning_type=$LEARNING_TYPE \
-#  --logdir=gs://$BUCKET_NAME \
-#  --timesteps=1000000 \
-#  --batch_size=32 \
-#  --max_episode_size=2500
+gcloud ai-platform jobs submit training $JOB_NAME \
+  --region $REGION \
+  --master-image-uri $IMAGE_URI \
+  --config docker/config.yaml \
+  -- \
+  --learning_type=$LEARNING_TYPE \
+  --logdir=gs://$BUCKET_NAME \
+  --timesteps=1000000 \
+  --batch_size=32 \
+  --max_episode_size=2500
 
-#gcloud ai-platform jobs stream-logs $JOB_NAME
+gcloud ai-platform jobs stream-logs $JOB_NAME

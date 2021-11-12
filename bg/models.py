@@ -61,6 +61,7 @@ class BasalGanglia(torch.nn.Module):
     def forward(self, inputs):
         stimulus, deltavf = inputs
         batch_size = stimulus.shape[0]
+        print(stimulus.device)
         V_D1 = torch.zeros((batch_size, self.FF_Dim_in)).to(stimulus.device)
         V_D2 = torch.zeros((batch_size, self.FF_Dim_in)).to(stimulus.device)
         lamd1 = 1 / (1 + torch.exp(-self.a1 * (deltavf - self.thetad1)))

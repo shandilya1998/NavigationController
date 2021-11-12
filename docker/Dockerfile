@@ -61,5 +61,6 @@ RUN echo '[GoogleCompute]\nservice_account = default' > /etc/boto.cfg
 RUN mkdir /root/trainer
 COPY . /root/trainer/
 WORKDIR /root/trainer
+EXPOSE 8080
 
-ENTRYPOINT ["python3", "train.py"]
+# ENTRYPOINT ["python3", "train.py"]

@@ -118,7 +118,7 @@ def blob_detect(image,                  #-- The frame (cv standard)
         image    = cv2.blur(image, (blur, blur))
         
     #- Search window
-    if search_window is None: search_window = [0.0, 0.0, 1.0, 1.0]
+    if search_window is None: search_window = [0.1, 0.1, 0.9, 0.9]
     
     #- Convert image from BGR to HSV
     hsv     = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
@@ -314,8 +314,8 @@ def get_blob_relative_position(image, keyPoint):
     return(x,y)
 
 def test_blob_detector(image_name, format = 'png'):
-    blue_min = (25, 52, 72)
-    blue_max = (102, 255, 255)
+    blue_min = (0, 25, 0)
+    blue_max = (15, 255, 255)
 
     #--- Define area limit [x_min, y_min, x_max, y_max] adimensional (0.0 to 1.0) starting from top left corner
     window = [0.0, 0.0, 1.0, 1.0]

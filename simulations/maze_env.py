@@ -535,7 +535,7 @@ class MazeEnv(gym.Env):
         inner_next_obs, inner_reward, _, info = self.wrapped_env.step(action)
         collision_penalty = 0.0
         if self._is_in_collision():
-            print('collision')
+            #print('collision')
             collision_penalty += -1.0 * self._inner_reward_scaling
         next_obs = self._get_obs()
         inner_reward = self._inner_reward_scaling * inner_reward
@@ -547,6 +547,9 @@ class MazeEnv(gym.Env):
         if self.t > self.max_episode_size:
             done = True
         reward = inner_reward + outer_reward + collision_penalty
+        info['inner_reward'] = inner_reward
+        info['outer_reward'] = outer_reward
+        info['collision_penalty'] = collision_penalty
         return next_obs, reward, done, info
 
     def __get_current_cell(self):

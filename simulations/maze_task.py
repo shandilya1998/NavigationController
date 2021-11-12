@@ -22,9 +22,9 @@ BLUE = Rgb(0.1, 0.1, 0.7)
 
 def get_hsv_ranges(rgb):
     if rgb == RED:
-        return (161, 155, 84), (179, 255, 255)
+        return (0, 25, 0), (15, 255, 255)
     elif rgb == GREEN:
-        return (25, 52, 72), (102, 255, 255)
+        return (36,0,0), (86,255,255)
     elif rgb == BLUE:
         return (94, 80, 2), (126, 255, 255)
 

@@ -27,9 +27,21 @@ done = False
 
 steps = 0
 pbar = tqdm()
+count = 0
+count_collisions = 0
+count_red = 0
+count_green = 0
 while not done:
     ac = env.get_action()
     ob, reward, done, info = env.step(ac)
+    if reward != 0.0:
+        count += 1
+    if info['collision_penalty'] != 0:
+        count_collisions += 1
+    if info['outer_reward'] > 0:
+        count_red += 1
+    elif info['outer_reward'] < 0:
+        count_green += 1
     pbar.update(1)
     steps += 1
     pos = env.wrapped_env.sim.data.qpos.copy()    
@@ -37,14 +49,18 @@ while not done:
     cv2.imwrite(os.path.join('assets', 'plots', 'tests', 'test_image_{}.png'.format(steps)), img)
     IMAGES.append(img)
     #env.render()
-    #cv2.imshow('stream', img)
-    #cv2.waitKey(1)
+    cv2.imshow('stream', img)
+    cv2.waitKey(1)
     POS.append(pos.copy())
     OBS.append(ob.copy())
     REWARDS.append(reward)
     INFO.append(info)
     #env.render()
 pbar.close()
+print('total count:      {}'.format(count))
+print('collision counts: {}'.format(count_collisions))
+print('green counts:     {}'.format(count_green))
+print('red counts:       {}'.format(count_red))
 
 img = np.zeros(
     (200 * len(env._maze_structure), 200 * len(env._maze_structure[0]), 3)

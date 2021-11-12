@@ -132,7 +132,7 @@ class CheckpointCallback(sb3.common.callbacks.CheckpointCallback):
                 self.name_prefix, self.num_timesteps
             )
             self.model.save(path)
-            save_model(self.save_path, '{}.zip'.format(path))            
+            #save_model(self.save_path, '{}.zip'.format(path))            
             if self.verbose > 1:
                 print(f"Saving model checkpoint to {path}")
         return True
@@ -252,7 +252,7 @@ class EvalCallback(sb3.common.callbacks.EvalCallback):
                     print("New best mean reward!")
                 if self.best_model_save_path is not None:
                     self.model.save("best_model")
-                    save_model(self.best_model_save_path, "best_model.zip")
+                    #save_model(self.best_model_save_path, "best_model.zip")
                 self.best_mean_reward = mean_reward
                 # Trigger callback if needed
                 if self.callback is not None:

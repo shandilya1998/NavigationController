@@ -5,12 +5,12 @@ PROJECT_ID=$(gcloud config list project --format "value(core.project)")
 BUCKET_NAME=${PROJECT_ID}-aiplatform
 LOGDIR="assets/out/models"
 TIMESTEPS=1000000
-BATCH_SIZE=3
-MAX_EPISODE_SIZE=5000
+BATCH_SIZE=2
+MAX_EPISODE_SIZE=2500
 LEARNING_TYPE="explore"
 
 python3 train.py \
-    --logdir gs://$BUCKET_NAME \
+    --logdir $LOGDIR \
     --timesteps $TIMESTEPS \
     --batch_size $BATCH_SIZE \
     --max_episode_size $MAX_EPISODE_SIZE \

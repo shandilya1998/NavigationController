@@ -516,6 +516,7 @@ class MazeEnv(gym.Env):
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         self.t += 1
+        print('steps: {}'.format(self.t))
         ai = action[0]
         di = action[1]
         self.vt = np.array([action[-2]])
@@ -556,6 +557,7 @@ class MazeEnv(gym.Env):
         info['outer_reward'] = outer_reward
         info['collision_penalty'] = collision_penalty
         info['movement_reward'] = movement_reward
+        print('reward: {}'.format(reward))
         return next_obs, reward, done, info
 
     def __get_current_cell(self):

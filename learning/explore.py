@@ -38,7 +38,7 @@ class Explore:
             self.env,
             tensorboard_log = self.logdir,
             learning_starts = params['learning_starts'],
-            train_freq = (5, "step"),
+            train_freq = (50, "step"),
             n_steps = 10,
             verbose = 2,
             batch_size = self.batch_size,

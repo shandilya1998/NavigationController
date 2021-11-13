@@ -568,7 +568,7 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         batch_size: int = 100,
         n_steps: int = 2,
         tau: float = 0.005,
-        lmbda: float = 0.01,
+        lmbda: float = 0.9,
         gamma: float = 0.99,
         train_freq: Union[int, Tuple[int, str]] = (1, "episode"),
         gradient_steps: int = -1,

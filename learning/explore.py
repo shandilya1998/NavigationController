@@ -10,6 +10,8 @@ from utils.callbacks import CustomCallback, CheckpointCallback, EvalCallback
 import os
 import shutil
 
+torch.autograd.set_detect_anomaly(True)
+
 class Explore:
     def __init__(self, logdir, batch_size, max_episode_size):
         self.logdir = logdir
@@ -21,7 +23,7 @@ class Explore:
                     CustomGoalReward4Rooms,
                     max_episode_size
                 ))
-            ])
+            ]),
         )
         self.eval_env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
             sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
@@ -30,7 +32,7 @@ class Explore:
                     CustomGoalReward4Rooms,
                     max_episode_size
                 ))
-            ])
+            ]),
         )
         self.__set_rl_callback()
         n_actions = self.env.action_space.sample().shape[-1] - 2
@@ -39,7 +41,7 @@ class Explore:
             self.env,
             tensorboard_log = self.logdir,
             learning_starts = params['learning_starts'],
-            train_freq = (10, "step"),
+            train_freq = (1, "step"),
             n_steps = 10,
             action_noise = sb3.common.noise.OrnsteinUhlenbeckActionNoise(
                 mean = params['OU_MEAN'] * np.ones(n_actions),

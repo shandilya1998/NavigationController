@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from google.cloud import storage
 from typing import Any, Callable, Dict, List, Optional, Union
 import datetime
+import os
 
 class SaveOnBestTrainingRewardCallback(sb3.common.callbacks.BaseCallback):
     """

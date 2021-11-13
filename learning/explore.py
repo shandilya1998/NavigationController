@@ -33,13 +33,18 @@ class Explore:
             ])
         )
         self.__set_rl_callback()
+        n_actions = self.env.action_space.sample().shape[-1] - 2
         self.rl_model = TD3BG(
             'MlpBGPolicy',
             self.env,
             tensorboard_log = self.logdir,
             learning_starts = params['learning_starts'],
-            train_freq = (500, "step"),
+            train_freq = (10, "step"),
             n_steps = 10,
+            action_noise = sb3.common.noise.OrnsteinUhlenbeckActionNoise(
+                mean = params['OU_MEAN'] * np.ones(n_actions),
+                sigma = params['OU_SIGMA'] * np.ones(n_actions)
+            ),
             verbose = 2,
             batch_size = self.batch_size,
             buffer_size = params['buffer_size'],

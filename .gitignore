@@ -5,3 +5,5 @@
 *logs
 key.json
 assets/plots/tests/
+Python*
+nvidia-container-runtime-script.sh

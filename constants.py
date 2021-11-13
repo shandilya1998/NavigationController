@@ -28,15 +28,25 @@ params = {
     'show_animation'              : False,
     'dt'                          : 0.02,
     'learning_starts'             : 100,
+<<<<<<< HEAD
     'batch_size'                  : 64,
     'render_freq'                 : 9000,
     'save_freq'                   : 4500,
     'eval_freq'                   : 4500,
     'buffer_size'                 : 12500,
+=======
+    'batch_size'                  : 128,
+    'render_freq'                 : 9000,
+    'save_freq'                   : 4500,
+    'eval_freq'                   : 4500,
+    'buffer_size'                 : 20000,
+>>>>>>> 34b70fa9c3b71ad66875ea41dcdde76265a94ae9
     'total_timesteps'             : int(1e6),
     'ds'                          : 0.1,
-    'motor_cortex'                : [[64, 256, 20], [128, 128, 2]],
-    'snc'                         : [64, 256, 64, 1],
-    'af'                          : [64, 256, 64, 1],
+    'motor_cortex'                : [[256, 20], [256, 2]],
+    'snc'                         : [256, 1],
+    'af'                          : [256, 1],
     'critic_net_arch'             : [400, 300],
+    'OU_MEAN'                     : 0.0,
+    'OU_SIGMA'                    : 0.08,
 }

@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from google.cloud import storage
 from typing import Any, Callable, Dict, List, Optional, Union
 import datetime
+import os
 
 class SaveOnBestTrainingRewardCallback(sb3.common.callbacks.BaseCallback):
     """
@@ -131,7 +132,7 @@ class CheckpointCallback(sb3.common.callbacks.CheckpointCallback):
             path = "{}_{}_steps".format(
                 self.name_prefix, self.num_timesteps
             )
-            self.model.save(path)
+            self.model.save(os.path.join(self.save_path, path))
             #save_model(self.save_path, '{}.zip'.format(path))            
             if self.verbose > 1:
                 print(f"Saving model checkpoint to {path}")
@@ -251,7 +252,7 @@ class EvalCallback(sb3.common.callbacks.EvalCallback):
                 if self.verbose > 0:
                     print("New best mean reward!")
                 if self.best_model_save_path is not None:
-                    self.model.save("best_model")
+                    self.model.save(os.path.join(self.best_model_save_path, "best_model"))
                     #save_model(self.best_model_save_path, "best_model.zip")
                 self.best_mean_reward = mean_reward
                 # Trigger callback if needed

@@ -108,10 +108,10 @@ class VisualCortex(torch.nn.Module):
         num_ctx = 300,
     ):
         super(VisualCortex, self).__init__()
-        self.model_ft = tv.models.resnet18(pretrained=use_pretrained)
+        self.model_ft = tv.models.mobilenet_v3_small(pretrained=use_pretrained)
         set_parameter_requires_grad(self.model_ft, feature_extracting)
-        num_ftrs = self.model_ft.fc.in_features
-        self.model_ft.fc = torch.nn.Linear(num_ftrs, num_ctx)
+        num_ftrs = self.model_ft.classifier._modules['3'].in_features
+        self.model_ft.classifier._modules['3'] = torch.nn.Linear(num_ftrs, num_ctx)
 
     def forward(self, img):
         """
@@ -125,7 +125,7 @@ class VisualCortex(torch.nn.Module):
             )
             where ob is the visual observation from the environment
         """
-        return torch.tanh(self.model_ft(img))
+        return self.model_ft(img)
 
 
 class MotorCortex(torch.nn.Module):

@@ -356,7 +356,7 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
     def reward(self, obs: np.ndarray) -> float:
         reward = 0.0
         for i, goal in enumerate(self.goals):
-            sign = -1
+            sign = 0.1
             if i == 0:
                 sign = 1 
             if goal.inframe(obs):

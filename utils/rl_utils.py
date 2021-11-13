@@ -641,7 +641,6 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         self._update_learning_rate([self.actor.optimizer])
 
         actor_losses, critic_losses = [], []
-
         for _ in range(gradient_steps):
 
             self._n_updates += 1
@@ -669,7 +668,6 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     target_q_values += sum_reward + status * (self.gamma ** i) * next_q_values
                 target_q_values = target_q_values / self.n_steps
                 target_advantage_values = (1 - self.lmbda) * target_advantage_values
-
             # Get current Q-values estimates for each critic network
             actions = self.actor({
                 key: replay_data.observations[key][:, 0, :] for key in replay_data.observations.keys()

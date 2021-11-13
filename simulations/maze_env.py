@@ -516,7 +516,6 @@ class MazeEnv(gym.Env):
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         self.t += 1
-        print('steps: {}'.format(self.t))
         ai = action[0]
         di = action[1]
         self.vt = np.array([action[-2]])
@@ -536,10 +535,6 @@ class MazeEnv(gym.Env):
         prev_pos = self.wrapped_env.get_xy()
         inner_next_obs, inner_reward, _, info = self.wrapped_env.step(action)
         next_pos = self.wrapped_env.get_xy()
-        vel = np.linalg.norm(next_pos - prev_pos)
-        movement_reward = 0.0
-        if vel > 0.0:
-            movement_reward += 0.1 * self._inner_reward_scaling 
         collision_penalty = 0.0
         if self._is_in_collision():
             collision_penalty += -1.0 * self._inner_reward_scaling
@@ -552,12 +547,11 @@ class MazeEnv(gym.Env):
         self._current_cell = index
         if self.t > self.max_episode_size:
             done = True
-        reward = inner_reward + outer_reward + collision_penalty + movement_reward
+        reward = inner_reward + outer_reward + collision_penalty
         info['inner_reward'] = inner_reward
         info['outer_reward'] = outer_reward
         info['collision_penalty'] = collision_penalty
-        info['movement_reward'] = movement_reward
-        print('reward: {}'.format(reward))
+        #print('step {} reward: {}'.format(self.t, reward))
         return next_obs, reward, done, info
 
     def __get_current_cell(self):

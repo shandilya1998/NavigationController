@@ -59,8 +59,8 @@ ENV PATH $PATH:/root/tools/google-cloud-sdk/bin
 RUN echo '[GoogleCompute]\nservice_account = default' > /etc/boto.cfg
 
 RUN mkdir /root/trainer
-COPY . /root/trainer/
+#COPY . /root/trainer/
 WORKDIR /root/trainer
-EXPOSE 8080
+#EXPOSE 8080
 
-ENTRYPOINT ["python3", "train.py"]
+#ENTRYPOINT ["python3", "train.py"]

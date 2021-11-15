@@ -4,7 +4,7 @@ from simulations.maze_env import MazeEnv
 from simulations.point import PointEnv
 from simulations.maze_task import CustomGoalReward4Rooms
 import stable_baselines3 as sb3
-from utils.rl_utils import TD3BG
+from utils.td3_utils import TD3BG
 from constants import params
 from utils.callbacks import CustomCallback, CheckpointCallback, EvalCallback
 import os
@@ -40,16 +40,12 @@ class Explore:
             'MlpBGPolicy',
             self.env,
             tensorboard_log = self.logdir,
-            learning_starts = params['learning_starts'],
-            train_freq = (1, "step"),
-            n_steps = 10,
-            action_noise = sb3.common.noise.OrnsteinUhlenbeckActionNoise(
-                mean = params['OU_MEAN'] * np.ones(n_actions),
-                sigma = params['OU_SIGMA'] * np.ones(n_actions)
-            ),
+            learning_rate = 0.001,
+            n_steps = 100,
+            gamma = 0.99,
+            gae_lambda = 0.98,
+            vf_coef = 1.0,
             verbose = 2,
-            batch_size = self.batch_size,
-            buffer_size = params['buffer_size'],
             device = 'auto'
         )
 

@@ -245,5 +245,4 @@ class ControlNetwork(torch.nn.Module):
         bg_out  = self.bg([stimulus, deltavf])
         action = self.mc([stimulus, bg_out])
         at = self.af(torch.cat([stimulus, action], -1))
-        output = torch.cat([action, vt, at], -1)
-        return output
+        return output, vt, at

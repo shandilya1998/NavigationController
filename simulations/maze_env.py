@@ -386,8 +386,8 @@ class MazeEnv(gym.Env):
     def _set_action_space(self):
         low = self.wrapped_env.action_space.low * 2 / self.wrapped_env.dt
         high = self.wrapped_env.action_space.high * 2 / self.wrapped_env.dt
-        low = np.array([low[0] * np.sqrt(2), low[-1], -np.inf, -np.inf], dtype = np.float32)
-        high = np.array([high[0] * np.sqrt(2), high[-1], np.inf, np.inf], dtype = np.float32)
+        low = np.array([low[0] * np.sqrt(2), low[-1]], dtype = np.float32)
+        high = np.array([high[0] * np.sqrt(2), high[-1]], dtype = np.float32)
         self._action_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
 
     def _set_observation_space(self, observation):
@@ -514,11 +514,11 @@ class MazeEnv(gym.Env):
             else:
                 return False
 
-    def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
+    def step(self, action: np.ndarray, values: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         self.t += 1
         ai = action[0]
         di = action[1]
-        self.vt = np.array([action[-2]])
+        self.vt = values
         prev_yaw = copy.deepcopy(self.state.yaw)
         prev_v = copy.deepcopy(self.state.v)
         self.state.update(ai, di)

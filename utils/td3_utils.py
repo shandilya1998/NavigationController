@@ -7,6 +7,7 @@ import gym
 from typing import Any, Dict, List, Optional, Tuple, Type, Union, NamedTuple
 import stable_baselines3 as sb3
 from bg.models import ControlNetwork
+import copy
 
 class PassAsIsFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
     def __init__(self, observation_space: gym.Space):
@@ -201,20 +202,43 @@ class TD3BGPolicy(sb3.common.policies.BasePolicy):
         #     state = self.initial_state
         # if mask is None:
         #     mask = [False for _ in range(self.n_envs)]
-        # Switch to eval mode (this affects batch norm / dropout)
-        self.set_training_mode(False)
 
-        observation, vectorized_env = self.obs_to_tensor(observation)
-        print(vectorized_env)
-        raise NotImplementedError
+        vectorized_env = False
+        if isinstance(observation, dict):
+            # need to copy the dict as the dict in VecFrameStack will become a torch tensor
+            observation = copy.deepcopy(observation)
+            for key, obs in observation.items():
+                obs_space = self.observation_space.spaces[key]
+                if sb3.common.preprocessing.is_image_space(obs_space):
+                    obs_ = sb3.common.preprocessing.maybe_transpose(obs, obs_space)
+                else:
+                    obs_ = np.array(obs)
+                vectorized_env = vectorized_env or sb3.common.utils.is_vectorized_observation(obs_, obs_space)
+                # Add batch dimension if needed
+                observation[key] = obs_.reshape((-1,) + self.observation_space[key].shape)
 
-        with th.no_grad():
-            actions = self._predict(observation, deterministic=deterministic)
+        elif sb3.common.preprocessing.is_image_space(self.observation_space):
+            # Handle the different cases for images
+            # as PyTorch use channel first format
+            observation = sb3.common.preprocessing.maybe_transpose(observation, self.observation_space)
+
+        else:
+            observation = np.array(observation)
+
+        if not isinstance(observation, dict):
+            # Dict obs need to be handled separately
+            vectorized_env = sb3.common.utils.is_vectorized_observation(observation, self.observation_space)
+            # Add batch dimension if needed
+            observation = observation.reshape((-1,) + self.observation_space.shape)
+
+        observation = sb3.common.utils.obs_as_tensor(observation, self.device)
+
+        with torch.no_grad():
+            actions, values, advantages = self._predict(observation, deterministic=deterministic)
         # Convert to numpy
-        actions, values, advantages = actions
         actions = actions.cpu().numpy()
         values = values.cpu().numpy()
-        advantages = advantages.cpu().numpy()
+
         if isinstance(self.action_space, gym.spaces.Box):
             if self.squash_output:
                 # Rescale to proper domain when using squashing
@@ -223,6 +247,11 @@ class TD3BGPolicy(sb3.common.policies.BasePolicy):
                 # Actions could be on arbitrary scale, so clip the actions to avoid
                 # out of bound error (e.g. if sampling from a Gaussian distribution)
                 actions = np.clip(actions, self.action_space.low, self.action_space.high)
+
+        if not vectorized_env:
+            if state is not None:
+                raise ValueError("Error: The environment must be vectorized when using recurrent policies.")
+            actions = actions[0]
 
         return (actions, values, advantages), state
 

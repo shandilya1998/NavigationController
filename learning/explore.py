@@ -45,7 +45,7 @@ class Explore:
             gamma = 0.99,
             gae_lambda = 0.98,
             vf_coef = 1.0,
-            verbose = 2,
+            verbose = 1,
             device = 'auto'
         )
 
@@ -66,7 +66,6 @@ class Explore:
         )
         self.rl_callback = sb3.common.callbacks.CallbackList([
             checkpointcallback,
-            recordcallback,
             evalcallback,
         ])
 

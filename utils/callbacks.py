@@ -57,10 +57,10 @@ def evaluate_policy(
     # Avoid circular import
     from stable_baselines3.common.monitor import Monitor
 
-    if not isinstance(env, VecEnv):
-        env = DummyVecEnv([lambda: env])
+    if not isinstance(env, sb3.common.vec_env.VecEnv):
+        env = sb3.common.vec_env.DummyVecEnv([lambda: env])
 
-    is_monitor_wrapped = is_vecenv_wrapped(env, VecMonitor) or env.env_is_wrapped(Monitor)[0]
+    is_monitor_wrapped = sb3.common.vec_env.is_vecenv_wrapped(env, sb3.common.vec_env.VecMonitor) or env.env_is_wrapped(Monitor)[0]
 
     if not is_monitor_wrapped and warn:
         warnings.warn(
@@ -216,8 +216,7 @@ class CustomCallback(sb3.common.callbacks.BaseCallback):
                 screen = self._eval_env.render(mode="rgb_array")
                 # PyTorch uses CxHxW vs HxWxC gym (and tensorflow) image convention
                 screens.append(screen.transpose(2, 0, 1))
-
-            sb3.common.evaluation.evaluate_policy(
+            evaluate_policy(
                 self.model,
                 self._eval_env,
                 callback=grab_screens,
@@ -230,7 +229,6 @@ class CustomCallback(sb3.common.callbacks.BaseCallback):
                 exclude=("stdout", "log", "json", "csv"),
             )
         return True
-
 
 def save_model(model_dir, model_name):
     """Saves the model to Google Cloud Storage"""
@@ -336,8 +334,9 @@ class EvalCallback(sb3.common.callbacks.EvalCallback):
 
             # Reset success rate buffer
             self._is_success_buffer = []
+            print('start')
 
-            episode_rewards, episode_lengths = sb3.common.evaluation.evaluate_policy(
+            episode_rewards, episode_lengths = evaluate_policy(
                 self.model,
                 self.eval_env,
                 n_eval_episodes=self.n_eval_episodes,
@@ -349,6 +348,7 @@ class EvalCallback(sb3.common.callbacks.EvalCallback):
             )
 
 
+            print('done')
             mean_reward, std_reward = np.mean(episode_rewards), np.std(episode_rewards)
             mean_ep_length, std_ep_length = np.mean(episode_lengths), np.std(episode_lengths)
             self.last_mean_reward = mean_reward
@@ -360,16 +360,20 @@ class EvalCallback(sb3.common.callbacks.EvalCallback):
             self.logger.record("eval/mean_reward", float(mean_reward))
             self.logger.record("eval/mean_ep_length", mean_ep_length)
 
+            print('here')
             if len(self._is_success_buffer) > 0:
                 success_rate = np.mean(self._is_success_buffer)
                 if self.verbose > 0:
                     print(f"Success rate: {100 * success_rate:.2f}%")
                 self.logger.record("eval/success_rate", success_rate)
 
+            print('here2')
             # Dump log so the evaluation results are printed with the correct timestep
             self.logger.record("time/total_timesteps", self.num_timesteps, exclude="tensorboard")
+            print('here3')
             self.logger.dump(self.num_timesteps)
 
+            print('saving')
             if mean_reward > self.best_mean_reward:
                 if self.verbose > 0:
                     print("New best mean reward!")
@@ -380,5 +384,5 @@ class EvalCallback(sb3.common.callbacks.EvalCallback):
                 # Trigger callback if needed
                 if self.callback is not None:
                     return self._on_event()
-
+            print('finished')
         return True

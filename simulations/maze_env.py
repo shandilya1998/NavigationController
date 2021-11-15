@@ -514,11 +514,11 @@ class MazeEnv(gym.Env):
             else:
                 return False
 
-    def step(self, action: np.ndarray, values: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
+    def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         self.t += 1
         ai = action[0]
         di = action[1]
-        self.vt = values
+        self.vt = action[2]
         prev_yaw = copy.deepcopy(self.state.yaw)
         prev_v = copy.deepcopy(self.state.v)
         self.state.update(ai, di)

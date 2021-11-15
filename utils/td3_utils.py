@@ -6,6 +6,7 @@ from functools import partial
 import gym
 from typing import Any, Dict, List, Optional, Tuple, Type, Union, NamedTuple
 import stable_baselines3 as sb3
+from bg.models import ControlNetwork
 
 class PassAsIsFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
     def __init__(self, observation_space: gym.Space):
@@ -120,6 +121,7 @@ class TD3BGPolicy(sb3.common.policies.BasePolicy):
         optimizer_class: Type[torch.optim.Optimizer] = torch.optim.Adam,
         optimizer_kwargs: Optional[Dict[str, Any]] = None,
         share_features_extractor: bool = True,
+        use_sde: bool = False
     ):  
         super(TD3BGPolicy, self).__init__(
             observation_space,
@@ -176,6 +178,53 @@ class TD3BGPolicy(sb3.common.policies.BasePolicy):
         # Note: the deterministic deterministic parameter is ignored in the case of TD3.
         #   Predictions are always deterministic.
         return self.actor(observation)
+
+    def predict(
+        self,
+        observation: Union[np.ndarray, Dict[str, np.ndarray]],
+        state: Optional[np.ndarray] = None,
+        mask: Optional[np.ndarray] = None,
+        deterministic: bool = False,
+    ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
+        """
+        Get the policy action and state from an observation (and optional state).
+        Includes sugar-coating to handle different observations (e.g. normalizing images).
+        :param observation: the input observation
+        :param state: The last states (can be None, used in recurrent policies)
+        :param mask: The last masks (can be None, used in recurrent policies)
+        :param deterministic: Whether or not to return deterministic actions.
+        :return: the model's action and the next state
+            (used in recurrent policies)
+        """
+        # TODO (GH/1): add support for RNN policies
+        # if state is None:
+        #     state = self.initial_state
+        # if mask is None:
+        #     mask = [False for _ in range(self.n_envs)]
+        # Switch to eval mode (this affects batch norm / dropout)
+        self.set_training_mode(False)
+
+        observation, vectorized_env = self.obs_to_tensor(observation)
+        print(vectorized_env)
+        raise NotImplementedError
+
+        with th.no_grad():
+            actions = self._predict(observation, deterministic=deterministic)
+        # Convert to numpy
+        actions, values, advantages = actions
+        actions = actions.cpu().numpy()
+        values = values.cpu().numpy()
+        advantages = advantages.cpu().numpy()
+        if isinstance(self.action_space, gym.spaces.Box):
+            if self.squash_output:
+                # Rescale to proper domain when using squashing
+                actions = self.unscale_action(actions)
+            else:
+                # Actions could be on arbitrary scale, so clip the actions to avoid
+                # out of bound error (e.g. if sampling from a Gaussian distribution)
+                actions = np.clip(actions, self.action_space.low, self.action_space.high)
+
+        return (actions, values, advantages), state
 
     def set_training_mode(self, mode: bool) -> None:
         """
@@ -289,7 +338,7 @@ class TD3BG(sb3.common.on_policy_algorithm.OnPolicyAlgorithm):
 
             with torch.no_grad():
                 # Convert to pytorch tensor or to TensorDict
-                obs_tensor = obs_as_tensor(self._last_obs, self.device)
+                obs_tensor = sb3.common.utils.obs_as_tensor(self._last_obs, self.device)
                 actions, values, advantages = self.policy.forward(obs_tensor)
             actions = actions.cpu().numpy()
             # Rescale and perform action
@@ -298,7 +347,7 @@ class TD3BG(sb3.common.on_policy_algorithm.OnPolicyAlgorithm):
             if isinstance(self.action_space, gym.spaces.Box):
                 clipped_actions = np.clip(actions, self.action_space.low, self.action_space.high)
 
-            new_obs, rewards, dones, infos = env.step(clipped_actions, values)
+            new_obs, rewards, dones, infos = env.step(np.concatenate([clipped_actions, values.cpu().numpy()], -1))
 
             self.num_timesteps += env.num_envs
 
@@ -319,7 +368,7 @@ class TD3BG(sb3.common.on_policy_algorithm.OnPolicyAlgorithm):
 
         with torch.no_grad():
             # Compute value for the last timestep
-            obs_tensor = obs_as_tensor(new_obs, self.device)
+            obs_tensor = sb3.common.utils.obs_as_tensor(new_obs, self.device)
             actions, values, advantages = self.policy.forward(obs_tensor)
 
         rollout_buffer.compute_returns_and_advantage(last_values=values, dones=dones)
@@ -344,19 +393,18 @@ class TD3BG(sb3.common.on_policy_algorithm.OnPolicyAlgorithm):
 
             # TODO: avoid second computation of everything because of the gradient
             actions, values, pred_advantages = self.policy.forward(rollout_data.observations)
-            values = values.flatten()
 
             # Normalize advantage (not present in the original implementation)
             advantages = rollout_data.advantages
 
             # Policy gradient loss
-            advantage_loss = torch.nn.functional.mse_loss(advantages, pred_advantages) 
+            advantage_loss = torch.nn.functional.mse_loss(torch.unsqueeze(advantages, -1), pred_advantages) 
             policy_loss = -pred_advantages.mean()
 
             # Value loss using the TD(gae_lambda) target
-            value_loss = torch.nn.functional.mse_loss(rollout_data.returns, values)
+            value_loss = torch.nn.functional.mse_loss(torch.unsqueeze(rollout_data.returns, -1), values)
 
-            loss = policy_loss + self.vf_coef * value_loss + advantage_loss
+            loss = policy_loss + self.vf_coef * value_loss + self.vf_coef * advantage_loss
 
             # Optimization step
             self.policy.optimizer.zero_grad()
@@ -366,12 +414,13 @@ class TD3BG(sb3.common.on_policy_algorithm.OnPolicyAlgorithm):
             torch.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
             self.policy.optimizer.step()
 
-        explained_var = explained_variance(self.rollout_buffer.values.flatten(), self.rollout_buffer.returns.flatten())
+        explained_var = sb3.common.utils.explained_variance(self.rollout_buffer.values.flatten(), self.rollout_buffer.returns.flatten())
 
         self._n_updates += 1
         self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
         self.logger.record("train/explained_variance", explained_var)
         self.logger.record("train/policy_loss", policy_loss.item())
         self.logger.record("train/value_loss", value_loss.item())
+        self.logger.record("train/advantage_loss", advantage_loss.item())
         if hasattr(self.policy, "log_std"):
             self.logger.record("train/std", torch.exp(self.policy.log_std).mean().item())

@@ -4,7 +4,7 @@ from simulations.maze_env import MazeEnv
 from simulations.point import PointEnv
 from simulations.maze_task import CustomGoalReward4Rooms
 import stable_baselines3 as sb3
-from utils.td3_utils import TD3BG
+from utils.td3_utils import TD3BG, TD3BGPolicy
 from constants import params
 from utils.callbacks import CustomCallback, CheckpointCallback, EvalCallback
 import os
@@ -37,10 +37,10 @@ class Explore:
         self.__set_rl_callback()
         n_actions = self.env.action_space.sample().shape[-1] - 2
         self.rl_model = TD3BG(
-            'MlpBGPolicy',
+            TD3BGPolicy,
             self.env,
             tensorboard_log = self.logdir,
-            learning_rate = 0.001,
+            learning_rate = 1e-4,
             n_steps = 100,
             gamma = 0.99,
             gae_lambda = 0.98,

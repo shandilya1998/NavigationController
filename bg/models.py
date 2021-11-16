@@ -8,14 +8,14 @@ class BasalGanglia(torch.nn.Module):
     def __init__(self,
         num_out = 20, 
         num_ctx = 300,
-        num_gpe = 20, 
-        num_stn = 20,
-        num_gpi = 2,
+        num_gpe = 40, 
+        num_stn = 40,
+        num_gpi = 20,
         FF_Dim_in = 20, 
         FF_steps = 2, 
         stn_gpe_iter = 2, 
-        eta_gpe = 1,
-        eta_gpi = 0.1,
+        eta_gpe = 0.01,
+        eta_gpi = 0.01,
         eta_th = 0.01,
         wsg = 2,
         wgs = -2, 
@@ -42,12 +42,12 @@ class BasalGanglia(torch.nn.Module):
         self.thetad1 = thetad1
         self.thetad2 = thetad2
 
-        self.wgs = torch.nn.Parameter(torch.randn((1,1)))
-        self.epsilon_glat = torch.nn.Parameter(torch.randn((1,1)))
+        self.wgs = torch.nn.Parameter(torch.Tensor(np.array([[2.0]])))
+        self.epsilon_glat = torch.nn.Parameter(torch.Tensor(np.array([[.05]])))
         self.weights_glat = torch.ones(
             (self.num_gpe, self.num_gpe)
         ) - torch.eye(self.num_gpe)
-        self.epsilon_slat = torch.nn.Parameter(torch.randn((1,1)))
+        self.epsilon_slat = torch.nn.Parameter(torch.Tensor(np.array([[.05]])))
         self.weights_slat = torch.ones(
             (self.num_stn, self.num_stn)
         ) - torch.eye(self.num_stn) 
@@ -87,7 +87,7 @@ class BasalGanglia(torch.nn.Module):
         cx = torch.rand((batch_size, self.num_out)).to(stimulus.device)
         for it in range(self.stn_gpe_iter):
             dxgpe = self.eta_gpe * (
-                -xgpe - self.wgs * vstn + \
+                -xgpe + self.wgs * vstn + \
                     torch.nn.functional.linear(
                         xgpe,
                         self.epsilon_glat * self.weights_glat.to(stimulus.device) + \
@@ -98,7 +98,7 @@ class BasalGanglia(torch.nn.Module):
                 )
             xgpe = xgpe + dxgpe
             dxstn = self.eta_stn * (
-                -xstn + self.wgs * xgpe + \
+                -xstn - self.wgs * xgpe + \
                     torch.nn.functional.linear(
                         vstn,
                         self.epsilon_slat * self.weights_slat.to(stimulus.device)
@@ -183,14 +183,14 @@ class ControlNetwork(torch.nn.Module):
         action_dim = 2,
         num_bg_out = 20, 
         num_ctx = 300,
-        num_gpe = 20, 
-        num_stn = 20,
-        num_gpi = 2,
-        FF_Dim_in = 20, 
+        num_gpe = 40, 
+        num_stn = 40,
+        num_gpi = 20,
+        FF_Dim_in = 40, 
         FF_steps = 20, 
         stn_gpe_iter = 50, 
-        eta_gpe = 1,
-        eta_gpi = 0.1,
+        eta_gpe = 0.01,
+        eta_gpi = 0.01,
         eta_th = 0.01,
         wsg = 2,
         wgs = -2, 

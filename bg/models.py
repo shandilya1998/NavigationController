@@ -3,12 +3,13 @@ import torch
 import torchvision as tv
 from constants import params
 
+
 class BasalGanglia(torch.nn.Module):
     def __init__(self,
         num_out = 20, 
         num_ctx = 300,
         num_gpe = 20, 
-        num_stn = 300,
+        num_stn = 20,
         num_gpi = 2,
         FF_Dim_in = 20, 
         FF_steps = 2, 
@@ -36,17 +37,20 @@ class BasalGanglia(torch.nn.Module):
         self.eta_gpi = eta_gpi
         self.eta_stn = eta_gpe / 3 
         self.eta_th = eta_th
-        self.wsg = wsg 
-        self.wgs = wgs 
         self.a1 = a1
         self.a2 = a2
         self.thetad1 = thetad1
         self.thetad2 = thetad2
 
-        self.fc_sg = torch.nn.Linear(self.num_stn, self.num_gpe)
-        self.fc_gs = torch.nn.Linear(self.num_gpe, self.num_stn)
-        self.fc_glat = torch.nn.Linear(self.num_gpe, self.num_gpe)
-        self.fc_slat = torch.nn.Linear(self.num_stn, self.num_stn)
+        self.wgs = torch.nn.Parameter(torch.randn((1,1)))
+        self.epsilon_glat = torch.nn.Parameter(torch.randn((1,1)))
+        self.weights_glat = torch.ones(
+            (self.num_gpe, self.num_gpe)
+        ) - torch.eye(self.num_gpe)
+        self.epsilon_slat = torch.nn.Parameter(torch.randn((1,1)))
+        self.weights_slat = torch.ones(
+            (self.num_stn, self.num_stn)
+        ) - torch.eye(self.num_stn) 
         self.fc_d1gpi = torch.nn.Linear(self.FF_Dim_in, self.num_gpi)
         self.fc_stngpi = torch.nn.Linear(self.num_stn, self.num_gpi)
         self.fc_jd1 = torch.nn.Linear(self.num_ctx, self.FF_Dim_in)
@@ -83,10 +87,23 @@ class BasalGanglia(torch.nn.Module):
         cx = torch.rand((batch_size, self.num_out)).to(stimulus.device)
         for it in range(self.stn_gpe_iter):
             dxgpe = self.eta_gpe * (
-                -xgpe + self.fc_sg(vstn) + self.fc_glat(xgpe) - V_D2)
+                -xgpe - self.wgs * vstn + \
+                    torch.nn.functional.linear(
+                        xgpe,
+                        self.epsilon_glat * self.weights_glat.to(stimulus.device) + \
+                            torch.ones((
+                                self.num_gpe, self.num_gpe
+                            )).to(stimulus.device)
+                    ) - V_D2
+                )
             xgpe = xgpe + dxgpe
             dxstn = self.eta_stn * (
-                -xstn + self.fc_gs(xgpe) + self.fc_slat(vstn))
+                -xstn + self.wgs * xgpe + \
+                    torch.nn.functional.linear(
+                        vstn,
+                        self.epsilon_slat * self.weights_slat.to(stimulus.device)
+                    )
+            )
             xstn = xstn + dxstn
             vstn = torch.tanh(lamd2 * xstn)
             V_GPi_IP = lamd2 * self.fc_stngpi(vstn)
@@ -167,7 +184,7 @@ class ControlNetwork(torch.nn.Module):
         num_bg_out = 20, 
         num_ctx = 300,
         num_gpe = 20, 
-        num_stn = 300,
+        num_stn = 20,
         num_gpi = 2,
         FF_Dim_in = 20, 
         FF_steps = 20, 

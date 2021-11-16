@@ -334,7 +334,6 @@ class EvalCallback(sb3.common.callbacks.EvalCallback):
 
             # Reset success rate buffer
             self._is_success_buffer = []
-            print('start')
 
             episode_rewards, episode_lengths = evaluate_policy(
                 self.model,
@@ -348,7 +347,6 @@ class EvalCallback(sb3.common.callbacks.EvalCallback):
             )
 
 
-            print('done')
             mean_reward, std_reward = np.mean(episode_rewards), np.std(episode_rewards)
             mean_ep_length, std_ep_length = np.mean(episode_lengths), np.std(episode_lengths)
             self.last_mean_reward = mean_reward
@@ -360,20 +358,16 @@ class EvalCallback(sb3.common.callbacks.EvalCallback):
             self.logger.record("eval/mean_reward", float(mean_reward))
             self.logger.record("eval/mean_ep_length", mean_ep_length)
 
-            print('here')
             if len(self._is_success_buffer) > 0:
                 success_rate = np.mean(self._is_success_buffer)
                 if self.verbose > 0:
                     print(f"Success rate: {100 * success_rate:.2f}%")
                 self.logger.record("eval/success_rate", success_rate)
 
-            print('here2')
             # Dump log so the evaluation results are printed with the correct timestep
             self.logger.record("time/total_timesteps", self.num_timesteps, exclude="tensorboard")
-            print('here3')
             self.logger.dump(self.num_timesteps)
 
-            print('saving')
             if mean_reward > self.best_mean_reward:
                 if self.verbose > 0:
                     print("New best mean reward!")
@@ -384,5 +378,4 @@ class EvalCallback(sb3.common.callbacks.EvalCallback):
                 # Trigger callback if needed
                 if self.callback is not None:
                     return self._on_event()
-            print('finished')
         return True

@@ -142,7 +142,7 @@ class TD3BGPolicy(sb3.common.policies.BasePolicy):
         }   
         self.actor_kwargs = self.net_args.copy()
 
-        self.actor =  None
+        self.actor, self.actor_target =  None, None
         self.share_features_extractor = share_features_extractor
         self._build(lr_schedule)
 
@@ -150,8 +150,12 @@ class TD3BGPolicy(sb3.common.policies.BasePolicy):
         # Create actor
         # the features extractor should not be shared
         self.actor = self.make_actor(features_extractor=None)
+        self.actor_target = self.make_actor(features_extractor=None)
+        # Initialize the target to have the same weights as the actor
+        self.actor_target.load_state_dict(self.actor.state_dict())
         self.actor.optimizer = self.optimizer_class(self.actor.parameters(), lr=lr_schedule(1), **self.optimizer_kwargs)
         self.optimizer = self.actor.optimizer
+        self.actor_target.set_training_mode(False)
 
     def _get_constructor_parameters(self) -> Dict[str, Any]:
         data = super()._get_constructor_parameters()
@@ -266,7 +270,6 @@ class TD3BGPolicy(sb3.common.policies.BasePolicy):
         self.actor.set_training_mode(mode)
         self.training = mode
 
-sb3.common.policies.register_policy('MlpBGPolicy', TD3BGPolicy)
 
 class TD3BG(sb3.common.on_policy_algorithm.OnPolicyAlgorithm):
     def __init__(
@@ -422,12 +425,9 @@ class TD3BG(sb3.common.on_policy_algorithm.OnPolicyAlgorithm):
 
             # TODO: avoid second computation of everything because of the gradient
             actions, values, pred_advantages = self.policy.forward(rollout_data.observations)
-
-            # Normalize advantage (not present in the original implementation)
-            advantages = rollout_data.advantages
-
             # Policy gradient loss
-            advantage_loss = torch.nn.functional.mse_loss(torch.unsqueeze(advantages, -1), pred_advantages) 
+            advantages = rollout_data.advantages
+            advantage_loss = torch.nn.functional.mse_loss(torch.unsqueeze(advantages, -1), pred_advantages)
             policy_loss = -pred_advantages.mean()
 
             # Value loss using the TD(gae_lambda) target

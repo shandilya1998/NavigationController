@@ -165,7 +165,7 @@ class MotorCortex(torch.nn.Module):
             layers.append(torch.nn.ReLU())
             input_size = units
         layers.append(torch.nn.Linear(input_size, action_dim))
-        layers.append(torch.nn.Tanh())
+        #layers.append(torch.nn.Tanh())
         self.fc_2 = torch.nn.Sequential(
             *layers
         )

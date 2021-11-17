@@ -41,9 +41,9 @@ class Explore:
             self.env,
             tensorboard_log = self.logdir,
             learning_rate = 1e-4,
-            n_steps = 100,
+            n_steps = 50,
             gamma = 0.99,
-            gae_lambda = 0.98,
+            gae_lambda = 0.9,
             vf_coef = 1.0,
             verbose = 1,
             device = 'auto'

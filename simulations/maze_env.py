@@ -213,8 +213,8 @@ class MazeEnv(gym.Env):
                 self.obstacles_ids.append(self.model._geom_name2id[name])
             elif name != 'floor':
                 self.agent_ids.append(self.model._geom_name2id[name])
-        ob = self._get_obs()
         self._set_action_space()
+        ob = self._get_obs()
         self._set_observation_space(ob)
         self._websock_port = websock_port
         self._camera_move_x = camera_move_x
@@ -249,6 +249,10 @@ class MazeEnv(gym.Env):
             self.y.append(iy)
             self.yaw.append(sp.calc_yaw(i_s))
             self.k.append(sp.calc_curvature(i_s))
+
+    @property
+    def action_space(self):
+        return self._action_space
 
     def __setup_vel_control(self):
         self.target_speed = np.random.uniform(
@@ -410,9 +414,14 @@ class MazeEnv(gym.Env):
 
     def _get_obs(self) -> np.ndarray:
         img = self.wrapped_env._get_obs()
+        try: 
+            sampled_action = self.get_action()
+        except:
+            sampled_action = np.zeros(self.action_space.shape)
         return {
             'observation' : img.copy(),
-            'state_value' : self.vt.copy()
+            'state_value' : self.vt.copy(),
+            'sampled_action' : sampled_action.copy()
         }
 
     def reset(self) -> np.ndarray:
@@ -473,10 +482,6 @@ class MazeEnv(gym.Env):
             self._websock_server_pipe.send(self._render_image())
         else:
             return self.wrapped_env.render(mode, **kwargs)
-
-    @property
-    def action_space(self):
-        return self._action_space
 
     def _find_robot(self) -> Tuple[float, float]:
         structure = self._maze_structure

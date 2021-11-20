@@ -4,11 +4,14 @@ from simulations.maze_env import MazeEnv
 from simulations.point import PointEnv
 from simulations.maze_task import CustomGoalReward4Rooms
 import stable_baselines3 as sb3
+from utils.td3_utils import TD3BGPolicy
 from utils.il_utils import ImitationLearning
 from constants import params
 from utils.callbacks import CustomCallback, CheckpointCallback, EvalCallback
 import os
 import shutil
+
+torch.autograd.set_detect_anomaly(True)
 
 class Imitate:
     def __init__(self, logdir, batch_size, max_episode_size):
@@ -21,7 +24,7 @@ class Imitate:
                     CustomGoalReward4Rooms,
                     max_episode_size
                 ))
-            ])
+            ]),
         )
         self.eval_env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
             sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
@@ -30,23 +33,22 @@ class Imitate:
                     CustomGoalReward4Rooms,
                     max_episode_size
                 ))
-            ])
+            ]),
         )
         self.__set_il_callback()
+        n_actions = self.env.action_space.sample().shape[-1]
         self.il_model = ImitationLearning(
-            'MlpPolicy',
+            TD3BGPolicy,
             self.env,
             tensorboard_log = self.logdir,
-            learning_starts = params['learning_starts'],
-            train_freq = (5, "step"),
-            verbose = 2,
-            batch_size = self.batch_size,
-            buffer_size = params['buffer_size'],
-            policy_kwargs = {
-                'features_extractor_class' : sb3.common.torch_layers.NatureCNN
-            },
+            learning_rate = 5e-4,
+            n_steps = 50, 
+            gamma = 0.99,
+            gae_lambda = 0.9,
+            vf_coef = 1.0,
+            verbose = 1,
             device = 'auto'
-        )
+        ) 
 
     def __set_il_callback(self):
         recordcallback = CustomCallback(
@@ -65,7 +67,6 @@ class Imitate:
         )
         self.il_callback = sb3.common.callbacks.CallbackList([
             checkpointcallback,
-            recordcallback,
             evalcallback,
         ])
 

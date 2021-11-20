@@ -35,7 +35,7 @@ class Explore:
             ]),
         )
         self.__set_rl_callback()
-        n_actions = self.env.action_space.sample().shape[-1] - 2
+        n_actions = self.env.action_space.sample().shape[-1]
         self.rl_model = TD3BG(
             TD3BGPolicy,
             self.env,

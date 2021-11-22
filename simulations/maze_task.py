@@ -358,7 +358,7 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
         for i, goal in enumerate(self.goals):
             sign = 0.1
             if i == 0:
-                sign = 1 
+                sign = 1
             if goal.inframe(obs):
                 reward += goal.reward_scale * sign
         return reward

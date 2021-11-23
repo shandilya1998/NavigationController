@@ -44,7 +44,7 @@ class Imitate:
             learning_rate = 5e-4,
             n_steps = 50, 
             gamma = 0.99,
-            gae_lambda = 0.9,
+            gae_lambda = 0.95,
             vf_coef = 1.0,
             verbose = 1,
             device = 'auto'

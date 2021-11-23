@@ -109,6 +109,7 @@ class ImitationLearning(sb3.common.on_policy_algorithm.OnPolicyAlgorithm):
                 obs_tensor = sb3.common.utils.obs_as_tensor(self._last_obs, self.device)
                 actions, values, advantages = self.policy.forward(obs_tensor)
                 actions = obs_tensor['sampled_action']
+                actions = actions[:, :2]
             actions = actions.cpu().numpy()
             # Rescale and perform action
             clipped_actions = actions

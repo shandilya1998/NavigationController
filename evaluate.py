@@ -67,6 +67,6 @@ if __name__ == '__main__':
         deterministic = True,
     )
 
-    out_video = np.stack(screens, 0)
+    screens = np.stack(screens, 0)
 
-    skvideo.io.vwrite('{}_evaluation.mp4'.format(model_path), out_video)
+    skvideo.io.vwrite('{}_evaluation.mp4'.format(model_path), screens)

@@ -52,6 +52,7 @@ class MazeEnv(gym.Env):
         image_shape: Tuple[int, int] = (600, 480),
         **kwargs,
     ) -> None:
+        self.kwargs = kwargs
         self.top_view_size = params['top_view_size']
         self.t = 0  # time steps
         self.vt = np.array([0.0], dtype = np.float32)
@@ -101,14 +102,25 @@ class MazeEnv(gym.Env):
         )
 
         # Let's create MuJoCo XML
-        xml_path = os.path.join(MODEL_DIR, model_cls.FILE)
+        self.model_cls = model_cls
+        self._websock_port = websock_port
+        self._camera_move_x = camera_move_x
+        self._camera_move_y = camera_move_y
+        self._camera_zoom = camera_zoom
+        self._image_shape = image_shape
+        self._mj_offscreen_viewer = None
+        self._websock_server_pipe = None
+        self.set_env()
+
+    def set_env(self):
+        xml_path = os.path.join(MODEL_DIR, self.model_cls.FILE)
         tree = ET.parse(xml_path)
         worldbody = tree.find(".//worldbody")
 
         height_offset = 0.0
         if self.elevated:
             # Increase initial z-pos of ant.
-            height_offset = height * size_scaling
+            height_offset = self._maze_height * self._maze_size_scaling
             torso = tree.find(".//body[@name='torso']")
             torso.set("pos", f"0 0 {0.75 + height_offset:.2f}")
         if self.blocks:
@@ -120,14 +132,15 @@ class MazeEnv(gym.Env):
         tree.find('.//option').set('timestep', str(params['dt']))
         self.movable_blocks = []
         self.object_balls = []
-        for i in range(len(structure)):
-            for j in range(len(structure[0])):
-                struct = structure[i][j]
+        torso_x, torso_y = self._find_robot()
+        for i in range(len(self._maze_structure)):
+            for j in range(len(self._maze_structure[0])):
+                struct = self._maze_structure[i][j]
                 if struct.is_robot() and self._put_spin_near_agent:
                     struct = maze_env_utils.MazeCell.SPIN
-                x, y = j * size_scaling - torso_x, i * size_scaling - torso_y
-                h = height / 2 * size_scaling
-                size = size_scaling * 0.5
+                x, y = j * self._maze_size_scaling - torso_x, i * self._maze_size_scaling - torso_y
+                h = self._maze_height / 2 * self._maze_size_scaling
+                size = self._maze_size_scaling * 0.5
                 if self.elevated and not struct.is_chasm():
                     # Create elevated platform.
                     ET.SubElement(
@@ -165,7 +178,7 @@ class MazeEnv(gym.Env):
                         struct,
                         i,
                         j,
-                        size_scaling,
+                        self._maze_size_scaling,
                         x,
                         y,
                         h,
@@ -184,9 +197,9 @@ class MazeEnv(gym.Env):
 
         # Set goals
         for i, goal in enumerate(self._task.goals):
-            z = goal.pos[2] if goal.dim >= 3 else 0.1 *  maze_size_scaling
+            z = goal.pos[2] if goal.dim >= 3 else 0.1 *  self._maze_size_scaling
             if goal.custom_size is None:
-                size = f"{maze_size_scaling * 0.1}"
+                size = f"{self._maze_size_scaling * 0.1}"
             else:
                 size = f"{goal.custom_size}"
             ET.SubElement(
@@ -194,7 +207,7 @@ class MazeEnv(gym.Env):
                 "site",
                 name=f"goal_site{i}",
                 pos=f"{goal.pos[0]} {goal.pos[1]} {z}",
-                size=f"{maze_size_scaling * 0.1}",
+                size=f"{self._maze_size_scaling * 0.1}",
                 rgba=goal.rgb.rgba_str(),
                 material = "MatObj"
             )
@@ -202,7 +215,7 @@ class MazeEnv(gym.Env):
         _, file_path = tempfile.mkstemp(text=True, suffix=".xml")
         tree.write(file_path)
         self.world_tree = tree
-        self.wrapped_env = model_cls(file_path=file_path, **kwargs)
+        self.wrapped_env = self.model_cls(file_path=file_path, **self.kwargs)
         self.model = self.wrapped_env.model
         self.data = self.wrapped_env.data
         self.obstacles_ids = []
@@ -217,13 +230,6 @@ class MazeEnv(gym.Env):
         self._set_action_space()
         ob = self._get_obs()
         self._set_observation_space(ob)
-        self._websock_port = websock_port
-        self._camera_move_x = camera_move_x
-        self._camera_move_y = camera_move_y
-        self._camera_zoom = camera_zoom
-        self._image_shape = image_shape
-        self._mj_offscreen_viewer = None
-        self._websock_server_pipe = None
         self.__create_maze_graph()
         self.sampled_path = self.__sample_path()
         self._current_cell = copy.deepcopy(self.sampled_path[0])
@@ -432,6 +438,9 @@ class MazeEnv(gym.Env):
 
     def reset(self) -> np.ndarray:
         self.t = 0
+        self.close()
+        self._task.set()
+        self.set_env()
         self.wrapped_env.reset()
         self.vt = np.array([0.0])
         # Samples a new start position
@@ -548,7 +557,7 @@ class MazeEnv(gym.Env):
         next_pos = self.wrapped_env.get_xy()
         collision_penalty = 0.0
         if self._is_in_collision():
-            collision_penalty += -1.0 * self._inner_reward_scaling
+            collision_penalty += -5.0 * self._inner_reward_scaling
         next_obs = self._get_obs()
         inner_reward = self._inner_reward_scaling * inner_reward
         outer_reward = self._task.reward(next_obs['observation'])

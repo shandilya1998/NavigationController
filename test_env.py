@@ -31,39 +31,41 @@ count = 0
 count_collisions = 0
 count_red = 0
 count_green = 0
-ob = env.reset()
-while not done:
-    ob, reward, done, info = env.step(ob['sampled_action'])
-    if reward != 0.0:
-        count += 1
-    if info['collision_penalty'] != 0:
-        count_collisions += 1
-    if info['outer_reward'] > 0:
-        count_red += 1
-    elif info['outer_reward'] < 0:
-        count_green += 1
-    pbar.update(1)
-    steps += 1
-    pos = env.wrapped_env.sim.data.qpos.copy()    
-    img = cv2.cvtColor(ob['observation'], cv2.COLOR_RGB2BGR)
-    cv2.imwrite(os.path.join('assets', 'plots', 'tests', 'test_image_{}.png'.format(steps)), img)
-    IMAGES.append(img)
-    #env.render()
-    top = env.render('rgb_array')
-    cv2.imshow('camera stream', img)
-    cv2.imshow('position stream', top)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-    POS.append(pos.copy())
-    OBS.append(ob.copy())
-    REWARDS.append(reward)
-    INFO.append(info)
-    #env.render()
-pbar.close()
-print('total count:      {}'.format(count))
-print('collision counts: {}'.format(count_collisions))
-print('green counts:     {}'.format(count_green))
-print('red counts:       {}'.format(count_red))
+for i in range(5):
+    done = False
+    ob = env.reset()
+    while not done:
+        ob, reward, done, info = env.step(ob['sampled_action'])
+        if reward != 0.0:
+            count += 1
+        if info['collision_penalty'] != 0:
+            count_collisions += 1
+        if info['outer_reward'] > 0:
+            count_red += 1
+        elif info['outer_reward'] < 0:
+            count_green += 1
+        pbar.update(1)
+        steps += 1
+        pos = env.wrapped_env.sim.data.qpos.copy()    
+        img = cv2.cvtColor(ob['observation'], cv2.COLOR_RGB2BGR)
+        cv2.imwrite(os.path.join('assets', 'plots', 'tests', 'test_image_{}.png'.format(steps)), img)
+        IMAGES.append(img)
+        #env.render()
+        top = env.render('rgb_array')
+        cv2.imshow('camera stream', img)
+        cv2.imshow('position stream', top)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+        POS.append(pos.copy())
+        OBS.append(ob.copy())
+        REWARDS.append(reward)
+        INFO.append(info)
+        #env.render()
+    pbar.close()
+    print('total count:      {}'.format(count))
+    print('collision counts: {}'.format(count_collisions))
+    print('green counts:     {}'.format(count_green))
+    print('red counts:       {}'.format(count_red))
 
 
 def plot_top_view(env, POS):

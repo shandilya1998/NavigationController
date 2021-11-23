@@ -52,6 +52,7 @@ class MazeEnv(gym.Env):
         image_shape: Tuple[int, int] = (600, 480),
         **kwargs,
     ) -> None:
+        self.top_view_size = params['top_view_size']
         self.t = 0  # time steps
         self.vt = np.array([0.0], dtype = np.float32)
         self.max_episode_size = max_episode_size
@@ -284,7 +285,7 @@ class MazeEnv(gym.Env):
         robot_ori = self.wrapped_env.get_ori()
         row, col = self._xy_to_rowcol(robot_x, robot_y)
         source = self._structure_to_graph_index(row, col)
-        goal_pos = self._task.goals[0].pos[:2]
+        goal_pos = self._task.goals[self._task.goal_index].pos[:2]
         row, col = self._xy_to_rowcol(goal_pos[0], goal_pos[1])
         target = self._structure_to_graph_index(row, col)
         paths = list(nx.algorithms.shortest_paths.generic.all_shortest_paths(
@@ -415,9 +416,14 @@ class MazeEnv(gym.Env):
     def _get_obs(self) -> np.ndarray:
         img = self.wrapped_env._get_obs()
         try: 
-            sampled_action = self.get_action()
+            sampled_action = np.concatenate([
+                self.get_action(), self.vt
+            ])
         except:
-            sampled_action = np.zeros(self.action_space.shape)
+            sampled_action = np.concatenate([
+                np.zeros(self.action_space.shape),
+                self.vt
+            ])
         return {
             'observation' : img.copy(),
             'state_value' : self.vt.copy(),
@@ -482,7 +488,7 @@ class MazeEnv(gym.Env):
             self._websock_server_pipe.send(self._render_image())
         else:
             return self.wrapped_env.render(mode, **kwargs)
-
+        
     def _find_robot(self) -> Tuple[float, float]:
         structure = self._maze_structure
         size_scaling = self._maze_size_scaling
@@ -523,7 +529,7 @@ class MazeEnv(gym.Env):
         self.t += 1
         ai = action[0]
         di = action[1]
-        self.vt = action[2]
+        self.vt = np.array([action[2]])
         prev_yaw = copy.deepcopy(self.state.yaw)
         prev_v = copy.deepcopy(self.state.v)
         self.state.update(ai, di)
@@ -552,6 +558,7 @@ class MazeEnv(gym.Env):
         self._current_cell = index
         if self.t > self.max_episode_size:
             done = True
+            outer_reward += -100
         reward = inner_reward + outer_reward + collision_penalty
         info['inner_reward'] = inner_reward
         info['outer_reward'] = outer_reward
@@ -572,8 +579,8 @@ class MazeEnv(gym.Env):
 
     def xy_to_imgrowcol(self, x, y): 
         (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(x, y)
-        row = 200 * row + int((row_frac) * 200) + 100 
-        col = 200 * col + int((col_frac) * 200) + 100 
+        row = self.top_view_size * row + int((row_frac) * self.top_view_size) + self.top_view_size / 2 
+        col = self.top_view_size * col + int((col_frac) * self.top_view_size) + self.top_view_size / 2 
         return row, col 
 
     def render(self, mode = 'human', **kwargs):
@@ -595,21 +602,46 @@ class MazeEnv(gym.Env):
             return self.wrapped_env.render(mode, **kwargs) 
 
     def get_top_view(self):
+        block_size = self.top_view_size
+
         img = np.zeros(
-            (200 * len(self._maze_structure), 200 * len(self._maze_structure[0]), 3)
+            (block_size * len(self._maze_structure), block_size * len(self._maze_structure[0]), 3)
         )
+
         for i in range(len(self._maze_structure)):
             for j in range(len(self._maze_structure[0])):
                 if  self._maze_structure[i][j].is_wall_or_chasm():
                     img[
-                        200 * i: 200 * (i + 1),
-                        200 * j: 200 * (j + 1)
+                        block_size * i: block_size * (i + 1),
+                        block_size * j: block_size * (j + 1)
                     ] = 0.5
 
-        x, y = self.wrapped_env.get_xy()
-        row, col = self.xy_to_imgrowcol(x, y)
-        img[row - 20: row + 20, col - 20: col + 20] = [1, 0, 0]
-        return img
+
+        def xy_to_imgrowcol(x, y):
+            (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(x, y)
+            row = block_size * row + int((row_frac) * block_size) + int(block_size / 2)
+            col = block_size * col + int((col_frac) * block_size) + int(block_size / 2)
+            return int(row), int(col)
+
+        pos = self.wrapped_env.get_xy() 
+        row, col = xy_to_imgrowcol(pos[0], pos[1])
+        img[row - int(block_size / 10): row + int(block_size / 10), col - int(block_size / 10): col + int(block_size / 10)] = [1, 1, 1]
+        for i, goal in enumerate(self._task.goals):
+            pos = goal.pos
+            row, col = xy_to_imgrowcol(pos[0], pos[1])
+            if i == self._task.goal_index:
+                img[
+                    row - int(block_size / 10): row + int(block_size / 10),
+                    col - int(block_size / 10): col + int(block_size / 10)
+                ] = [0, 0, 1]
+            else:
+                img[
+                    row - int(block_size / 10): row + int(block_size / 10),
+                    col - int(block_size / 10): col + int(block_size / 10)
+                ] = [0, 1, 0]
+
+        return np.flipud(img)
+
 
 def _add_object_ball(
     worldbody: ET.Element, i: str, j: str, x: float, y: float, size: float

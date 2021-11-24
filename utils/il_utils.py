@@ -27,7 +27,7 @@ class ImitationLearning(sb3.common.on_policy_algorithm.OnPolicyAlgorithm):
         policy_kwargs: Optional[Dict[str, Any]] = None,
         verbose: int = 0,
         seed: Optional[int] = None,
-        device: Union[torch.device, str] = "auto",
+        device: Union[torch.device, str] = "cuda",
         _init_setup_model: bool = True,
     ):
         super(ImitationLearning, self).__init__(

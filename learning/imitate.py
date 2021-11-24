@@ -41,13 +41,13 @@ class Imitate:
             TD3BGPolicy,
             self.env,
             tensorboard_log = self.logdir,
-            learning_rate = 5e-4,
+            learning_rate = 1e-4,
             n_steps = 50, 
             gamma = 0.99,
             gae_lambda = 0.95,
             vf_coef = 1.0,
             verbose = 1,
-            device = 'auto'
+            device = 'cuda'
         ) 
 
     def __set_il_callback(self):

@@ -40,7 +40,7 @@ class Explore:
             TD3BGPolicy,
             self.env,
             tensorboard_log = self.logdir,
-            learning_rate = 5e-4,
+            learning_rate = 2e-4,
             n_steps = 50,
             gamma = 0.99,
             gae_lambda = 0.9,

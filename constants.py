@@ -34,11 +34,12 @@ params = {
     'eval_freq'                   : 10000,
     'buffer_size'                 : 12500,
     'total_timesteps'             : int(1e6),
-    'ds'                          : 0.1,
+    'ds'                          : 0.01,
     'motor_cortex'                : [[256, 20], [256, 2]],
     'snc'                         : [256, 1],
     'af'                          : [256, 1],
     'critic_net_arch'             : [400, 300],
     'OU_MEAN'                     : 0.0,
     'OU_SIGMA'                    : 0.08,
+    'top_view_size'               : 50
 }

@@ -6,7 +6,7 @@ from constants import params
 
 class BasalGanglia(torch.nn.Module):
     def __init__(self,
-        num_out = 20, 
+        num_out = 2, 
         num_ctx = 300,
         num_gpe = 40, 
         num_stn = 40,
@@ -51,12 +51,13 @@ class BasalGanglia(torch.nn.Module):
         self.weights_slat = torch.ones(
             (self.num_stn, self.num_stn)
         ) - torch.eye(self.num_stn) 
-        self.fc_d1gpi = torch.nn.Linear(self.FF_Dim_in, self.num_gpi)
-        self.fc_stngpi = torch.nn.Linear(self.num_stn, self.num_gpi)
-        self.fc_jd1 = torch.nn.Linear(self.num_ctx, self.FF_Dim_in)
-        self.fc_jd2 = torch.nn.Linear(self.num_ctx, self.FF_Dim_in)
-        self.fc_kd1 = torch.nn.Linear(self.num_ctx, self.FF_Dim_in)
-        self.fc_kd2 = torch.nn.Linear(self.num_ctx, self.FF_Dim_in)
+        self.fc_d1gpi = torch.nn.Linear(self.FF_Dim_in, self.num_gpi, bias = False)
+        self.fc_stngpi = torch.nn.Linear(self.num_stn, self.num_gpi, bias = False)
+        self.fc_stngpi.weight.requires_grad = False
+        self.fc_jd1 = torch.nn.Linear(self.num_ctx, self.FF_Dim_in, bias = False)
+        self.fc_jd2 = torch.nn.Linear(self.num_ctx, self.FF_Dim_in, bias = False)
+        self.fc_kd1 = torch.nn.Linear(self.num_ctx, self.FF_Dim_in, bias = False)
+        self.fc_kd2 = torch.nn.Linear(self.num_ctx, self.FF_Dim_in, bias = False)
 
         self.thalamus = torch.nn.LSTMCell(
             self.num_gpi, self.num_out
@@ -146,7 +147,7 @@ class VisualCortex(torch.nn.Module):
 
 
 class MotorCortex(torch.nn.Module):
-    def __init__(self, num_ctx = 300, num_bg_out = 20, action_dim = 2):
+    def __init__(self, num_ctx = 300, action_dim = 2):
         super(MotorCortex, self).__init__()
         layers = []
         input_size = num_ctx
@@ -154,12 +155,6 @@ class MotorCortex(torch.nn.Module):
             layers.append(torch.nn.Linear(input_size, units))
             layers.append(torch.nn.ReLU())
             input_size = units
-        layers.append(torch.nn.Linear(input_size, num_bg_out))
-        input_size = num_bg_out
-        self.fc_1 = torch.nn.Sequential(
-            *layers
-        )
-        layers = []
         for units in params['motor_cortex'][1]:
             layers.append(torch.nn.Linear(input_size, units))
             layers.append(torch.nn.ReLU())
@@ -172,16 +167,14 @@ class MotorCortex(torch.nn.Module):
 
     def forward(self, inputs):
         stimulus, bg_out = inputs
-        x = self.fc_1(stimulus)
-        x = x + bg_out
-        action = self.fc_2(x)
+        #x = self.fc_1(stimulus)
+        action = self.fc_2(stimulus) + bg_out
         return action
 
 
 class ControlNetwork(torch.nn.Module):
     def __init__(self,
         action_dim = 2,
-        num_bg_out = 20, 
         num_ctx = 300,
         num_gpe = 40, 
         num_stn = 40,
@@ -203,7 +196,7 @@ class ControlNetwork(torch.nn.Module):
     ):
         super(ControlNetwork, self).__init__()
         self.bg = BasalGanglia(
-            num_bg_out,
+            action_dim,
             num_ctx,
             num_gpe, 
             num_stn,
@@ -227,7 +220,7 @@ class ControlNetwork(torch.nn.Module):
             num_ctx
         )
         self.mc = MotorCortex(
-            num_ctx, num_bg_out, action_dim
+            num_ctx, action_dim
         )
 
         input_size = num_ctx

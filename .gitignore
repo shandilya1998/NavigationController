@@ -3,6 +3,7 @@
 *.npy
 *.zip
 *logs
+*.pyc
 key.json
 assets/plots/tests/
 Python*

@@ -52,6 +52,8 @@ class MazeEnv(gym.Env):
         image_shape: Tuple[int, int] = (600, 480),
         **kwargs,
     ) -> None:
+        self.kwargs = kwargs
+        self.top_view_size = params['top_view_size']
         self.t = 0  # time steps
         self.vt = np.array([0.0], dtype = np.float32)
         self.max_episode_size = max_episode_size
@@ -100,14 +102,25 @@ class MazeEnv(gym.Env):
         )
 
         # Let's create MuJoCo XML
-        xml_path = os.path.join(MODEL_DIR, model_cls.FILE)
+        self.model_cls = model_cls
+        self._websock_port = websock_port
+        self._camera_move_x = camera_move_x
+        self._camera_move_y = camera_move_y
+        self._camera_zoom = camera_zoom
+        self._image_shape = image_shape
+        self._mj_offscreen_viewer = None
+        self._websock_server_pipe = None
+        self.set_env()
+
+    def set_env(self):
+        xml_path = os.path.join(MODEL_DIR, self.model_cls.FILE)
         tree = ET.parse(xml_path)
         worldbody = tree.find(".//worldbody")
 
         height_offset = 0.0
         if self.elevated:
             # Increase initial z-pos of ant.
-            height_offset = height * size_scaling
+            height_offset = self._maze_height * self._maze_size_scaling
             torso = tree.find(".//body[@name='torso']")
             torso.set("pos", f"0 0 {0.75 + height_offset:.2f}")
         if self.blocks:
@@ -119,14 +132,15 @@ class MazeEnv(gym.Env):
         tree.find('.//option').set('timestep', str(params['dt']))
         self.movable_blocks = []
         self.object_balls = []
-        for i in range(len(structure)):
-            for j in range(len(structure[0])):
-                struct = structure[i][j]
+        torso_x, torso_y = self._find_robot()
+        for i in range(len(self._maze_structure)):
+            for j in range(len(self._maze_structure[0])):
+                struct = self._maze_structure[i][j]
                 if struct.is_robot() and self._put_spin_near_agent:
                     struct = maze_env_utils.MazeCell.SPIN
-                x, y = j * size_scaling - torso_x, i * size_scaling - torso_y
-                h = height / 2 * size_scaling
-                size = size_scaling * 0.5
+                x, y = j * self._maze_size_scaling - torso_x, i * self._maze_size_scaling - torso_y
+                h = self._maze_height / 2 * self._maze_size_scaling
+                size = self._maze_size_scaling * 0.5
                 if self.elevated and not struct.is_chasm():
                     # Create elevated platform.
                     ET.SubElement(
@@ -164,7 +178,7 @@ class MazeEnv(gym.Env):
                         struct,
                         i,
                         j,
-                        size_scaling,
+                        self._maze_size_scaling,
                         x,
                         y,
                         h,
@@ -183,9 +197,9 @@ class MazeEnv(gym.Env):
 
         # Set goals
         for i, goal in enumerate(self._task.goals):
-            z = goal.pos[2] if goal.dim >= 3 else 0.1 *  maze_size_scaling
+            z = goal.pos[2] if goal.dim >= 3 else 0.1 *  self._maze_size_scaling
             if goal.custom_size is None:
-                size = f"{maze_size_scaling * 0.1}"
+                size = f"{self._maze_size_scaling * 0.1}"
             else:
                 size = f"{goal.custom_size}"
             ET.SubElement(
@@ -193,7 +207,7 @@ class MazeEnv(gym.Env):
                 "site",
                 name=f"goal_site{i}",
                 pos=f"{goal.pos[0]} {goal.pos[1]} {z}",
-                size=f"{maze_size_scaling * 0.1}",
+                size=f"{self._maze_size_scaling * 0.1}",
                 rgba=goal.rgb.rgba_str(),
                 material = "MatObj"
             )
@@ -201,7 +215,7 @@ class MazeEnv(gym.Env):
         _, file_path = tempfile.mkstemp(text=True, suffix=".xml")
         tree.write(file_path)
         self.world_tree = tree
-        self.wrapped_env = model_cls(file_path=file_path, **kwargs)
+        self.wrapped_env = self.model_cls(file_path=file_path, **self.kwargs)
         self.model = self.wrapped_env.model
         self.data = self.wrapped_env.data
         self.obstacles_ids = []
@@ -216,13 +230,6 @@ class MazeEnv(gym.Env):
         self._set_action_space()
         ob = self._get_obs()
         self._set_observation_space(ob)
-        self._websock_port = websock_port
-        self._camera_move_x = camera_move_x
-        self._camera_move_y = camera_move_y
-        self._camera_zoom = camera_zoom
-        self._image_shape = image_shape
-        self._mj_offscreen_viewer = None
-        self._websock_server_pipe = None
         self.__create_maze_graph()
         self.sampled_path = self.__sample_path()
         self._current_cell = copy.deepcopy(self.sampled_path[0])
@@ -284,7 +291,7 @@ class MazeEnv(gym.Env):
         robot_ori = self.wrapped_env.get_ori()
         row, col = self._xy_to_rowcol(robot_x, robot_y)
         source = self._structure_to_graph_index(row, col)
-        goal_pos = self._task.goals[0].pos[:2]
+        goal_pos = self._task.goals[self._task.goal_index].pos[:2]
         row, col = self._xy_to_rowcol(goal_pos[0], goal_pos[1])
         target = self._structure_to_graph_index(row, col)
         paths = list(nx.algorithms.shortest_paths.generic.all_shortest_paths(
@@ -415,9 +422,14 @@ class MazeEnv(gym.Env):
     def _get_obs(self) -> np.ndarray:
         img = self.wrapped_env._get_obs()
         try: 
-            sampled_action = self.get_action()
+            sampled_action = np.concatenate([
+                self.get_action(), self.vt
+            ])
         except:
-            sampled_action = np.zeros(self.action_space.shape)
+            sampled_action = np.concatenate([
+                np.zeros(self.action_space.shape),
+                self.vt
+            ])
         return {
             'observation' : img.copy(),
             'state_value' : self.vt.copy(),
@@ -426,6 +438,9 @@ class MazeEnv(gym.Env):
 
     def reset(self) -> np.ndarray:
         self.t = 0
+        self.close()
+        self._task.set()
+        self.set_env()
         self.wrapped_env.reset()
         self.vt = np.array([0.0])
         # Samples a new start position
@@ -482,7 +497,7 @@ class MazeEnv(gym.Env):
             self._websock_server_pipe.send(self._render_image())
         else:
             return self.wrapped_env.render(mode, **kwargs)
-
+        
     def _find_robot(self) -> Tuple[float, float]:
         structure = self._maze_structure
         size_scaling = self._maze_size_scaling
@@ -523,7 +538,7 @@ class MazeEnv(gym.Env):
         self.t += 1
         ai = action[0]
         di = action[1]
-        self.vt = action[2]
+        self.vt = np.array([action[2]])
         prev_yaw = copy.deepcopy(self.state.yaw)
         prev_v = copy.deepcopy(self.state.v)
         self.state.update(ai, di)
@@ -542,7 +557,7 @@ class MazeEnv(gym.Env):
         next_pos = self.wrapped_env.get_xy()
         collision_penalty = 0.0
         if self._is_in_collision():
-            collision_penalty += -1.0 * self._inner_reward_scaling
+            collision_penalty += -5.0 * self._inner_reward_scaling
         next_obs = self._get_obs()
         inner_reward = self._inner_reward_scaling * inner_reward
         outer_reward = self._task.reward(next_obs['observation'])
@@ -552,6 +567,7 @@ class MazeEnv(gym.Env):
         self._current_cell = index
         if self.t > self.max_episode_size:
             done = True
+            outer_reward += -100
         reward = inner_reward + outer_reward + collision_penalty
         info['inner_reward'] = inner_reward
         info['outer_reward'] = outer_reward
@@ -572,8 +588,8 @@ class MazeEnv(gym.Env):
 
     def xy_to_imgrowcol(self, x, y): 
         (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(x, y)
-        row = 200 * row + int((row_frac) * 200) + 100 
-        col = 200 * col + int((col_frac) * 200) + 100 
+        row = self.top_view_size * row + int((row_frac) * self.top_view_size) + self.top_view_size / 2 
+        col = self.top_view_size * col + int((col_frac) * self.top_view_size) + self.top_view_size / 2 
         return row, col 
 
     def render(self, mode = 'human', **kwargs):
@@ -595,21 +611,46 @@ class MazeEnv(gym.Env):
             return self.wrapped_env.render(mode, **kwargs) 
 
     def get_top_view(self):
+        block_size = self.top_view_size
+
         img = np.zeros(
-            (200 * len(self._maze_structure), 200 * len(self._maze_structure[0]), 3)
+            (block_size * len(self._maze_structure), block_size * len(self._maze_structure[0]), 3)
         )
+
         for i in range(len(self._maze_structure)):
             for j in range(len(self._maze_structure[0])):
                 if  self._maze_structure[i][j].is_wall_or_chasm():
                     img[
-                        200 * i: 200 * (i + 1),
-                        200 * j: 200 * (j + 1)
+                        block_size * i: block_size * (i + 1),
+                        block_size * j: block_size * (j + 1)
                     ] = 0.5
 
-        x, y = self.wrapped_env.get_xy()
-        row, col = self.xy_to_imgrowcol(x, y)
-        img[row - 20: row + 20, col - 20: col + 20] = [1, 0, 0]
-        return img
+
+        def xy_to_imgrowcol(x, y):
+            (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(x, y)
+            row = block_size * row + int((row_frac) * block_size) + int(block_size / 2)
+            col = block_size * col + int((col_frac) * block_size) + int(block_size / 2)
+            return int(row), int(col)
+
+        pos = self.wrapped_env.get_xy() 
+        row, col = xy_to_imgrowcol(pos[0], pos[1])
+        img[row - int(block_size / 10): row + int(block_size / 10), col - int(block_size / 10): col + int(block_size / 10)] = [1, 1, 1]
+        for i, goal in enumerate(self._task.goals):
+            pos = goal.pos
+            row, col = xy_to_imgrowcol(pos[0], pos[1])
+            if i == self._task.goal_index:
+                img[
+                    row - int(block_size / 10): row + int(block_size / 10),
+                    col - int(block_size / 10): col + int(block_size / 10)
+                ] = [0, 0, 1]
+            else:
+                img[
+                    row - int(block_size / 10): row + int(block_size / 10),
+                    col - int(block_size / 10): col + int(block_size / 10)
+                ] = [0, 1, 0]
+
+        return np.flipud(img)
+
 
 def _add_object_ball(
     worldbody: ET.Element, i: str, j: str, x: float, y: float, size: float

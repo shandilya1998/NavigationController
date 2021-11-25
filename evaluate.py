@@ -23,6 +23,11 @@ if __name__ == '__main__':
         type = str,
         help = 'name of the model file to load in log director'
     )
+    paraser.add_argument(
+        '--max_episode_size',
+        type = int,
+        help = 'maximum episode length'
+    )
 
     env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
         sb3.common.vec_env.dummy_vec_env.DummyVecEnv([

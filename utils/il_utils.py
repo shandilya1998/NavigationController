@@ -171,7 +171,7 @@ class ImitationLearning(sb3.common.on_policy_algorithm.OnPolicyAlgorithm):
             # Value loss using the TD(gae_lambda) target
             value_loss = torch.nn.functional.mse_loss(torch.unsqueeze(rollout_data.returns, -1), values)
 
-            loss = policy_loss + self.vf_coef * value_loss + self.vf_coef * advantage_loss
+            loss = self.vf_coef * value_loss + self.vf_coef * advantage_loss
 
             # Optimization step
             self.policy.optimizer.zero_grad()

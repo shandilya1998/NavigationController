@@ -7,7 +7,7 @@ LOGDIR="assets/out/models/exp5"
 TIMESTEPS=1000000
 BATCH_SIZE=128
 MAX_EPISODE_SIZE=2500
-LEARNING_TYPE="imitate"
+LEARNING_TYPE="exlpore"
 
 python3 train.py \
     --logdir $LOGDIR \

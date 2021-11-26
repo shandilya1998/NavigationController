@@ -13,9 +13,8 @@ import shutil
 torch.autograd.set_detect_anomaly(True)
 
 class Explore:
-    def __init__(self, logdir, batch_size, max_episode_size):
+    def __init__(self, logdir, max_episode_size):
         self.logdir = logdir
-        self.batch_size = batch_size
         self.env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
             sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
                 lambda : sb3.common.monitor.Monitor(MazeEnv(
@@ -40,10 +39,10 @@ class Explore:
             TD3BGPolicy,
             self.env,
             tensorboard_log = self.logdir,
-            learning_rate = 2e-4,
-            n_steps = 50,
-            gamma = 0.99,
-            gae_lambda = 0.9,
+            learning_rate = params['lr'],
+            n_steps = params['n_steps'],
+            gamma = params['gamma'],
+            gae_lambda = params['gae_lambda'],
             vf_coef = 1.0,
             verbose = 1,
             device = 'auto'

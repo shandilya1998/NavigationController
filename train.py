@@ -15,11 +15,6 @@ if __name__ == '__main__':
         help = 'number of timesteps to run learning for'
     )
     parser.add_argument(
-        '--batch_size',
-        type = int,
-        help = 'batch size'
-    )
-    parser.add_argument(
         '--max_episode_size',
         type = int,
         help = 'maximum episode size'
@@ -33,14 +28,12 @@ if __name__ == '__main__':
     if args.learning_type == 'imitate':
         model = Imitate(
             logdir = args.logdir,
-            batch_size = args.batch_size,
             max_episode_size = args.max_episode_size
         )
         model.learn(args.timesteps)
     elif args.learning_type == 'explore':
         model = Explore(
             logdir = args.logdir,
-            batch_size = args.batch_size,
             max_episode_size = args.max_episode_size
         )
         model.learn(args.timesteps)

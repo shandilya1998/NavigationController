@@ -28,7 +28,6 @@ params = {
     'show_animation'              : False,
     'dt'                          : 0.02,
     'learning_starts'             : 100,
-    'batch_size'                  : 64,
     'render_freq'                 : 20000,
     'save_freq'                   : 10000,
     'eval_freq'                   : 10000,
@@ -41,5 +40,11 @@ params = {
     'critic_net_arch'             : [400, 300],
     'OU_MEAN'                     : 0.0,
     'OU_SIGMA'                    : 0.08,
-    'top_view_size'               : 50
+    'top_view_size'               : 50.,
+    'batch_size'                  : 2,
+    'lr'                          : 1e-4,
+    'n_steps'                     : 2500,
+    'gamma'                       : 0.99,
+    'gae_lambda'                  : 0.95,
+    'n_updates'                   : 100
 }

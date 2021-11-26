@@ -10,14 +10,13 @@ from constants import params
 from utils.callbacks import CustomCallback, CheckpointCallback, EvalCallback
 import os
 import shutil
+from constants import params
 
 torch.autograd.set_detect_anomaly(True)
 
 class Imitate:
-    def __init__(self, logdir, batch_size, max_episode_size):
+    def __init__(self, logdir, max_episode_size):
         self.logdir = logdir
-        self.batch_size = batch_size
-        print('here1')
         self.env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
             sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
                 lambda : sb3.common.monitor.Monitor(MazeEnv(
@@ -27,7 +26,6 @@ class Imitate:
                 ))
             ]),
         )
-        print('here2')
         self.eval_env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
             sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
                 lambda : sb3.common.monitor.Monitor(MazeEnv(
@@ -37,18 +35,16 @@ class Imitate:
                 ))
             ]),
         )
-        print('here3')
         self.__set_il_callback()
         n_actions = self.env.action_space.sample().shape[-1]
-        print('here4')
         self.il_model = ImitationLearning(
             TD3BGPolicy,
             self.env,
             tensorboard_log = self.logdir,
-            learning_rate = 1e-4,
-            n_steps = 50, 
-            gamma = 0.99,
-            gae_lambda = 0.95,
+            learning_rate = params['lr'],
+            n_steps = params['n_steps'], 
+            gamma = params['gamma'],
+            gae_lambda = params['gae_lambda'],
             vf_coef = 1.0,
             verbose = 1,
             device = 'cuda'

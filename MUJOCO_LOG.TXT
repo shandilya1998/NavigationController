@@ -19,3 +19,30 @@ ERROR: Expired activation key
 Wed Nov 10 12:44:42 2021
 ERROR: OpenGL version 1.5 or higher required
 
+Fri Nov 26 12:23:22 2021
+ERROR: Could not open activation key file mjkey.txt
+
+Fri Nov 26 13:41:17 2021
+ERROR: GLEW initalization error: Missing GL version
+
+Fri Nov 26 13:42:12 2021
+ERROR: GLEW initalization error: Missing GL version
+
+Fri Nov 26 14:08:01 2021
+ERROR: GLEW initalization error: Missing GL version
+
+Fri Nov 26 14:18:40 2021
+ERROR: GLEW initalization error: Missing GL version
+
+Fri Nov 26 14:22:17 2021
+ERROR: GLEW initalization error: Missing GL version
+
+Fri Nov 26 14:25:45 2021
+ERROR: GLEW initalization error: Missing GL version
+
+Fri Nov 26 16:38:49 2021
+ERROR: GLEW initalization error: Missing GL version
+
+Fri Nov 26 17:05:13 2021
+ERROR: GLEW initalization error: Missing GL version
+

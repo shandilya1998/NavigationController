@@ -4,6 +4,7 @@
 *.zip
 *logs
 *.pyc
+*__pycache__*
 key.json
 assets/plots/tests/
 Python*

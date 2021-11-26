@@ -17,6 +17,7 @@ class Imitate:
     def __init__(self, logdir, batch_size, max_episode_size):
         self.logdir = logdir
         self.batch_size = batch_size
+        print('here1')
         self.env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
             sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
                 lambda : sb3.common.monitor.Monitor(MazeEnv(
@@ -26,6 +27,7 @@ class Imitate:
                 ))
             ]),
         )
+        print('here2')
         self.eval_env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
             sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
                 lambda : sb3.common.monitor.Monitor(MazeEnv(
@@ -35,8 +37,10 @@ class Imitate:
                 ))
             ]),
         )
+        print('here3')
         self.__set_il_callback()
         n_actions = self.env.action_space.sample().shape[-1]
+        print('here4')
         self.il_model = ImitationLearning(
             TD3BGPolicy,
             self.env,
@@ -48,7 +52,8 @@ class Imitate:
             vf_coef = 1.0,
             verbose = 1,
             device = 'cuda'
-        ) 
+        )
+        print('here5')
 
     def __set_il_callback(self):
         recordcallback = CustomCallback(

@@ -1,4 +1,4 @@
-FROM nvidia/cuda@sha256:4df157f2afde1cb6077a191104ab134ed4b2fd62927f27b69d788e8e79a45fa1
+FROM nvidia/cuda:10.2-cudnn7-devel-ubuntu18.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update
@@ -10,7 +10,7 @@ libreadline-gplv2-dev libncursesw5-dev libssl-dev libosmesa6-dev \
 libsqlite3-dev tk-dev libgdbm-dev libc6-dev libbz2-dev \
 libgl1-mesa-glx libgl1-mesa-dev patchelf libglfw3-dev libglew-dev \
 libsqlite3-dev libpng-dev libjpeg-dev git-all liblzma-dev tzdata \
-software-properties-common net-tools vim xpra xserver-xorg-dev  && \
+software-properties-common net-tools vim xpra xserver-xorg-dev libopengl0 && \
 ln -fs /usr/share/zoneinfo/Asia/Kolkata /etc/localtime && \
 dpkg-reconfigure --frontend noninteractive tzdata && \
 apt-get clean && \
@@ -27,10 +27,12 @@ ENV LANG C.UTF-8
 RUN mkdir /root/.mujoco && cd /root/.mujoco && \
 wget https://www.roboti.us/download/mjpro150_linux.zip && \
 unzip mjpro150_linux.zip && \
-wget https://www.roboti.us/file/mjkey.txt
+wget https://www.roboti.us/file/mjkey.txt && \
+mkdir /usr/lib/nvidia-470
 
-ENV LD_LIBRARY_PATH /root/.mujoco/mjpro150/bin:${LD_LIBRARY_PATH}
-ENV LD_LIBRARY_PATH /usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
+ENV LD_LIBRARY_PATH /usr/lib/nvidia-470:/usr/local/cuda/lib64:/root/.mujoco/mjpro150/bin:${LD_LIBRARY_PATH}
+ENV LD_PRELOAD /usr/lib/x86_64-linux-gnu/libGLEW.so:/usr/lib/x86_64-linux-gnu/libEGL.so:/usr/lib/x86_64-linux-gnu/libGL.so
+ENV PATH /usr/local/cuda/bin:${PATH}
 
 COPY vendor/Xdummy /usr/local/bin/Xdummy
 RUN chmod +x /usr/local/bin/Xdummy
@@ -59,8 +61,11 @@ ENV PATH $PATH:/root/tools/google-cloud-sdk/bin
 RUN echo '[GoogleCompute]\nservice_account = default' > /etc/boto.cfg
 
 RUN mkdir /root/trainer
-#COPY . /root/trainer/
+COPY docker/eglshim.c /root/trainer/eglshim.c
 WORKDIR /root/trainer
+
+RUN rm /usr/local/lib/python3.6/site-packages/mujoco_py/gl/eglshim.c && \
+cp /root/trainer/eglshim.c /usr/local/lib/python3.6/site-packages/mujoco_py/gl/eglshim.c
 #EXPOSE 8080
 
 #ENTRYPOINT ["python3", "train.py"]

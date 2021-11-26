@@ -59,7 +59,8 @@ class PointEnv(AgentModel):
         return np.flipud(self.sim.render(
             width = 224,
             height = 224,
-            camera_name = 'mtdcam'
+            camera_name = 'mtdcam',
+            device_id = 0
         ))
 
     def reset_model(self):

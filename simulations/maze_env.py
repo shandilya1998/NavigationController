@@ -614,15 +614,15 @@ class MazeEnv(gym.Env):
         block_size = self.top_view_size
 
         img = np.zeros(
-            (block_size * len(self._maze_structure), block_size * len(self._maze_structure[0]), 3)
+            (int(block_size * len(self._maze_structure)), int(block_size * len(self._maze_structure[0])), 3)
         )
 
         for i in range(len(self._maze_structure)):
             for j in range(len(self._maze_structure[0])):
                 if  self._maze_structure[i][j].is_wall_or_chasm():
                     img[
-                        block_size * i: block_size * (i + 1),
-                        block_size * j: block_size * (j + 1)
+                        int(block_size * i): int(block_size * (i + 1)),
+                        int(block_size * j): int(block_size * (j + 1))
                     ] = 0.5
 
 

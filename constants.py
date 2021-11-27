@@ -46,5 +46,5 @@ params = {
     'n_steps'                     : 2500,
     'gamma'                       : 0.99,
     'gae_lambda'                  : 0.95,
-    'n_updates'                   : 100
+    'n_updates'                   : 64,
 }

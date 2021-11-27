@@ -57614,3 +57614,1510 @@ Episode length: 2501.00 +/- 0.00
 |    policy_loss     | -2.82    |
 |    value_loss      | 21.9     |
 ---------------------------------
+Eval num_timesteps=30000, episode_reward=-55.86 +/- 97.54
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | -55.9    |
+| time/              |          |
+|    total_timesteps | 30000    |
+| train/             |          |
+|    action_loss     | 1.04     |
+|    advantage_loss  | 27.7     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 1100     |
+|    policy_loss     | -2.17    |
+|    value_loss      | 33.9     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.19e+03 |
+|    ep_rew_mean     | 145      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 12       |
+|    time_elapsed    | 4997     |
+|    total_timesteps | 30000    |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.24e+03 |
+|    ep_rew_mean     | 148      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 13       |
+|    time_elapsed    | 5237     |
+|    total_timesteps | 32500    |
+| train/             |          |
+|    action_loss     | 0.845    |
+|    advantage_loss  | 148      |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 1200     |
+|    policy_loss     | -2.06    |
+|    value_loss      | 141      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.28e+03 |
+|    ep_rew_mean     | 156      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 14       |
+|    time_elapsed    | 5473     |
+|    total_timesteps | 35000    |
+| train/             |          |
+|    action_loss     | 1.28     |
+|    advantage_loss  | 42.2     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 1300     |
+|    policy_loss     | -2.04    |
+|    value_loss      | 38.1     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.33e+03 |
+|    ep_rew_mean     | 147      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 15       |
+|    time_elapsed    | 5714     |
+|    total_timesteps | 37500    |
+| train/             |          |
+|    action_loss     | 0.926    |
+|    advantage_loss  | 17.5     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 1400     |
+|    policy_loss     | -1.81    |
+|    value_loss      | 20.6     |
+---------------------------------
+Eval num_timesteps=40000, episode_reward=-69.90 +/- 141.77
+Episode length: 2280.40 +/- 441.20
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.28e+03 |
+|    mean_reward     | -69.9    |
+| time/              |          |
+|    total_timesteps | 40000    |
+| train/             |          |
+|    action_loss     | 0.58     |
+|    advantage_loss  | 33.8     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 1500     |
+|    policy_loss     | -1.83    |
+|    value_loss      | 19.4     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.21e+03 |
+|    ep_rew_mean     | 147      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 16       |
+|    time_elapsed    | 6572     |
+|    total_timesteps | 40000    |
+---------------------------------
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:99:4: 'mjtDisableBit' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:114:4: 'mjtEnableBit' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:121:4: 'mjtJoint' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:127:4: 'mjtGeom' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:149:4: 'mjtCamLight' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:157:4: 'mjtTexture' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:163:4: 'mjtIntegrator' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:168:4: 'mjtCollision' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:174:4: 'mjtCone' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:179:4: 'mjtJacobian' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:185:4: 'mjtSolver' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:191:4: 'mjtImp' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:198:4: 'mjtRef' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:203:4: 'mjtEq' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:211:4: 'mjtWrap' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:220:4: 'mjtTrn' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:230:4: 'mjtDyn' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:237:4: 'mjtGain' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:242:4: 'mjtBias' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:248:4: 'mjtObj' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:274:4: 'mjtConstraint' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:285:4: 'mjtConstraintState' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:294:4: 'mjtSensor' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:338:4: 'mjtStage' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:345:4: 'mjtDataType' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:99:4: 'mjtDisableBit' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:114:4: 'mjtEnableBit' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:121:4: 'mjtJoint' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:127:4: 'mjtGeom' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:149:4: 'mjtCamLight' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:157:4: 'mjtTexture' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:163:4: 'mjtIntegrator' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:168:4: 'mjtCollision' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:174:4: 'mjtCone' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:179:4: 'mjtJacobian' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:185:4: 'mjtSolver' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:191:4: 'mjtImp' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:198:4: 'mjtRef' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:203:4: 'mjtEq' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:211:4: 'mjtWrap' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:220:4: 'mjtTrn' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:230:4: 'mjtDyn' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:237:4: 'mjtGain' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:242:4: 'mjtBias' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:248:4: 'mjtObj' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:274:4: 'mjtConstraint' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:285:4: 'mjtConstraintState' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:294:4: 'mjtSensor' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:338:4: 'mjtStage' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:345:4: 'mjtDataType' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:75:4: 'mjtNum' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:77:10: 'mjPI' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:78:10: 'mjMAXVAL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:79:10: 'mjMINMU' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:80:10: 'mjMINIMP' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:81:10: 'mjMAXIMP' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:82:10: 'mjMAXCONPAIR' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:83:10: 'mjMAXVFS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:84:10: 'mjMAXVFSNAME' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:87:10: 'mjNEQDATA' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:88:10: 'mjNDYN' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:89:10: 'mjNGAIN' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:90:10: 'mjNBIAS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:91:10: 'mjNREF' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:92:10: 'mjNIMP' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:93:10: 'mjNSOLVER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:96:4: 'mjtByte' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:100:8: 'mjDSBL_CONSTRAINT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:101:8: 'mjDSBL_EQUALITY' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:102:8: 'mjDSBL_FRICTIONLOSS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:103:8: 'mjDSBL_LIMIT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:104:8: 'mjDSBL_CONTACT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:105:8: 'mjDSBL_PASSIVE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:106:8: 'mjDSBL_GRAVITY' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:107:8: 'mjDSBL_CLAMPCTRL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:108:8: 'mjDSBL_WARMSTART' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:109:8: 'mjDSBL_FILTERPARENT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:110:8: 'mjDSBL_ACTUATION' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:111:8: 'mjDSBL_REFSAFE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:112:10: 'mjNDISABLE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:115:8: 'mjENBL_OVERRIDE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:116:8: 'mjENBL_ENERGY' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:117:8: 'mjENBL_FWDINV' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:118:8: 'mjENBL_SENSORNOISE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:119:10: 'mjNENABLE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:122:8: 'mjJNT_FREE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:123:8: 'mjJNT_BALL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:124:8: 'mjJNT_SLIDE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:125:8: 'mjJNT_HINGE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:129:8: 'mjGEOM_PLANE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:130:8: 'mjGEOM_HFIELD' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:131:8: 'mjGEOM_SPHERE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:132:8: 'mjGEOM_CAPSULE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:133:8: 'mjGEOM_ELLIPSOID' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:134:8: 'mjGEOM_CYLINDER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:135:8: 'mjGEOM_BOX' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:136:8: 'mjGEOM_MESH' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:138:8: 'mjNGEOMTYPES' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:141:8: 'mjGEOM_ARROW' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:142:8: 'mjGEOM_ARROW1' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:143:8: 'mjGEOM_ARROW2' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:144:8: 'mjGEOM_LABEL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:146:8: 'mjGEOM_NONE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:150:8: 'mjCAMLIGHT_FIXED' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:151:8: 'mjCAMLIGHT_TRACK' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:152:8: 'mjCAMLIGHT_TRACKCOM' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:153:8: 'mjCAMLIGHT_TARGETBODY' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:154:8: 'mjCAMLIGHT_TARGETBODYCOM' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:158:8: 'mjTEXTURE_2D' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:159:8: 'mjTEXTURE_CUBE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:160:8: 'mjTEXTURE_SKYBOX' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:164:8: 'mjINT_EULER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:165:8: 'mjINT_RK4' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:169:8: 'mjCOL_ALL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:170:8: 'mjCOL_PAIR' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:171:8: 'mjCOL_DYNAMIC' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:175:8: 'mjCONE_PYRAMIDAL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:176:8: 'mjCONE_ELLIPTIC' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:180:8: 'mjJAC_DENSE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:181:8: 'mjJAC_SPARSE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:182:8: 'mjJAC_AUTO' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:186:8: 'mjSOL_PGS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:187:8: 'mjSOL_CG' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:188:8: 'mjSOL_NEWTON' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:192:8: 'mjIMP_CONSTANT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:193:8: 'mjIMP_SIGMOID' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:194:8: 'mjIMP_LINEAR' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:195:8: 'mjIMP_USER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:199:8: 'mjREF_SPRING' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:200:8: 'mjREF_USER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:204:8: 'mjEQ_CONNECT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:205:8: 'mjEQ_WELD' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:206:8: 'mjEQ_JOINT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:207:8: 'mjEQ_TENDON' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:208:8: 'mjEQ_DISTANCE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:212:8: 'mjWRAP_NONE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:213:8: 'mjWRAP_JOINT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:214:8: 'mjWRAP_PULLEY' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:215:8: 'mjWRAP_SITE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:216:8: 'mjWRAP_SPHERE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:217:8: 'mjWRAP_CYLINDER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:221:8: 'mjTRN_JOINT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:222:8: 'mjTRN_JOINTINPARENT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:223:8: 'mjTRN_SLIDERCRANK' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:224:8: 'mjTRN_TENDON' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:225:8: 'mjTRN_SITE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:227:8: 'mjTRN_UNDEFINED' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:231:8: 'mjDYN_NONE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:232:8: 'mjDYN_INTEGRATOR' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:233:8: 'mjDYN_FILTER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:234:8: 'mjDYN_USER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:238:8: 'mjGAIN_FIXED' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:239:8: 'mjGAIN_USER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:243:8: 'mjBIAS_NONE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:244:8: 'mjBIAS_AFFINE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:245:8: 'mjBIAS_USER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:249:8: 'mjOBJ_UNKNOWN' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:250:8: 'mjOBJ_BODY' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:251:8: 'mjOBJ_XBODY' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:252:8: 'mjOBJ_JOINT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:253:8: 'mjOBJ_DOF' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:254:8: 'mjOBJ_GEOM' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:255:8: 'mjOBJ_SITE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:256:8: 'mjOBJ_CAMERA' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:257:8: 'mjOBJ_LIGHT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:258:8: 'mjOBJ_MESH' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:259:8: 'mjOBJ_HFIELD' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:260:8: 'mjOBJ_TEXTURE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:261:8: 'mjOBJ_MATERIAL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:262:8: 'mjOBJ_PAIR' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:263:8: 'mjOBJ_EXCLUDE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:264:8: 'mjOBJ_EQUALITY' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:265:8: 'mjOBJ_TENDON' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:266:8: 'mjOBJ_ACTUATOR' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:267:8: 'mjOBJ_SENSOR' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:268:8: 'mjOBJ_NUMERIC' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:269:8: 'mjOBJ_TEXT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:270:8: 'mjOBJ_TUPLE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:271:8: 'mjOBJ_KEY' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:275:8: 'mjCNSTR_EQUALITY' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:276:8: 'mjCNSTR_FRICTION_DOF' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:277:8: 'mjCNSTR_FRICTION_TENDON' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:278:8: 'mjCNSTR_LIMIT_JOINT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:279:8: 'mjCNSTR_LIMIT_TENDON' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:280:8: 'mjCNSTR_CONTACT_FRICTIONLESS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:281:8: 'mjCNSTR_CONTACT_PYRAMIDAL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:282:8: 'mjCNSTR_CONTACT_ELLIPTIC' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:286:8: 'mjCNSTRSTATE_SATISFIED' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:287:8: 'mjCNSTRSTATE_QUADRATIC' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:288:8: 'mjCNSTRSTATE_LINEARNEG' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:289:8: 'mjCNSTRSTATE_LINEARPOS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:290:8: 'mjCNSTRSTATE_CONE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:296:8: 'mjSENS_TOUCH' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:297:8: 'mjSENS_ACCELEROMETER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:298:8: 'mjSENS_VELOCIMETER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:299:8: 'mjSENS_GYRO' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:300:8: 'mjSENS_FORCE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:301:8: 'mjSENS_TORQUE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:302:8: 'mjSENS_MAGNETOMETER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:303:8: 'mjSENS_RANGEFINDER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:306:8: 'mjSENS_JOINTPOS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:307:8: 'mjSENS_JOINTVEL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:308:8: 'mjSENS_TENDONPOS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:309:8: 'mjSENS_TENDONVEL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:310:8: 'mjSENS_ACTUATORPOS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:311:8: 'mjSENS_ACTUATORVEL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:312:8: 'mjSENS_ACTUATORFRC' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:315:8: 'mjSENS_BALLQUAT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:316:8: 'mjSENS_BALLANGVEL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:319:8: 'mjSENS_FRAMEPOS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:320:8: 'mjSENS_FRAMEQUAT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:321:8: 'mjSENS_FRAMEXAXIS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:322:8: 'mjSENS_FRAMEYAXIS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:323:8: 'mjSENS_FRAMEZAXIS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:324:8: 'mjSENS_FRAMELINVEL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:325:8: 'mjSENS_FRAMEANGVEL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:326:8: 'mjSENS_FRAMELINACC' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:327:8: 'mjSENS_FRAMEANGACC' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:330:8: 'mjSENS_SUBTREECOM' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:331:8: 'mjSENS_SUBTREELINVEL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:332:8: 'mjSENS_SUBTREEANGMOM' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:335:8: 'mjSENS_USER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:339:8: 'mjSTAGE_NONE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:340:8: 'mjSTAGE_POS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:341:8: 'mjSTAGE_VEL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:342:8: 'mjSTAGE_ACC' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:346:8: 'mjDATATYPE_REAL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:347:8: 'mjDATATYPE_POSITIVE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:348:8: 'mjDATATYPE_AXIS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:349:8: 'mjDATATYPE_QUAT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:75:4: 'mjtNum' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:77:10: 'mjPI' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:78:10: 'mjMAXVAL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:79:10: 'mjMINMU' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:80:10: 'mjMINIMP' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:81:10: 'mjMAXIMP' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:82:10: 'mjMAXCONPAIR' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:83:10: 'mjMAXVFS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:84:10: 'mjMAXVFSNAME' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:87:10: 'mjNEQDATA' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:88:10: 'mjNDYN' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:89:10: 'mjNGAIN' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:90:10: 'mjNBIAS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:91:10: 'mjNREF' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:92:10: 'mjNIMP' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:93:10: 'mjNSOLVER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:96:4: 'mjtByte' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:100:8: 'mjDSBL_CONSTRAINT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:101:8: 'mjDSBL_EQUALITY' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:102:8: 'mjDSBL_FRICTIONLOSS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:103:8: 'mjDSBL_LIMIT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:104:8: 'mjDSBL_CONTACT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:105:8: 'mjDSBL_PASSIVE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:106:8: 'mjDSBL_GRAVITY' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:107:8: 'mjDSBL_CLAMPCTRL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:108:8: 'mjDSBL_WARMSTART' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:109:8: 'mjDSBL_FILTERPARENT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:110:8: 'mjDSBL_ACTUATION' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:111:8: 'mjDSBL_REFSAFE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:112:10: 'mjNDISABLE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:115:8: 'mjENBL_OVERRIDE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:116:8: 'mjENBL_ENERGY' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:117:8: 'mjENBL_FWDINV' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:118:8: 'mjENBL_SENSORNOISE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:119:10: 'mjNENABLE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:122:8: 'mjJNT_FREE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:123:8: 'mjJNT_BALL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:124:8: 'mjJNT_SLIDE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:125:8: 'mjJNT_HINGE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:129:8: 'mjGEOM_PLANE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:130:8: 'mjGEOM_HFIELD' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:131:8: 'mjGEOM_SPHERE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:132:8: 'mjGEOM_CAPSULE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:133:8: 'mjGEOM_ELLIPSOID' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:134:8: 'mjGEOM_CYLINDER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:135:8: 'mjGEOM_BOX' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:136:8: 'mjGEOM_MESH' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:138:8: 'mjNGEOMTYPES' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:141:8: 'mjGEOM_ARROW' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:142:8: 'mjGEOM_ARROW1' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:143:8: 'mjGEOM_ARROW2' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:144:8: 'mjGEOM_LABEL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:146:8: 'mjGEOM_NONE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:150:8: 'mjCAMLIGHT_FIXED' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:151:8: 'mjCAMLIGHT_TRACK' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:152:8: 'mjCAMLIGHT_TRACKCOM' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:153:8: 'mjCAMLIGHT_TARGETBODY' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:154:8: 'mjCAMLIGHT_TARGETBODYCOM' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:158:8: 'mjTEXTURE_2D' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:159:8: 'mjTEXTURE_CUBE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:160:8: 'mjTEXTURE_SKYBOX' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:164:8: 'mjINT_EULER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:165:8: 'mjINT_RK4' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:169:8: 'mjCOL_ALL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:170:8: 'mjCOL_PAIR' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:171:8: 'mjCOL_DYNAMIC' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:175:8: 'mjCONE_PYRAMIDAL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:176:8: 'mjCONE_ELLIPTIC' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:180:8: 'mjJAC_DENSE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:181:8: 'mjJAC_SPARSE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:182:8: 'mjJAC_AUTO' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:186:8: 'mjSOL_PGS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:187:8: 'mjSOL_CG' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:188:8: 'mjSOL_NEWTON' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:192:8: 'mjIMP_CONSTANT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:193:8: 'mjIMP_SIGMOID' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:194:8: 'mjIMP_LINEAR' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:195:8: 'mjIMP_USER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:199:8: 'mjREF_SPRING' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:200:8: 'mjREF_USER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:204:8: 'mjEQ_CONNECT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:205:8: 'mjEQ_WELD' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:206:8: 'mjEQ_JOINT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:207:8: 'mjEQ_TENDON' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:208:8: 'mjEQ_DISTANCE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:212:8: 'mjWRAP_NONE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:213:8: 'mjWRAP_JOINT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:214:8: 'mjWRAP_PULLEY' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:215:8: 'mjWRAP_SITE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:216:8: 'mjWRAP_SPHERE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:217:8: 'mjWRAP_CYLINDER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:221:8: 'mjTRN_JOINT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:222:8: 'mjTRN_JOINTINPARENT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:223:8: 'mjTRN_SLIDERCRANK' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:224:8: 'mjTRN_TENDON' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:225:8: 'mjTRN_SITE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:227:8: 'mjTRN_UNDEFINED' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:231:8: 'mjDYN_NONE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:232:8: 'mjDYN_INTEGRATOR' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:233:8: 'mjDYN_FILTER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:234:8: 'mjDYN_USER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:238:8: 'mjGAIN_FIXED' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:239:8: 'mjGAIN_USER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:243:8: 'mjBIAS_NONE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:244:8: 'mjBIAS_AFFINE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:245:8: 'mjBIAS_USER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:249:8: 'mjOBJ_UNKNOWN' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:250:8: 'mjOBJ_BODY' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:251:8: 'mjOBJ_XBODY' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:252:8: 'mjOBJ_JOINT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:253:8: 'mjOBJ_DOF' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:254:8: 'mjOBJ_GEOM' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:255:8: 'mjOBJ_SITE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:256:8: 'mjOBJ_CAMERA' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:257:8: 'mjOBJ_LIGHT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:258:8: 'mjOBJ_MESH' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:259:8: 'mjOBJ_HFIELD' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:260:8: 'mjOBJ_TEXTURE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:261:8: 'mjOBJ_MATERIAL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:262:8: 'mjOBJ_PAIR' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:263:8: 'mjOBJ_EXCLUDE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:264:8: 'mjOBJ_EQUALITY' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:265:8: 'mjOBJ_TENDON' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:266:8: 'mjOBJ_ACTUATOR' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:267:8: 'mjOBJ_SENSOR' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:268:8: 'mjOBJ_NUMERIC' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:269:8: 'mjOBJ_TEXT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:270:8: 'mjOBJ_TUPLE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:271:8: 'mjOBJ_KEY' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:275:8: 'mjCNSTR_EQUALITY' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:276:8: 'mjCNSTR_FRICTION_DOF' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:277:8: 'mjCNSTR_FRICTION_TENDON' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:278:8: 'mjCNSTR_LIMIT_JOINT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:279:8: 'mjCNSTR_LIMIT_TENDON' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:280:8: 'mjCNSTR_CONTACT_FRICTIONLESS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:281:8: 'mjCNSTR_CONTACT_PYRAMIDAL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:282:8: 'mjCNSTR_CONTACT_ELLIPTIC' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:286:8: 'mjCNSTRSTATE_SATISFIED' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:287:8: 'mjCNSTRSTATE_QUADRATIC' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:288:8: 'mjCNSTRSTATE_LINEARNEG' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:289:8: 'mjCNSTRSTATE_LINEARPOS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:290:8: 'mjCNSTRSTATE_CONE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:296:8: 'mjSENS_TOUCH' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:297:8: 'mjSENS_ACCELEROMETER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:298:8: 'mjSENS_VELOCIMETER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:299:8: 'mjSENS_GYRO' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:300:8: 'mjSENS_FORCE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:301:8: 'mjSENS_TORQUE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:302:8: 'mjSENS_MAGNETOMETER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:303:8: 'mjSENS_RANGEFINDER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:306:8: 'mjSENS_JOINTPOS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:307:8: 'mjSENS_JOINTVEL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:308:8: 'mjSENS_TENDONPOS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:309:8: 'mjSENS_TENDONVEL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:310:8: 'mjSENS_ACTUATORPOS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:311:8: 'mjSENS_ACTUATORVEL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:312:8: 'mjSENS_ACTUATORFRC' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:315:8: 'mjSENS_BALLQUAT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:316:8: 'mjSENS_BALLANGVEL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:319:8: 'mjSENS_FRAMEPOS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:320:8: 'mjSENS_FRAMEQUAT' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:321:8: 'mjSENS_FRAMEXAXIS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:322:8: 'mjSENS_FRAMEYAXIS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:323:8: 'mjSENS_FRAMEZAXIS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:324:8: 'mjSENS_FRAMELINVEL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:325:8: 'mjSENS_FRAMEANGVEL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:326:8: 'mjSENS_FRAMELINACC' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:327:8: 'mjSENS_FRAMEANGACC' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:330:8: 'mjSENS_SUBTREECOM' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:331:8: 'mjSENS_SUBTREELINVEL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:332:8: 'mjSENS_SUBTREEANGMOM' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:335:8: 'mjSENS_USER' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:339:8: 'mjSTAGE_NONE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:340:8: 'mjSTAGE_POS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:341:8: 'mjSTAGE_VEL' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:342:8: 'mjSTAGE_ACC' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:346:8: 'mjDATATYPE_REAL' redeclared 
+Compiling /usr/local/lib/python3.6/site-packages/mujoco_py/cymj.pyx because it depends on /usr/local/lib/python3.6/site-packages/mujoco_py/pxd/mujoco.pxd.
+[1/1] Cythonizing /usr/local/lib/python3.6/site-packages/mujoco_py/cymj.pyx
+running build_ext
+building 'mujoco_py.cymj' extension
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6/site-packages
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6/site-packages/mujoco_py
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6/site-packages/mujoco_py/gl
+gcc -pthread -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -I/usr/local/lib/python3.6/site-packages/mujoco_py -I/root/.mujoco/mjpro150/include -I/usr/local/lib/python3.6/site-packages/numpy/core/include -I/usr/local/lib/python3.6/site-packages/mujoco_py/vendor/egl -I/usr/local/include/python3.6m -c /usr/local/lib/python3.6/site-packages/mujoco_py/cymj.c -o /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6/site-packages/mujoco_py/cymj.o -fopenmp -w
+gcc -pthread -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -I/usr/local/lib/python3.6/site-packages/mujoco_py -I/root/.mujoco/mjpro150/include -I/usr/local/lib/python3.6/site-packages/numpy/core/include -I/usr/local/lib/python3.6/site-packages/mujoco_py/vendor/egl -I/usr/local/include/python3.6m -c /usr/local/lib/python3.6/site-packages/mujoco_py/gl/eglshim.c -o /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6/site-packages/mujoco_py/gl/eglshim.o -fopenmp -w
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/lib.linux-x86_64-3.6
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/lib.linux-x86_64-3.6/mujoco_py
+gcc -pthread -shared /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6/site-packages/mujoco_py/cymj.o /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6/site-packages/mujoco_py/gl/eglshim.o -L/root/.mujoco/mjpro150/bin -Wl,--enable-new-dtags,-R/root/.mujoco/mjpro150/bin -lmujoco150 -lglewegl -o /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/lib.linux-x86_64-3.6/mujoco_py/cymj.cpython-36m-x86_64-linux-gnu.so -fopenmp
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:347:8: 'mjDATATYPE_POSITIVE' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:348:8: 'mjDATATYPE_AXIS' redeclared 
+warning: /usr/local/lib/python3.6/site-packages/mujoco_py/generated/../pxd/mjmodel.pxd:349:8: 'mjDATATYPE_QUAT' redeclared 
+Downloading: "https://download.pytorch.org/models/mobilenet_v3_small-047dcff4.pth" to /root/.cache/torch/hub/checkpoints/mobilenet_v3_small-047dcff4.pth
+/root/trainer
+Using cuda device
+  0%|          | 0.00/9.83M [00:00<?, ?B/s] 41%|████      | 4.01M/9.83M [00:00<00:00, 42.0MB/s] 90%|████████▉ | 8.82M/9.83M [00:00<00:00, 46.5MB/s]100%|██████████| 9.83M/9.83M [00:00<00:00, 45.8MB/s]2021-11-27 15:44:01.874861: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: /usr/lib/nvidia-470:/usr/local/cuda/lib64:/root/.mujoco/mjpro150/bin:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
+2021-11-27 15:44:01.874926: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.
+here5
+Logging to assets/out/models/exp5/OnPolicyAlgorithm_19
+Found 1 GPUs for rendering. Using device 0.
+-----------------------------
+| time/              |      |
+|    fps             | 16   |
+|    iterations      | 1    |
+|    time_elapsed    | 150  |
+|    total_timesteps | 2500 |
+-----------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 2.5e+03  |
+|    ep_rew_mean     | -100     |
+| time/              |          |
+|    fps             | 12       |
+|    iterations      | 2        |
+|    time_elapsed    | 394      |
+|    total_timesteps | 5000     |
+| train/             |          |
+|    action_loss     | 0.0269   |
+|    advantage_loss  | 0.195    |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 100      |
+|    policy_loss     | -0.455   |
+|    value_loss      | 0.000654 |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.24e+03 |
+|    ep_rew_mean     | 35.1     |
+| time/              |          |
+|    fps             | 11       |
+|    iterations      | 3        |
+|    time_elapsed    | 639      |
+|    total_timesteps | 7500     |
+| train/             |          |
+|    action_loss     | 0.309    |
+|    advantage_loss  | 3.45     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 200      |
+|    policy_loss     | 0.25     |
+|    value_loss      | 2.85     |
+---------------------------------
+Terminated
+2021-11-27 16:08:04.636354: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: /usr/lib/nvidia-470:/usr/local/cuda/lib64:/root/.mujoco/mjpro150/bin:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
+2021-11-27 16:08:04.636414: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.
+/root/trainer
+Using cuda device
+here5
+Logging to assets/out/models/exp5/OnPolicyAlgorithm_20
+Found 1 GPUs for rendering. Using device 0.
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 238      |
+|    ep_rew_mean     | 69       |
+| time/              |          |
+|    fps             | 17       |
+|    iterations      | 1        |
+|    time_elapsed    | 139      |
+|    total_timesteps | 2500     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 886      |
+|    ep_rew_mean     | 169      |
+| time/              |          |
+|    fps             | 14       |
+|    iterations      | 2        |
+|    time_elapsed    | 342      |
+|    total_timesteps | 5000     |
+| train/             |          |
+|    action_loss     | 1.37     |
+|    advantage_loss  | 3.25     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 64       |
+|    policy_loss     | -3.74    |
+|    value_loss      | 3.63     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.04e+03 |
+|    ep_rew_mean     | 263      |
+| time/              |          |
+|    fps             | 13       |
+|    iterations      | 3        |
+|    time_elapsed    | 544      |
+|    total_timesteps | 7500     |
+| train/             |          |
+|    action_loss     | 1.02     |
+|    advantage_loss  | 15.6     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 128      |
+|    policy_loss     | -3.75    |
+|    value_loss      | 13       |
+---------------------------------
+Eval num_timesteps=10000, episode_reward=82.12 +/- 193.55
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | 82.1     |
+| time/              |          |
+|    total_timesteps | 10000    |
+| train/             |          |
+|    action_loss     | 1.04     |
+|    advantage_loss  | 12.4     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 192      |
+|    policy_loss     | -4.52    |
+|    value_loss      | 14.9     |
+---------------------------------
+New best mean reward!
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 895      |
+|    ep_rew_mean     | 230      |
+| time/              |          |
+|    fps             | 7        |
+|    iterations      | 4        |
+|    time_elapsed    | 1408     |
+|    total_timesteps | 10000    |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 942      |
+|    ep_rew_mean     | 178      |
+| time/              |          |
+|    fps             | 7        |
+|    iterations      | 5        |
+|    time_elapsed    | 1609     |
+|    total_timesteps | 12500    |
+| train/             |          |
+|    action_loss     | 1.18     |
+|    advantage_loss  | 18.3     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 256      |
+|    policy_loss     | -3.9     |
+|    value_loss      | 18.4     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 801      |
+|    ep_rew_mean     | 188      |
+| time/              |          |
+|    fps             | 8        |
+|    iterations      | 6        |
+|    time_elapsed    | 1812     |
+|    total_timesteps | 15000    |
+| train/             |          |
+|    action_loss     | 0.8      |
+|    advantage_loss  | 22.1     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 320      |
+|    policy_loss     | -4.26    |
+|    value_loss      | 22       |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 781      |
+|    ep_rew_mean     | 182      |
+| time/              |          |
+|    fps             | 8        |
+|    iterations      | 7        |
+|    time_elapsed    | 2013     |
+|    total_timesteps | 17500    |
+| train/             |          |
+|    action_loss     | 0.86     |
+|    advantage_loss  | 24.2     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 384      |
+|    policy_loss     | -3.83    |
+|    value_loss      | 26.8     |
+---------------------------------
+Eval num_timesteps=20000, episode_reward=-73.26 +/- 56.11
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | -73.3    |
+| time/              |          |
+|    total_timesteps | 20000    |
+| train/             |          |
+|    action_loss     | 0.916    |
+|    advantage_loss  | 21.8     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 448      |
+|    policy_loss     | -4.09    |
+|    value_loss      | 21       |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 828      |
+|    ep_rew_mean     | 182      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 8        |
+|    time_elapsed    | 2877     |
+|    total_timesteps | 20000    |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 792      |
+|    ep_rew_mean     | 170      |
+| time/              |          |
+|    fps             | 7        |
+|    iterations      | 9        |
+|    time_elapsed    | 3082     |
+|    total_timesteps | 22500    |
+| train/             |          |
+|    action_loss     | 0.865    |
+|    advantage_loss  | 29.3     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 512      |
+|    policy_loss     | -4.23    |
+|    value_loss      | 33.5     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 702      |
+|    ep_rew_mean     | 157      |
+| time/              |          |
+|    fps             | 7        |
+|    iterations      | 10       |
+|    time_elapsed    | 3283     |
+|    total_timesteps | 25000    |
+| train/             |          |
+|    action_loss     | 1.21     |
+|    advantage_loss  | 197      |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 576      |
+|    policy_loss     | -3.57    |
+|    value_loss      | 184      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 667      |
+|    ep_rew_mean     | 154      |
+| time/              |          |
+|    fps             | 7        |
+|    iterations      | 11       |
+|    time_elapsed    | 3486     |
+|    total_timesteps | 27500    |
+| train/             |          |
+|    action_loss     | 0.898    |
+|    advantage_loss  | 56.4     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 640      |
+|    policy_loss     | -3.39    |
+|    value_loss      | 54.1     |
+---------------------------------
+Eval num_timesteps=30000, episode_reward=-48.16 +/- 105.06
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | -48.2    |
+| time/              |          |
+|    total_timesteps | 30000    |
+| train/             |          |
+|    action_loss     | 1.13     |
+|    advantage_loss  | 37.4     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 704      |
+|    policy_loss     | -3.92    |
+|    value_loss      | 31.9     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 650      |
+|    ep_rew_mean     | 154      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 12       |
+|    time_elapsed    | 4384     |
+|    total_timesteps | 30000    |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 683      |
+|    ep_rew_mean     | 158      |
+| time/              |          |
+|    fps             | 7        |
+|    iterations      | 13       |
+|    time_elapsed    | 4588     |
+|    total_timesteps | 32500    |
+| train/             |          |
+|    action_loss     | 0.947    |
+|    advantage_loss  | 36.7     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 768      |
+|    policy_loss     | -4.02    |
+|    value_loss      | 30.1     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 708      |
+|    ep_rew_mean     | 164      |
+| time/              |          |
+|    fps             | 7        |
+|    iterations      | 14       |
+|    time_elapsed    | 4795     |
+|    total_timesteps | 35000    |
+| train/             |          |
+|    action_loss     | 1.59     |
+|    advantage_loss  | 27.3     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 832      |
+|    policy_loss     | -3.24    |
+|    value_loss      | 31.4     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 692      |
+|    ep_rew_mean     | 161      |
+| time/              |          |
+|    fps             | 7        |
+|    iterations      | 15       |
+|    time_elapsed    | 5002     |
+|    total_timesteps | 37500    |
+| train/             |          |
+|    action_loss     | 1.5      |
+|    advantage_loss  | 33.2     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 896      |
+|    policy_loss     | -3.88    |
+|    value_loss      | 38       |
+---------------------------------
+Eval num_timesteps=40000, episode_reward=-28.90 +/- 163.56
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | -28.9    |
+| time/              |          |
+|    total_timesteps | 40000    |
+| train/             |          |
+|    action_loss     | 0.798    |
+|    advantage_loss  | 62.5     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 960      |
+|    policy_loss     | -3.96    |
+|    value_loss      | 48       |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 726      |
+|    ep_rew_mean     | 160      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 16       |
+|    time_elapsed    | 5884     |
+|    total_timesteps | 40000    |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 771      |
+|    ep_rew_mean     | 169      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 17       |
+|    time_elapsed    | 6085     |
+|    total_timesteps | 42500    |
+| train/             |          |
+|    action_loss     | 1.3      |
+|    advantage_loss  | 109      |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 1024     |
+|    policy_loss     | -2.7     |
+|    value_loss      | 106      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 762      |
+|    ep_rew_mean     | 165      |
+| time/              |          |
+|    fps             | 7        |
+|    iterations      | 18       |
+|    time_elapsed    | 6288     |
+|    total_timesteps | 45000    |
+| train/             |          |
+|    action_loss     | 1.18     |
+|    advantage_loss  | 133      |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 1088     |
+|    policy_loss     | -3.47    |
+|    value_loss      | 137      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 752      |
+|    ep_rew_mean     | 166      |
+| time/              |          |
+|    fps             | 7        |
+|    iterations      | 19       |
+|    time_elapsed    | 6491     |
+|    total_timesteps | 47500    |
+| train/             |          |
+|    action_loss     | 1.12     |
+|    advantage_loss  | 35.8     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 1152     |
+|    policy_loss     | -3.01    |
+|    value_loss      | 31       |
+---------------------------------
+Eval num_timesteps=50000, episode_reward=-47.58 +/- 71.55
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | -47.6    |
+| time/              |          |
+|    total_timesteps | 50000    |
+| train/             |          |
+|    action_loss     | 0.774    |
+|    advantage_loss  | 46.1     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 1216     |
+|    policy_loss     | -2.79    |
+|    value_loss      | 42.7     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 766      |
+|    ep_rew_mean     | 163      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 20       |
+|    time_elapsed    | 7412     |
+|    total_timesteps | 50000    |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 759      |
+|    ep_rew_mean     | 162      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 21       |
+|    time_elapsed    | 7626     |
+|    total_timesteps | 52500    |
+| train/             |          |
+|    action_loss     | 0.758    |
+|    advantage_loss  | 154      |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 1280     |
+|    policy_loss     | -2.75    |
+|    value_loss      | 129      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 778      |
+|    ep_rew_mean     | 160      |
+| time/              |          |
+|    fps             | 7        |
+|    iterations      | 22       |
+|    time_elapsed    | 7842     |
+|    total_timesteps | 55000    |
+| train/             |          |
+|    action_loss     | 1.23     |
+|    advantage_loss  | 59.4     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 1344     |
+|    policy_loss     | -3.08    |
+|    value_loss      | 39.9     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 803      |
+|    ep_rew_mean     | 160      |
+| time/              |          |
+|    fps             | 7        |
+|    iterations      | 23       |
+|    time_elapsed    | 8058     |
+|    total_timesteps | 57500    |
+| train/             |          |
+|    action_loss     | 0.834    |
+|    advantage_loss  | 194      |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 1408     |
+|    policy_loss     | -2.14    |
+|    value_loss      | 177      |
+---------------------------------
+Eval num_timesteps=60000, episode_reward=-109.22 +/- 116.47
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | -109     |
+| time/              |          |
+|    total_timesteps | 60000    |
+| train/             |          |
+|    action_loss     | 0.666    |
+|    advantage_loss  | 49.1     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 1472     |
+|    policy_loss     | -1.37    |
+|    value_loss      | 32.3     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 826      |
+|    ep_rew_mean     | 157      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 24       |
+|    time_elapsed    | 8996     |
+|    total_timesteps | 60000    |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 824      |
+|    ep_rew_mean     | 161      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 25       |
+|    time_elapsed    | 9204     |
+|    total_timesteps | 62500    |
+| train/             |          |
+|    action_loss     | 0.548    |
+|    advantage_loss  | 36       |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 1536     |
+|    policy_loss     | -1.29    |
+|    value_loss      | 29.1     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 831      |
+|    ep_rew_mean     | 158      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 26       |
+|    time_elapsed    | 9417     |
+|    total_timesteps | 65000    |
+| train/             |          |
+|    action_loss     | 0.586    |
+|    advantage_loss  | 146      |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 1600     |
+|    policy_loss     | -1.59    |
+|    value_loss      | 131      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 807      |
+|    ep_rew_mean     | 156      |
+| time/              |          |
+|    fps             | 7        |
+|    iterations      | 27       |
+|    time_elapsed    | 9630     |
+|    total_timesteps | 67500    |
+| train/             |          |
+|    action_loss     | 0.538    |
+|    advantage_loss  | 98       |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 1664     |
+|    policy_loss     | -0.763   |
+|    value_loss      | 96.3     |
+---------------------------------
+Eval num_timesteps=70000, episode_reward=142.80 +/- 123.51
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | 143      |
+| time/              |          |
+|    total_timesteps | 70000    |
+| train/             |          |
+|    action_loss     | 0.604    |
+|    advantage_loss  | 32.4     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 1728     |
+|    policy_loss     | -1.48    |
+|    value_loss      | 23.9     |
+---------------------------------
+New best mean reward!
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 821      |
+|    ep_rew_mean     | 157      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 28       |
+|    time_elapsed    | 10567    |
+|    total_timesteps | 70000    |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 804      |
+|    ep_rew_mean     | 158      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 29       |
+|    time_elapsed    | 10780    |
+|    total_timesteps | 72500    |
+| train/             |          |
+|    action_loss     | 0.546    |
+|    advantage_loss  | 35.6     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 1792     |
+|    policy_loss     | -1.51    |
+|    value_loss      | 35.8     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 806      |
+|    ep_rew_mean     | 162      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 30       |
+|    time_elapsed    | 10990    |
+|    total_timesteps | 75000    |
+| train/             |          |
+|    action_loss     | 0.512    |
+|    advantage_loss  | 20.2     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 1856     |
+|    policy_loss     | -1.53    |
+|    value_loss      | 21.1     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 785      |
+|    ep_rew_mean     | 160      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 31       |
+|    time_elapsed    | 11206    |
+|    total_timesteps | 77500    |
+| train/             |          |
+|    action_loss     | 0.602    |
+|    advantage_loss  | 33.8     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 1920     |
+|    policy_loss     | -1.47    |
+|    value_loss      | 39.5     |
+---------------------------------
+Eval num_timesteps=80000, episode_reward=-14.78 +/- 138.32
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | -14.8    |
+| time/              |          |
+|    total_timesteps | 80000    |
+| train/             |          |
+|    action_loss     | 0.937    |
+|    advantage_loss  | 64.1     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 1984     |
+|    policy_loss     | -2.54    |
+|    value_loss      | 36.4     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 788      |
+|    ep_rew_mean     | 164      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 32       |
+|    time_elapsed    | 12148    |
+|    total_timesteps | 80000    |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 776      |
+|    ep_rew_mean     | 161      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 33       |
+|    time_elapsed    | 12359    |
+|    total_timesteps | 82500    |
+| train/             |          |
+|    action_loss     | 0.581    |
+|    advantage_loss  | 88.8     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 2048     |
+|    policy_loss     | -0.71    |
+|    value_loss      | 83.8     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 776      |
+|    ep_rew_mean     | 152      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 34       |
+|    time_elapsed    | 12571    |
+|    total_timesteps | 85000    |
+| train/             |          |
+|    action_loss     | 0.756    |
+|    advantage_loss  | 38.2     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 2112     |
+|    policy_loss     | -3.18    |
+|    value_loss      | 41.9     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 751      |
+|    ep_rew_mean     | 155      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 35       |
+|    time_elapsed    | 12786    |
+|    total_timesteps | 87500    |
+| train/             |          |
+|    action_loss     | 1.12     |
+|    advantage_loss  | 106      |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 2176     |
+|    policy_loss     | -3.54    |
+|    value_loss      | 65.2     |
+---------------------------------
+Eval num_timesteps=90000, episode_reward=-42.24 +/- 114.68
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | -42.2    |
+| time/              |          |
+|    total_timesteps | 90000    |
+| train/             |          |
+|    action_loss     | 0.932    |
+|    advantage_loss  | 47.2     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 2240     |
+|    policy_loss     | -3.37    |
+|    value_loss      | 41.5     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 753      |
+|    ep_rew_mean     | 155      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 36       |
+|    time_elapsed    | 13710    |
+|    total_timesteps | 90000    |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 773      |
+|    ep_rew_mean     | 157      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 37       |
+|    time_elapsed    | 13926    |
+|    total_timesteps | 92500    |
+| train/             |          |
+|    action_loss     | 1.04     |
+|    advantage_loss  | 56.1     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 2304     |
+|    policy_loss     | -3.43    |
+|    value_loss      | 57       |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 783      |
+|    ep_rew_mean     | 159      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 38       |
+|    time_elapsed    | 14139    |
+|    total_timesteps | 95000    |
+| train/             |          |
+|    action_loss     | 0.92     |
+|    advantage_loss  | 72.3     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 2368     |
+|    policy_loss     | -3.27    |
+|    value_loss      | 65.8     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 804      |
+|    ep_rew_mean     | 163      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 39       |
+|    time_elapsed    | 14355    |
+|    total_timesteps | 97500    |
+| train/             |          |
+|    action_loss     | 1.03     |
+|    advantage_loss  | 72.7     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 2432     |
+|    policy_loss     | -3.3     |
+|    value_loss      | 37.4     |
+---------------------------------
+Eval num_timesteps=100000, episode_reward=-65.90 +/- 110.52
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | -65.9    |
+| time/              |          |
+|    total_timesteps | 100000   |
+| train/             |          |
+|    action_loss     | 0.959    |
+|    advantage_loss  | 181      |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 2496     |
+|    policy_loss     | -2.44    |
+|    value_loss      | 140      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 827      |
+|    ep_rew_mean     | 164      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 40       |
+|    time_elapsed    | 15294    |
+|    total_timesteps | 100000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 799      |
+|    ep_rew_mean     | 164      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 41       |
+|    time_elapsed    | 15513    |
+|    total_timesteps | 102500   |
+| train/             |          |
+|    action_loss     | 0.899    |
+|    advantage_loss  | 96.7     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 2560     |
+|    policy_loss     | -2.53    |
+|    value_loss      | 62.2     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 814      |
+|    ep_rew_mean     | 162      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 42       |
+|    time_elapsed    | 15729    |
+|    total_timesteps | 105000   |
+| train/             |          |
+|    action_loss     | 0.75     |
+|    advantage_loss  | 104      |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 2624     |
+|    policy_loss     | -1.99    |
+|    value_loss      | 66.6     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 814      |
+|    ep_rew_mean     | 161      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 43       |
+|    time_elapsed    | 15939    |
+|    total_timesteps | 107500   |
+| train/             |          |
+|    action_loss     | 0.88     |
+|    advantage_loss  | 58.9     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 2688     |
+|    policy_loss     | -1.6     |
+|    value_loss      | 55.2     |
+---------------------------------
+Eval num_timesteps=110000, episode_reward=-44.06 +/- 124.99
+Episode length: 2453.80 +/- 94.40
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.45e+03 |
+|    mean_reward     | -44.1    |
+| time/              |          |
+|    total_timesteps | 110000   |
+| train/             |          |
+|    action_loss     | 1.04     |
+|    advantage_loss  | 60.7     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 2752     |
+|    policy_loss     | -2.46    |
+|    value_loss      | 50.5     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 820      |
+|    ep_rew_mean     | 161      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 44       |
+|    time_elapsed    | 16842    |
+|    total_timesteps | 110000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 843      |
+|    ep_rew_mean     | 159      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 45       |
+|    time_elapsed    | 17050    |
+|    total_timesteps | 112500   |
+| train/             |          |
+|    action_loss     | 1.05     |
+|    advantage_loss  | 46.4     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 2816     |
+|    policy_loss     | -1.89    |
+|    value_loss      | 39.8     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 803      |
+|    ep_rew_mean     | 152      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 46       |
+|    time_elapsed    | 17260    |
+|    total_timesteps | 115000   |
+| train/             |          |
+|    action_loss     | 0.99     |
+|    advantage_loss  | 82.4     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 2880     |
+|    policy_loss     | -2.01    |
+|    value_loss      | 44       |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 824      |
+|    ep_rew_mean     | 152      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 47       |
+|    time_elapsed    | 17467    |
+|    total_timesteps | 117500   |
+| train/             |          |
+|    action_loss     | 0.775    |
+|    advantage_loss  | 70.7     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 2944     |
+|    policy_loss     | -0.41    |
+|    value_loss      | 49.6     |
+---------------------------------
+Eval num_timesteps=120000, episode_reward=105.82 +/- 133.30
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | 106      |
+| time/              |          |
+|    total_timesteps | 120000   |
+| train/             |          |
+|    action_loss     | 0.739    |
+|    advantage_loss  | 46.1     |
+|    learning_rate   | 5e-05    |
+|    n_updates       | 3008     |
+|    policy_loss     | -0.695   |
+|    value_loss      | 35.5     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 822      |
+|    ep_rew_mean     | 152      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 48       |
+|    time_elapsed    | 18388    |
+|    total_timesteps | 120000   |
+---------------------------------

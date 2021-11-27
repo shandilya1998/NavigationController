@@ -31,45 +31,50 @@ count = 0
 count_collisions = 0
 count_red = 0
 count_green = 0
-for i in range(5):
-    done = False
-    ob = env.reset()
-    while not done:
-        ob, reward, done, info = env.step(ob['sampled_action'])
-        if reward != 0.0:
-            count += 1
-        if info['collision_penalty'] != 0:
-            count_collisions += 1
-        if info['outer_reward'] > 0:
-            count_red += 1
-        elif info['outer_reward'] < 0:
-            count_green += 1
-        pbar.update(1)
-        steps += 1
-        pos = env.wrapped_env.sim.data.qpos.copy()    
-        img = cv2.cvtColor(ob['observation'], cv2.COLOR_RGB2BGR)
-        cv2.imwrite(os.path.join('assets', 'plots', 'tests', 'test_image_{}.png'.format(steps)), img)
-        IMAGES.append(img)
-        #env.render()
-        top = env.render('rgb_array')
-        cv2.imshow('camera stream', img)
-        cv2.imshow('position stream', top)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-        POS.append(pos.copy())
-        OBS.append(ob.copy())
-        REWARDS.append(reward)
-        INFO.append(info)
-        #env.render()
-    pbar.close()
-    print('total count:      {}'.format(count))
-    print('collision counts: {}'.format(count_collisions))
-    print('green counts:     {}'.format(count_green))
-    print('red counts:       {}'.format(count_red))
+done = False
+ob = env.reset()
+while not done:
+    ob, reward, done, info = env.step(ob['sampled_action'])
+    if reward != 0.0:
+        count += 1
+    if info['collision_penalty'] != 0:
+        count_collisions += 1
+    if info['outer_reward'] > 0:
+        count_red += 1
+    elif info['outer_reward'] < 0:
+        count_green += 1
+    pbar.update(1)
+    steps += 1
+    pos = env.wrapped_env.sim.data.qpos.copy()    
+    img = cv2.cvtColor(ob['observation'], cv2.COLOR_RGB2BGR)
+    cv2.imwrite(os.path.join('assets', 'plots', 'tests', 'test_image_{}.png'.format(steps)), img)
+    IMAGES.append(img)
+    #env.render()
+    top = env.render('rgb_array')
+    cv2.imshow('camera stream', img)
+    cv2.imshow('position stream', top)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+    POS.append(pos.copy())
+    OBS.append(ob.copy())
+    REWARDS.append(reward)
+    INFO.append(info)
+    #env.render()
+pbar.close()
+print('total count:      {}'.format(count))
+print('collision counts: {}'.format(count_collisions))
+print('green counts:     {}'.format(count_green))
+print('red counts:       {}'.format(count_red))
 
 
 def plot_top_view(env, POS):
     block_size = 50
+    
+    def xy_to_imgrowcol(x, y):
+        (row, row_frac), (col, col_frac) = env._xy_to_rowcol_v2(x, y)
+        row = block_size * row + int((row_frac) * block_size) + int(block_size / 2)
+        col = block_size * col + int((col_frac) * block_size) + int(block_size / 2)
+        return int(row), int(col)
 
     img = np.zeros(
         (block_size * len(env._maze_structure), block_size * len(env._maze_structure[0]), 3)
@@ -83,13 +88,16 @@ def plot_top_view(env, POS):
                     block_size * j: block_size * (j + 1)
                 ] = 0.5
 
+    for i, goal in enumerate(env._task.goals):
+        pos = goal.pos
+        row, col = xy_to_imgrowcol(pos[0], pos[1]) 
+        if i == env._task.goal_index:
+            colors = [1, 0, 0]
+        else:
+            colors = [0, 1, 0]
+        img[row - int(block_size / 10): row + int(block_size / 10), col - int(block_size / 10): col + int(block_size / 10)] = colors
 
-    def xy_to_imgrowcol(x, y):
-        (row, row_frac), (col, col_frac) = env._xy_to_rowcol_v2(x, y)
-        row = block_size * row + int((row_frac) * block_size) + int(block_size / 2)
-        col = block_size * col + int((col_frac) * block_size) + int(block_size / 2)
-        return int(row), int(col)
-
+    """
     for index in range(len(env.sampled_path)):
         i, j = env._graph_to_structure_index(env.sampled_path[index])
         img[
@@ -112,13 +120,14 @@ def plot_top_view(env, POS):
                 y_points = np.array([block_size * j_prev + int(block_size / 2)] * block_size, dtype = np.int32)
             for x, y in zip(x_points, y_points):
                 img[x - int(block_size / 50): x + int(block_size / 50), y - int(block_size / 50): y + int(block_size / 50)] = [0, 1, 0]
-
+    """
 
     for pos in POS:
         row, col = xy_to_imgrowcol(pos[0], pos[1])
         img[row - int(block_size / 50): row + int(block_size / 50), col - int(block_size / 50): col + int(block_size / 50)] = [0, 0, 1]
 
     plt.imshow(np.flipud(img))
+    plt.savefig('output.png')
     plt.show()
 
 

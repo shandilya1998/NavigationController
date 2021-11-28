@@ -270,6 +270,74 @@ class TD3BGPolicy(sb3.common.policies.BasePolicy):
         self.actor.set_training_mode(mode)
         self.training = mode
 
+class DictRolloutBuffer(sb3.common.buffers.DictRolloutBuffer):
+    def __init__(
+        self,
+        buffer_size: int,
+        observation_space: gym.spaces.Space,
+        action_space: gym.spaces.Space,
+        device: Union[torch.device, str] = "cpu",
+        gae_lambda: float = 1,
+        gamma: float = 0.99,
+        n_envs: int = 1,
+    ):
+        super(DictRolloutBuffer, self).__init__(buffer_size, observation_space, action_space, device, n_envs=n_envs)
+        self.N = np.zeros((n_envs,), dtype = np.int32)
+        self.mean_returns = np.zeros((n_envs), dtype = np.float32)
+        self.var_returns = np.zeros((n_envs), dtype = np.float32)
+        self.std_returns = np.sqrt(self.var_returns)
+        self.mean_advantage = np.zeros((n_envs,), dtype = np.float32)
+        self.var_advantage = np.zeros((n_envs), dtype = np.float32)
+        self.std_advantage = np.sqrt(self.var_advantage)
+
+    def compute_returns_and_advantage(self, last_values: torch.Tensor, dones: np.ndarray) -> None:
+        """
+        Post-processing step: compute the lambda-return (TD(lambda) estimate)
+        and GAE(lambda) advantage.
+        Uses Generalized Advantage Estimation (https://arxiv.org/abs/1506.02438)
+        to compute the advantage. To obtain Monte-Carlo advantage estimate (A(s) = R - V(S))
+        where R is the sum of discounted reward with value bootstrap
+        (because we don't always have full episode), set ``gae_lambda=1.0`` during initialization.
+        The TD(lambda) estimator has also two special cases:
+        - TD(1) is Monte-Carlo estimate (sum of discounted rewards)
+        - TD(0) is one-step estimate with bootstrapping (r_t + gamma * v(s_{t+1}))
+        For more information, see discussion in https://github.com/DLR-RM/stable-baselines3/pull/375.
+        :param last_values: state value estimation for the last step (one for each env)
+        :param dones: if the last step was a terminal step (one bool for each env).
+        """
+        # Convert to numpy
+        last_values = last_values.clone().cpu().numpy().flatten()
+
+        last_gae_lam = 0
+        for step in reversed(range(self.buffer_size)):
+            if step == self.buffer_size - 1:
+                next_non_terminal = 1.0 - dones
+                next_values = last_values
+            else:
+                next_non_terminal = 1.0 - self.episode_starts[step + 1]
+                next_values = self.values[step + 1]
+            delta = self.rewards[step] + self.gamma * next_values * next_non_terminal - self.values[step]
+            last_gae_lam = delta + self.gamma * self.gae_lambda * next_non_terminal * last_gae_lam
+            self.advantages[step] = last_gae_lam
+        # TD(lambda) estimator, see Github PR #375 or "Telescoping in TD(lambda)"
+        # in David Silver Lecture 4: https://www.youtube.com/watch?v=PnHCvfgC_ZA
+        self.returns = self.advantages + self.values
+        for i in range(self.buffer_size):
+            self.N += 1
+            rho = 1.0 / self.N
+            d_returns = self.returns[i] - self.mean_returns
+            self.mean_returns += rho * d_returns
+            self.var_returns += rho*((1-rho)*d_returns**2 - self.var_returns)
+            d_advantages = self.advantages[i] - self.mean_advantages
+            self.mean_advantages += rho * d_advantages
+            self.var_advantages += rho*((1-rho)*d_advantages**2 - self.var_advantages)
+        self.std_returns = np.sqrt(self.var_returns)
+        self.returns = (self.returns - self.mean_returns) / self.std_returns
+        self.std_advantages = np.sqrt(self.var_advantages)
+        self.advantages = (self.advantages - self.mean_advantages) / self.std_advantages
+        print(self.returns.max(), self.returns.min())
+        print(self.advantages.max(), self.advantages.min())
+
 
 class TD3BG(sb3.common.on_policy_algorithm.OnPolicyAlgorithm):
     def __init__(
@@ -408,6 +476,30 @@ class TD3BG(sb3.common.on_policy_algorithm.OnPolicyAlgorithm):
         callback.on_rollout_end()
 
         return True
+
+    def _setup_model(self) -> None:
+        self._setup_lr_schedule()
+        self.set_random_seed(self.seed)
+
+        buffer_cls = DictRolloutBuffer if isinstance(self.observation_space, gym.spaces.Dict) else sb3.common.buffers.RolloutBuffer
+
+        self.rollout_buffer = buffer_cls(
+            self.n_steps,
+            self.observation_space,
+            self.action_space,
+            self.device,
+            gamma=self.gamma,
+            gae_lambda=self.gae_lambda,
+            n_envs=self.n_envs,
+        )
+        self.policy = self.policy_class(  # pytype:disable=not-instantiable
+            self.observation_space,
+            self.action_space,
+            self.lr_schedule,
+            use_sde=self.use_sde,
+            **self.policy_kwargs  # pytype:disable=not-instantiable
+        )
+        self.policy = self.policy.to(self.device)
 
     def train(self) -> None:
         """

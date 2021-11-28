@@ -4,6 +4,10 @@ import torchvision as tv
 from constants import params
 
 
+def check_for_nan(inp, name):
+    if torch.isnan(inp).any():
+        print('nan in {}'.format(name))
+
 class BasalGanglia(torch.nn.Module):
     def __init__(self,
         num_out = 2, 
@@ -20,7 +24,7 @@ class BasalGanglia(torch.nn.Module):
         wsg = 2,
         wgs = -2, 
         a1 = 1,
-        a2 = 1,
+        a2 = -1,
         thetad1 = 0,
         thetad2 = 0,
     ):  
@@ -70,6 +74,7 @@ class BasalGanglia(torch.nn.Module):
         V_D2 = torch.zeros((batch_size, self.FF_Dim_in)).to(stimulus.device)
         lamd1 = 1 / (1 + torch.exp(-self.a1 * (deltavf - self.thetad1)))
         lamd2 = 1 / (1 + torch.exp(-self.a2 * (deltavf - self.thetad2)))
+
         for FFiter in range(self.FF_steps):
             J_D1 = self.fc_jd1(stimulus)
             J_D2 = self.fc_jd2(stimulus)
@@ -250,9 +255,9 @@ class ControlNetwork(torch.nn.Module):
     def forward(self, inputs): 
         stimulus, vt_1 = inputs
         stimulus = self.vc(stimulus)
-        vt = self.vf(stimulus)
+        vt = torch.tanh(self.vf(stimulus))
         deltavf = vt - vt_1
         bg_out  = self.bg([stimulus, deltavf])
         action = self.mc([stimulus, bg_out])
-        at = self.af(torch.cat([stimulus, action], -1))
+        at = torch.tanh(self.af(torch.cat([stimulus, action], -1)))
         return action, vt, at

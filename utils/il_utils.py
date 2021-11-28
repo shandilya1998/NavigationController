@@ -307,6 +307,8 @@ class ImitationLearning(sb3.common.on_policy_algorithm.OnPolicyAlgorithm):
             advantages = torch.unsqueeze(replay_data.advantages, -1)
             returns = torch.unsqueeze(replay_data.returns, -1)
             advantage_loss = torch.nn.functional.mse_loss(advantages, pred_advantages)
+            if self.normalize_advantage:
+                pred_advantages = (pred_advantages - pred_advantages.mean()) / pred_advantages.std()   
             policy_loss = -pred_advantages.mean()
             action_loss = torch.nn.functional.mse_loss(replay_data.actions, actions)
             # Value loss using the TD(gae_lambda) target

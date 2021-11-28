@@ -42,7 +42,7 @@ params = {
     'OU_SIGMA'                    : 0.08,
     'top_view_size'               : 50.,
     'batch_size'                  : 64,
-    'lr'                          : 5e-5,
+    'lr'                          : 5e-3,
     'n_steps'                     : 2500,
     'gamma'                       : 0.99,
     'gae_lambda'                  : 0.95,

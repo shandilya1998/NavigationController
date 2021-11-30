@@ -65090,3 +65090,2564 @@ Episode length: 2501.00 +/- 0.00
 |    policy_loss     | -0.748   |
 |    value_loss      | 139      |
 ---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 921      |
+|    ep_rew_mean     | 200      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 183      |
+|    time_elapsed    | 71652    |
+|    total_timesteps | 457500   |
+| train/             |          |
+|    action_loss     | 0.74     |
+|    advantage_loss  | 52.1     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 11648    |
+|    policy_loss     | -0.824   |
+|    value_loss      | 56.7     |
+---------------------------------
+Eval num_timesteps=460000, episode_reward=130.22 +/- 135.41
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | 130      |
+| time/              |          |
+|    total_timesteps | 460000   |
+| train/             |          |
+|    action_loss     | 0.252    |
+|    advantage_loss  | 63.4     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 11712    |
+|    policy_loss     | -0.735   |
+|    value_loss      | 70       |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 916      |
+|    ep_rew_mean     | 195      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 184      |
+|    time_elapsed    | 72587    |
+|    total_timesteps | 460000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 934      |
+|    ep_rew_mean     | 194      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 185      |
+|    time_elapsed    | 72801    |
+|    total_timesteps | 462500   |
+| train/             |          |
+|    action_loss     | 0.241    |
+|    advantage_loss  | 106      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 11776    |
+|    policy_loss     | -0.807   |
+|    value_loss      | 117      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 934      |
+|    ep_rew_mean     | 195      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 186      |
+|    time_elapsed    | 73016    |
+|    total_timesteps | 465000   |
+| train/             |          |
+|    action_loss     | 0.118    |
+|    advantage_loss  | 123      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 11840    |
+|    policy_loss     | -0.857   |
+|    value_loss      | 133      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 936      |
+|    ep_rew_mean     | 196      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 187      |
+|    time_elapsed    | 73228    |
+|    total_timesteps | 467500   |
+| train/             |          |
+|    action_loss     | 0.268    |
+|    advantage_loss  | 76.2     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 11904    |
+|    policy_loss     | -0.845   |
+|    value_loss      | 82.1     |
+---------------------------------
+Eval num_timesteps=470000, episode_reward=-114.98 +/- 55.16
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | -115     |
+| time/              |          |
+|    total_timesteps | 470000   |
+| train/             |          |
+|    action_loss     | 0.319    |
+|    advantage_loss  | 92.1     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 11968    |
+|    policy_loss     | -0.837   |
+|    value_loss      | 99       |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 923      |
+|    ep_rew_mean     | 190      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 188      |
+|    time_elapsed    | 74164    |
+|    total_timesteps | 470000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 937      |
+|    ep_rew_mean     | 182      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 189      |
+|    time_elapsed    | 74380    |
+|    total_timesteps | 472500   |
+| train/             |          |
+|    action_loss     | 0.14     |
+|    advantage_loss  | 292      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 12032    |
+|    policy_loss     | -0.842   |
+|    value_loss      | 297      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 935      |
+|    ep_rew_mean     | 193      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 190      |
+|    time_elapsed    | 74591    |
+|    total_timesteps | 475000   |
+| train/             |          |
+|    action_loss     | 0.125    |
+|    advantage_loss  | 100      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 12096    |
+|    policy_loss     | -0.759   |
+|    value_loss      | 108      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 926      |
+|    ep_rew_mean     | 190      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 191      |
+|    time_elapsed    | 74805    |
+|    total_timesteps | 477500   |
+| train/             |          |
+|    action_loss     | 0.249    |
+|    advantage_loss  | 54.3     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 12160    |
+|    policy_loss     | -0.719   |
+|    value_loss      | 59.8     |
+---------------------------------
+Eval num_timesteps=480000, episode_reward=-66.70 +/- 195.20
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | -66.7    |
+| time/              |          |
+|    total_timesteps | 480000   |
+| train/             |          |
+|    action_loss     | 0.539    |
+|    advantage_loss  | 29.9     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 12224    |
+|    policy_loss     | -0.764   |
+|    value_loss      | 31.6     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 946      |
+|    ep_rew_mean     | 191      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 192      |
+|    time_elapsed    | 75737    |
+|    total_timesteps | 480000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 963      |
+|    ep_rew_mean     | 191      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 193      |
+|    time_elapsed    | 75951    |
+|    total_timesteps | 482500   |
+| train/             |          |
+|    action_loss     | 0.198    |
+|    advantage_loss  | 96       |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 12288    |
+|    policy_loss     | -0.814   |
+|    value_loss      | 98.7     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 964      |
+|    ep_rew_mean     | 196      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 194      |
+|    time_elapsed    | 76167    |
+|    total_timesteps | 485000   |
+| train/             |          |
+|    action_loss     | 0.324    |
+|    advantage_loss  | 47.2     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 12352    |
+|    policy_loss     | -0.733   |
+|    value_loss      | 50.9     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 968      |
+|    ep_rew_mean     | 195      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 195      |
+|    time_elapsed    | 76383    |
+|    total_timesteps | 487500   |
+| train/             |          |
+|    action_loss     | 0.227    |
+|    advantage_loss  | 254      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 12416    |
+|    policy_loss     | -0.685   |
+|    value_loss      | 258      |
+---------------------------------
+Eval num_timesteps=490000, episode_reward=-15.06 +/- 108.89
+Episode length: 2458.20 +/- 85.60
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.46e+03 |
+|    mean_reward     | -15.1    |
+| time/              |          |
+|    total_timesteps | 490000   |
+| train/             |          |
+|    action_loss     | 0.142    |
+|    advantage_loss  | 112      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 12480    |
+|    policy_loss     | -0.781   |
+|    value_loss      | 117      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 990      |
+|    ep_rew_mean     | 195      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 196      |
+|    time_elapsed    | 77303    |
+|    total_timesteps | 490000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 957      |
+|    ep_rew_mean     | 200      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 197      |
+|    time_elapsed    | 77520    |
+|    total_timesteps | 492500   |
+| train/             |          |
+|    action_loss     | 0.226    |
+|    advantage_loss  | 57.6     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 12544    |
+|    policy_loss     | -0.756   |
+|    value_loss      | 64       |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 942      |
+|    ep_rew_mean     | 196      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 198      |
+|    time_elapsed    | 77738    |
+|    total_timesteps | 495000   |
+| train/             |          |
+|    action_loss     | 0.606    |
+|    advantage_loss  | 52.1     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 12608    |
+|    policy_loss     | -0.788   |
+|    value_loss      | 58.6     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 957      |
+|    ep_rew_mean     | 193      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 199      |
+|    time_elapsed    | 77950    |
+|    total_timesteps | 497500   |
+| train/             |          |
+|    action_loss     | 0.404    |
+|    advantage_loss  | 79.2     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 12672    |
+|    policy_loss     | -0.741   |
+|    value_loss      | 87.3     |
+---------------------------------
+Eval num_timesteps=500000, episode_reward=47.84 +/- 169.15
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | 47.8     |
+| time/              |          |
+|    total_timesteps | 500000   |
+| train/             |          |
+|    action_loss     | 0.279    |
+|    advantage_loss  | 72.3     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 12736    |
+|    policy_loss     | -0.726   |
+|    value_loss      | 79.8     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 961      |
+|    ep_rew_mean     | 195      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 200      |
+|    time_elapsed    | 78901    |
+|    total_timesteps | 500000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 968      |
+|    ep_rew_mean     | 201      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 201      |
+|    time_elapsed    | 79116    |
+|    total_timesteps | 502500   |
+| train/             |          |
+|    action_loss     | 0.35     |
+|    advantage_loss  | 59       |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 12800    |
+|    policy_loss     | -0.749   |
+|    value_loss      | 62.5     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 963      |
+|    ep_rew_mean     | 203      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 202      |
+|    time_elapsed    | 79329    |
+|    total_timesteps | 505000   |
+| train/             |          |
+|    action_loss     | 0.0962   |
+|    advantage_loss  | 109      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 12864    |
+|    policy_loss     | -0.832   |
+|    value_loss      | 112      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 977      |
+|    ep_rew_mean     | 206      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 203      |
+|    time_elapsed    | 79543    |
+|    total_timesteps | 507500   |
+| train/             |          |
+|    action_loss     | 0.316    |
+|    advantage_loss  | 95.2     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 12928    |
+|    policy_loss     | -0.759   |
+|    value_loss      | 102      |
+---------------------------------
+Eval num_timesteps=510000, episode_reward=-1.64 +/- 124.39
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | -1.64    |
+| time/              |          |
+|    total_timesteps | 510000   |
+| train/             |          |
+|    action_loss     | 0.194    |
+|    advantage_loss  | 34.4     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 12992    |
+|    policy_loss     | -0.794   |
+|    value_loss      | 38.1     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 997      |
+|    ep_rew_mean     | 208      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 204      |
+|    time_elapsed    | 80478    |
+|    total_timesteps | 510000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 993      |
+|    ep_rew_mean     | 208      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 205      |
+|    time_elapsed    | 80694    |
+|    total_timesteps | 512500   |
+| train/             |          |
+|    action_loss     | 0.343    |
+|    advantage_loss  | 36.2     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 13056    |
+|    policy_loss     | -0.826   |
+|    value_loss      | 38.9     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 983      |
+|    ep_rew_mean     | 208      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 206      |
+|    time_elapsed    | 80908    |
+|    total_timesteps | 515000   |
+| train/             |          |
+|    action_loss     | 0.509    |
+|    advantage_loss  | 23.8     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 13120    |
+|    policy_loss     | -0.799   |
+|    value_loss      | 27.8     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 976      |
+|    ep_rew_mean     | 211      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 207      |
+|    time_elapsed    | 81124    |
+|    total_timesteps | 517500   |
+| train/             |          |
+|    action_loss     | 0.279    |
+|    advantage_loss  | 45.6     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 13184    |
+|    policy_loss     | -0.828   |
+|    value_loss      | 50.6     |
+---------------------------------
+Eval num_timesteps=520000, episode_reward=188.84 +/- 286.72
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | 189      |
+| time/              |          |
+|    total_timesteps | 520000   |
+| train/             |          |
+|    action_loss     | 0.316    |
+|    advantage_loss  | 71.3     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 13248    |
+|    policy_loss     | -0.786   |
+|    value_loss      | 78       |
+---------------------------------
+New best mean reward!
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 998      |
+|    ep_rew_mean     | 209      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 208      |
+|    time_elapsed    | 82062    |
+|    total_timesteps | 520000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 994      |
+|    ep_rew_mean     | 209      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 209      |
+|    time_elapsed    | 82277    |
+|    total_timesteps | 522500   |
+| train/             |          |
+|    action_loss     | 0.435    |
+|    advantage_loss  | 30.5     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 13312    |
+|    policy_loss     | -0.862   |
+|    value_loss      | 34.2     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.01e+03 |
+|    ep_rew_mean     | 209      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 210      |
+|    time_elapsed    | 82494    |
+|    total_timesteps | 525000   |
+| train/             |          |
+|    action_loss     | 0.727    |
+|    advantage_loss  | 75.6     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 13376    |
+|    policy_loss     | -0.802   |
+|    value_loss      | 83.3     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 983      |
+|    ep_rew_mean     | 209      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 211      |
+|    time_elapsed    | 82705    |
+|    total_timesteps | 527500   |
+| train/             |          |
+|    action_loss     | 0.569    |
+|    advantage_loss  | 22.7     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 13440    |
+|    policy_loss     | -0.703   |
+|    value_loss      | 24.8     |
+---------------------------------
+Eval num_timesteps=530000, episode_reward=38.92 +/- 147.60
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | 38.9     |
+| time/              |          |
+|    total_timesteps | 530000   |
+| train/             |          |
+|    action_loss     | 0.321    |
+|    advantage_loss  | 59.9     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 13504    |
+|    policy_loss     | -0.711   |
+|    value_loss      | 65.5     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 964      |
+|    ep_rew_mean     | 205      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 212      |
+|    time_elapsed    | 83641    |
+|    total_timesteps | 530000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 956      |
+|    ep_rew_mean     | 203      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 213      |
+|    time_elapsed    | 83857    |
+|    total_timesteps | 532500   |
+| train/             |          |
+|    action_loss     | 0.53     |
+|    advantage_loss  | 243      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 13568    |
+|    policy_loss     | -0.813   |
+|    value_loss      | 251      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 968      |
+|    ep_rew_mean     | 211      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 214      |
+|    time_elapsed    | 84072    |
+|    total_timesteps | 535000   |
+| train/             |          |
+|    action_loss     | 0.193    |
+|    advantage_loss  | 32.3     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 13632    |
+|    policy_loss     | -0.625   |
+|    value_loss      | 35.8     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 934      |
+|    ep_rew_mean     | 206      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 215      |
+|    time_elapsed    | 84285    |
+|    total_timesteps | 537500   |
+| train/             |          |
+|    action_loss     | 0.273    |
+|    advantage_loss  | 103      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 13696    |
+|    policy_loss     | -0.733   |
+|    value_loss      | 113      |
+---------------------------------
+Eval num_timesteps=540000, episode_reward=-100.62 +/- 58.84
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | -101     |
+| time/              |          |
+|    total_timesteps | 540000   |
+| train/             |          |
+|    action_loss     | 0.709    |
+|    advantage_loss  | 129      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 13760    |
+|    policy_loss     | -0.763   |
+|    value_loss      | 139      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 950      |
+|    ep_rew_mean     | 203      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 216      |
+|    time_elapsed    | 85218    |
+|    total_timesteps | 540000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 965      |
+|    ep_rew_mean     | 203      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 217      |
+|    time_elapsed    | 85429    |
+|    total_timesteps | 542500   |
+| train/             |          |
+|    action_loss     | 0.103    |
+|    advantage_loss  | 57.8     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 13824    |
+|    policy_loss     | -0.767   |
+|    value_loss      | 65.4     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 987      |
+|    ep_rew_mean     | 206      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 218      |
+|    time_elapsed    | 85639    |
+|    total_timesteps | 545000   |
+| train/             |          |
+|    action_loss     | 0.365    |
+|    advantage_loss  | 59.1     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 13888    |
+|    policy_loss     | -0.71    |
+|    value_loss      | 65.2     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 983      |
+|    ep_rew_mean     | 200      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 219      |
+|    time_elapsed    | 85850    |
+|    total_timesteps | 547500   |
+| train/             |          |
+|    action_loss     | 0.271    |
+|    advantage_loss  | 65.3     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 13952    |
+|    policy_loss     | -0.77    |
+|    value_loss      | 73       |
+---------------------------------
+Eval num_timesteps=550000, episode_reward=54.76 +/- 103.89
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | 54.8     |
+| time/              |          |
+|    total_timesteps | 550000   |
+| train/             |          |
+|    action_loss     | 0.303    |
+|    advantage_loss  | 54.7     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 14016    |
+|    policy_loss     | -0.867   |
+|    value_loss      | 59.8     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 980      |
+|    ep_rew_mean     | 199      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 220      |
+|    time_elapsed    | 86781    |
+|    total_timesteps | 550000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 995      |
+|    ep_rew_mean     | 199      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 221      |
+|    time_elapsed    | 86994    |
+|    total_timesteps | 552500   |
+| train/             |          |
+|    action_loss     | 0.304    |
+|    advantage_loss  | 85.1     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 14080    |
+|    policy_loss     | -0.838   |
+|    value_loss      | 91.2     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.01e+03 |
+|    ep_rew_mean     | 198      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 222      |
+|    time_elapsed    | 87210    |
+|    total_timesteps | 555000   |
+| train/             |          |
+|    action_loss     | 0.262    |
+|    advantage_loss  | 45.8     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 14144    |
+|    policy_loss     | -0.748   |
+|    value_loss      | 51       |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.04e+03 |
+|    ep_rew_mean     | 197      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 223      |
+|    time_elapsed    | 87426    |
+|    total_timesteps | 557500   |
+| train/             |          |
+|    action_loss     | 0.224    |
+|    advantage_loss  | 95.3     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 14208    |
+|    policy_loss     | -0.709   |
+|    value_loss      | 97.2     |
+---------------------------------
+Eval num_timesteps=560000, episode_reward=-1.56 +/- 129.35
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | -1.56    |
+| time/              |          |
+|    total_timesteps | 560000   |
+| train/             |          |
+|    action_loss     | 0.181    |
+|    advantage_loss  | 57.3     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 14272    |
+|    policy_loss     | -0.69    |
+|    value_loss      | 61.1     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.07e+03 |
+|    ep_rew_mean     | 193      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 224      |
+|    time_elapsed    | 88370    |
+|    total_timesteps | 560000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.06e+03 |
+|    ep_rew_mean     | 191      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 225      |
+|    time_elapsed    | 88585    |
+|    total_timesteps | 562500   |
+| train/             |          |
+|    action_loss     | 0.171    |
+|    advantage_loss  | 17.3     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 14336    |
+|    policy_loss     | -0.65    |
+|    value_loss      | 19.3     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.03e+03 |
+|    ep_rew_mean     | 189      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 226      |
+|    time_elapsed    | 88799    |
+|    total_timesteps | 565000   |
+| train/             |          |
+|    action_loss     | 0.0891   |
+|    advantage_loss  | 66.8     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 14400    |
+|    policy_loss     | -0.709   |
+|    value_loss      | 73.5     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 981      |
+|    ep_rew_mean     | 184      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 227      |
+|    time_elapsed    | 89012    |
+|    total_timesteps | 567500   |
+| train/             |          |
+|    action_loss     | 0.288    |
+|    advantage_loss  | 36.7     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 14464    |
+|    policy_loss     | -0.714   |
+|    value_loss      | 41.5     |
+---------------------------------
+Eval num_timesteps=570000, episode_reward=43.00 +/- 152.80
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | 43       |
+| time/              |          |
+|    total_timesteps | 570000   |
+| train/             |          |
+|    action_loss     | 0.0927   |
+|    advantage_loss  | 73.7     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 14528    |
+|    policy_loss     | -0.725   |
+|    value_loss      | 80.3     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 972      |
+|    ep_rew_mean     | 196      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 228      |
+|    time_elapsed    | 89947    |
+|    total_timesteps | 570000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 974      |
+|    ep_rew_mean     | 191      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 229      |
+|    time_elapsed    | 90160    |
+|    total_timesteps | 572500   |
+| train/             |          |
+|    action_loss     | 0.249    |
+|    advantage_loss  | 45.5     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 14592    |
+|    policy_loss     | -0.668   |
+|    value_loss      | 50.1     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 970      |
+|    ep_rew_mean     | 190      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 230      |
+|    time_elapsed    | 90368    |
+|    total_timesteps | 575000   |
+| train/             |          |
+|    action_loss     | 0.11     |
+|    advantage_loss  | 32.5     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 14656    |
+|    policy_loss     | -0.603   |
+|    value_loss      | 35.3     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 992      |
+|    ep_rew_mean     | 190      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 231      |
+|    time_elapsed    | 90576    |
+|    total_timesteps | 577500   |
+| train/             |          |
+|    action_loss     | 0.0837   |
+|    advantage_loss  | 39.5     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 14720    |
+|    policy_loss     | -0.595   |
+|    value_loss      | 43.6     |
+---------------------------------
+Eval num_timesteps=580000, episode_reward=-20.76 +/- 230.64
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | -20.8    |
+| time/              |          |
+|    total_timesteps | 580000   |
+| train/             |          |
+|    action_loss     | 0.23     |
+|    advantage_loss  | 171      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 14784    |
+|    policy_loss     | -0.651   |
+|    value_loss      | 174      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.01e+03 |
+|    ep_rew_mean     | 190      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 232      |
+|    time_elapsed    | 91492    |
+|    total_timesteps | 580000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.04e+03 |
+|    ep_rew_mean     | 187      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 233      |
+|    time_elapsed    | 91700    |
+|    total_timesteps | 582500   |
+| train/             |          |
+|    action_loss     | 0.436    |
+|    advantage_loss  | 43.9     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 14848    |
+|    policy_loss     | -0.636   |
+|    value_loss      | 46.3     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 997      |
+|    ep_rew_mean     | 183      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 234      |
+|    time_elapsed    | 91915    |
+|    total_timesteps | 585000   |
+| train/             |          |
+|    action_loss     | 0.221    |
+|    advantage_loss  | 115      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 14912    |
+|    policy_loss     | -0.687   |
+|    value_loss      | 119      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.01e+03 |
+|    ep_rew_mean     | 184      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 235      |
+|    time_elapsed    | 92130    |
+|    total_timesteps | 587500   |
+| train/             |          |
+|    action_loss     | 0.129    |
+|    advantage_loss  | 66.3     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 14976    |
+|    policy_loss     | -0.743   |
+|    value_loss      | 72.6     |
+---------------------------------
+Eval num_timesteps=590000, episode_reward=-64.56 +/- 140.57
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | -64.6    |
+| time/              |          |
+|    total_timesteps | 590000   |
+| train/             |          |
+|    action_loss     | 0.435    |
+|    advantage_loss  | 152      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 15040    |
+|    policy_loss     | -0.687   |
+|    value_loss      | 159      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 985      |
+|    ep_rew_mean     | 183      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 236      |
+|    time_elapsed    | 93067    |
+|    total_timesteps | 590000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1e+03    |
+|    ep_rew_mean     | 187      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 237      |
+|    time_elapsed    | 93280    |
+|    total_timesteps | 592500   |
+| train/             |          |
+|    action_loss     | 0.195    |
+|    advantage_loss  | 102      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 15104    |
+|    policy_loss     | -0.62    |
+|    value_loss      | 101      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.02e+03 |
+|    ep_rew_mean     | 188      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 238      |
+|    time_elapsed    | 93490    |
+|    total_timesteps | 595000   |
+| train/             |          |
+|    action_loss     | 0.191    |
+|    advantage_loss  | 25.1     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 15168    |
+|    policy_loss     | -0.634   |
+|    value_loss      | 28.5     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.04e+03 |
+|    ep_rew_mean     | 190      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 239      |
+|    time_elapsed    | 93704    |
+|    total_timesteps | 597500   |
+| train/             |          |
+|    action_loss     | 0.263    |
+|    advantage_loss  | 64.4     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 15232    |
+|    policy_loss     | -0.61    |
+|    value_loss      | 66.7     |
+---------------------------------
+Eval num_timesteps=600000, episode_reward=38.92 +/- 169.22
+Episode length: 2437.60 +/- 126.80
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.44e+03 |
+|    mean_reward     | 38.9     |
+| time/              |          |
+|    total_timesteps | 600000   |
+| train/             |          |
+|    action_loss     | 0.169    |
+|    advantage_loss  | 37.3     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 15296    |
+|    policy_loss     | -0.664   |
+|    value_loss      | 41.4     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.01e+03 |
+|    ep_rew_mean     | 191      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 240      |
+|    time_elapsed    | 94620    |
+|    total_timesteps | 600000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1e+03    |
+|    ep_rew_mean     | 197      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 241      |
+|    time_elapsed    | 94836    |
+|    total_timesteps | 602500   |
+| train/             |          |
+|    action_loss     | 0.152    |
+|    advantage_loss  | 53       |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 15360    |
+|    policy_loss     | -0.703   |
+|    value_loss      | 57       |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.02e+03 |
+|    ep_rew_mean     | 205      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 242      |
+|    time_elapsed    | 95050    |
+|    total_timesteps | 605000   |
+| train/             |          |
+|    action_loss     | 0.108    |
+|    advantage_loss  | 81.5     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 15424    |
+|    policy_loss     | -0.64    |
+|    value_loss      | 87.5     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.03e+03 |
+|    ep_rew_mean     | 207      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 243      |
+|    time_elapsed    | 95265    |
+|    total_timesteps | 607500   |
+| train/             |          |
+|    action_loss     | 0.243    |
+|    advantage_loss  | 220      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 15488    |
+|    policy_loss     | -0.809   |
+|    value_loss      | 223      |
+---------------------------------
+Eval num_timesteps=610000, episode_reward=-55.56 +/- 175.81
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | -55.6    |
+| time/              |          |
+|    total_timesteps | 610000   |
+| train/             |          |
+|    action_loss     | 0.265    |
+|    advantage_loss  | 92.2     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 15552    |
+|    policy_loss     | -0.704   |
+|    value_loss      | 100      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.02e+03 |
+|    ep_rew_mean     | 206      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 244      |
+|    time_elapsed    | 96193    |
+|    total_timesteps | 610000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.04e+03 |
+|    ep_rew_mean     | 209      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 245      |
+|    time_elapsed    | 96403    |
+|    total_timesteps | 612500   |
+| train/             |          |
+|    action_loss     | 0.308    |
+|    advantage_loss  | 76.2     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 15616    |
+|    policy_loss     | -0.748   |
+|    value_loss      | 82.9     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.04e+03 |
+|    ep_rew_mean     | 204      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 246      |
+|    time_elapsed    | 96617    |
+|    total_timesteps | 615000   |
+| train/             |          |
+|    action_loss     | 0.323    |
+|    advantage_loss  | 130      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 15680    |
+|    policy_loss     | -0.66    |
+|    value_loss      | 137      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.06e+03 |
+|    ep_rew_mean     | 208      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 247      |
+|    time_elapsed    | 96830    |
+|    total_timesteps | 617500   |
+| train/             |          |
+|    action_loss     | 0.403    |
+|    advantage_loss  | 170      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 15744    |
+|    policy_loss     | -0.723   |
+|    value_loss      | 177      |
+---------------------------------
+Eval num_timesteps=620000, episode_reward=-22.34 +/- 126.27
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | -22.3    |
+| time/              |          |
+|    total_timesteps | 620000   |
+| train/             |          |
+|    action_loss     | 0.226    |
+|    advantage_loss  | 89.4     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 15808    |
+|    policy_loss     | -0.694   |
+|    value_loss      | 97.7     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.05e+03 |
+|    ep_rew_mean     | 207      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 248      |
+|    time_elapsed    | 97774    |
+|    total_timesteps | 620000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.06e+03 |
+|    ep_rew_mean     | 200      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 249      |
+|    time_elapsed    | 97988    |
+|    total_timesteps | 622500   |
+| train/             |          |
+|    action_loss     | 0.166    |
+|    advantage_loss  | 89.6     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 15872    |
+|    policy_loss     | -0.697   |
+|    value_loss      | 95.4     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.05e+03 |
+|    ep_rew_mean     | 205      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 250      |
+|    time_elapsed    | 98204    |
+|    total_timesteps | 625000   |
+| train/             |          |
+|    action_loss     | 0.24     |
+|    advantage_loss  | 67.1     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 15936    |
+|    policy_loss     | -0.766   |
+|    value_loss      | 72.9     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.06e+03 |
+|    ep_rew_mean     | 208      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 251      |
+|    time_elapsed    | 98417    |
+|    total_timesteps | 627500   |
+| train/             |          |
+|    action_loss     | 0.17     |
+|    advantage_loss  | 67.9     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 16000    |
+|    policy_loss     | -0.747   |
+|    value_loss      | 71.6     |
+---------------------------------
+Eval num_timesteps=630000, episode_reward=10.94 +/- 233.03
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | 10.9     |
+| time/              |          |
+|    total_timesteps | 630000   |
+| train/             |          |
+|    action_loss     | 0.31     |
+|    advantage_loss  | 117      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 16064    |
+|    policy_loss     | -0.757   |
+|    value_loss      | 126      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.05e+03 |
+|    ep_rew_mean     | 209      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 252      |
+|    time_elapsed    | 99349    |
+|    total_timesteps | 630000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.05e+03 |
+|    ep_rew_mean     | 213      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 253      |
+|    time_elapsed    | 99562    |
+|    total_timesteps | 632500   |
+| train/             |          |
+|    action_loss     | 0.211    |
+|    advantage_loss  | 110      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 16128    |
+|    policy_loss     | -0.725   |
+|    value_loss      | 119      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.08e+03 |
+|    ep_rew_mean     | 215      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 254      |
+|    time_elapsed    | 99772    |
+|    total_timesteps | 635000   |
+| train/             |          |
+|    action_loss     | 0.385    |
+|    advantage_loss  | 60.4     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 16192    |
+|    policy_loss     | -0.751   |
+|    value_loss      | 65.5     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.08e+03 |
+|    ep_rew_mean     | 216      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 255      |
+|    time_elapsed    | 99984    |
+|    total_timesteps | 637500   |
+| train/             |          |
+|    action_loss     | 0.172    |
+|    advantage_loss  | 42.6     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 16256    |
+|    policy_loss     | -0.792   |
+|    value_loss      | 47.5     |
+---------------------------------
+Eval num_timesteps=640000, episode_reward=-87.60 +/- 71.29
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | -87.6    |
+| time/              |          |
+|    total_timesteps | 640000   |
+| train/             |          |
+|    action_loss     | 0.46     |
+|    advantage_loss  | 30.1     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 16320    |
+|    policy_loss     | -0.73    |
+|    value_loss      | 34.3     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.1e+03  |
+|    ep_rew_mean     | 219      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 256      |
+|    time_elapsed    | 100924   |
+|    total_timesteps | 640000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.09e+03 |
+|    ep_rew_mean     | 209      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 257      |
+|    time_elapsed    | 101136   |
+|    total_timesteps | 642500   |
+| train/             |          |
+|    action_loss     | 0.251    |
+|    advantage_loss  | 93.4     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 16384    |
+|    policy_loss     | -0.83    |
+|    value_loss      | 104      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.1e+03  |
+|    ep_rew_mean     | 204      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 258      |
+|    time_elapsed    | 101343   |
+|    total_timesteps | 645000   |
+| train/             |          |
+|    action_loss     | 0.165    |
+|    advantage_loss  | 93.3     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 16448    |
+|    policy_loss     | -0.716   |
+|    value_loss      | 102      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.12e+03 |
+|    ep_rew_mean     | 207      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 259      |
+|    time_elapsed    | 101557   |
+|    total_timesteps | 647500   |
+| train/             |          |
+|    action_loss     | 0.196    |
+|    advantage_loss  | 50       |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 16512    |
+|    policy_loss     | -0.724   |
+|    value_loss      | 55.2     |
+---------------------------------
+Eval num_timesteps=650000, episode_reward=148.26 +/- 251.03
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | 148      |
+| time/              |          |
+|    total_timesteps | 650000   |
+| train/             |          |
+|    action_loss     | 0.416    |
+|    advantage_loss  | 32.6     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 16576    |
+|    policy_loss     | -0.713   |
+|    value_loss      | 35.8     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.1e+03  |
+|    ep_rew_mean     | 206      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 260      |
+|    time_elapsed    | 102483   |
+|    total_timesteps | 650000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.07e+03 |
+|    ep_rew_mean     | 201      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 261      |
+|    time_elapsed    | 102693   |
+|    total_timesteps | 652500   |
+| train/             |          |
+|    action_loss     | 0.227    |
+|    advantage_loss  | 69.6     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 16640    |
+|    policy_loss     | -0.681   |
+|    value_loss      | 77       |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.05e+03 |
+|    ep_rew_mean     | 200      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 262      |
+|    time_elapsed    | 102899   |
+|    total_timesteps | 655000   |
+| train/             |          |
+|    action_loss     | 0.726    |
+|    advantage_loss  | 32.2     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 16704    |
+|    policy_loss     | -0.82    |
+|    value_loss      | 34.3     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.08e+03 |
+|    ep_rew_mean     | 198      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 263      |
+|    time_elapsed    | 103112   |
+|    total_timesteps | 657500   |
+| train/             |          |
+|    action_loss     | 0.173    |
+|    advantage_loss  | 27       |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 16768    |
+|    policy_loss     | -0.795   |
+|    value_loss      | 29.7     |
+---------------------------------
+Eval num_timesteps=660000, episode_reward=5.88 +/- 109.72
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | 5.88     |
+| time/              |          |
+|    total_timesteps | 660000   |
+| train/             |          |
+|    action_loss     | 0.126    |
+|    advantage_loss  | 57.5     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 16832    |
+|    policy_loss     | -0.62    |
+|    value_loss      | 61.3     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.08e+03 |
+|    ep_rew_mean     | 198      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 264      |
+|    time_elapsed    | 104033   |
+|    total_timesteps | 660000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.08e+03 |
+|    ep_rew_mean     | 195      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 265      |
+|    time_elapsed    | 104243   |
+|    total_timesteps | 662500   |
+| train/             |          |
+|    action_loss     | 0.388    |
+|    advantage_loss  | 43.7     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 16896    |
+|    policy_loss     | -0.737   |
+|    value_loss      | 48.2     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.07e+03 |
+|    ep_rew_mean     | 198      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 266      |
+|    time_elapsed    | 104455   |
+|    total_timesteps | 665000   |
+| train/             |          |
+|    action_loss     | 0.0931   |
+|    advantage_loss  | 78.9     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 16960    |
+|    policy_loss     | -0.696   |
+|    value_loss      | 82.5     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.07e+03 |
+|    ep_rew_mean     | 202      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 267      |
+|    time_elapsed    | 104667   |
+|    total_timesteps | 667500   |
+| train/             |          |
+|    action_loss     | 0.144    |
+|    advantage_loss  | 47.3     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 17024    |
+|    policy_loss     | -0.754   |
+|    value_loss      | 52.9     |
+---------------------------------
+Eval num_timesteps=670000, episode_reward=192.34 +/- 195.35
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | 192      |
+| time/              |          |
+|    total_timesteps | 670000   |
+| train/             |          |
+|    action_loss     | 0.27     |
+|    advantage_loss  | 17.5     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 17088    |
+|    policy_loss     | -0.625   |
+|    value_loss      | 18.8     |
+---------------------------------
+New best mean reward!
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.08e+03 |
+|    ep_rew_mean     | 202      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 268      |
+|    time_elapsed    | 105600   |
+|    total_timesteps | 670000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.09e+03 |
+|    ep_rew_mean     | 198      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 269      |
+|    time_elapsed    | 105815   |
+|    total_timesteps | 672500   |
+| train/             |          |
+|    action_loss     | 0.145    |
+|    advantage_loss  | 21.9     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 17152    |
+|    policy_loss     | -0.742   |
+|    value_loss      | 25.1     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.1e+03  |
+|    ep_rew_mean     | 195      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 270      |
+|    time_elapsed    | 106029   |
+|    total_timesteps | 675000   |
+| train/             |          |
+|    action_loss     | 0.133    |
+|    advantage_loss  | 140      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 17216    |
+|    policy_loss     | -0.717   |
+|    value_loss      | 142      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.11e+03 |
+|    ep_rew_mean     | 199      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 271      |
+|    time_elapsed    | 106242   |
+|    total_timesteps | 677500   |
+| train/             |          |
+|    action_loss     | 0.266    |
+|    advantage_loss  | 13.7     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 17280    |
+|    policy_loss     | -0.725   |
+|    value_loss      | 16.2     |
+---------------------------------
+Eval num_timesteps=680000, episode_reward=-141.94 +/- 88.24
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | -142     |
+| time/              |          |
+|    total_timesteps | 680000   |
+| train/             |          |
+|    action_loss     | 0.345    |
+|    advantage_loss  | 23.4     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 17344    |
+|    policy_loss     | -0.687   |
+|    value_loss      | 25.9     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.14e+03 |
+|    ep_rew_mean     | 202      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 272      |
+|    time_elapsed    | 107173   |
+|    total_timesteps | 680000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.12e+03 |
+|    ep_rew_mean     | 197      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 273      |
+|    time_elapsed    | 107383   |
+|    total_timesteps | 682500   |
+| train/             |          |
+|    action_loss     | 0.188    |
+|    advantage_loss  | 136      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 17408    |
+|    policy_loss     | -0.781   |
+|    value_loss      | 135      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.12e+03 |
+|    ep_rew_mean     | 201      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 274      |
+|    time_elapsed    | 107598   |
+|    total_timesteps | 685000   |
+| train/             |          |
+|    action_loss     | 0.177    |
+|    advantage_loss  | 22       |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 17472    |
+|    policy_loss     | -0.717   |
+|    value_loss      | 24.7     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.13e+03 |
+|    ep_rew_mean     | 200      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 275      |
+|    time_elapsed    | 107811   |
+|    total_timesteps | 687500   |
+| train/             |          |
+|    action_loss     | 0.648    |
+|    advantage_loss  | 121      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 17536    |
+|    policy_loss     | -0.747   |
+|    value_loss      | 122      |
+---------------------------------
+Eval num_timesteps=690000, episode_reward=115.82 +/- 127.62
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | 116      |
+| time/              |          |
+|    total_timesteps | 690000   |
+| train/             |          |
+|    action_loss     | 0.693    |
+|    advantage_loss  | 54       |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 17600    |
+|    policy_loss     | -0.829   |
+|    value_loss      | 58.7     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.12e+03 |
+|    ep_rew_mean     | 206      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 276      |
+|    time_elapsed    | 108745   |
+|    total_timesteps | 690000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.08e+03 |
+|    ep_rew_mean     | 207      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 277      |
+|    time_elapsed    | 108956   |
+|    total_timesteps | 692500   |
+| train/             |          |
+|    action_loss     | 0.393    |
+|    advantage_loss  | 131      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 17664    |
+|    policy_loss     | -0.693   |
+|    value_loss      | 132      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.1e+03  |
+|    ep_rew_mean     | 204      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 278      |
+|    time_elapsed    | 109166   |
+|    total_timesteps | 695000   |
+| train/             |          |
+|    action_loss     | 0.224    |
+|    advantage_loss  | 42       |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 17728    |
+|    policy_loss     | -0.797   |
+|    value_loss      | 46       |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.1e+03  |
+|    ep_rew_mean     | 205      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 279      |
+|    time_elapsed    | 109380   |
+|    total_timesteps | 697500   |
+| train/             |          |
+|    action_loss     | 0.24     |
+|    advantage_loss  | 119      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 17792    |
+|    policy_loss     | -0.715   |
+|    value_loss      | 129      |
+---------------------------------
+Eval num_timesteps=700000, episode_reward=17.28 +/- 90.09
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | 17.3     |
+| time/              |          |
+|    total_timesteps | 700000   |
+| train/             |          |
+|    action_loss     | 0.117    |
+|    advantage_loss  | 58.1     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 17856    |
+|    policy_loss     | -0.716   |
+|    value_loss      | 62.9     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.06e+03 |
+|    ep_rew_mean     | 198      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 280      |
+|    time_elapsed    | 110329   |
+|    total_timesteps | 700000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.05e+03 |
+|    ep_rew_mean     | 202      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 281      |
+|    time_elapsed    | 110544   |
+|    total_timesteps | 702500   |
+| train/             |          |
+|    action_loss     | 0.16     |
+|    advantage_loss  | 22.4     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 17920    |
+|    policy_loss     | -0.686   |
+|    value_loss      | 24.6     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.06e+03 |
+|    ep_rew_mean     | 201      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 282      |
+|    time_elapsed    | 110753   |
+|    total_timesteps | 705000   |
+| train/             |          |
+|    action_loss     | 0.166    |
+|    advantage_loss  | 93.1     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 17984    |
+|    policy_loss     | -0.693   |
+|    value_loss      | 102      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.09e+03 |
+|    ep_rew_mean     | 206      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 283      |
+|    time_elapsed    | 110963   |
+|    total_timesteps | 707500   |
+| train/             |          |
+|    action_loss     | 0.285    |
+|    advantage_loss  | 155      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 18048    |
+|    policy_loss     | -0.694   |
+|    value_loss      | 160      |
+---------------------------------
+Eval num_timesteps=710000, episode_reward=52.38 +/- 169.97
+Episode length: 2496.20 +/- 9.60
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | 52.4     |
+| time/              |          |
+|    total_timesteps | 710000   |
+| train/             |          |
+|    action_loss     | 0.244    |
+|    advantage_loss  | 48.9     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 18112    |
+|    policy_loss     | -0.776   |
+|    value_loss      | 53.8     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.09e+03 |
+|    ep_rew_mean     | 201      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 284      |
+|    time_elapsed    | 111882   |
+|    total_timesteps | 710000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.11e+03 |
+|    ep_rew_mean     | 220      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 285      |
+|    time_elapsed    | 112099   |
+|    total_timesteps | 712500   |
+| train/             |          |
+|    action_loss     | 0.491    |
+|    advantage_loss  | 143      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 18176    |
+|    policy_loss     | -0.667   |
+|    value_loss      | 148      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.12e+03 |
+|    ep_rew_mean     | 219      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 286      |
+|    time_elapsed    | 112314   |
+|    total_timesteps | 715000   |
+| train/             |          |
+|    action_loss     | 0.11     |
+|    advantage_loss  | 140      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 18240    |
+|    policy_loss     | -0.598   |
+|    value_loss      | 152      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.12e+03 |
+|    ep_rew_mean     | 214      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 287      |
+|    time_elapsed    | 112528   |
+|    total_timesteps | 717500   |
+| train/             |          |
+|    action_loss     | 0.205    |
+|    advantage_loss  | 145      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 18304    |
+|    policy_loss     | -0.691   |
+|    value_loss      | 155      |
+---------------------------------
+Eval num_timesteps=720000, episode_reward=39.10 +/- 117.09
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | 39.1     |
+| time/              |          |
+|    total_timesteps | 720000   |
+| train/             |          |
+|    action_loss     | 0.348    |
+|    advantage_loss  | 171      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 18368    |
+|    policy_loss     | -0.628   |
+|    value_loss      | 182      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.12e+03 |
+|    ep_rew_mean     | 210      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 288      |
+|    time_elapsed    | 113462   |
+|    total_timesteps | 720000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.11e+03 |
+|    ep_rew_mean     | 208      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 289      |
+|    time_elapsed    | 113678   |
+|    total_timesteps | 722500   |
+| train/             |          |
+|    action_loss     | 0.263    |
+|    advantage_loss  | 148      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 18432    |
+|    policy_loss     | -0.711   |
+|    value_loss      | 159      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.11e+03 |
+|    ep_rew_mean     | 210      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 290      |
+|    time_elapsed    | 113892   |
+|    total_timesteps | 725000   |
+| train/             |          |
+|    action_loss     | 0.195    |
+|    advantage_loss  | 121      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 18496    |
+|    policy_loss     | -0.723   |
+|    value_loss      | 131      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.11e+03 |
+|    ep_rew_mean     | 211      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 291      |
+|    time_elapsed    | 114106   |
+|    total_timesteps | 727500   |
+| train/             |          |
+|    action_loss     | 0.604    |
+|    advantage_loss  | 127      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 18560    |
+|    policy_loss     | -0.664   |
+|    value_loss      | 136      |
+---------------------------------
+Eval num_timesteps=730000, episode_reward=167.22 +/- 175.54
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | 167      |
+| time/              |          |
+|    total_timesteps | 730000   |
+| train/             |          |
+|    action_loss     | 0.241    |
+|    advantage_loss  | 102      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 18624    |
+|    policy_loss     | -0.691   |
+|    value_loss      | 108      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.12e+03 |
+|    ep_rew_mean     | 219      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 292      |
+|    time_elapsed    | 115040   |
+|    total_timesteps | 730000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.12e+03 |
+|    ep_rew_mean     | 220      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 293      |
+|    time_elapsed    | 115256   |
+|    total_timesteps | 732500   |
+| train/             |          |
+|    action_loss     | 0.826    |
+|    advantage_loss  | 111      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 18688    |
+|    policy_loss     | -0.712   |
+|    value_loss      | 116      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.11e+03 |
+|    ep_rew_mean     | 221      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 294      |
+|    time_elapsed    | 115472   |
+|    total_timesteps | 735000   |
+| train/             |          |
+|    action_loss     | 0.532    |
+|    advantage_loss  | 109      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 18752    |
+|    policy_loss     | -0.818   |
+|    value_loss      | 117      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.12e+03 |
+|    ep_rew_mean     | 221      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 295      |
+|    time_elapsed    | 115687   |
+|    total_timesteps | 737500   |
+| train/             |          |
+|    action_loss     | 0.202    |
+|    advantage_loss  | 41.6     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 18816    |
+|    policy_loss     | -0.812   |
+|    value_loss      | 45.2     |
+---------------------------------
+Eval num_timesteps=740000, episode_reward=12.24 +/- 43.55
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | 12.2     |
+| time/              |          |
+|    total_timesteps | 740000   |
+| train/             |          |
+|    action_loss     | 0.301    |
+|    advantage_loss  | 91.1     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 18880    |
+|    policy_loss     | -0.808   |
+|    value_loss      | 98.2     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.12e+03 |
+|    ep_rew_mean     | 226      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 296      |
+|    time_elapsed    | 116636   |
+|    total_timesteps | 740000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.13e+03 |
+|    ep_rew_mean     | 227      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 297      |
+|    time_elapsed    | 116851   |
+|    total_timesteps | 742500   |
+| train/             |          |
+|    action_loss     | 0.15     |
+|    advantage_loss  | 149      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 18944    |
+|    policy_loss     | -0.811   |
+|    value_loss      | 153      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.14e+03 |
+|    ep_rew_mean     | 228      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 298      |
+|    time_elapsed    | 117068   |
+|    total_timesteps | 745000   |
+| train/             |          |
+|    action_loss     | 0.175    |
+|    advantage_loss  | 57.5     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 19008    |
+|    policy_loss     | -0.809   |
+|    value_loss      | 62.9     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.14e+03 |
+|    ep_rew_mean     | 232      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 299      |
+|    time_elapsed    | 117281   |
+|    total_timesteps | 747500   |
+| train/             |          |
+|    action_loss     | 0.17     |
+|    advantage_loss  | 113      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 19072    |
+|    policy_loss     | -0.758   |
+|    value_loss      | 122      |
+---------------------------------
+Eval num_timesteps=750000, episode_reward=-28.82 +/- 204.88
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | -28.8    |
+| time/              |          |
+|    total_timesteps | 750000   |
+| train/             |          |
+|    action_loss     | 0.38     |
+|    advantage_loss  | 105      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 19136    |
+|    policy_loss     | -0.781   |
+|    value_loss      | 113      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.15e+03 |
+|    ep_rew_mean     | 233      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 300      |
+|    time_elapsed    | 118222   |
+|    total_timesteps | 750000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.16e+03 |
+|    ep_rew_mean     | 233      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 301      |
+|    time_elapsed    | 118435   |
+|    total_timesteps | 752500   |
+| train/             |          |
+|    action_loss     | 0.108    |
+|    advantage_loss  | 102      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 19200    |
+|    policy_loss     | -0.727   |
+|    value_loss      | 108      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.14e+03 |
+|    ep_rew_mean     | 230      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 302      |
+|    time_elapsed    | 118653   |
+|    total_timesteps | 755000   |
+| train/             |          |
+|    action_loss     | 0.13     |
+|    advantage_loss  | 108      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 19264    |
+|    policy_loss     | -0.765   |
+|    value_loss      | 117      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.16e+03 |
+|    ep_rew_mean     | 236      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 303      |
+|    time_elapsed    | 118868   |
+|    total_timesteps | 757500   |
+| train/             |          |
+|    action_loss     | 0.194    |
+|    advantage_loss  | 78       |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 19328    |
+|    policy_loss     | -0.824   |
+|    value_loss      | 86.5     |
+---------------------------------
+Eval num_timesteps=760000, episode_reward=81.28 +/- 180.96
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | 81.3     |
+| time/              |          |
+|    total_timesteps | 760000   |
+| train/             |          |
+|    action_loss     | 0.224    |
+|    advantage_loss  | 72.4     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 19392    |
+|    policy_loss     | -0.738   |
+|    value_loss      | 78.8     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.16e+03 |
+|    ep_rew_mean     | 238      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 304      |
+|    time_elapsed    | 119814   |
+|    total_timesteps | 760000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.15e+03 |
+|    ep_rew_mean     | 241      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 305      |
+|    time_elapsed    | 120031   |
+|    total_timesteps | 762500   |
+| train/             |          |
+|    action_loss     | 0.225    |
+|    advantage_loss  | 155      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 19456    |
+|    policy_loss     | -0.714   |
+|    value_loss      | 167      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.14e+03 |
+|    ep_rew_mean     | 234      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 306      |
+|    time_elapsed    | 120249   |
+|    total_timesteps | 765000   |
+| train/             |          |
+|    action_loss     | 0.299    |
+|    advantage_loss  | 97.9     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 19520    |
+|    policy_loss     | -0.73    |
+|    value_loss      | 106      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.16e+03 |
+|    ep_rew_mean     | 231      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 307      |
+|    time_elapsed    | 120465   |
+|    total_timesteps | 767500   |
+| train/             |          |
+|    action_loss     | 0.478    |
+|    advantage_loss  | 44.4     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 19584    |
+|    policy_loss     | -0.74    |
+|    value_loss      | 47.9     |
+---------------------------------
+Eval num_timesteps=770000, episode_reward=207.30 +/- 124.51
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | 207      |
+| time/              |          |
+|    total_timesteps | 770000   |
+| train/             |          |
+|    action_loss     | 0.114    |
+|    advantage_loss  | 37.1     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 19648    |
+|    policy_loss     | -0.748   |
+|    value_loss      | 42.1     |
+---------------------------------
+New best mean reward!
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.12e+03 |
+|    ep_rew_mean     | 229      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 308      |
+|    time_elapsed    | 121410   |
+|    total_timesteps | 770000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.12e+03 |
+|    ep_rew_mean     | 234      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 309      |
+|    time_elapsed    | 121622   |
+|    total_timesteps | 772500   |
+| train/             |          |
+|    action_loss     | 0.326    |
+|    advantage_loss  | 118      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 19712    |
+|    policy_loss     | -0.601   |
+|    value_loss      | 123      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.06e+03 |
+|    ep_rew_mean     | 229      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 310      |
+|    time_elapsed    | 121841   |
+|    total_timesteps | 775000   |
+| train/             |          |
+|    action_loss     | 0.295    |
+|    advantage_loss  | 85.2     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 19776    |
+|    policy_loss     | -0.638   |
+|    value_loss      | 91.4     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.06e+03 |
+|    ep_rew_mean     | 228      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 311      |
+|    time_elapsed    | 122057   |
+|    total_timesteps | 777500   |
+| train/             |          |
+|    action_loss     | 0.231    |
+|    advantage_loss  | 72.1     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 19840    |
+|    policy_loss     | -0.691   |
+|    value_loss      | 78.9     |
+---------------------------------
+Eval num_timesteps=780000, episode_reward=98.86 +/- 97.62
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | 98.9     |
+| time/              |          |
+|    total_timesteps | 780000   |
+| train/             |          |
+|    action_loss     | 0.339    |
+|    advantage_loss  | 40.2     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 19904    |
+|    policy_loss     | -0.678   |
+|    value_loss      | 44.4     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.08e+03 |
+|    ep_rew_mean     | 225      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 312      |
+|    time_elapsed    | 123003   |
+|    total_timesteps | 780000   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.1e+03  |
+|    ep_rew_mean     | 229      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 313      |
+|    time_elapsed    | 123217   |
+|    total_timesteps | 782500   |
+| train/             |          |
+|    action_loss     | 0.264    |
+|    advantage_loss  | 80.8     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 19968    |
+|    policy_loss     | -0.565   |
+|    value_loss      | 82.8     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.13e+03 |
+|    ep_rew_mean     | 230      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 314      |
+|    time_elapsed    | 123430   |
+|    total_timesteps | 785000   |
+| train/             |          |
+|    action_loss     | 0.167    |
+|    advantage_loss  | 33.6     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 20032    |
+|    policy_loss     | -0.635   |
+|    value_loss      | 35.3     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.13e+03 |
+|    ep_rew_mean     | 234      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 315      |
+|    time_elapsed    | 123642   |
+|    total_timesteps | 787500   |
+| train/             |          |
+|    action_loss     | 0.381    |
+|    advantage_loss  | 11.8     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 20096    |
+|    policy_loss     | -0.682   |
+|    value_loss      | 14.4     |
+---------------------------------

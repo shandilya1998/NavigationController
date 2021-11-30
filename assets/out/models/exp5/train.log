@@ -68447,3 +68447,71 @@ Episode length: 2501.00 +/- 0.00
 |    time_elapsed    | 140504   |
 |    total_timesteps | 890000   |
 ---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.19e+03 |
+|    ep_rew_mean     | 179      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 357      |
+|    time_elapsed    | 140722   |
+|    total_timesteps | 892500   |
+| train/             |          |
+|    action_loss     | 0.317    |
+|    advantage_loss  | 101      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 22784    |
+|    policy_loss     | -0.624   |
+|    value_loss      | 101      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.18e+03 |
+|    ep_rew_mean     | 177      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 358      |
+|    time_elapsed    | 140942   |
+|    total_timesteps | 895000   |
+| train/             |          |
+|    action_loss     | 0.2      |
+|    advantage_loss  | 63.7     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 22848    |
+|    policy_loss     | -0.494   |
+|    value_loss      | 65.4     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.21e+03 |
+|    ep_rew_mean     | 175      |
+| time/              |          |
+|    fps             | 6        |
+|    iterations      | 359      |
+|    time_elapsed    | 141157   |
+|    total_timesteps | 897500   |
+| train/             |          |
+|    action_loss     | 0.131    |
+|    advantage_loss  | 61.7     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 22912    |
+|    policy_loss     | -0.488   |
+|    value_loss      | 65       |
+---------------------------------
+Eval num_timesteps=900000, episode_reward=108.84 +/- 282.51
+Episode length: 2501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2.5e+03  |
+|    mean_reward     | 109      |
+| time/              |          |
+|    total_timesteps | 900000   |
+| train/             |          |
+|    action_loss     | 0.16     |
+|    advantage_loss  | 159      |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 22976    |
+|    policy_loss     | -0.539   |
+|    value_loss      | 159      |
+---------------------------------
+Killed

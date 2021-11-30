@@ -69,7 +69,6 @@ class MazeEnv(gym.Env):
         self.elevated = any(maze_env_utils.MazeCell.CHASM in row for row in structure)
         # Are there any movable blocks?
         self.blocks = any(any(r.can_move() for r in row) for row in structure)
-
         torso_x, torso_y = self._find_robot()
         self._init_torso_x = torso_x
         self._init_torso_y = torso_y

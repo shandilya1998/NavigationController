@@ -3,10 +3,10 @@
 export GOOGLE_APPLICATION_CREDENTIALS="key.json"
 PROJECT_ID=$(gcloud config list project --format "value(core.project)")
 BUCKET_NAME=${PROJECT_ID}-aiplatform
-LOGDIR="assets/out/models/exp5"
+LOGDIR="assets/out/models/exp6"
 TIMESTEPS=1000000
 MAX_EPISODE_SIZE=2500
-LEARNING_TYPE="imitate"
+LEARNING_TYPE="explore"
 
 python3 train.py \
     --logdir $LOGDIR \

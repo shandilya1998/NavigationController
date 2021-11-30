@@ -55,7 +55,6 @@ class MazeEnv(gym.Env):
         self.kwargs = kwargs
         self.top_view_size = params['top_view_size']
         self.t = 0  # time steps
-        self.vt = np.array([0.0], dtype = np.float32)
         self.max_episode_size = max_episode_size
         self._task = maze_task(maze_size_scaling, **task_kwargs)
         self._maze_height = height = maze_height
@@ -228,6 +227,7 @@ class MazeEnv(gym.Env):
             elif name != 'floor':
                 self.agent_ids.append(self.model._geom_name2id[name])
         self._set_action_space()
+        self.last_wrapped_obs = np.zeros((224, 224, 3), dtype = np.uint8).copy()
         ob = self._get_obs()
         self._set_observation_space(ob)
         self.__create_maze_graph()
@@ -422,19 +422,16 @@ class MazeEnv(gym.Env):
     def _get_obs(self) -> np.ndarray:
         img = self.wrapped_env._get_obs()
         try: 
-            sampled_action = np.concatenate([
-                self.get_action(), self.vt
-            ])
+            sampled_action = self.get_action()
         except:
-            sampled_action = np.concatenate([
-                np.zeros(self.action_space.shape),
-                self.vt
-            ])
-        return {
+            sampled_action = np.zeros(self.action_space.shape)
+        obs = {
             'observation' : img.copy(),
-            'state_value' : self.vt.copy(),
+            'last_observation' : self.last_wrapped_obs.copy(),
             'sampled_action' : sampled_action.copy()
         }
+        self.last_wrapped_obs = img.copy()
+        return obs
 
     def reset(self) -> np.ndarray:
         self.t = 0
@@ -442,7 +439,6 @@ class MazeEnv(gym.Env):
         self._task.set()
         self.set_env()
         self.wrapped_env.reset()
-        self.vt = np.array([0.0])
         # Samples a new start position
         if len(self._init_positions) > 1:
             xy = np.random.choice(self._init_positions)
@@ -538,7 +534,6 @@ class MazeEnv(gym.Env):
         self.t += 1
         ai = action[0]
         di = action[1]
-        self.vt = np.array([action[2]])
         prev_yaw = copy.deepcopy(self.state.yaw)
         prev_v = copy.deepcopy(self.state.v)
         self.state.update(ai, di)

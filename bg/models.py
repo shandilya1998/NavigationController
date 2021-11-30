@@ -21,12 +21,6 @@ class BasalGanglia(torch.nn.Module):
         eta_gpe = 0.01,
         eta_gpi = 0.01,
         eta_th = 0.01,
-        wsg = 2,
-        wgs = -2, 
-        a1 = 1,
-        a2 = -1,
-        thetad1 = 0,
-        thetad2 = 0,
     ):  
         super(BasalGanglia, self).__init__()
         self.num_out = num_out
@@ -41,12 +35,25 @@ class BasalGanglia(torch.nn.Module):
         self.eta_gpi = eta_gpi
         self.eta_stn = eta_gpe / 3 
         self.eta_th = eta_th
-        self.a1 = a1
-        self.a2 = a2
-        self.thetad1 = thetad1
-        self.thetad2 = thetad2
 
-        self.wgs = torch.nn.Parameter(torch.Tensor(np.array([[2.0]])))
+        input_size = num_ctx
+        layers = []
+        for units in params['snc']:
+            layers.append(torch.nn.Linear(input_size, units))
+            if units != 1:
+                layers.append(torch.nn.ReLU())
+            input_size = units
+
+        self.vf = torch.nn.Sequential(
+            *layers
+        )
+
+        self.log_a1 = torch.nn.Parameter(torch.Tensor(np.array([[1.0]])))
+        self.log_a2 = torch.nn.Parameter(torch.Tensor(np.array([[1.0]])))
+        self.thetad1 = torch.nn.Parameter(torch.Tensor(np.array([[0.0]])))
+        self.thetad2 = torch.nn.Parameter(torch.Tensor(np.array([[0.0]])))
+        self.wsg = torch.nn.Parameter(torch.Tensor(np.array([[2.0]])))
+        self.wgs = torch.nn.Parameter(torch.Tensor(np.array([[-2.0]])))
         self.epsilon_glat = torch.nn.Parameter(torch.Tensor(np.array([[.05]])))
         self.weights_glat = torch.ones(
             (self.num_gpe, self.num_gpe)
@@ -68,46 +75,49 @@ class BasalGanglia(torch.nn.Module):
         )
 
     def forward(self, inputs):
-        stimulus, deltavf = inputs
-        batch_size = stimulus.shape[0]
-        V_D1 = torch.zeros((batch_size, self.FF_Dim_in)).to(stimulus.device)
-        V_D2 = torch.zeros((batch_size, self.FF_Dim_in)).to(stimulus.device)
-        lamd1 = 1 / (1 + torch.exp(-self.a1 * (deltavf - self.thetad1)))
-        lamd2 = 1 / (1 + torch.exp(-self.a2 * (deltavf - self.thetad2)))
+        stimulus_t, stimulus_t_1 = inputs
+        batch_size = stimulus_t.shape[0]
+        v_t = self.vf(stimulus_t)
+        v_t_1 = self.vf(stimulus_t_1)
+        deltavf = v_t - v_t_1
+        V_D1 = torch.zeros((batch_size, self.FF_Dim_in)).to(stimulus_t.device)
+        V_D2 = torch.zeros((batch_size, self.FF_Dim_in)).to(stimulus_t.device)
+        lamd1 = 1 / (1 + torch.exp(-self.log_a1.exp() * (deltavf - self.thetad1)))
+        lamd2 = 1 / (1 + torch.exp(self.log_a2.exp() * (deltavf - self.thetad2)))
 
         for FFiter in range(self.FF_steps):
-            J_D1 = self.fc_jd1(stimulus)
-            J_D2 = self.fc_jd2(stimulus)
-            K_D1 = self.fc_kd1(stimulus)
-            K_D2 = self.fc_kd2(stimulus)
-            V_D1= J_D1 * (1 - V_D1) + (1 - K_D1) * V_D1
-            V_D2= J_D2 * (1 - V_D2) + (1 - K_D2) * V_D2
+            J_D1 = self.fc_jd1(stimulus_t)
+            J_D2 = self.fc_jd2(stimulus_t)
+            K_D1 = self.fc_kd1(stimulus_t)
+            K_D2 = self.fc_kd2(stimulus_t)
+            V_D1 = J_D1 * (1 - V_D1) + (1 - K_D1) * V_D1
+            V_D2 = J_D2 * (1 - V_D2) + (1 - K_D2) * V_D2
             V_D1 = torch.sigmoid(lamd1 * V_D1)
             V_D2 = torch.sigmoid(lamd2 * V_D2)
         V_GPi_DP = self.fc_d1gpi(V_D1)
-        V_GPi = torch.zeros((batch_size, self.num_gpi)).to(stimulus.device)
-        xgpe = torch.zeros((batch_size, self.num_gpe)).to(stimulus.device)
-        xstn = torch.zeros((batch_size, self.num_stn)).to(stimulus.device)
+        V_GPi = torch.zeros((batch_size, self.num_gpi)).to(stimulus_t.device)
+        xgpe = torch.zeros((batch_size, self.num_gpe)).to(stimulus_t.device)
+        xstn = torch.zeros((batch_size, self.num_stn)).to(stimulus_t.device)
         vstn = torch.tanh(lamd2 * xstn)
-        hx = torch.rand((batch_size, self.num_out)).to(stimulus.device)
-        cx = torch.rand((batch_size, self.num_out)).to(stimulus.device)
+        hx = torch.rand((batch_size, self.num_out)).to(stimulus_t.device)
+        cx = torch.rand((batch_size, self.num_out)).to(stimulus_t.device)
         for it in range(self.stn_gpe_iter):
             dxgpe = self.eta_gpe * (
-                -xgpe + self.wgs * vstn + \
+                -xgpe + self.wsg * vstn + \
                     torch.nn.functional.linear(
                         xgpe,
-                        self.epsilon_glat * self.weights_glat.to(stimulus.device) + \
+                        self.epsilon_glat * self.weights_glat.to(stimulus_t.device) + \
                             torch.ones((
                                 self.num_gpe, self.num_gpe
-                            )).to(stimulus.device)
+                            )).to(stimulus_t.device)
                     ) - V_D2
                 )
             xgpe = xgpe + dxgpe
             dxstn = self.eta_stn * (
-                -xstn - self.wgs * xgpe + \
+                -xstn + self.wgs * xgpe + \
                     torch.nn.functional.linear(
                         vstn,
-                        self.epsilon_slat * self.weights_slat.to(stimulus.device)
+                        self.epsilon_slat * self.weights_slat.to(stimulus_t.device)
                     )
             )
             xstn = xstn + dxstn
@@ -117,7 +127,7 @@ class BasalGanglia(torch.nn.Module):
             V_GPi = V_GPi + dvgpi
             Ith = -V_GPi
             hx, cx = self.thalamus(Ith, (hx, cx))
-        return hx
+        return hx, v_t
 
 def set_parameter_requires_grad(model, feature_extracting):
     if feature_extracting:
@@ -165,7 +175,7 @@ class MotorCortex(torch.nn.Module):
             layers.append(torch.nn.ReLU())
             input_size = units
         layers.append(torch.nn.Linear(input_size, action_dim))
-        #layers.append(torch.nn.Tanh())
+        layers.append(torch.nn.Tanh())
         self.fc_2 = torch.nn.Sequential(
             *layers
         )
@@ -180,7 +190,6 @@ class MotorCortex(torch.nn.Module):
 class ControlNetwork(torch.nn.Module):
     def __init__(self,
         action_dim = 2,
-        num_ctx = 300,
         num_gpe = 40, 
         num_stn = 40,
         num_gpi = 20,
@@ -190,16 +199,11 @@ class ControlNetwork(torch.nn.Module):
         eta_gpe = 0.01,
         eta_gpi = 0.01,
         eta_th = 0.01,
-        wsg = 2,
-        wgs = -2, 
-        a1 = 1,
-        a2 = 1,
-        thetad1 = 0,
-        thetad2 = 0,
         use_pretrained_visual_cortex = True,
         feature_extracting_visual_cortex = False
     ):
         super(ControlNetwork, self).__init__()
+        num_ctx = params['num_ctx']
         self.bg = BasalGanglia(
             action_dim,
             num_ctx,
@@ -212,34 +216,11 @@ class ControlNetwork(torch.nn.Module):
             eta_gpe,
             eta_gpi,
             eta_th,
-            wsg,
-            wgs, 
-            a1,
-            a2,
-            thetad1,
-            thetad2,
-        )
-        self.vc = VisualCortex(
-            use_pretrained_visual_cortex,
-            feature_extracting_visual_cortex,
-            num_ctx
         )
         self.mc = MotorCortex(
             num_ctx, action_dim
         )
 
-        input_size = num_ctx
-        layers = []
-        for units in params['snc']:
-            layers.append(torch.nn.Linear(input_size, units))
-            if units != 1:
-                layers.append(torch.nn.ReLU())
-            input_size = units
-
-        self.vf = torch.nn.Sequential(
-            *layers
-        )
-        
         input_size = num_ctx + action_dim
         layers = []
         for units in params['snc']:
@@ -248,16 +229,12 @@ class ControlNetwork(torch.nn.Module):
                 layers.append(torch.nn.ReLU())
             input_size = units
 
-        self.af = torch.nn.Sequential(
+        self.qf = torch.nn.Sequential(
             *layers
         )
 
     def forward(self, inputs): 
-        stimulus, vt_1 = inputs
-        stimulus = self.vc(stimulus)
-        vt = torch.tanh(self.vf(stimulus))
-        deltavf = vt - vt_1
-        bg_out  = self.bg([stimulus, deltavf])
-        action = self.mc([stimulus, bg_out])
-        at = torch.tanh(self.af(torch.cat([stimulus, action], -1)))
-        return action, vt, at
+        stimulus_t, stimulus_t_1 = inputs
+        bg_out, vt  = self.bg([stimulus_t, stimulus_t_1])
+        action = self.mc([stimulus_t, bg_out])
+        return action, vt

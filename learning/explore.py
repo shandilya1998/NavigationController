@@ -35,16 +35,20 @@ class Explore:
         )
         self.__set_rl_callback()
         n_actions = self.env.action_space.sample().shape[-1]
+        
         self.rl_model = TD3BG(
             TD3BGPolicy,
             self.env,
             tensorboard_log = self.logdir,
             learning_rate = params['lr'],
-            n_steps = params['n_steps'],
+            learning_starts = params['learning_starts'],
+            batch_size = params['batch_size'],
+            buffer_size = params['buffer_size'],
             gamma = params['gamma'],
-            gae_lambda = params['gae_lambda'],
-            vf_coef = 1.0,
-            verbose = 1,
+            tau = params['tau'],
+            train_freq = (5, 'step'),
+            gradient_steps = 5,
+            verbose = 2,
             device = 'auto'
         )
 

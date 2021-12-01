@@ -2601,3 +2601,69 @@ Episode length: 1489.40 +/- 23.20
 |    total_actor_loss | 0.529    |
 |    value_loss       | 0.00417  |
 ----------------------------------
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 1.49e+03 |
+|    ep_rew_mean      | -0.32    |
+| time/               |          |
+|    episodes         | 168      |
+|    fps              | 5        |
+|    time_elapsed     | 44661    |
+|    total timesteps  | 251347   |
+| train/              |          |
+|    actor_loss       | 0.513    |
+|    critic_loss      | 0.0102   |
+|    learning_rate    | 0.0007   |
+|    n_updates        | 50169    |
+|    total_actor_loss | 0.525    |
+|    value_loss       | 0.0118   |
+----------------------------------
+Eval num_timesteps=252000, episode_reward=2.04 +/- 10.94
+Episode length: 1501.00 +/- 0.00
+----------------------------------
+| eval/               |          |
+|    mean_ep_length   | 1.5e+03  |
+|    mean_reward      | 2.04     |
+| time/               |          |
+|    total_timesteps  | 252000   |
+| train/              |          |
+|    actor_loss       | 0.536    |
+|    critic_loss      | 0.0166   |
+|    learning_rate    | 0.0007   |
+|    n_updates        | 50298    |
+|    total_actor_loss | 0.542    |
+|    value_loss       | 0.00578  |
+----------------------------------
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 1.49e+03 |
+|    ep_rew_mean      | -0.408   |
+| time/               |          |
+|    episodes         | 172      |
+|    fps              | 5        |
+|    time_elapsed     | 45874    |
+|    total timesteps  | 257351   |
+| train/              |          |
+|    actor_loss       | 0.576    |
+|    critic_loss      | 0.00973  |
+|    learning_rate    | 0.0007   |
+|    n_updates        | 51369    |
+|    total_actor_loss | 0.582    |
+|    value_loss       | 0.00583  |
+----------------------------------
+Eval num_timesteps=261000, episode_reward=-6.74 +/- 14.10
+Episode length: 1501.00 +/- 0.00
+----------------------------------
+| eval/               |          |
+|    mean_ep_length   | 1.5e+03  |
+|    mean_reward      | -6.74    |
+| time/               |          |
+|    total_timesteps  | 261000   |
+| train/              |          |
+|    actor_loss       | 0.589    |
+|    critic_loss      | 0.0132   |
+|    learning_rate    | 0.0007   |
+|    n_updates        | 52098    |
+|    total_actor_loss | 0.597    |
+|    value_loss       | 0.00876  |
+----------------------------------

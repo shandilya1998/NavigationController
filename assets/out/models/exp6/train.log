@@ -2518,3 +2518,86 @@ Episode length: 1501.00 +/- 0.00
 |    total_actor_loss | 0.5      |
 |    value_loss       | 0.00628  |
 ----------------------------------
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 1.49e+03 |
+|    ep_rew_mean      | -2.25    |
+| time/               |          |
+|    episodes         | 156      |
+|    fps              | 5        |
+|    time_elapsed     | 41435    |
+|    total timesteps  | 233335   |
+| train/              |          |
+|    actor_loss       | 0.558    |
+|    critic_loss      | 0.00893  |
+|    learning_rate    | 0.0007   |
+|    n_updates        | 46566    |
+|    total_actor_loss | 0.565    |
+|    value_loss       | 0.0068   |
+----------------------------------
+Eval num_timesteps=234000, episode_reward=15.32 +/- 18.01
+Episode length: 1501.00 +/- 0.00
+----------------------------------
+| eval/               |          |
+|    mean_ep_length   | 1.5e+03  |
+|    mean_reward      | 15.3     |
+| time/               |          |
+|    total_timesteps  | 234000   |
+| train/              |          |
+|    actor_loss       | 0.538    |
+|    critic_loss      | 0.00795  |
+|    learning_rate    | 0.0007   |
+|    n_updates        | 46698    |
+|    total_actor_loss | 0.54     |
+|    value_loss       | 0.00183  |
+----------------------------------
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 1.49e+03 |
+|    ep_rew_mean      | -1.33    |
+| time/               |          |
+|    episodes         | 160      |
+|    fps              | 5        |
+|    time_elapsed     | 42645    |
+|    total timesteps  | 239339   |
+| train/              |          |
+|    actor_loss       | 0.537    |
+|    critic_loss      | 0.00875  |
+|    learning_rate    | 0.0007   |
+|    n_updates        | 47766    |
+|    total_actor_loss | 0.541    |
+|    value_loss       | 0.00418  |
+----------------------------------
+Eval num_timesteps=243000, episode_reward=3.80 +/- 10.72
+Episode length: 1489.40 +/- 23.20
+----------------------------------
+| eval/               |          |
+|    mean_ep_length   | 1.49e+03 |
+|    mean_reward      | 3.8      |
+| time/               |          |
+|    total_timesteps  | 243000   |
+| train/              |          |
+|    actor_loss       | 0.498    |
+|    critic_loss      | 0.00839  |
+|    learning_rate    | 0.0007   |
+|    n_updates        | 48498    |
+|    total_actor_loss | 0.503    |
+|    value_loss       | 0.00491  |
+----------------------------------
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 1.49e+03 |
+|    ep_rew_mean      | -1.17    |
+| time/               |          |
+|    episodes         | 164      |
+|    fps              | 5        |
+|    time_elapsed     | 43854    |
+|    total timesteps  | 245343   |
+| train/              |          |
+|    actor_loss       | 0.524    |
+|    critic_loss      | 0.00721  |
+|    learning_rate    | 0.0007   |
+|    n_updates        | 48969    |
+|    total_actor_loss | 0.529    |
+|    value_loss       | 0.00417  |
+----------------------------------

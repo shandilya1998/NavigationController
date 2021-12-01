@@ -70,7 +70,7 @@ class BasalGanglia(torch.nn.Module):
         self.fc_kd1 = torch.nn.Linear(self.num_ctx, self.FF_Dim_in, bias = False)
         self.fc_kd2 = torch.nn.Linear(self.num_ctx, self.FF_Dim_in, bias = False)
 
-        self.thalamus = torch.nn.LSTMCell(
+        self.thalamus = torch.nn.RNNCell(
             self.num_gpi, self.num_out
         )
 
@@ -100,7 +100,6 @@ class BasalGanglia(torch.nn.Module):
         xstn = torch.zeros((batch_size, self.num_stn)).to(stimulus_t.device)
         vstn = torch.tanh(lamd2 * xstn)
         hx = torch.rand((batch_size, self.num_out)).to(stimulus_t.device)
-        cx = torch.rand((batch_size, self.num_out)).to(stimulus_t.device)
         for it in range(self.stn_gpe_iter):
             dxgpe = self.eta_gpe * (
                 -xgpe + self.wsg * vstn + \
@@ -126,7 +125,7 @@ class BasalGanglia(torch.nn.Module):
             dvgpi = self.eta_gpi * (-V_GPi - V_GPi_DP + 2 * V_GPi_IP)
             V_GPi = V_GPi + dvgpi
             Ith = -V_GPi
-            hx, cx = self.thalamus(Ith, (hx, cx))
+            hx = self.thalamus(Ith, hx)
         return hx, v_t
 
 def set_parameter_requires_grad(model, feature_extracting):
@@ -136,41 +135,36 @@ def set_parameter_requires_grad(model, feature_extracting):
 
 class VisualCortex(torch.nn.Module):
     def __init__(self, 
-        use_pretrained = True,
-        feature_extracting = False,
         num_ctx = 300,
     ):
         super(VisualCortex, self).__init__()
-        self.model_ft = tv.models.mobilenet_v3_small(pretrained=use_pretrained)
-        set_parameter_requires_grad(self.model_ft, feature_extracting)
-        num_ftrs = self.model_ft.classifier._modules['3'].in_features
-        self.model_ft.classifier._modules['3'] = torch.nn.Linear(num_ftrs, num_ctx)
+        self.cnn = torch.nn.Sequential(
+            torch.nn.Conv2d(3, 32, kernel_size=8, stride=4, padding=0),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=0),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(64, 8, kernel_size=3, stride=1, padding=0),
+            torch.nn.ReLU(),
+            torch.nn.Flatten(),
+        )
+    
+        image = torch.zeros((1, 3, 224, 224))
+    
+        # Compute shape by doing one forward pass
+        with torch.no_grad():
+            n_flatten = self.cnn(image).shape[-1]
 
+        self.linear = torch.nn.Sequential(torch.nn.Linear(n_flatten, num_ctx), torch.nn.ReLU())
+ 
     def forward(self, img):
-        """
-            Input to this model need to be preprocessed as follows
-            img = torch.unsqueeze(
-                torch.permute(
-                    torch.from_numpy(
-                        ob.astype('float32')/255
-                    ), (2, 0, 1)
-                ), 0
-            )
-            where ob is the visual observation from the environment
-        """
-        return self.model_ft(img)
-
+        return self.linear(self.cnn(img))
 
 class MotorCortex(torch.nn.Module):
     def __init__(self, num_ctx = 300, action_dim = 2):
         super(MotorCortex, self).__init__()
         layers = []
         input_size = num_ctx
-        for units in params['motor_cortex'][0]:
-            layers.append(torch.nn.Linear(input_size, units))
-            layers.append(torch.nn.ReLU())
-            input_size = units
-        for units in params['motor_cortex'][1]:
+        for units in params['motor_cortex']:
             layers.append(torch.nn.Linear(input_size, units))
             layers.append(torch.nn.ReLU())
             input_size = units
@@ -183,7 +177,7 @@ class MotorCortex(torch.nn.Module):
     def forward(self, inputs):
         stimulus, bg_out = inputs
         #x = self.fc_1(stimulus)
-        action = self.fc_2(stimulus) + bg_out
+        action = (self.fc_2(stimulus) + bg_out) / 2
         return action
 
 

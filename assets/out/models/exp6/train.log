@@ -3982,3 +3982,69 @@ New best mean reward!
 |    total_actor_loss | -0.033   |
 |    value_loss       | 0.0127   |
 ----------------------------------
+Eval num_timesteps=549000, episode_reward=25.46 +/- 23.63
+Episode length: 1501.00 +/- 0.00
+----------------------------------
+| eval/               |          |
+|    mean_ep_length   | 1.5e+03  |
+|    mean_reward      | 25.5     |
+| time/               |          |
+|    total_timesteps  | 549000   |
+| train/              |          |
+|    actor_loss       | 0.285    |
+|    critic_loss      | 0.0285   |
+|    learning_rate    | 0.0007   |
+|    n_updates        | 109698   |
+|    total_actor_loss | 0.295    |
+|    value_loss       | 0.0101   |
+----------------------------------
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 1.5e+03  |
+|    ep_rew_mean      | 16.6     |
+| time/               |          |
+|    episodes         | 368      |
+|    fps              | 5        |
+|    time_elapsed     | 98544    |
+|    total timesteps  | 550861   |
+| train/              |          |
+|    actor_loss       | -0.12    |
+|    critic_loss      | 0.0222   |
+|    learning_rate    | 0.0007   |
+|    n_updates        | 110073   |
+|    total_actor_loss | -0.105   |
+|    value_loss       | 0.0144   |
+----------------------------------
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 1.5e+03  |
+|    ep_rew_mean      | 16       |
+| time/               |          |
+|    episodes         | 372      |
+|    fps              | 5        |
+|    time_elapsed     | 99285    |
+|    total timesteps  | 556324   |
+| train/              |          |
+|    actor_loss       | 0.346    |
+|    critic_loss      | 0.147    |
+|    learning_rate    | 0.0007   |
+|    n_updates        | 111165   |
+|    total_actor_loss | 0.789    |
+|    value_loss       | 0.444    |
+----------------------------------
+Eval num_timesteps=558000, episode_reward=-31.58 +/- 71.23
+Episode length: 1501.00 +/- 0.00
+----------------------------------
+| eval/               |          |
+|    mean_ep_length   | 1.5e+03  |
+|    mean_reward      | -31.6    |
+| time/               |          |
+|    total_timesteps  | 558000   |
+| train/              |          |
+|    actor_loss       | 0.494    |
+|    critic_loss      | 0.0971   |
+|    learning_rate    | 0.0007   |
+|    n_updates        | 111498   |
+|    total_actor_loss | 0.521    |
+|    value_loss       | 0.0269   |
+----------------------------------

@@ -71,8 +71,9 @@ class BasalGanglia(torch.nn.Module):
         self.fc_kd2 = torch.nn.Linear(self.num_ctx, self.FF_Dim_in, bias = False)
 
         self.thalamus = torch.nn.RNNCell(
-            self.num_gpi, self.num_out
+            self.num_gpi, self.num_gpi
         )
+        self.linear = torch.nn.Linear(self.num_gpi, self.num_out)
 
     def forward(self, inputs):
         stimulus_t, stimulus_t_1 = inputs
@@ -85,11 +86,12 @@ class BasalGanglia(torch.nn.Module):
         lamd1 = 1 / (1 + torch.exp(-self.log_a1.exp() * (deltavf - self.thetad1)))
         lamd2 = 1 / (1 + torch.exp(self.log_a2.exp() * (deltavf - self.thetad2)))
 
+        J_D1 = self.fc_jd1(stimulus_t)
+        J_D2 = self.fc_jd2(stimulus_t)
+        K_D1 = self.fc_kd1(stimulus_t)
+        K_D2 = self.fc_kd2(stimulus_t)
+
         for FFiter in range(self.FF_steps):
-            J_D1 = self.fc_jd1(stimulus_t)
-            J_D2 = self.fc_jd2(stimulus_t)
-            K_D1 = self.fc_kd1(stimulus_t)
-            K_D2 = self.fc_kd2(stimulus_t)
             V_D1 = J_D1 * (1 - V_D1) + (1 - K_D1) * V_D1
             V_D2 = J_D2 * (1 - V_D2) + (1 - K_D2) * V_D2
             V_D1 = torch.sigmoid(lamd1 * V_D1)
@@ -99,7 +101,7 @@ class BasalGanglia(torch.nn.Module):
         xgpe = torch.zeros((batch_size, self.num_gpe)).to(stimulus_t.device)
         xstn = torch.zeros((batch_size, self.num_stn)).to(stimulus_t.device)
         vstn = torch.tanh(lamd2 * xstn)
-        hx = torch.rand((batch_size, self.num_out)).to(stimulus_t.device)
+        hx = torch.rand((batch_size, self.num_gpi)).to(stimulus_t.device)
         for it in range(self.stn_gpe_iter):
             dxgpe = self.eta_gpe * (
                 -xgpe + self.wsg * vstn + \
@@ -126,7 +128,8 @@ class BasalGanglia(torch.nn.Module):
             V_GPi = V_GPi + dvgpi
             Ith = -V_GPi
             hx = self.thalamus(Ith, hx)
-        return hx, v_t
+            out = self.linear(hx)
+        return out, v_t
 
 def set_parameter_requires_grad(model, feature_extracting):
     if feature_extracting:
@@ -169,17 +172,15 @@ class MotorCortex(torch.nn.Module):
             layers.append(torch.nn.ReLU())
             input_size = units
         layers.append(torch.nn.Linear(input_size, action_dim))
-        layers.append(torch.nn.Tanh())
+        self.squash_fn = torch.nn.Tanh()
         self.fc_2 = torch.nn.Sequential(
             *layers
         )
 
     def forward(self, inputs):
         stimulus, bg_out = inputs
-        #x = self.fc_1(stimulus)
-        action = (self.fc_2(stimulus) + bg_out) / 2
+        action = self.squash_fn(self.fc_2(stimulus) + bg_out)
         return action
-
 
 class ControlNetwork(torch.nn.Module):
     def __init__(self,

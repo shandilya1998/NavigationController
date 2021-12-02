@@ -506,12 +506,11 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         )
 
     def _excluded_save_params(self) -> List[str]:
-        return super(TD3BG, self)._excluded_save_params() + ["actor", "actor_target"]
+        return super(TD3BG, self)._excluded_save_params() + ["actor", "actor_target", "critic", "critic_target"]
 
     def _get_torch_save_params(self) -> Tuple[List[str], List[str]]:
-        state_dicts = ["policy", "actor.optimizer",]
+        state_dicts = ["policy", "actor.optimizer"]
         return state_dicts, []
-
 
 class ImitationLearning(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
     """
@@ -760,8 +759,8 @@ class ImitationLearning(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         )
 
     def _excluded_save_params(self) -> List[str]:
-        return super(TD3BG, self)._excluded_save_params() + ["actor", "actor_target"]
+        return super(TD3BG, self)._excluded_save_params() + ["actor", "actor_target", "critic", "critic_target"]
 
     def _get_torch_save_params(self) -> Tuple[List[str], List[str]]:
-        state_dicts = ["policy", "actor.optimizer",]
+        state_dicts = ["policy", "actor.optimizer", "critic.optimizer"]
         return state_dicts, []

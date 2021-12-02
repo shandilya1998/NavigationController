@@ -479,20 +479,7 @@ class MazeEnv(gym.Env):
             viewer.move_camera(const.MOUSE_ROTATE_H, 0.0, self._camera_move_y)
         if self._camera_zoom is not None:
             viewer.move_camera(const.MOUSE_ZOOM, 0, self._camera_zoom)
-
-    def render(self, mode="human", **kwargs) -> Optional[np.ndarray]:
-        if mode == "human" and self._websock_port is not None:
-            if self._mj_offscreen_viewer is None:
-                from mujoco_py import MjRenderContextOffscreen as MjRCO
-
-                from mujoco_maze.websock_viewer import start_server
-
-                self._mj_offscreen_viewer = MjRCO(self.wrapped_env.sim)
-                self._websock_server_pipe = start_server(self._websock_port)
-            self._websock_server_pipe.send(self._render_image())
-        else:
-            return self.wrapped_env.render(mode, **kwargs)
-        
+ 
     def _find_robot(self) -> Tuple[float, float]:
         structure = self._maze_structure
         size_scaling = self._maze_size_scaling
@@ -610,7 +597,8 @@ class MazeEnv(gym.Env):
         block_size = self.top_view_size
 
         img = np.zeros(
-            (int(block_size * len(self._maze_structure)), int(block_size * len(self._maze_structure[0])), 3)
+            (int(block_size * len(self._maze_structure)), int(block_size * len(self._maze_structure[0])), 3),
+            dtype = np.uint8
         )
 
         for i in range(len(self._maze_structure)):
@@ -619,7 +607,7 @@ class MazeEnv(gym.Env):
                     img[
                         int(block_size * i): int(block_size * (i + 1)),
                         int(block_size * j): int(block_size * (j + 1))
-                    ] = 0.5
+                    ] = 128
 
 
         def xy_to_imgrowcol(x, y):
@@ -630,7 +618,7 @@ class MazeEnv(gym.Env):
 
         pos = self.wrapped_env.get_xy() 
         row, col = xy_to_imgrowcol(pos[0], pos[1])
-        img[row - int(block_size / 10): row + int(block_size / 10), col - int(block_size / 10): col + int(block_size / 10)] = [1, 1, 1]
+        img[row - int(block_size / 10): row + int(block_size / 10), col - int(block_size / 10): col + int(block_size / 10)] = [255, 255, 255]
         for i, goal in enumerate(self._task.goals):
             pos = goal.pos
             row, col = xy_to_imgrowcol(pos[0], pos[1])
@@ -638,15 +626,14 @@ class MazeEnv(gym.Env):
                 img[
                     row - int(block_size / 10): row + int(block_size / 10),
                     col - int(block_size / 10): col + int(block_size / 10)
-                ] = [0, 0, 1]
+                ] = [0, 0, 255]
             else:
                 img[
                     row - int(block_size / 10): row + int(block_size / 10),
                     col - int(block_size / 10): col + int(block_size / 10)
-                ] = [0, 1, 0]
+                ] = [0, 255, 0]
 
         return np.flipud(img)
-
 
 def _add_object_ball(
     worldbody: ET.Element, i: str, j: str, x: float, y: float, size: float

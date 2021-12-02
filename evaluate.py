@@ -1,3 +1,4 @@
+from typing import Any, Dict, List, Optional, Tuple, Type, Union, NamedTuple
 import stable_baselines3 as sb3
 import torch
 import gym
@@ -10,6 +11,8 @@ import os
 from utils.td3_utils import TD3BG
 import cv2
 import skvideo.io as skv
+import numpy as np
+from constants import params
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -23,22 +26,31 @@ if __name__ == '__main__':
         type = str,
         help = 'name of the model file to load in log director'
     )
-    paraser.add_argument(
+    parser.add_argument(
         '--max_episode_size',
         type = int,
         help = 'maximum episode length'
     )
+    args = parser.parse_args()
 
     env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
         sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
             lambda : sb3.common.monitor.Monitor(MazeEnv(
                 PointEnv,
                 CustomGoalReward4Rooms,
-                max_episode_size
+                args.max_episode_size
             ))  
         ]), 
     )
-    screens = []
+    model_path = os.path.join(args.logdir, args.model_file)
+    video1 = cv2.VideoWriter(
+        '{}_evaluation_camera_view.avi'.format(model_path),
+        cv2.VideoWriter_fourcc(*"MJPG"), 10, (224, 224), isColor = True
+    )
+    video2 = cv2.VideoWriter(
+        '{}_evaluation_top_view.avi'.format(model_path),
+        cv2.VideoWriter_fourcc(*"MJPG"), 10, (450, 450), isColor = True
+    )
     def grab_screens(
         _locals: Dict[str, Any],
         _globals: Dict[str, Any]
@@ -54,9 +66,15 @@ if __name__ == '__main__':
         """
         screen = env.render(mode="rgb_array")
         # PyTorch uses CxHxW vs HxWxC gym (and tensorflow) image convention
-        screens.append(cv2.cvtColor(screen.transpose(2, 0, 1), cv2.RBG2BGR))
+        observation = _locals['observations']['observation'][0].transpose(1, 2, 0)
+        screen = cv2.cvtColor(screen, cv2.COLOR_RGB2BGR)
+        observation = cv2.cvtColor(
+            observation,
+            cv2.COLOR_RGB2BGR
+        )
+        video1.write(observation)
+        video2.write(screen)
 
-    model_path = os.path.join(args.logdir, args.model_file)
     model = TD3BG.load(
         path = model_path,
         env = env,
@@ -68,10 +86,9 @@ if __name__ == '__main__':
         model,
         env,
         callback = grab_screens,
-        n_eval_episodes = 4,
+        n_eval_episodes = 1,
         deterministic = True,
     )
-
-    screens = np.stack(screens, 0)
-
-    skvideo.io.vwrite('{}_evaluation.mp4'.format(model_path), screens)
+    cv2.destroyAllWindows()
+    video1.release()
+    video2.release()

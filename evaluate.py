@@ -45,7 +45,7 @@ if __name__ == '__main__':
     model_path = os.path.join(args.logdir, args.model_file)
     video1 = cv2.VideoWriter(
         '{}_evaluation_camera_view.avi'.format(model_path),
-        cv2.VideoWriter_fourcc(*"MJPG"), 10, (224, 224), isColor = True
+        cv2.VideoWriter_fourcc(*"MJPG"), 10, env.observation_space['observation'].shape[-2:], isColor = True
     )
     video2 = cv2.VideoWriter(
         '{}_evaluation_top_view.avi'.format(model_path),

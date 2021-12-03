@@ -538,7 +538,7 @@ class MazeEnv(gym.Env):
         next_pos = self.wrapped_env.get_xy()
         collision_penalty = 0.0
         if self._is_in_collision():
-            collision_penalty += -0.3 * self._inner_reward_scaling
+            collision_penalty += -0.5 * self._inner_reward_scaling
         next_obs = self._get_obs()
         inner_reward = self._inner_reward_scaling * inner_reward
         outer_reward = self._task.reward(next_obs['observation'], next_pos)

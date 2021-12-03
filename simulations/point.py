@@ -49,11 +49,14 @@ class PointEnv(AgentModel):
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         self.sim.data.ctrl[:] = action
+        prev_pos = self.get_xy().copy()
         for _ in range(0, self.frame_skip):
             self.sim.step()
         next_obs = self._get_obs()
-    
-        return next_obs, 0.0, False, {}
+        pos = self.get_xy().copy()
+        reward = np.linalg.norm(pos - prev_pos)
+
+        return next_obs, reward, False, {}
 
     def _get_obs(self):
         return np.flipud(self.sim.render(

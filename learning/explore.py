@@ -46,8 +46,8 @@ class Explore:
             buffer_size = params['buffer_size'],
             gamma = params['gamma'],
             tau = params['tau'],
-            gradient_steps = 3,
-            train_freq = (15, 'step'),
+            gradient_steps = 2,
+            train_freq = (10, 'step'),
             verbose = 2,
             device = 'auto'
         )

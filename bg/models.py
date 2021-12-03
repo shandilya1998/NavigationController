@@ -222,18 +222,6 @@ class ControlNetwork(torch.nn.Module):
             num_ctx, action_dim
         )
 
-        input_size = num_ctx + action_dim
-        layers = []
-        for units in params['snc']:
-            layers.append(torch.nn.Linear(input_size, units))
-            if units != 1:
-                layers.append(torch.nn.ReLU())
-            input_size = units
-
-        self.qf = torch.nn.Sequential(
-            *layers
-        )
-
     def forward(self, inputs): 
         stimulus_t, stimulus_t_1 = inputs
         bg_out, vt  = self.bg([stimulus_t, stimulus_t_1])

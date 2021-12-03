@@ -386,10 +386,10 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
         for i, goal in enumerate(self.goals):
             scale = 0.05
             if i == self.goal_index:
-                scale = 0.3
+                scale = 0.5
             if goal.inframe(obs):
                 reward += goal.reward_scale * scale + scale * (
-                    1 - np.linalg.norm(pos[: goal.dim] - goal.pos) / (np.sqrt(72) * self.scale)
+                    1 - np.linalg.norm(pos[: goal.dim] - goal.pos) / (np.linalg.norm(goal.pos))
                 )
         return reward
 

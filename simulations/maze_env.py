@@ -226,7 +226,7 @@ class MazeEnv(gym.Env):
             elif name != 'floor':
                 self.agent_ids.append(self.model._geom_name2id[name])
         self._set_action_space()
-        self.last_wrapped_obs = np.zeros((224, 224, 3), dtype = np.uint8).copy()
+        self.last_wrapped_obs = np.zeros((240, 320, 3), dtype = np.uint8).copy()
         ob = self._get_obs()
         self._set_observation_space(ob)
         self.__create_maze_graph()

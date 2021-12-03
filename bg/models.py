@@ -138,6 +138,7 @@ def set_parameter_requires_grad(model, feature_extracting):
 
 class VisualCortex(torch.nn.Module):
     def __init__(self, 
+        observation_space,
         num_ctx = 300,
     ):
         super(VisualCortex, self).__init__()
@@ -146,12 +147,17 @@ class VisualCortex(torch.nn.Module):
             torch.nn.ReLU(),
             torch.nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=0),
             torch.nn.ReLU(),
+            torch.nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=0),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(128, 64, kernel_size=3, stride=1, padding=0),
+            torch.nn.ReLU(),
             torch.nn.Conv2d(64, 8, kernel_size=3, stride=1, padding=0),
             torch.nn.ReLU(),
             torch.nn.Flatten(),
         )
     
-        image = torch.zeros((1, 3, 224, 224))
+        image_shape = observation_space['observation'].shape
+        image = torch.zeros((1,) + image_shape)
     
         # Compute shape by doing one forward pass
         with torch.no_grad():

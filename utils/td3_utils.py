@@ -14,6 +14,7 @@ class PassAsIsFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
     def __init__(self, observation_space: gym.Space):
         super(PassAsIsFeaturesExtractor, self).__init__(observation_space, params['num_ctx'])
         self.vc = VisualCortex(
+            observation_space,
             params['num_ctx']
         )
 

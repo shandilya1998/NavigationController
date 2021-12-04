@@ -4,7 +4,7 @@ from simulations.maze_env import MazeEnv
 from simulations.point import PointEnv
 from simulations.maze_task import CustomGoalReward4Rooms
 import stable_baselines3 as sb3
-from utils.td3_utils import TD3BG, TD3BGPolicy
+from utils.td3_utils import TD3BG, TD3BGPolicy, DictReplayBuffer
 from constants import params
 from utils.callbacks import CustomCallback, CheckpointCallback, EvalCallback
 import os

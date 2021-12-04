@@ -1,7 +1,7 @@
 #!/bin/sh
 
 LOGDIR="assets/out/models/exp7"
-MODEL_FILE="best_model"
+MODEL_FILE="rl_model_27000_steps"
 MAX_EPISODE_SIZE=1500
 
 python3 evaluate.py \

@@ -388,7 +388,7 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
             if i == self.goal_index:
                 scale = 1.0
             if goal.inframe(obs):
-                reward += goal.reward_scale * scale + scale * (
+                reward += goal.reward_scale * scale + np.abs(scale) * (
                     1 - np.linalg.norm(pos[: goal.dim] - goal.pos) / (np.linalg.norm(goal.pos))
                 )
         return reward

@@ -415,6 +415,49 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         self.critic = self.policy.critic
         self.critic_target = self.policy.critic_target
 
+    def _sample_action(
+        self, learning_starts: int, action_noise: Optional[sb3.common.noise.ActionNoise] = None
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Sample an action according to the exploration policy.
+        This is either done by sampling the probability distribution of the policy,
+        or sampling a random action (from a uniform distribution over the action space)
+        or by adding noise to the deterministic output.
+        :param action_noise: Action noise that will be used for exploration
+            Required for deterministic policy (e.g. TD3). This can also be used
+            in addition to the stochastic policy for SAC.
+        :param learning_starts: Number of steps before learning for the warm-up phase.
+        :return: action to take in the environment
+            and scaled action that will be stored in the replay buffer.
+            The two differs when the action space is not normalized (bounds are not [-1, 1]).
+        """
+        # Select action randomly or according to policy
+        if self.num_timesteps < learning_starts and not (self.use_sde and self.use_sde_at_warmup):
+            # Warmup phase
+            unscaled_action = self._last_obs['sampled_action']
+        else:
+            # Note: when using continuous actions,
+            # we assume that the policy uses tanh to scale the action
+            # We use non-deterministic action in the case of SAC, for TD3, it does not matter
+            unscaled_action, _ = self.predict(self._last_obs, deterministic=False)
+
+        # Rescale the action from [low, high] to [-1, 1]
+        if isinstance(self.action_space, gym.spaces.Box):
+            scaled_action = self.policy.scale_action(unscaled_action)
+
+            # Add noise to the action (improve exploration)
+            if action_noise is not None:
+                scaled_action = np.clip(scaled_action + action_noise(), -1, 1)
+
+            # We store the scaled action in the buffer
+            buffer_action = scaled_action
+            action = self.policy.unscale_action(scaled_action)
+        else:
+            # Discrete case, no need to normalize or clip
+            buffer_action = unscaled_action
+            action = buffer_action
+        return action, buffer_action
+
     def train(self, gradient_steps: int, batch_size: int = 100) -> None:
         # Switch to train mode (this affects batch norm / dropout)
 
@@ -431,10 +474,10 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
 
             with torch.no_grad():
                 # Select action according to policy and add clipped noise
-                #noise = replay_data.actions.clone().data.normal_(0, self.target_policy_noise)
-                #noise = noise.clamp(-self.target_noise_clip, self.target_noise_clip)
+                noise = replay_data.actions.clone().data.normal_(0, self.target_policy_noise)
+                noise = noise.clamp(-self.target_noise_clip, self.target_noise_clip)
                 next_actions, next_vt = self.actor_target(replay_data.next_observations)
-                #next_actions = (next_actions + noise).clamp(-1, 1)
+                next_actions = (next_actions + noise).clamp(-1, 1)
 
                 # Compute the next Q-values: min over all critics targets
                 next_q_values = torch.cat(self.critic_target(replay_data.next_observations, next_actions), dim=1)

@@ -27,7 +27,7 @@ params = {
     'min_simulation_time'         : 1.0,
     'show_animation'              : False,
     'dt'                          : 0.02,
-    'learning_starts'             : 500,
+    'learning_starts'             : 3000,
     'render_freq'                 : 18000,
     'save_freq'                   : 9000,
     'eval_freq'                   : 9000,

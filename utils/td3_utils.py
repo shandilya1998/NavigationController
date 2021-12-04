@@ -431,10 +431,10 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
 
             with torch.no_grad():
                 # Select action according to policy and add clipped noise
-                #noise = replay_data.actions.clone().data.normal_(0, self.target_policy_noise)
-                #noise = noise.clamp(-self.target_noise_clip, self.target_noise_clip)
+                noise = replay_data.actions.clone().data.normal_(0, self.target_policy_noise)
+                noise = noise.clamp(-self.target_noise_clip, self.target_noise_clip)
                 next_actions, next_vt = self.actor_target(replay_data.next_observations)
-                #next_actions = (next_actions + noise).clamp(-1, 1)
+                next_actions = (next_actions + noise).clamp(-1, 1)
 
                 # Compute the next Q-values: min over all critics targets
                 next_q_values = torch.cat(self.critic_target(replay_data.next_observations, next_actions), dim=1)

@@ -198,3 +198,160 @@ Episode length: 1501.00 +/- 0.00
 |    total_actor_loss | -0.199   |
 |    value_loss       | 0.262    |
 ----------------------------------
+Eval num_timesteps=45000, episode_reward=-7.16 +/- 49.22
+Episode length: 1501.00 +/- 0.00
+----------------------------------
+| eval/               |          |
+|    mean_ep_length   | 1.5e+03  |
+|    mean_reward      | -7.16    |
+| time/               |          |
+|    total_timesteps  | 45000    |
+| train/              |          |
+|    actor_loss       | -0.704   |
+|    critic_loss      | 0.536    |
+|    learning_rate    | 0.001    |
+|    n_updates        | 7798     |
+|    total_actor_loss | 0.152    |
+|    value_loss       | 0.857    |
+----------------------------------
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 1.38e+03 |
+|    ep_rew_mean      | 56.7     |
+| time/               |          |
+|    episodes         | 36       |
+|    fps              | 6        |
+|    time_elapsed     | 7723     |
+|    total timesteps  | 49831    |
+| train/              |          |
+|    actor_loss       | -0.857   |
+|    critic_loss      | 1.94     |
+|    learning_rate    | 0.001    |
+|    n_updates        | 8766     |
+|    total_actor_loss | 0.0597   |
+|    value_loss       | 0.917    |
+----------------------------------
+Eval num_timesteps=54000, episode_reward=-29.28 +/- 18.67
+Episode length: 1501.00 +/- 0.00
+----------------------------------
+| eval/               |          |
+|    mean_ep_length   | 1.5e+03  |
+|    mean_reward      | -29.3    |
+| time/               |          |
+|    total_timesteps  | 54000    |
+| train/              |          |
+|    actor_loss       | -0.981   |
+|    critic_loss      | 2.36     |
+|    learning_rate    | 0.001    |
+|    n_updates        | 9598     |
+|    total_actor_loss | 0.863    |
+|    value_loss       | 1.84     |
+----------------------------------
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 1.4e+03  |
+|    ep_rew_mean      | 49.1     |
+| time/               |          |
+|    episodes         | 40       |
+|    fps              | 6        |
+|    time_elapsed     | 8878     |
+|    total timesteps  | 55835    |
+| train/              |          |
+|    actor_loss       | -0.749   |
+|    critic_loss      | 0.928    |
+|    learning_rate    | 0.001    |
+|    n_updates        | 9966     |
+|    total_actor_loss | 0.179    |
+|    value_loss       | 0.927    |
+----------------------------------
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 1.41e+03 |
+|    ep_rew_mean      | 45.3     |
+| time/               |          |
+|    episodes         | 44       |
+|    fps              | 6        |
+|    time_elapsed     | 9659     |
+|    total timesteps  | 61839    |
+| train/              |          |
+|    actor_loss       | -0.515   |
+|    critic_loss      | 2.85     |
+|    learning_rate    | 0.001    |
+|    n_updates        | 11166    |
+|    total_actor_loss | -0.331   |
+|    value_loss       | 0.184    |
+----------------------------------
+Eval num_timesteps=63000, episode_reward=98.22 +/- 109.10
+Episode length: 1501.00 +/- 0.00
+----------------------------------
+| eval/               |          |
+|    mean_ep_length   | 1.5e+03  |
+|    mean_reward      | 98.2     |
+| time/               |          |
+|    total_timesteps  | 63000    |
+| train/              |          |
+|    actor_loss       | -0.73    |
+|    critic_loss      | 0.442    |
+|    learning_rate    | 0.001    |
+|    n_updates        | 11398    |
+|    total_actor_loss | -0.56    |
+|    value_loss       | 0.17     |
+----------------------------------
+New best mean reward!
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 1.41e+03 |
+|    ep_rew_mean      | 55.9     |
+| time/               |          |
+|    episodes         | 48       |
+|    fps              | 6        |
+|    time_elapsed     | 10808    |
+|    total timesteps  | 67843    |
+| train/              |          |
+|    actor_loss       | -0.788   |
+|    critic_loss      | 1.22     |
+|    learning_rate    | 0.001    |
+|    n_updates        | 12368    |
+|    total_actor_loss | 0.108    |
+|    value_loss       | 0.896    |
+----------------------------------
+[W python_anomaly_mode.cpp:104] Warning: Error detected in ExpBackward. Traceback of forward call that caused the error:
+  File "train.py", line 39, in <module>
+    model.learn(args.timesteps)
+  File "/root/trainer/learning/explore.py", line 78, in learn
+    callback = self.rl_callback
+  File "/root/trainer/utils/td3_utils.py", line 713, in learn
+    reset_num_timesteps=reset_num_timesteps,
+  File "/usr/local/lib/python3.6/site-packages/stable_baselines3/common/off_policy_algorithm.py", line 369, in learn
+    self.train(batch_size=self.batch_size, gradient_steps=gradient_steps)
+  File "/root/trainer/utils/td3_utils.py", line 667, in train
+    actions, vt = self.actor(replay_data.observations)
+  File "/usr/local/lib/python3.6/site-packages/torch/nn/modules/module.py", line 1051, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/root/trainer/utils/td3_utils.py", line 94, in forward
+    return self.mu(features)
+  File "/usr/local/lib/python3.6/site-packages/torch/nn/modules/module.py", line 1051, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/root/trainer/bg/models.py", line 227, in forward
+    bg_out, vt  = self.bg([stimulus_t, stimulus_t_1])
+  File "/usr/local/lib/python3.6/site-packages/torch/nn/modules/module.py", line 1051, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/root/trainer/bg/models.py", line 87, in forward
+    lamd2 = 1 / (1 + torch.exp(self.log_a2.exp() * (deltavf - self.thetad2)))
+ (function _print_stack)
+Traceback (most recent call last):
+  File "train.py", line 39, in <module>
+    model.learn(args.timesteps)
+  File "/root/trainer/learning/explore.py", line 78, in learn
+    callback = self.rl_callback
+  File "/root/trainer/utils/td3_utils.py", line 713, in learn
+    reset_num_timesteps=reset_num_timesteps,
+  File "/usr/local/lib/python3.6/site-packages/stable_baselines3/common/off_policy_algorithm.py", line 369, in learn
+    self.train(batch_size=self.batch_size, gradient_steps=gradient_steps)
+  File "/root/trainer/utils/td3_utils.py", line 676, in train
+    loss.backward()
+  File "/usr/local/lib/python3.6/site-packages/torch/_tensor.py", line 255, in backward
+    torch.autograd.backward(self, gradient, retain_graph, create_graph, inputs=inputs)
+  File "/usr/local/lib/python3.6/site-packages/torch/autograd/__init__.py", line 149, in backward
+    allow_unreachable=True, accumulate_grad=True)  # allow_unreachable flag
+RuntimeError: Function 'ExpBackward' returned nan values in its 0th output.

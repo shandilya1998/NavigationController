@@ -31,7 +31,7 @@ params = {
     'render_freq'                 : 10000,
     'save_freq'                   : 10000,
     'eval_freq'                   : 10000,
-    'buffer_size'                 : 100000,
+    'buffer_size'                 : 50000,
     'total_timesteps'             : int(1e6),
     'ds'                          : 0.01,
     'motor_cortex'                : [256, 128],

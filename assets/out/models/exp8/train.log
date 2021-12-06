@@ -1555,3 +1555,180 @@ Episode length: 1501.00 +/- 0.00
 |    value_loss       | 0.225    |
 ----------------------------------
 Killed
+2021-12-06 13:07:47.470301: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: /usr/lib/nvidia-470:/usr/local/cuda/lib64:/root/.mujoco/mjpro150/bin:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
+2021-12-06 13:07:47.470377: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.
+/root/trainer
+Using cuda device
+Sufficient Memory Available. Using 20.73744 GB with 30.081908736 GB available
+Logging to assets/out/models/exp8/TD3_18
+Terminated
+2021-12-06 13:19:43.471745: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: /usr/lib/nvidia-470:/usr/local/cuda/lib64:/root/.mujoco/mjpro150/bin:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
+2021-12-06 13:19:43.471806: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.
+/root/trainer
+Using cuda device
+Sufficient Memory Available. Using 23.0416 GB with 30.079987712 GB available
+Logging to assets/out/models/exp8/TD3_20
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 707      |
+|    ep_rew_mean     | 124      |
+| time/              |          |
+|    episodes        | 4        |
+|    fps             | 52       |
+|    time_elapsed    | 53       |
+|    total timesteps | 2828     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 702      |
+|    ep_rew_mean     | 169      |
+| time/              |          |
+|    episodes        | 8        |
+|    fps             | 54       |
+|    time_elapsed    | 103      |
+|    total timesteps | 5616     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 694      |
+|    ep_rew_mean     | 211      |
+| time/              |          |
+|    episodes        | 12       |
+|    fps             | 54       |
+|    time_elapsed    | 151      |
+|    total timesteps | 8323     |
+---------------------------------
+Found 1 GPUs for rendering. Using device 0.
+Eval num_timesteps=10000, episode_reward=-217.76 +/- 167.28
+Episode length: 1501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 1.5e+03  |
+|    mean_reward     | -218     |
+| time/              |          |
+|    total_timesteps | 10000    |
+---------------------------------
+New best mean reward!
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 895      |
+|    ep_rew_mean      | 146      |
+| time/               |          |
+|    episodes         | 16       |
+|    fps              | 12       |
+|    time_elapsed     | 1133     |
+|    total timesteps  | 14327    |
+| train/              |          |
+|    actor_loss       | -0.518   |
+|    critic_loss      | 0.75     |
+|    learning_rate    | 0.001    |
+|    n_updates        | 864      |
+|    total_actor_loss | -0.257   |
+|    value_loss       | 0.261    |
+----------------------------------
+Terminated
+2021-12-06 13:46:22.240776: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: /usr/lib/nvidia-470:/usr/local/cuda/lib64:/root/.mujoco/mjpro150/bin:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
+2021-12-06 13:46:22.240839: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.
+/root/trainer
+Using cuda device
+Sufficient Memory Available. Using 23.0416 GB with 30.0793856 GB available
+Logging to assets/out/models/exp8/TD3_21
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 929      |
+|    ep_rew_mean     | 191      |
+| time/              |          |
+|    episodes        | 4        |
+|    fps             | 55       |
+|    time_elapsed    | 67       |
+|    total timesteps | 3715     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 952      |
+|    ep_rew_mean     | 129      |
+| time/              |          |
+|    episodes        | 8        |
+|    fps             | 56       |
+|    time_elapsed    | 134      |
+|    total timesteps | 7620     |
+---------------------------------
+Found 1 GPUs for rendering. Using device 0.
+Eval num_timesteps=10000, episode_reward=-148.22 +/- 116.05
+Episode length: 1501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 1.5e+03  |
+|    mean_reward     | -148     |
+| time/              |          |
+|    total_timesteps | 10000    |
+---------------------------------
+New best mean reward!
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 949      |
+|    ep_rew_mean      | 136      |
+| time/               |          |
+|    episodes         | 12       |
+|    fps              | 9        |
+|    time_elapsed     | 1156     |
+|    total timesteps  | 11387    |
+| train/              |          |
+|    actor_loss       | -0.197   |
+|    critic_loss      | 32.3     |
+|    learning_rate    | 0.001    |
+|    n_updates        | 1380     |
+|    total_actor_loss | 0.349    |
+|    value_loss       | 0.545    |
+----------------------------------
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 1.07e+03 |
+|    ep_rew_mean      | 90       |
+| time/               |          |
+|    episodes         | 16       |
+|    fps              | 4        |
+|    time_elapsed     | 3670     |
+|    total timesteps  | 17182    |
+| train/              |          |
+|    actor_loss       | -0.629   |
+|    critic_loss      | 0.851    |
+|    learning_rate    | 0.001    |
+|    n_updates        | 7180     |
+|    total_actor_loss | -0.209   |
+|    value_loss       | 0.42     |
+----------------------------------
+Eval num_timesteps=20000, episode_reward=-120.56 +/- 113.25
+Episode length: 1501.00 +/- 0.00
+----------------------------------
+| eval/               |          |
+|    mean_ep_length   | 1.5e+03  |
+|    mean_reward      | -121     |
+| time/               |          |
+|    total_timesteps  | 20000    |
+| train/              |          |
+|    actor_loss       | -0.575   |
+|    critic_loss      | 1.07     |
+|    learning_rate    | 0.001    |
+|    n_updates        | 9990     |
+|    total_actor_loss | -0.0541  |
+|    value_loss       | 0.52     |
+----------------------------------
+New best mean reward!
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 1.1e+03  |
+|    ep_rew_mean      | 69.8     |
+| time/               |          |
+|    episodes         | 20       |
+|    fps              | 3        |
+|    time_elapsed     | 6139     |
+|    total timesteps  | 21954    |
+| train/              |          |
+|    actor_loss       | -0.368   |
+|    critic_loss      | 0.892    |
+|    learning_rate    | 0.001    |
+|    n_updates        | 11950    |
+|    total_actor_loss | -0.0108  |
+|    value_loss       | 0.357    |
+----------------------------------

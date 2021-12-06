@@ -389,6 +389,10 @@ class DictReplayBuffer(sb3.common.buffers.ReplayBuffer):
                     "This system does not have apparently enough memory to store the complete "
                     f"replay buffer {total_memory_usage:.2f}GB > {mem_available:.2f}GB"
                 )
+            else:
+                total_memory_usage /= 1e9
+                mem_available /= 1e9
+                print("Sufficient Memory Available. Using {} GB with {} GB available".format(total_memory_usage, mem_available))
 
     def add(
         self,
@@ -402,7 +406,7 @@ class DictReplayBuffer(sb3.common.buffers.ReplayBuffer):
         # Copy to avoid modification by reference
         
         for key in self.observations.keys():
-                self.observations[key][self.pos] = np.array(obs[key]).copy()
+            self.observations[key][self.pos] = np.array(obs[key]).copy()
         if self.optimize_memory_usage:
             for key in self.observations.keys():
                 self.observations[key][(self.pos + 1) % self.buffer_size] = np.array(next_obs[key]).copy()

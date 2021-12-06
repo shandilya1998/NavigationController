@@ -889,3 +889,669 @@ Episode length: 1501.00 +/- 0.00
 |    value_loss       | 0.336    |
 ----------------------------------
 Killed
+running build_ext
+building 'mujoco_py.cymj' extension
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6/site-packages
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6/site-packages/mujoco_py
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6/site-packages/mujoco_py/gl
+gcc -pthread -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -I/usr/local/lib/python3.6/site-packages/mujoco_py -I/root/.mujoco/mjpro150/include -I/usr/local/lib/python3.6/site-packages/numpy/core/include -I/usr/local/lib/python3.6/site-packages/mujoco_py/vendor/egl -I/usr/local/include/python3.6m -c /usr/local/lib/python3.6/site-packages/mujoco_py/cymj.c -o /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6/site-packages/mujoco_py/cymj.o -fopenmp -w
+gcc -pthread -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -I/usr/local/lib/python3.6/site-packages/mujoco_py -I/root/.mujoco/mjpro150/include -I/usr/local/lib/python3.6/site-packages/numpy/core/include -I/usr/local/lib/python3.6/site-packages/mujoco_py/vendor/egl -I/usr/local/include/python3.6m -c /usr/local/lib/python3.6/site-packages/mujoco_py/gl/eglshim.c -o /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6/site-packages/mujoco_py/gl/eglshim.o -fopenmp -w
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/lib.linux-x86_64-3.6
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/lib.linux-x86_64-3.6/mujoco_py
+gcc -pthread -shared /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6/site-packages/mujoco_py/cymj.o /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6/site-packages/mujoco_py/gl/eglshim.o -L/root/.mujoco/mjpro150/bin -Wl,--enable-new-dtags,-R/root/.mujoco/mjpro150/bin -lmujoco150 -lglewegl -o /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/lib.linux-x86_64-3.6/mujoco_py/cymj.cpython-36m-x86_64-linux-gnu.so -fopenmp
+2021-12-05 20:34:40.874983: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: /usr/lib/nvidia-470:/usr/local/cuda/lib64:/root/.mujoco/mjpro150/bin:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
+2021-12-05 20:34:40.875054: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.
+/root/trainer
+Using cuda device
+Logging to assets/out/models/exp8/TD3_11
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 986      |
+|    ep_rew_mean     | 133      |
+| time/              |          |
+|    episodes        | 4        |
+|    fps             | 54       |
+|    time_elapsed    | 72       |
+|    total timesteps | 3944     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 711      |
+|    ep_rew_mean     | 108      |
+| time/              |          |
+|    episodes        | 8        |
+|    fps             | 54       |
+|    time_elapsed    | 104      |
+|    total timesteps | 5687     |
+---------------------------------
+Found 1 GPUs for rendering. Using device 0.
+Eval num_timesteps=9000, episode_reward=68.12 +/- 12.63
+Episode length: 1339.60 +/- 322.80
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 1.34e+03 |
+|    mean_reward     | 68.1     |
+| time/              |          |
+|    total_timesteps | 9000     |
+---------------------------------
+New best mean reward!
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 818      |
+|    ep_rew_mean     | 104      |
+| time/              |          |
+|    episodes        | 12       |
+|    fps             | 18       |
+|    time_elapsed    | 527      |
+|    total timesteps | 9814     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 808      |
+|    ep_rew_mean     | 114      |
+| time/              |          |
+|    episodes        | 16       |
+|    fps             | 22       |
+|    time_elapsed    | 584      |
+|    total timesteps | 12926    |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 722      |
+|    ep_rew_mean     | 109      |
+| time/              |          |
+|    episodes        | 20       |
+|    fps             | 23       |
+|    time_elapsed    | 612      |
+|    total timesteps | 14439    |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 739      |
+|    ep_rew_mean     | 110      |
+| time/              |          |
+|    episodes        | 24       |
+|    fps             | 26       |
+|    time_elapsed    | 671      |
+|    total timesteps | 17743    |
+---------------------------------
+running build_ext
+building 'mujoco_py.cymj' extension
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6/site-packages
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6/site-packages/mujoco_py
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6/site-packages/mujoco_py/gl
+gcc -pthread -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -I/usr/local/lib/python3.6/site-packages/mujoco_py -I/root/.mujoco/mjpro150/include -I/usr/local/lib/python3.6/site-packages/numpy/core/include -I/usr/local/lib/python3.6/site-packages/mujoco_py/vendor/egl -I/usr/local/include/python3.6m -c /usr/local/lib/python3.6/site-packages/mujoco_py/cymj.c -o /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6/site-packages/mujoco_py/cymj.o -fopenmp -w
+gcc -pthread -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -I/usr/local/lib/python3.6/site-packages/mujoco_py -I/root/.mujoco/mjpro150/include -I/usr/local/lib/python3.6/site-packages/numpy/core/include -I/usr/local/lib/python3.6/site-packages/mujoco_py/vendor/egl -I/usr/local/include/python3.6m -c /usr/local/lib/python3.6/site-packages/mujoco_py/gl/eglshim.c -o /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6/site-packages/mujoco_py/gl/eglshim.o -fopenmp -w
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/lib.linux-x86_64-3.6
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/lib.linux-x86_64-3.6/mujoco_py
+gcc -pthread -shared /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6/site-packages/mujoco_py/cymj.o /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6/site-packages/mujoco_py/gl/eglshim.o -L/root/.mujoco/mjpro150/bin -Wl,--enable-new-dtags,-R/root/.mujoco/mjpro150/bin -lmujoco150 -lglewegl -o /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/lib.linux-x86_64-3.6/mujoco_py/cymj.cpython-36m-x86_64-linux-gnu.so -fopenmp
+2021-12-05 20:58:55.676500: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: /usr/lib/nvidia-470:/usr/local/cuda/lib64:/root/.mujoco/mjpro150/bin:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
+2021-12-05 20:58:55.676567: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.
+/root/trainer
+Using cuda device
+Logging to assets/out/models/exp8/TD3_12
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 382      |
+|    ep_rew_mean     | 77.5     |
+| time/              |          |
+|    episodes        | 4        |
+|    fps             | 48       |
+|    time_elapsed    | 31       |
+|    total timesteps | 1527     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 516      |
+|    ep_rew_mean     | 91       |
+| time/              |          |
+|    episodes        | 8        |
+|    fps             | 53       |
+|    time_elapsed    | 77       |
+|    total timesteps | 4130     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 818      |
+|    ep_rew_mean     | 99.8     |
+| time/              |          |
+|    episodes        | 12       |
+|    fps             | 56       |
+|    time_elapsed    | 174      |
+|    total timesteps | 9822     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 806      |
+|    ep_rew_mean     | 110      |
+| time/              |          |
+|    episodes        | 16       |
+|    fps             | 56       |
+|    time_elapsed    | 226      |
+|    total timesteps | 12891    |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 766      |
+|    ep_rew_mean     | 107      |
+| time/              |          |
+|    episodes        | 20       |
+|    fps             | 57       |
+|    time_elapsed    | 268      |
+|    total timesteps | 15330    |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 740      |
+|    ep_rew_mean     | 107      |
+| time/              |          |
+|    episodes        | 24       |
+|    fps             | 57       |
+|    time_elapsed    | 310      |
+|    total timesteps | 17757    |
+---------------------------------
+Found 1 GPUs for rendering. Using device 0.
+Eval num_timesteps=18000, episode_reward=61.61 +/- 26.02
+Episode length: 1501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 1.5e+03  |
+|    mean_reward     | 61.6     |
+| time/              |          |
+|    total_timesteps | 18000    |
+---------------------------------
+Terminated
+2021-12-05 21:13:57.103633: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: /usr/lib/nvidia-470:/usr/local/cuda/lib64:/root/.mujoco/mjpro150/bin:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
+2021-12-05 21:13:57.103699: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.
+/root/trainer
+Using cuda device
+Logging to assets/out/models/exp8/TD3_13
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 904      |
+|    ep_rew_mean     | 60.1     |
+| time/              |          |
+|    episodes        | 4        |
+|    fps             | 54       |
+|    time_elapsed    | 65       |
+|    total timesteps | 3615     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 833      |
+|    ep_rew_mean     | 123      |
+| time/              |          |
+|    episodes        | 8        |
+|    fps             | 55       |
+|    time_elapsed    | 119      |
+|    total timesteps | 6667     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 752      |
+|    ep_rew_mean     | 146      |
+| time/              |          |
+|    episodes        | 12       |
+|    fps             | 55       |
+|    time_elapsed    | 162      |
+|    total timesteps | 9021     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 826      |
+|    ep_rew_mean     | 158      |
+| time/              |          |
+|    episodes        | 16       |
+|    fps             | 56       |
+|    time_elapsed    | 235      |
+|    total timesteps | 13209    |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 757      |
+|    ep_rew_mean     | 164      |
+| time/              |          |
+|    episodes        | 20       |
+|    fps             | 56       |
+|    time_elapsed    | 269      |
+|    total timesteps | 15137    |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 732      |
+|    ep_rew_mean     | 159      |
+| time/              |          |
+|    episodes        | 24       |
+|    fps             | 56       |
+|    time_elapsed    | 311      |
+|    total timesteps | 17565    |
+---------------------------------
+Found 1 GPUs for rendering. Using device 0.
+Eval num_timesteps=18000, episode_reward=52.36 +/- 103.65
+Episode length: 1328.60 +/- 344.80
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 1.33e+03 |
+|    mean_reward     | 52.4     |
+| time/              |          |
+|    total_timesteps | 18000    |
+---------------------------------
+Terminated
+2021-12-05 21:34:16.173460: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: /usr/lib/nvidia-470:/usr/local/cuda/lib64:/root/.mujoco/mjpro150/bin:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
+2021-12-05 21:34:16.173532: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.
+/root/trainer
+Using cuda device
+Logging to assets/out/models/exp8/TD3_14
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.2e+03  |
+|    ep_rew_mean     | 170      |
+| time/              |          |
+|    episodes        | 4        |
+|    fps             | 57       |
+|    time_elapsed    | 83       |
+|    total timesteps | 4787     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 783      |
+|    ep_rew_mean     | 205      |
+| time/              |          |
+|    episodes        | 8        |
+|    fps             | 57       |
+|    time_elapsed    | 109      |
+|    total timesteps | 6262     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 668      |
+|    ep_rew_mean     | 206      |
+| time/              |          |
+|    episodes        | 12       |
+|    fps             | 57       |
+|    time_elapsed    | 140      |
+|    total timesteps | 8019     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 750      |
+|    ep_rew_mean     | 204      |
+| time/              |          |
+|    episodes        | 16       |
+|    fps             | 57       |
+|    time_elapsed    | 207      |
+|    total timesteps | 12001    |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 682      |
+|    ep_rew_mean     | 215      |
+| time/              |          |
+|    episodes        | 20       |
+|    fps             | 57       |
+|    time_elapsed    | 236      |
+|    total timesteps | 13637    |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 748      |
+|    ep_rew_mean     | 212      |
+| time/              |          |
+|    episodes        | 24       |
+|    fps             | 57       |
+|    time_elapsed    | 310      |
+|    total timesteps | 17958    |
+---------------------------------
+Found 1 GPUs for rendering. Using device 0.
+Eval num_timesteps=18000, episode_reward=-79.72 +/- 121.05
+Episode length: 1501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 1.5e+03  |
+|    mean_reward     | -79.7    |
+| time/              |          |
+|    total_timesteps | 18000    |
+---------------------------------
+New best mean reward!
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 856      |
+|    ep_rew_mean      | 178      |
+| time/               |          |
+|    episodes         | 28       |
+|    fps              | 16       |
+|    time_elapsed     | 1477     |
+|    total timesteps  | 23962    |
+| train/              |          |
+|    actor_loss       | -0.425   |
+|    critic_loss      | 0.919    |
+|    learning_rate    | 0.001    |
+|    n_updates        | 1192     |
+|    total_actor_loss | 0.113    |
+|    value_loss       | 0.538    |
+----------------------------------
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 936      |
+|    ep_rew_mean      | 145      |
+| time/               |          |
+|    episodes         | 32       |
+|    fps              | 13       |
+|    time_elapsed     | 2275     |
+|    total timesteps  | 29966    |
+| train/              |          |
+|    actor_loss       | -0.97    |
+|    critic_loss      | 0.588    |
+|    learning_rate    | 0.001    |
+|    n_updates        | 2392     |
+|    total_actor_loss | -0.591   |
+|    value_loss       | 0.379    |
+----------------------------------
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 999      |
+|    ep_rew_mean      | 112      |
+| time/               |          |
+|    episodes         | 36       |
+|    fps              | 11       |
+|    time_elapsed     | 3078     |
+|    total timesteps  | 35970    |
+| train/              |          |
+|    actor_loss       | -1.21    |
+|    critic_loss      | 0.566    |
+|    learning_rate    | 0.001    |
+|    n_updates        | 3592     |
+|    total_actor_loss | -0.933   |
+|    value_loss       | 0.275    |
+----------------------------------
+Eval num_timesteps=36000, episode_reward=-86.97 +/- 91.09
+Episode length: 1501.00 +/- 0.00
+----------------------------------
+| eval/               |          |
+|    mean_ep_length   | 1.5e+03  |
+|    mean_reward      | -87      |
+| time/               |          |
+|    total_timesteps  | 36000    |
+| train/              |          |
+|    actor_loss       | -1.14    |
+|    critic_loss      | 0.996    |
+|    learning_rate    | 0.001    |
+|    n_updates        | 3598     |
+|    total_actor_loss | -0.791   |
+|    value_loss       | 0.353    |
+----------------------------------
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 1.05e+03 |
+|    ep_rew_mean      | 80.4     |
+| time/               |          |
+|    episodes         | 40       |
+|    fps              | 9        |
+|    time_elapsed     | 4296     |
+|    total timesteps  | 41974    |
+| train/              |          |
+|    actor_loss       | -1.29    |
+|    critic_loss      | 1.61     |
+|    learning_rate    | 0.001    |
+|    n_updates        | 4794     |
+|    total_actor_loss | 0.227    |
+|    value_loss       | 1.52     |
+----------------------------------
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 1.09e+03 |
+|    ep_rew_mean      | 66.8     |
+| time/               |          |
+|    episodes         | 44       |
+|    fps              | 9        |
+|    time_elapsed     | 5107     |
+|    total timesteps  | 47978    |
+| train/              |          |
+|    actor_loss       | -1.3     |
+|    critic_loss      | 1.26     |
+|    learning_rate    | 0.001    |
+|    n_updates        | 5994     |
+|    total_actor_loss | -0.647   |
+|    value_loss       | 0.658    |
+----------------------------------
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 1.12e+03 |
+|    ep_rew_mean      | 54.5     |
+| time/               |          |
+|    episodes         | 48       |
+|    fps              | 9        |
+|    time_elapsed     | 5900     |
+|    total timesteps  | 53982    |
+| train/              |          |
+|    actor_loss       | -1.48    |
+|    critic_loss      | 0.464    |
+|    learning_rate    | 0.001    |
+|    n_updates        | 7196     |
+|    total_actor_loss | -1.23    |
+|    value_loss       | 0.242    |
+----------------------------------
+Eval num_timesteps=54000, episode_reward=-80.97 +/- 77.47
+Episode length: 1501.00 +/- 0.00
+----------------------------------
+| eval/               |          |
+|    mean_ep_length   | 1.5e+03  |
+|    mean_reward      | -81      |
+| time/               |          |
+|    total_timesteps  | 54000    |
+| train/              |          |
+|    actor_loss       | -1.47    |
+|    critic_loss      | 0.526    |
+|    learning_rate    | 0.001    |
+|    n_updates        | 7198     |
+|    total_actor_loss | -1.19    |
+|    value_loss       | 0.285    |
+----------------------------------
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 1.15e+03 |
+|    ep_rew_mean      | 36.1     |
+| time/               |          |
+|    episodes         | 52       |
+|    fps              | 8        |
+|    time_elapsed     | 7109     |
+|    total timesteps  | 59986    |
+| train/              |          |
+|    actor_loss       | -1.25    |
+|    critic_loss      | 0.339    |
+|    learning_rate    | 0.001    |
+|    n_updates        | 8396     |
+|    total_actor_loss | -1.02    |
+|    value_loss       | 0.228    |
+----------------------------------
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 1.18e+03 |
+|    ep_rew_mean      | 26.5     |
+| time/               |          |
+|    episodes         | 56       |
+|    fps              | 8        |
+|    time_elapsed     | 7902     |
+|    total timesteps  | 65990    |
+| train/              |          |
+|    actor_loss       | -0.815   |
+|    critic_loss      | 0.877    |
+|    learning_rate    | 0.001    |
+|    n_updates        | 9596     |
+|    total_actor_loss | -0.545   |
+|    value_loss       | 0.27     |
+----------------------------------
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 1.2e+03  |
+|    ep_rew_mean      | 15.4     |
+| time/               |          |
+|    episodes         | 60       |
+|    fps              | 8        |
+|    time_elapsed     | 8700     |
+|    total timesteps  | 71994    |
+| train/              |          |
+|    actor_loss       | -0.758   |
+|    critic_loss      | 0.516    |
+|    learning_rate    | 0.001    |
+|    n_updates        | 10798    |
+|    total_actor_loss | -0.593   |
+|    value_loss       | 0.165    |
+----------------------------------
+Eval num_timesteps=72000, episode_reward=-141.04 +/- 60.60
+Episode length: 1501.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 1.5e+03  |
+|    mean_reward     | -141     |
+| time/              |          |
+|    total_timesteps | 72000    |
+---------------------------------
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 1.22e+03 |
+|    ep_rew_mean      | 10.5     |
+| time/               |          |
+|    episodes         | 64       |
+|    fps              | 7        |
+|    time_elapsed     | 9923     |
+|    total timesteps  | 77998    |
+| train/              |          |
+|    actor_loss       | -0.703   |
+|    critic_loss      | 0.336    |
+|    learning_rate    | 0.001    |
+|    n_updates        | 11998    |
+|    total_actor_loss | -0.456   |
+|    value_loss       | 0.247    |
+----------------------------------
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 1.24e+03 |
+|    ep_rew_mean      | 1.91     |
+| time/               |          |
+|    episodes         | 68       |
+|    fps              | 7        |
+|    time_elapsed     | 10713    |
+|    total timesteps  | 84002    |
+| train/              |          |
+|    actor_loss       | -0.456   |
+|    critic_loss      | 156      |
+|    learning_rate    | 0.001    |
+|    n_updates        | 13200    |
+|    total_actor_loss | 153      |
+|    value_loss       | 153      |
+----------------------------------
+Eval num_timesteps=90000, episode_reward=-3.57 +/- 158.17
+Episode length: 1501.00 +/- 0.00
+----------------------------------
+| eval/               |          |
+|    mean_ep_length   | 1.5e+03  |
+|    mean_reward      | -3.57    |
+| time/               |          |
+|    total_timesteps  | 90000    |
+| train/              |          |
+|    actor_loss       | -0.445   |
+|    critic_loss      | 0.655    |
+|    learning_rate    | 0.001    |
+|    n_updates        | 14398    |
+|    total_actor_loss | -0.312   |
+|    value_loss       | 0.133    |
+----------------------------------
+New best mean reward!
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 1.25e+03 |
+|    ep_rew_mean      | -6.48    |
+| time/               |          |
+|    episodes         | 72       |
+|    fps              | 7        |
+|    time_elapsed     | 11925    |
+|    total timesteps  | 90006    |
+| train/              |          |
+|    actor_loss       | -0.447   |
+|    critic_loss      | 0.751    |
+|    learning_rate    | 0.001    |
+|    n_updates        | 14400    |
+|    total_actor_loss | 0.133    |
+|    value_loss       | 0.581    |
+----------------------------------
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 1.26e+03 |
+|    ep_rew_mean      | -13      |
+| time/               |          |
+|    episodes         | 76       |
+|    fps              | 7        |
+|    time_elapsed     | 12719    |
+|    total timesteps  | 96010    |
+| train/              |          |
+|    actor_loss       | -0.27    |
+|    critic_loss      | 158      |
+|    learning_rate    | 0.001    |
+|    n_updates        | 15600    |
+|    total_actor_loss | 159      |
+|    value_loss       | 160      |
+----------------------------------
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 1.28e+03 |
+|    ep_rew_mean      | -19.1    |
+| time/               |          |
+|    episodes         | 80       |
+|    fps              | 7        |
+|    time_elapsed     | 13522    |
+|    total timesteps  | 102014   |
+| train/              |          |
+|    actor_loss       | -0.175   |
+|    critic_loss      | 158      |
+|    learning_rate    | 0.001    |
+|    n_updates        | 16802    |
+|    total_actor_loss | 160      |
+|    value_loss       | 160      |
+----------------------------------
+Eval num_timesteps=108000, episode_reward=-82.58 +/- 79.72
+Episode length: 1501.00 +/- 0.00
+----------------------------------
+| eval/               |          |
+|    mean_ep_length   | 1.5e+03  |
+|    mean_reward      | -82.6    |
+| time/               |          |
+|    total_timesteps  | 108000   |
+| train/              |          |
+|    actor_loss       | -0.0297  |
+|    critic_loss      | 0.501    |
+|    learning_rate    | 0.001    |
+|    n_updates        | 17998    |
+|    total_actor_loss | 0.142    |
+|    value_loss       | 0.172    |
+----------------------------------
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 1.29e+03 |
+|    ep_rew_mean      | -22.2    |
+| time/               |          |
+|    episodes         | 84       |
+|    fps              | 7        |
+|    time_elapsed     | 14709    |
+|    total timesteps  | 108018   |
+| train/              |          |
+|    actor_loss       | -0.0343  |
+|    critic_loss      | 0.579    |
+|    learning_rate    | 0.001    |
+|    n_updates        | 18002    |
+|    total_actor_loss | 0.19     |
+|    value_loss       | 0.225    |
+----------------------------------
+Killed

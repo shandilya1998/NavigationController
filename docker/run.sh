@@ -21,7 +21,7 @@ JOB_NAME=experiment_$(date +%Y%m%d_%H%M%S)
 LEARNING_TYPE=explore
 
 docker build -f docker/Dockerfile -t $IMAGE_URI ./
-docker run -it --gpus=all -v $(pwd):/root/trainer gcr.io/neuroengineering/navigation_controller_container:navigation_controller_pytorch
+docker run -it --gpus=all -v $(pwd):/root/trainer $IMAGE_URI
 #docker push $IMAGE_URI
 
 # docker run $IMAGE_URI --logdir assets/logs --timesteps 1000 \

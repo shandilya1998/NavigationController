@@ -60,8 +60,8 @@ class PointEnv(AgentModel):
 
     def _get_obs(self):
         return np.flipud(self.sim.render(
-            width = 320,
-            height = 240,
+            width = 100,
+            height = 75,
             camera_name = 'mtdcam',
         ))
 

@@ -37,7 +37,7 @@ class Explore:
         )
         self.__set_rl_callback()
         n_actions = self.env.action_space.sample().shape[-1]
-       
+
         model = TD3BG
         if policy_version == 1:
             policy_class = TD3BGPolicy
@@ -67,10 +67,10 @@ class Explore:
             batch_size = params['batch_size'],
             buffer_size = params['buffer_size'],
             action_noise = action_noise,
+            optimize_memory_usage = True,
             gamma = params['gamma'],
             tau = params['tau'],
-            train_freq = (12, 'step'),
-            gradient_steps = 3,
+            train_freq = (1, 'step'),
             verbose = 2,
             device = 'auto'
         )

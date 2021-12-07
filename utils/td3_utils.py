@@ -23,7 +23,6 @@ class PassAsIsFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
             params['num_ctx']
         )
 
-
     def forward(self, observations):
         ob_t = self.vc(observations['observation'])
         ob_t_1 = self.vc(observations['last_observation'])

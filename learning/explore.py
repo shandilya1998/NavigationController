@@ -59,7 +59,8 @@ class Explore:
             action_noise = action_noise,
             gamma = params['gamma'],
             tau = params['tau'],
-            train_freq = (1, 'step'),
+            train_freq = (12, 'step'),
+            gradient_steps = 3,
             verbose = 2,
             device = 'auto'
         )

@@ -2651,3 +2651,21 @@ Episode length: 1501.00 +/- 0.00
 |    total_actor_loss | 16.7     |
 |    value_loss       | 0.359    |
 ----------------------------------
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 1.5e+03  |
+|    ep_rew_mean      | -97.1    |
+| time/               |          |
+|    episodes         | 160      |
+|    fps              | 2        |
+|    time_elapsed     | 104747   |
+|    total timesteps  | 231567   |
+| train/              |          |
+|    actor_loss       | 16.5     |
+|    critic_loss      | 22.4     |
+|    learning_rate    | 0.001    |
+|    n_updates        | 221560   |
+|    total_actor_loss | 44.8     |
+|    value_loss       | 28.3     |
+----------------------------------
+Terminated

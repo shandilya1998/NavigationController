@@ -70,6 +70,7 @@ class Explore:
             gamma = params['gamma'],
             tau = params['tau'],
             train_freq = (12, 'step'),
+            gradient_steps = 3,
             verbose = 2,
             device = 'auto'
         )

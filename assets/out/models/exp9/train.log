@@ -1,0 +1,79 @@
+2021-12-07 12:56:35.668142: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: :/home/shandilya/.mujoco/mjpro150/bin
+2021-12-07 12:56:35.668192: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.
+/home/shandilya/Desktop/Projects/NavigationController
+Using cpu device
+Sufficient Memory Available. Using 7.603728 GB with 10.704064512 GB available
+Logging to assets/out/models/exp9/TD3_6
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 2e+03    |
+|    ep_rew_mean     | -238     |
+| time/              |          |
+|    episodes        | 4        |
+|    fps             | 35       |
+|    time_elapsed    | 227      |
+|    total timesteps | 8004     |
+---------------------------------
+Eval num_timesteps=10000, episode_reward=-183.59 +/- 153.17
+Episode length: 2001.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2e+03    |
+|    mean_reward     | -184     |
+| time/              |          |
+|    total_timesteps | 10000    |
+---------------------------------
+Terminated
+2021-12-07 13:11:23.847164: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: :/home/shandilya/.mujoco/mjpro150/bin
+2021-12-07 13:11:23.847204: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.
+/home/shandilya/Desktop/Projects/NavigationController
+Using cpu device
+Sufficient Memory Available. Using 7.603728 GB with 10.698153984 GB available
+Logging to assets/out/models/exp9/TD3_7
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 2e+03    |
+|    ep_rew_mean     | -32.4    |
+| time/              |          |
+|    episodes        | 4        |
+|    fps             | 34       |
+|    time_elapsed    | 228      |
+|    total timesteps | 8004     |
+---------------------------------
+Terminated
+2021-12-07 13:18:53.687933: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: :/home/shandilya/.mujoco/mjpro150/bin
+2021-12-07 13:18:53.687977: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.
+/home/shandilya/Desktop/Projects/NavigationController
+Using cpu device
+Sufficient Memory Available. Using 7.603728 GB with 10.785902592 GB available
+Logging to assets/out/models/exp9/TD3_8
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.25e+03 |
+|    ep_rew_mean     | 156      |
+| time/              |          |
+|    episodes        | 4        |
+|    fps             | 33       |
+|    time_elapsed    | 147      |
+|    total timesteps | 5000     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.19e+03 |
+|    ep_rew_mean     | 116      |
+| time/              |          |
+|    episodes        | 8        |
+|    fps             | 34       |
+|    time_elapsed    | 276      |
+|    total timesteps | 9528     |
+---------------------------------
+Eval num_timesteps=10000, episode_reward=-94.69 +/- 123.63
+Episode length: 2001.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2e+03    |
+|    mean_reward     | -94.7    |
+| time/              |          |
+|    total_timesteps | 10000    |
+---------------------------------
+Terminated

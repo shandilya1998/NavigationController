@@ -32,6 +32,19 @@ class PassAsIsFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
             ob_t_1
         ]
 
+class PassAsIsFeaturesExtractorV2(sb3.common.torch_layers.BaseFeaturesExtractor):
+    def __init__(self, observation_space: gym.Space):
+        super(PassAsIsFeaturesExtractorV2, self).__init__(observation_space, params['num_ctx'])
+        self.vc = VisualCortex(
+            observation_space,
+            params['num_ctx']
+        )    
+
+
+    def forward(self, observations):
+        ob_t = self.vc(observations['observation'])
+        return ob_t
+
 class ActorBG(sb3.common.policies.BasePolicy):
     """
     Actor network (policy) for TD3BG.
@@ -96,9 +109,69 @@ class ActorBG(sb3.common.policies.BasePolicy):
     def _predict(self, observation: List[torch.Tensor], deterministic: bool = False) -> Tuple[torch.Tensor]:
         # Note: the deterministic deterministic parameter is ignored in the case of TD3.
         #   Predictions are always deterministic.
-        action, vt = self.forward(observation)
+        action, vt, bg_out = self.forward(observation)
         return action
 
+class SimpleVFActor(sb3.common.policies.BasePolicy):
+    """ 
+    Actor network (policy) for TD3BG.
+
+    :param observation_space: Obervation space
+    :param action_space: Action space
+    :param net_arch: Network architecture
+    :param features_extractor: Network to extract features
+        (a CNN when using images, a torch.nn.Flatten() layer otherwise)
+    :param features_dim: Number of features
+    :param activation_fn: Activation function
+    :param normalize_images: Whether to normalize images or not,
+         dividing by 255.0 (True by default)
+    """
+
+    def __init__(
+        self,
+        observation_space: gym.spaces.Space,
+        action_space: gym.spaces.Space,
+        net_params: Dict[str, Any],
+        features_extractor: torch.nn.Module,
+        features_dim: int,
+        normalize_images: bool = True,
+    ):  
+        super(SimpleVFActor, self).__init__(
+            observation_space,
+            action_space,
+            features_extractor=features_extractor,
+            normalize_images=normalize_images,
+            squash_output=True,
+        )   
+
+        # 2 is being subtracted to account for the additional value and advantage values in the policy output
+        action_dim = sb3.common.preprocessing.get_action_dim(self.action_space)
+        if action_dim <= 0:
+            raise ValueError('Action Space Must contain atleast 3 dimensions, got 2 or less')
+        """ 
+            Requires addition of the basal ganglia model here in the next two
+            statements
+        """
+        # Deterministic action
+        self.net_params = net_params
+        net_params['action_dim'] = action_dim
+        self.mu = ControlNetworkV2(**net_params)
+
+    def _get_constructor_parameters(self) -> Dict[str, Any]:
+        data = super()._get_constructor_parameters()
+
+        data.update(
+            dict(
+                net_params=self.net_params,
+                features_extractor=self.features_extractor,
+            )   
+        )   
+        return data
+
+    def forward(self, obs: List[torch.Tensor]) -> Tuple[torch.Tensor]:
+        # assert deterministic, 'The TD3 actor only outputs deterministic actions'
+        features = self.extract_features(obs)
+        return self.mu(features)
 
 class ContinuousCritic(sb3.common.policies.BaseModel):
     """
@@ -173,6 +246,79 @@ class ContinuousCritic(sb3.common.policies.BaseModel):
         with torch.no_grad():
             features = self.extract_features(obs)
             features = torch.cat(features, -1)
+        return self.q_networks[0](torch.cat([features, actions], dim=1))
+
+class ContinuousCriticV2(sb3.common.policies.BaseModel):
+    """
+    Critic network(s) for DDPG/SAC/TD3.
+    It represents the action-state value function (Q-value function).
+    Compared to A2C/PPO critics, this one represents the Q-value
+    and takes the continuous action as input. It is concatenated with the state
+    and then fed to the network which outputs a single value: Q(s, a).
+    For more recent algorithms like SAC/TD3, multiple networks
+    are created to give different estimates.
+    By default, it creates two critic networks used to reduce overestimation
+    thanks to clipped Q-learning (cf TD3 paper).
+    :param observation_space: Obervation space
+    :param action_space: Action space
+    :param net_arch: Network architecture
+    :param features_extractor: Network to extract features
+        (a CNN when using images, a nn.Flatten() layer otherwise)
+    :param features_dim: Number of features
+    :param activation_fn: Activation function
+    :param normalize_images: Whether to normalize images or not,
+         dividing by 255.0 (True by default)
+    :param n_critics: Number of critic networks to create.
+    :param share_features_extractor: Whether the features extractor is shared or not
+        between the actor and the critic (this saves computation time)
+    """
+
+    def __init__(
+        self,
+        observation_space: gym.spaces.Space,
+        action_space: gym.spaces.Space,
+        net_arch: List[int],
+        features_extractor: torch.nn.Module,
+        features_dim: int, 
+        activation_fn: Type[torch.nn.Module] = torch.nn.ReLU,
+        normalize_images: bool = True,
+        n_critics: int = 2, 
+        share_features_extractor: bool = True,
+    ):   
+        super().__init__(
+            observation_space,
+            action_space,
+            features_extractor=features_extractor,
+            normalize_images=normalize_images,
+        )
+
+        action_dim = sb3.common.preprocessing.get_action_dim(self.action_space)
+
+        self.share_features_extractor = share_features_extractor
+        self.n_critics = n_critics
+        self.q_networks = []
+        for idx in range(n_critics):
+            q_net = sb3.common.torch_layers.create_mlp(features_dim + action_dim, 1, net_arch, activation_fn)
+            q_net = torch.nn.Sequential(*q_net)
+            self.add_module(f"qf{idx}", q_net)
+            self.q_networks.append(q_net)
+
+    def forward(self, obs: torch.Tensor, actions: torch.Tensor) -> Tuple[torch.Tensor, ...]:
+        # Learn the features extractor using the policy loss only
+        # when the features_extractor is shared with the actor
+        with torch.set_grad_enabled(not self.share_features_extractor):
+            features = self.extract_features(obs)
+        qvalue_input = torch.cat([features, actions], dim=1)
+        return tuple(q_net(qvalue_input) for q_net in self.q_networks)
+
+    def q1_forward(self, obs: torch.Tensor, actions: torch.Tensor) -> torch.Tensor:
+        """
+        Only predict the Q-value using the first network.
+        This allows to reduce computation when all the estimates are not needed
+        (e.g. when updating the policy in TD3).
+        """
+        with torch.no_grad():
+            features = self.extract_features(obs)
         return self.q_networks[0](torch.cat([features, actions], dim=1))
 
 class TD3BGPolicy(sb3.common.policies.BasePolicy):
@@ -290,6 +436,137 @@ class TD3BGPolicy(sb3.common.policies.BasePolicy):
     
     def make_actor(self, features_extractor: Optional[sb3.common.torch_layers.BaseFeaturesExtractor] = None) -> ActorBG:
         actor_kwargs = self._update_features_extractor(self.actor_kwargs, features_extractor)
+        return SimpleVFActor(**actor_kwargs).to(self.device)
+
+    def make_critic(self, features_extractor: Optional[sb3.common.torch_layers.BaseFeaturesExtractor] = None) -> ContinuousCritic:
+        critic_kwargs = self._update_features_extractor(self.critic_kwargs, features_extractor)
+        return ContinuousCriticV2(**critic_kwargs).to(self.device)
+
+    def forward(self, observation: List[torch.Tensor], deterministic: bool = False) -> Tuple[torch.Tensor]:
+        return self._predict(observation, deterministic=deterministic)
+
+    def _predict(self, observation: List[torch.Tensor], deterministic: bool = False) -> Tuple[torch.Tensor]:
+        # Note: the deterministic deterministic parameter is ignored in the case of TD3.
+        #   Predictions are always deterministic.
+        action, vt, bg_out = self.actor(observation)
+        return action
+
+
+class TD3BGPolicyV2(sb3.common.policies.BasePolicy):
+    """  
+    Policy class (with both actor and critic in the same network) for TD3BG.
+
+    :param observation_space: Observation space
+    :param action_space: Action space
+    :param lr_schedule: Learning rate schedule (could be constant)
+    :param net_arch: The specification of the policy and value networks.
+    :param activation_fn: Activation function
+    :param features_extractor_class: Features extractor to use.
+    :param features_extractor_kwargs: Keyword arguments
+        to pass to the features extractor.
+    :param normalize_images: Whether to normalize images or not,
+         dividing by 255.0 (True by default)
+    :param optimizer_class: The optimizer to use,
+        ``torch.optim.Adam`` by default
+    :param optimizer_kwargs: Additional keyword arguments,
+        excluding the learning rate, to pass to the optimizer
+    """
+
+    def __init__(
+        self,
+        observation_space: gym.spaces.Space,
+        action_space: gym.spaces.Space,
+        lr_schedule: sb3.common.type_aliases.Schedule,
+        net_params: Optional[Dict[str, int]] = {},  
+        features_extractor_class: Type[sb3.common.torch_layers.BaseFeaturesExtractor] = PassAsIsFeaturesExtractor,
+        features_extractor_kwargs: Optional[Dict[str, Any]] = None,
+        normalize_images: bool = True,
+        optimizer_class: Type[torch.optim.Optimizer] = torch.optim.Adam,
+        optimizer_kwargs: Optional[Dict[str, Any]] = None,
+        n_critics: int = 2, 
+        share_features_extractor: bool = True,
+        use_sde: bool = False
+    ):
+        super(TD3BGPolicyV2, self).__init__(
+            observation_space,
+            action_space,
+            features_extractor_class,
+            features_extractor_kwargs,
+            optimizer_class=optimizer_class,
+            optimizer_kwargs=optimizer_kwargs,
+            squash_output=True,
+        )
+        self.net_params = net_params
+        self.net_args = {
+            "observation_space": self.observation_space,
+            "action_space": self.action_space,
+            "net_params": self.net_params,
+            "normalize_images": normalize_images,
+        }
+        self.actor_kwargs = self.net_args.copy()
+        self.critic_kwargs = self.net_args.copy()
+        critic_arch = [400, 300]
+        self.critic_kwargs.update(
+            {
+                "n_critics": n_critics,
+                "net_arch": critic_arch,
+                "share_features_extractor": share_features_extractor,
+            }
+        )
+        del self.critic_kwargs['net_params']
+
+        self.actor, self.actor_target =  None, None
+        self.critic, self.critic_target = None, None
+        self.share_features_extractor = share_features_extractor
+        self._build(lr_schedule)
+
+    def _build(self, lr_schedule: sb3.common.type_aliases.Schedule) -> None:
+        # Create actor and target
+        # the features extractor should not be shared
+        self.actor = self.make_actor(features_extractor=None)
+        self.actor_target = self.make_actor(features_extractor=None)
+        # Initialize the target to have the same weights as the actor
+        self.actor_target.load_state_dict(self.actor.state_dict())
+
+        self.actor.optimizer = self.optimizer_class(self.actor.parameters(), lr=lr_schedule(1), **self.optimizer_kwargs)
+
+        if self.share_features_extractor:
+            self.critic = self.make_critic(features_extractor=self.actor.features_extractor)
+            # Critic target should not share the features extactor with critic
+            # but it can share it with the actor target as actor and critic are sharing
+            # the same features_extractor too
+            # NOTE: as a result the effective poliak (soft-copy) coefficient for the features extractor
+            # will be 2 * tau instead of tau (updated one time with the actor, a second time with the critic)
+            self.critic_target = self.make_critic(features_extractor=self.actor_target.features_extractor)
+        else:
+            # Create new features extractor for each network
+            self.critic = self.make_critic(features_extractor=None)
+            self.critic_target = self.make_critic(features_extractor=None)
+
+        self.critic_target.load_state_dict(self.critic.state_dict())
+        self.critic.optimizer = self.optimizer_class(self.critic.parameters(), lr=lr_schedule(1), **self.optimizer_kwargs)
+
+        # Target networks should always be in eval mode
+
+    def _get_constructor_parameters(self) -> Dict[str, Any]:
+        data = super()._get_constructor_parameters()
+
+        data.update(
+            dict(
+                net_params=self.net_params,
+                n_critics=self.critic_kwargs["n_critics"],
+                lr_schedule=self._dummy_schedule,  # dummy lr schedule, not needed for loading policy alone
+                optimizer_class=self.optimizer_class,
+                optimizer_kwargs=self.optimizer_kwargs,
+                features_extractor_class=self.features_extractor_class,
+                features_extractor_kwargs=self.features_extractor_kwargs,
+                share_features_extractor=self.share_features_extractor,
+            )
+        )
+        return data
+
+    def make_actor(self, features_extractor: Optional[sb3.common.torch_layers.BaseFeaturesExtractor] = None) -> ActorBG:
+        actor_kwargs = self._update_features_extractor(self.actor_kwargs, features_extractor)
         return ActorBG(**actor_kwargs).to(self.device)
 
     def make_critic(self, features_extractor: Optional[sb3.common.torch_layers.BaseFeaturesExtractor] = None) -> ContinuousCritic:
@@ -302,9 +579,8 @@ class TD3BGPolicy(sb3.common.policies.BasePolicy):
     def _predict(self, observation: List[torch.Tensor], deterministic: bool = False) -> Tuple[torch.Tensor]:
         # Note: the deterministic deterministic parameter is ignored in the case of TD3.
         #   Predictions are always deterministic.
-        action, vt = self.actor(observation)
+        action, vt, bg_out = self.actor(observation)
         return action
-
 
 class DictReplayBuffer(sb3.common.buffers.ReplayBuffer):
     """
@@ -583,22 +859,10 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         self.critic = self.policy.critic
         self.critic_target = self.policy.critic_target
 
+    """
     def _sample_action(
         self, learning_starts: int, action_noise: Optional[sb3.common.noise.ActionNoise] = None
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        Sample an action according to the exploration policy.
-        This is either done by sampling the probability distribution of the policy,
-        or sampling a random action (from a uniform distribution over the action space)
-        or by adding noise to the deterministic output.
-        :param action_noise: Action noise that will be used for exploration
-            Required for deterministic policy (e.g. TD3). This can also be used
-            in addition to the stochastic policy for SAC.
-        :param learning_starts: Number of steps before learning for the warm-up phase.
-        :return: action to take in the environment
-            and scaled action that will be stored in the replay buffer.
-            The two differs when the action space is not normalized (bounds are not [-1, 1]).
-        """
         # Select action randomly or according to policy
         if self.num_timesteps < learning_starts and not (self.use_sde and self.use_sde_at_warmup):
             # Warmup phase
@@ -614,7 +878,7 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             scaled_action = self.policy.scale_action(unscaled_action)
 
             # Add noise to the action (improve exploration)
-            if action_noise is not None:
+            if action_noise is not None and self.num_timesteps > learning_starts:
                 scaled_action = np.clip(scaled_action + action_noise(), -1, 1)
 
             # We store the scaled action in the buffer
@@ -625,6 +889,7 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             buffer_action = unscaled_action
             action = buffer_action
         return action, buffer_action
+    """
 
     def train(self, gradient_steps: int, batch_size: int = 100) -> None:
         # Switch to train mode (this affects batch norm / dropout)
@@ -644,7 +909,7 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 # Select action according to policy and add clipped noise
                 noise = replay_data.actions.clone().data.normal_(0, self.target_policy_noise)
                 noise = noise.clamp(-self.target_noise_clip, self.target_noise_clip)
-                next_actions, next_vt = self.actor_target(replay_data.next_observations)
+                next_actions, next_vt, next_bg_out = self.actor_target(replay_data.next_observations)
                 next_actions = (next_actions + noise).clamp(-1, 1)
 
                 # Compute the next Q-values: min over all critics targets
@@ -668,7 +933,7 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             # Delayed policy updates
             if self._n_updates % self.policy_delay == 0:
                 # Compute actor loss
-                actions, vt = self.actor(replay_data.observations)
+                actions, vt, bg_out = self.actor(replay_data.observations)
                 value_loss = torch.nn.functional.mse_loss(vt, target_v_values)
                 actor_loss = -self.critic.q1_forward(replay_data.observations, actions).mean()
                 actor_losses.append(actor_loss.item())

@@ -200,8 +200,6 @@ class ControlNetwork(torch.nn.Module):
         eta_gpe = 0.01,
         eta_gpi = 0.01,
         eta_th = 0.01,
-        use_pretrained_visual_cortex = True,
-        feature_extracting_visual_cortex = False
     ):
         super(ControlNetwork, self).__init__()
         num_ctx = params['num_ctx']
@@ -226,4 +224,52 @@ class ControlNetwork(torch.nn.Module):
         stimulus_t, stimulus_t_1 = inputs
         bg_out, vt  = self.bg([stimulus_t, stimulus_t_1])
         action = self.mc([stimulus_t, bg_out])
-        return action, vt
+        return action, vt, bg_out
+
+class MotorCortexV2(torch.nn.Module):
+    def __init__(self, num_ctx = 300, action_dim = 2): 
+        super(MotorCortexV2, self).__init__()
+        layers = []
+        input_size = num_ctx
+        for units in params['motor_cortex']:
+            layers.append(torch.nn.Linear(input_size, units))
+            layers.append(torch.nn.ReLU())
+            input_size = units
+        layers.append(torch.nn.Linear(input_size, action_dim))
+        self.squash_fn = torch.nn.Tanh()
+        self.fc_2 = torch.nn.Sequential(
+            *layers
+        )   
+
+    def forward(self, inputs):
+        stimulus = inputs
+        action = self.squash_fn(self.fc_2(stimulus))
+        return action
+
+class ControlNetworkV2(torch.nn.Module):
+    def __init__(self,
+        action_dim = 2,
+    ):  
+        super(ControlNetwork, selfV2).__init__()
+        num_ctx = params['num_ctx']
+        input_size = num_ctx
+        layers = []
+        for units in params['snc']:
+            layers.append(torch.nn.Linear(input_size, units))
+            if units != 1:
+                layers.append(torch.nn.ReLU())
+            input_size = units
+
+        self.vf = torch.nn.Sequential(
+            *layers
+        )
+        self.mc = MotorCortexV2(
+            num_ctx, action_dim
+        )   
+
+    def forward(self, inputs): 
+        stimulus_t = inputs
+        vt  = self.vf(stimulus_t)
+        action = self.mc(stimulus_t)
+        bg_out = torch.zeros_like(action).to(action.device)
+        return action, vt, bg_out

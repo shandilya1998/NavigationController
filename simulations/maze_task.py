@@ -384,9 +384,9 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
     def reward(self, obs: np.ndarray, pos: np.ndarray) -> float:
         reward = 0.0
         for i, goal in enumerate(self.goals):
-            scale = -1.0
+            scale = 0.0
             if i == self.goal_index:
-                scale = 1.0
+                scale = 0.0
             if goal.inframe(obs):
                 reward += goal.reward_scale * scale + np.abs(scale) * (
                     1 - np.linalg.norm(pos[: goal.dim] - goal.pos) / (np.linalg.norm(goal.pos))

@@ -803,7 +803,7 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         train_freq: Union[int, Tuple[int, str]] = (1, "episode"),
         gradient_steps: int = -1,
         action_noise: Optional[sb3.common.noise.ActionNoise] = None,
-        replay_buffer_class: DictReplayBuffer = DictReplayBuffer,
+        replay_buffer_class: sb3.common.buffers.ReplayBuffer = DictReplayBuffer,
         replay_buffer_kwargs: Optional[Dict[str, Any]] = None,
         optimize_memory_usage: bool = True,
         policy_delay: int = 2,

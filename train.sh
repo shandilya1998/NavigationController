@@ -3,8 +3,8 @@
 export GOOGLE_APPLICATION_CREDENTIALS="key.json"
 PROJECT_ID=$(gcloud config list project --format "value(core.project)")
 BUCKET_NAME=${PROJECT_ID}-aiplatform
-LOGDIR="assets/out/models/exp9"
-POLICY_VERSION=2
+LOGDIR="assets/out/models/exp10"
+POLICY_VERSION=3
 TIMESTEPS=1000000
 MAX_EPISODE_SIZE=2000
 LEARNING_TYPE="explore"

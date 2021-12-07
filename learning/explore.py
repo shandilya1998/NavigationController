@@ -20,7 +20,8 @@ class Explore:
                 lambda : sb3.common.monitor.Monitor(MazeEnv(
                     PointEnv,
                     CustomGoalReward4Rooms,
-                    max_episode_size
+                    max_episode_size,
+                    policy_version
                 ))
             ]),
         )
@@ -29,13 +30,15 @@ class Explore:
                 lambda : sb3.common.monitor.Monitor(MazeEnv(
                     PointEnv,
                     CustomGoalReward4Rooms,
-                    max_episode_size
+                    max_episode_size,
+                    policy_version
                 ))
             ]),
         )
         self.__set_rl_callback()
         n_actions = self.env.action_space.sample().shape[-1]
        
+        model = TD3BG
         if policy_version == 1:
             policy_class = TD3BGPolicy
             action_noise = None
@@ -45,10 +48,17 @@ class Explore:
                 params['OU_MEAN'] * np.ones(n_actions),
                 params['OU_SIGMA'] * np.ones(n_actions)
             )
+        elif policy_version == 3:
+            model = sb3.TD3
+            policy_class = 'CnnPolicy'
+            action_noise = sb3.common.noise.OrnsteinUhlenbeckActionNoise(
+                params['OU_MEAN'] * np.ones(n_actions),
+                params['OU_SIGMA'] * np.ones(n_actions)
+            )
         else:
             raise ValueError('Expected policy version less than or equal to 2, got {}'.format(policy_version))
 
-        self.rl_model = TD3BG(
+        self.rl_model = model(
             policy_class,
             self.env,
             tensorboard_log = self.logdir,
@@ -59,7 +69,7 @@ class Explore:
             action_noise = action_noise,
             gamma = params['gamma'],
             tau = params['tau'],
-            train_freq = (1, 'step'),
+            train_freq = (12, 'step'),
             verbose = 2,
             device = 'auto'
         )

@@ -39,6 +39,7 @@ class MazeEnv(gym.Env):
         model_cls: Type[AgentModel],
         maze_task: Type[maze_task.MazeTask] = maze_task.MazeTask,
         max_episode_size: int = 10000,
+        policy_version = 1,
         include_position: bool = True,
         maze_height: float = 0.5,
         maze_size_scaling: float = 4.0,
@@ -52,6 +53,7 @@ class MazeEnv(gym.Env):
         image_shape: Tuple[int, int] = (600, 480),
         **kwargs,
     ) -> None:
+        self.policy_version = policy_version
         self.kwargs = kwargs
         self.top_view_size = params['top_view_size']
         self.t = 0  # time steps
@@ -420,17 +422,20 @@ class MazeEnv(gym.Env):
 
     def _get_obs(self) -> np.ndarray:
         img = self.wrapped_env._get_obs()
-        try: 
-            sampled_action = self.get_action()
-        except:
-            sampled_action = np.zeros(self.action_space.shape)
-        obs = {
-            'observation' : img.copy(),
-            'last_observation' : self.last_wrapped_obs.copy(),
-            'sampled_action' : sampled_action.copy()
-        }
-        self.last_wrapped_obs = img.copy()
-        return obs
+        if self.policy_version == 3:
+            return img
+        else:
+            try: 
+                sampled_action = self.get_action()
+            except:
+                sampled_action = np.zeros(self.action_space.shape)
+            obs = {
+                'observation' : img.copy(),
+                'last_observation' : self.last_wrapped_obs.copy(),
+                'sampled_action' : sampled_action.copy()
+            }
+            self.last_wrapped_obs = img.copy()
+            return obs
 
     def reset(self) -> np.ndarray:
         self.t = 0
@@ -538,19 +543,22 @@ class MazeEnv(gym.Env):
         next_pos = self.wrapped_env.get_xy()
         collision_penalty = 0.0
         if self._is_in_collision():
-            collision_penalty += -5.0 * self._inner_reward_scaling
+            collision_penalty += -0.1 * self._inner_reward_scaling
         next_obs = self._get_obs()
         inner_reward = self._inner_reward_scaling * inner_reward
-        outer_reward = self._task.reward(next_obs['observation'], next_pos)
+        if isinstance(next_obs, dict):
+            outer_reward = self._task.reward(next_obs['observation'], next_pos)
+        else:
+            outer_reward = self._task.reward(next_obs, next_pos)
         done = self._task.termination(self.wrapped_env.get_xy())
         info["position"] = self.wrapped_env.get_xy()
-        index = self.__get_current_cell()  
+        index = self.__get_current_cell()
         self._current_cell = index
         if done:
-            outer_reward += 100
+            outer_reward += 10
         if self.t > self.max_episode_size:
             done = True
-            outer_reward += -100
+            outer_reward += -10
         reward = inner_reward + outer_reward + collision_penalty
         info['inner_reward'] = inner_reward
         info['outer_reward'] = outer_reward

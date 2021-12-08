@@ -864,6 +864,7 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         self.critic = self.policy.critic
         self.critic_target = self.policy.critic_target
 
+    """
     def _sample_action(
         self, learning_starts: int, action_noise: Optional[sb3.common.noise.ActionNoise] = None
     ) -> Tuple[np.ndarray, np.ndarray]:
@@ -893,6 +894,7 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             buffer_action = unscaled_action
             action = buffer_action
         return action, buffer_action
+    """
 
     def train(self, gradient_steps: int, batch_size: int = 100) -> None:
         # Switch to train mode (this affects batch norm / dropout)

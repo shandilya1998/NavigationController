@@ -1945,3 +1945,94 @@ Episode length: 2001.00 +/- 0.00
 | time/              |          |
 |    total_timesteps | 10000    |
 ---------------------------------
+New best mean reward!
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 995      |
+|    ep_rew_mean      | 184      |
+| time/               |          |
+|    episodes         | 12       |
+|    fps              | 8        |
+|    time_elapsed     | 1393     |
+|    total timesteps  | 11938    |
+| train/              |          |
+|    actor_loss       | -0.746   |
+|    critic_loss      | 0.656    |
+|    learning_rate    | 0.0005   |
+|    n_updates        | 1937     |
+|    total_actor_loss | -0.349   |
+|    value_loss       | 0.397    |
+----------------------------------
+----------------------------------
+| rollout/            |          |
+|    ep_len_mean      | 1.25e+03 |
+|    ep_rew_mean      | 69.6     |
+| time/               |          |
+|    episodes         | 16       |
+|    fps              | 4        |
+|    time_elapsed     | 4838     |
+|    total timesteps  | 19942    |
+| train/              |          |
+|    actor_loss       | 0.855    |
+|    critic_loss      | 3.8      |
+|    learning_rate    | 0.0005   |
+|    n_updates        | 9941     |
+|    total_actor_loss | 2.92     |
+|    value_loss       | 2.06     |
+----------------------------------
+Eval num_timesteps=20000, episode_reward=-97.19 +/- 178.51
+Episode length: 2001.00 +/- 0.00
+----------------------------------
+| eval/               |          |
+|    mean_ep_length   | 2e+03    |
+|    mean_reward      | -97.2    |
+| time/               |          |
+|    total_timesteps  | 20000    |
+| train/              |          |
+|    actor_loss       | 1.5      |
+|    critic_loss      | 4.1      |
+|    learning_rate    | 0.0005   |
+|    n_updates        | 9999     |
+|    total_actor_loss | 4.07     |
+|    value_loss       | 2.57     |
+----------------------------------
+[W python_anomaly_mode.cpp:104] Warning: Error detected in ExpBackward. Traceback of forward call that caused the error:
+  File "train.py", line 46, in <module>
+    model.learn(args.timesteps)
+  File "/root/trainer/learning/explore.py", line 101, in learn
+    callback = self.rl_callback
+  File "/root/trainer/utils/td3_utils.py", line 985, in learn
+    reset_num_timesteps=reset_num_timesteps,
+  File "/usr/local/lib/python3.6/site-packages/stable_baselines3/common/off_policy_algorithm.py", line 369, in learn
+    self.train(batch_size=self.batch_size, gradient_steps=gradient_steps)
+  File "/root/trainer/utils/td3_utils.py", line 939, in train
+    actions, vt, bg_out = self.actor(replay_data.observations)
+  File "/usr/local/lib/python3.6/site-packages/torch/nn/modules/module.py", line 1051, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/root/trainer/utils/td3_utils.py", line 106, in forward
+    return self.mu(features)
+  File "/usr/local/lib/python3.6/site-packages/torch/nn/modules/module.py", line 1051, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/root/trainer/bg/models.py", line 204, in forward
+    bg_out, vt  = self.bg([stimulus_t, stimulus_t_1])
+  File "/usr/local/lib/python3.6/site-packages/torch/nn/modules/module.py", line 1051, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/root/trainer/bg/models.py", line 87, in forward
+    lamd2 = 1 / (1 + torch.exp(self.log_a2.exp() * (deltavf - self.thetad2)))
+ (function _print_stack)
+Traceback (most recent call last):
+  File "train.py", line 46, in <module>
+    model.learn(args.timesteps)
+  File "/root/trainer/learning/explore.py", line 101, in learn
+    callback = self.rl_callback
+  File "/root/trainer/utils/td3_utils.py", line 985, in learn
+    reset_num_timesteps=reset_num_timesteps,
+  File "/usr/local/lib/python3.6/site-packages/stable_baselines3/common/off_policy_algorithm.py", line 369, in learn
+    self.train(batch_size=self.batch_size, gradient_steps=gradient_steps)
+  File "/root/trainer/utils/td3_utils.py", line 948, in train
+    loss.backward()
+  File "/usr/local/lib/python3.6/site-packages/torch/_tensor.py", line 255, in backward
+    torch.autograd.backward(self, gradient, retain_graph, create_graph, inputs=inputs)
+  File "/usr/local/lib/python3.6/site-packages/torch/autograd/__init__.py", line 149, in backward
+    allow_unreachable=True, accumulate_grad=True)  # allow_unreachable flag
+RuntimeError: Function 'ExpBackward' returned nan values in its 0th output.

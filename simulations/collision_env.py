@@ -54,7 +54,6 @@ class CollisionEnv(gym.Env):
         image_shape: Tuple[int, int] = (600, 480),
         **kwargs,
     ) -> None:
-        self.pbar_step = None
         self.policy_version = policy_version
         self.kwargs = kwargs
         self.top_view_size = params['top_view_size']
@@ -444,10 +443,6 @@ class CollisionEnv(gym.Env):
             return obs
 
     def reset(self) -> np.ndarray:
-        if self.pbar_step is None:
-            self.pbar_step = tqdm(desc = 'step count', postfix = {'total steps' : 0, 'episodes' : 0})
-        else:
-            self.pbar_step.reset()
         self.t = 0
         self.close()
         self._task.set()
@@ -570,15 +565,6 @@ class CollisionEnv(gym.Env):
         info['outer_reward'] = outer_reward
         info['collision_penalty'] = collision_penalty
         #print('step {} reward: {}'.format(self.t, reward))
-        self.pbar_step.update(1)
-        self.total_steps += 1
-        self.pbar_step.set_postfix({
-            'total steps' : self.total_steps,
-            'episodes' : self.ep
-        })
-        if done:
-            self.ep += 1
-            self.pbar_step.refresh()
         return next_obs, reward, done, info
 
     def __get_current_cell(self):

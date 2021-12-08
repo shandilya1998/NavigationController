@@ -1,0 +1,229 @@
+2021-12-08 11:48:43.114758: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: :/home/shandilya/.mujoco/mjpro150/bin
+2021-12-08 11:48:43.114805: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.
+/home/shandilya/Desktop/Projects/NavigationController
+Using cpu device
+Sufficient Memory Available. Using 8.10576 GB with 10.507870208 GB available
+Logging to assets/out/models/exp10/TD3_12
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 331      |
+|    ep_rew_mean     | 205      |
+| time/              |          |
+|    episodes        | 4        |
+|    fps             | 49       |
+|    time_elapsed    | 26       |
+|    total timesteps | 1323     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 511      |
+|    ep_rew_mean     | 266      |
+| time/              |          |
+|    episodes        | 8        |
+|    fps             | 53       |
+|    time_elapsed    | 76       |
+|    total timesteps | 4090     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 655      |
+|    ep_rew_mean     | 237      |
+| time/              |          |
+|    episodes        | 12       |
+|    fps             | 53       |
+|    time_elapsed    | 145      |
+|    total timesteps | 7862     |
+---------------------------------
+Eval num_timesteps=10000, episode_reward=-177.10 +/- 193.92
+Episode length: 1882.80 +/- 236.40
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 1.88e+03 |
+|    mean_reward     | -177     |
+| time/              |          |
+|    total_timesteps | 10000    |
+---------------------------------
+Traceback (most recent call last):
+  File "/usr/bin/../lib/google-cloud-sdk/lib/gcloud.py", line 104, in <module>
+    main()
+  File "/usr/bin/../lib/google-cloud-sdk/lib/gcloud.py", line 76, in main
+    gcloud_main = _import_gcloud_main()
+  File "/usr/bin/../lib/google-cloud-sdk/lib/gcloud.py", line 56, in _import_gcloud_main
+    import googlecloudsdk.gcloud_main
+  File "/usr/lib/google-cloud-sdk/lib/googlecloudsdk/gcloud_main.py", line 34, in <module>
+    from googlecloudsdk.calliope import base
+  File "/usr/lib/google-cloud-sdk/lib/googlecloudsdk/calliope/base.py", line 31, in <module>
+    from googlecloudsdk.calliope import arg_parsers
+  File "/usr/lib/google-cloud-sdk/lib/googlecloudsdk/calliope/arg_parsers.py", line 63, in <module>
+    from googlecloudsdk.core import log
+  File "/usr/lib/google-cloud-sdk/lib/googlecloudsdk/core/log.py", line 34, in <module>
+    from googlecloudsdk.core.console.style import parser as style_parser
+  File "/usr/lib/google-cloud-sdk/lib/googlecloudsdk/core/console/style/parser.py", line 22, in <module>
+    from googlecloudsdk.core.console.style import mappings
+  File "/usr/lib/google-cloud-sdk/lib/googlecloudsdk/core/console/style/mappings.py", line 23, in <module>
+    from googlecloudsdk.core.console.style import ansi
+  File "/usr/lib/google-cloud-sdk/lib/googlecloudsdk/core/console/style/ansi.py", line 47, in <module>
+    Colors = enum.Enum('Colors', _colors)  # pylint: disable=invalid-name
+  File "/usr/local/lib/python3.6/enum.py", line 295, in __call__
+    return cls._create_(value, names, module=module, qualname=qualname, type=type, start=start)
+  File "/usr/local/lib/python3.6/enum.py", line 401, in _create_
+    enum_class = metacls.__new__(metacls, class_name, bases, classdict)
+  File "/usr/local/lib/python3.6/enum.py", line 214, in __new__
+    if canonical_member._value_ == enum_member._value_:
+KeyboardInterrupt
+2021-12-08 12:27:12.722039: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: :/home/shandilya/.mujoco/mjpro150/bin
+2021-12-08 12:27:12.722288: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.
+/home/shandilya/Desktop/Projects/NavigationController
+Using cpu device
+Sufficient Memory Available. Using 8.10576 GB with 11.26955008 GB available
+Logging to assets/out/models/exp10/TD3_13
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 948      |
+|    ep_rew_mean     | 293      |
+| time/              |          |
+|    episodes        | 4        |
+|    fps             | 51       |
+|    time_elapsed    | 74       |
+|    total timesteps | 3790     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 897      |
+|    ep_rew_mean     | 281      |
+| time/              |          |
+|    episodes        | 8        |
+|    fps             | 52       |
+|    time_elapsed    | 135      |
+|    total timesteps | 7179     |
+---------------------------------
+Eval num_timesteps=10000, episode_reward=-50.68 +/- 157.72
+Episode length: 2001.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2e+03    |
+|    mean_reward     | -50.7    |
+| time/              |          |
+|    total_timesteps | 10000    |
+---------------------------------
+/home/shandilya/py36/lib/python3.6/site-packages/torch/autograd/__init__.py:149: UserWarning: Error detected in ExpBackward. Traceback of forward call that caused the error:
+  File "train.py", line 46, in <module>
+    model.learn(args.timesteps)
+  File "/home/shandilya/Desktop/Projects/NavigationController/learning/explore.py", line 101, in learn
+    callback = self.rl_callback
+  File "/home/shandilya/Desktop/Projects/NavigationController/utils/td3_utils.py", line 985, in learn
+    reset_num_timesteps=reset_num_timesteps,
+  File "/home/shandilya/py36/lib/python3.6/site-packages/stable_baselines3/common/off_policy_algorithm.py", line 369, in learn
+    self.train(batch_size=self.batch_size, gradient_steps=gradient_steps)
+  File "/home/shandilya/Desktop/Projects/NavigationController/utils/td3_utils.py", line 939, in train
+    actions, vt, bg_out = self.actor(replay_data.observations)
+  File "/home/shandilya/py36/lib/python3.6/site-packages/torch/nn/modules/module.py", line 1051, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/shandilya/Desktop/Projects/NavigationController/utils/td3_utils.py", line 106, in forward
+    return self.mu(features)
+  File "/home/shandilya/py36/lib/python3.6/site-packages/torch/nn/modules/module.py", line 1051, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/shandilya/Desktop/Projects/NavigationController/bg/models.py", line 204, in forward
+    bg_out, vt  = self.bg([stimulus_t, stimulus_t_1])
+  File "/home/shandilya/py36/lib/python3.6/site-packages/torch/nn/modules/module.py", line 1051, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/shandilya/Desktop/Projects/NavigationController/bg/models.py", line 87, in forward
+    lamd2 = 1 / (1 + torch.exp(self.log_a2.exp() * (deltavf - self.thetad2)))
+ (Triggered internally at  /pytorch/torch/csrc/autograd/python_anomaly_mode.cpp:104.)
+  allow_unreachable=True, accumulate_grad=True)  # allow_unreachable flag
+New best mean reward!
+Traceback (most recent call last):
+  File "train.py", line 46, in <module>
+    model.learn(args.timesteps)
+  File "/home/shandilya/Desktop/Projects/NavigationController/learning/explore.py", line 101, in learn
+    callback = self.rl_callback
+  File "/home/shandilya/Desktop/Projects/NavigationController/utils/td3_utils.py", line 985, in learn
+    reset_num_timesteps=reset_num_timesteps,
+  File "/home/shandilya/py36/lib/python3.6/site-packages/stable_baselines3/common/off_policy_algorithm.py", line 369, in learn
+    self.train(batch_size=self.batch_size, gradient_steps=gradient_steps)
+  File "/home/shandilya/Desktop/Projects/NavigationController/utils/td3_utils.py", line 948, in train
+    loss.backward()
+  File "/home/shandilya/py36/lib/python3.6/site-packages/torch/_tensor.py", line 255, in backward
+    torch.autograd.backward(self, gradient, retain_graph, create_graph, inputs=inputs)
+  File "/home/shandilya/py36/lib/python3.6/site-packages/torch/autograd/__init__.py", line 149, in backward
+    allow_unreachable=True, accumulate_grad=True)  # allow_unreachable flag
+RuntimeError: Function 'ExpBackward' returned nan values in its 0th output.
+/home/shandilya/Desktop/Projects/NavigationController
+Traceback (most recent call last):
+  File "train.py", line 44, in <module>
+    policy_version = args.policy_version
+  File "/home/shandilya/Desktop/Projects/NavigationController/learning/explore.py", line 20, in __init__
+    lambda : sb3.common.monitor.Monitor(MazeEnv(
+  File "/home/shandilya/py36/lib/python3.6/site-packages/stable_baselines3/common/vec_env/dummy_vec_env.py", line 25, in __init__
+    self.envs = [fn() for fn in env_fns]
+  File "/home/shandilya/py36/lib/python3.6/site-packages/stable_baselines3/common/vec_env/dummy_vec_env.py", line 25, in <listcomp>
+    self.envs = [fn() for fn in env_fns]
+  File "/home/shandilya/Desktop/Projects/NavigationController/learning/explore.py", line 24, in <lambda>
+    policy_version
+  File "/home/shandilya/Desktop/Projects/NavigationController/simulations/maze_env.py", line 113, in __init__
+    self.set_env()
+  File "/home/shandilya/Desktop/Projects/NavigationController/simulations/maze_env.py", line 132, in set_env
+    tree.find('.//option').set('timestep', str(self.dt))
+AttributeError: 'MazeEnv' object has no attribute 'dt'
+2021-12-08 13:47:13.047290: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: :/home/shandilya/.mujoco/mjpro150/bin
+2021-12-08 13:47:13.047327: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.
+/home/shandilya/Desktop/Projects/NavigationController
+Using cpu device
+Sufficient Memory Available. Using 8.10576 GB with 10.695192576 GB available
+Logging to assets/out/models/exp10/TD3_14
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 848      |
+|    ep_rew_mean     | 196      |
+| time/              |          |
+|    episodes        | 4        |
+|    fps             | 54       |
+|    time_elapsed    | 61       |
+|    total timesteps | 3390     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.15e+03 |
+|    ep_rew_mean     | 108      |
+| time/              |          |
+|    episodes        | 8        |
+|    fps             | 55       |
+|    time_elapsed    | 164      |
+|    total timesteps | 9236     |
+---------------------------------
+Terminated
+2021-12-08 13:53:32.195148: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: :/home/shandilya/.mujoco/mjpro150/bin
+2021-12-08 13:53:32.195193: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.
+/home/shandilya/Desktop/Projects/NavigationController
+Using cpu device
+Sufficient Memory Available. Using 8.10576 GB with 10.695323648 GB available
+Logging to assets/out/models/exp10/TD3_15
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.08e+03 |
+|    ep_rew_mean     | 251      |
+| time/              |          |
+|    episodes        | 4        |
+|    fps             | 54       |
+|    time_elapsed    | 78       |
+|    total timesteps | 4335     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.08e+03 |
+|    ep_rew_mean     | 114      |
+| time/              |          |
+|    episodes        | 8        |
+|    fps             | 55       |
+|    time_elapsed    | 155      |
+|    total timesteps | 8669     |
+---------------------------------
+Eval num_timesteps=10000, episode_reward=147.73 +/- 234.69
+Episode length: 2001.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2e+03    |
+|    mean_reward     | 148      |
+| time/              |          |
+|    total_timesteps | 10000    |
+---------------------------------

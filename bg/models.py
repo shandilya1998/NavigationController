@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import torchvision as tv
 from constants import params
-
+import stable_baselines3 as sb3
 
 def check_for_nan(inp, name):
     if torch.isnan(inp).any():
@@ -142,31 +142,10 @@ class VisualCortex(torch.nn.Module):
         num_ctx = 300,
     ):
         super(VisualCortex, self).__init__()
-        self.cnn = torch.nn.Sequential(
-            torch.nn.Conv2d(3, 32, kernel_size=8, stride=4, padding=0),
-            torch.nn.ReLU(),
-            torch.nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=0),
-            torch.nn.ReLU(),
-            torch.nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=0),
-            torch.nn.ReLU(),
-            torch.nn.Conv2d(128, 64, kernel_size=3, stride=1, padding=0),
-            torch.nn.ReLU(),
-            torch.nn.Conv2d(64, 8, kernel_size=3, stride=1, padding=0),
-            torch.nn.ReLU(),
-            torch.nn.Flatten(),
-        )
+        self.model = sb3.common.torch_layers.NatureCNN(observation_space['observation'], num_ctx)
     
-        image_shape = observation_space['observation'].shape
-        image = torch.zeros((1,) + image_shape)
-    
-        # Compute shape by doing one forward pass
-        with torch.no_grad():
-            n_flatten = self.cnn(image).shape[-1]
-
-        self.linear = torch.nn.Sequential(torch.nn.Linear(n_flatten, num_ctx), torch.nn.ReLU())
- 
     def forward(self, img):
-        return self.linear(self.cnn(img))
+        return self.model(img)
 
 class MotorCortex(torch.nn.Module):
     def __init__(self, num_ctx = 300, action_dim = 2):
@@ -250,7 +229,7 @@ class ControlNetworkV2(torch.nn.Module):
     def __init__(self,
         action_dim = 2,
     ):  
-        super(ControlNetwork, selfV2).__init__()
+        super(ControlNetworkV2, self).__init__()
         num_ctx = params['num_ctx']
         input_size = num_ctx
         layers = []

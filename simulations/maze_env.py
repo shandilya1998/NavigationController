@@ -216,6 +216,8 @@ class MazeEnv(gym.Env):
         tree.write(file_path)
         self.world_tree = tree
         self.wrapped_env = self.model_cls(file_path=file_path, **self.kwargs)
+        self.dt = self.wrapped_env.dt
+        assert self.dt == params['dt']
         self.model = self.wrapped_env.model
         self.data = self.wrapped_env.data
         self.obstacles_ids = []
@@ -228,7 +230,7 @@ class MazeEnv(gym.Env):
             elif name != 'floor':
                 self.agent_ids.append(self.model._geom_name2id[name])
         self._set_action_space()
-        self.last_wrapped_obs = np.zeros((240, 320, 3), dtype = np.uint8).copy()
+        self.last_wrapped_obs = self.wrapped_env._get_obs().copy()
         ob = self._get_obs()
         self._set_observation_space(ob)
         self.__create_maze_graph()
@@ -283,7 +285,7 @@ class MazeEnv(gym.Env):
         )
         self.lastIndex = len(self.x) - 1
         self.states = States()
-        self.states.append(self.t * params['dt'], self.state)
+        self.states.append(self.t * self.dt, self.state)
         self.target_course = TargetCourse(self.x, self.y)
         self.target_ind, _ = self.target_course.search_target_index(self.state)
 
@@ -396,8 +398,8 @@ class MazeEnv(gym.Env):
         return self.wrapped_env.get_ori()
 
     def _set_action_space(self):
-        low = self.wrapped_env.action_space.low * 2 / self.wrapped_env.dt
-        high = self.wrapped_env.action_space.high * 2 / self.wrapped_env.dt
+        low = self.wrapped_env.action_space.low * 2 / self.dt
+        high = self.wrapped_env.action_space.high * 2 / self.dt
         low = np.array([low[0] * np.sqrt(2), low[-1]], dtype = np.float32)
         high = np.array([high[0] * np.sqrt(2), high[-1]], dtype = np.float32)
         self._action_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
@@ -528,14 +530,14 @@ class MazeEnv(gym.Env):
         prev_yaw = copy.deepcopy(self.state.yaw)
         prev_v = copy.deepcopy(self.state.v)
         self.state.update(ai, di)
-        self.states.append(self.t * params['dt'], self.state)
+        self.states.append(self.t * self.dt, self.state)
         delta_yaw = self.state.v / self.state.WB * \
-            np.tan(di) * params['dt']
-        delta_v = ai * params['dt']
+            np.tan(di) * self.dt
+        delta_v = ai * self.dt
         action = np.array([
             (prev_v + delta_v) * np.cos(prev_yaw + delta_yaw),
             (prev_v + delta_v) * np.sin(prev_yaw + delta_yaw),
-            delta_yaw / params['dt']
+            delta_yaw / self.dt
         ])
         info = {}
         prev_pos = self.wrapped_env.get_xy()
@@ -543,7 +545,7 @@ class MazeEnv(gym.Env):
         next_pos = self.wrapped_env.get_xy()
         collision_penalty = 0.0
         if self._is_in_collision():
-            collision_penalty += -5.0 * self._inner_reward_scaling
+            collision_penalty += -4.0 * self._inner_reward_scaling
         next_obs = self._get_obs()
         inner_reward = self._inner_reward_scaling * inner_reward
         if isinstance(next_obs, dict):
@@ -555,10 +557,10 @@ class MazeEnv(gym.Env):
         index = self.__get_current_cell()
         self._current_cell = index
         if done:
-            outer_reward += 100
+            outer_reward += 40
         if self.t > self.max_episode_size:
             done = True
-            outer_reward += -100
+            outer_reward += -40
         reward = inner_reward + outer_reward + collision_penalty
         info['inner_reward'] = inner_reward
         info['outer_reward'] = outer_reward

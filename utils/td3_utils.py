@@ -6,7 +6,7 @@ from functools import partial
 import gym
 from typing import Any, Dict, List, Optional, Tuple, Type, Union, NamedTuple
 import stable_baselines3 as sb3
-from bg.models import ControlNetwork, VisualCortex
+from bg.models import ControlNetwork, VisualCortex, ControlNetworkV2
 import copy
 from constants import params
 try:
@@ -172,6 +172,12 @@ class SimpleVFActor(sb3.common.policies.BasePolicy):
         features = self.extract_features(obs)
         return self.mu(features)
 
+    def _predict(self, observation: List[torch.Tensor], deterministic: bool = False) -> Tuple[torch.Tensor]:
+        # Note: the deterministic deterministic parameter is ignored in the case of TD3.
+        #   Predictions are always deterministic.
+        action, vt, bg_out = self.forward(observation)
+        return action
+
 class ContinuousCritic(sb3.common.policies.BaseModel):
     """
     Critic network(s) for DDPG/SAC/TD3.
@@ -320,7 +326,7 @@ class ContinuousCriticV2(sb3.common.policies.BaseModel):
             features = self.extract_features(obs)
         return self.q_networks[0](torch.cat([features, actions], dim=1))
 
-class TD3BGPolicy(sb3.common.policies.BasePolicy):
+class TD3BGPolicyV2(sb3.common.policies.BasePolicy):
     """
     Policy class (with both actor and critic in the same network) for TD3BG.
 
@@ -355,7 +361,7 @@ class TD3BGPolicy(sb3.common.policies.BasePolicy):
         share_features_extractor: bool = True,
         use_sde: bool = False
     ):  
-        super(TD3BGPolicy, self).__init__(
+        super(TD3BGPolicyV2, self).__init__(
             observation_space,
             action_space,
             features_extractor_class,
@@ -451,7 +457,7 @@ class TD3BGPolicy(sb3.common.policies.BasePolicy):
         return action
 
 
-class TD3BGPolicyV2(sb3.common.policies.BasePolicy):
+class TD3BGPolicy(sb3.common.policies.BasePolicy):
     """  
     Policy class (with both actor and critic in the same network) for TD3BG.
 
@@ -486,7 +492,7 @@ class TD3BGPolicyV2(sb3.common.policies.BasePolicy):
         share_features_extractor: bool = True,
         use_sde: bool = False
     ):
-        super(TD3BGPolicyV2, self).__init__(
+        super(TD3BGPolicy, self).__init__(
             observation_space,
             action_space,
             features_extractor_class,
@@ -858,7 +864,6 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         self.critic = self.policy.critic
         self.critic_target = self.policy.critic_target
 
-    """
     def _sample_action(
         self, learning_starts: int, action_noise: Optional[sb3.common.noise.ActionNoise] = None
     ) -> Tuple[np.ndarray, np.ndarray]:
@@ -888,7 +893,6 @@ class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             buffer_action = unscaled_action
             action = buffer_action
         return action, buffer_action
-    """
 
     def train(self, gradient_steps: int, batch_size: int = 100) -> None:
         # Switch to train mode (this affects batch norm / dropout)

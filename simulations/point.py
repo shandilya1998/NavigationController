@@ -54,8 +54,7 @@ class PointEnv(AgentModel):
             self.sim.step()
         next_obs = self._get_obs()
         pos = self.get_xy().copy()
-        reward = np.linalg.norm(pos - prev_pos)
-
+        reward = (np.linalg.norm(pos - prev_pos) / self.dt) / (self.VELOCITY_LIMITS * 1.2 * np.sqrt(2))
         return next_obs, reward, False, {}
 
     def _get_obs(self):

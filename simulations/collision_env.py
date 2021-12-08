@@ -29,7 +29,6 @@ from utils.env_utils import convert_observation_to_space, \
 import random
 import copy
 from constants import params
-from tqdm import tqdm
 
 # Directory that contains mujoco xml files.
 MODEL_DIR = os.path.join(os.getcwd(), 'assets', 'xml')
@@ -58,7 +57,7 @@ class CollisionEnv(gym.Env):
         self.kwargs = kwargs
         self.top_view_size = params['top_view_size']
         self.t = 0  # time steps
-        self.total_steps = 0
+        self.total_steps = 0 
         self.ep = 0
         self.max_episode_size = max_episode_size
         self._task = maze_task(maze_size_scaling, **task_kwargs)
@@ -548,18 +547,18 @@ class CollisionEnv(gym.Env):
         next_pos = self.wrapped_env.get_xy()
         collision_penalty = 0.0
         if self._is_in_collision():
-            collision_penalty += -0.4 * self._inner_reward_scaling
+            collision_penalty += -0.1 * self._inner_reward_scaling
         next_obs = self._get_obs()
         inner_reward = self._inner_reward_scaling * inner_reward
+        outer_reward = 0.0
         done = self._task.termination(self.wrapped_env.get_xy())
+        if done:
+            outer_reward += 1.0 
+        if self.t > self.max_episode_size:
+            done = True
         info["position"] = self.wrapped_env.get_xy()
         index = self.__get_current_cell()
         self._current_cell = index
-        outer_reward = 0.0
-        if done:
-            outer_reward += 40
-        if self.t > self.max_episode_size:
-            done = True
         reward = inner_reward + outer_reward + collision_penalty
         info['inner_reward'] = inner_reward
         info['outer_reward'] = outer_reward

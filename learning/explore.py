@@ -76,7 +76,7 @@ class Explore:
             gamma = params['gamma'],
             tau = params['tau'],
             train_freq = (1, 'step'),
-            verbose = 0,
+            verbose = 2,
             device = 'auto'
         )
 

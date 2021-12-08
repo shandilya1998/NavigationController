@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 from simulations.maze_env import MazeEnv
+from simulations.collision_env import CollisionEnv
 from simulations.point import PointEnv
 from simulations.maze_task import CustomGoalReward4Rooms
 import stable_baselines3 as sb3
@@ -13,11 +14,15 @@ import shutil
 torch.autograd.set_detect_anomaly(True)
 
 class Explore:
-    def __init__(self, logdir, max_episode_size, policy_version):
+    def __init__(self, logdir, max_episode_size, policy_version, env_type = 'maze'):
+        if env_type == 'maze':
+            env_class = MazeEnv
+        elif env_type == 'collision':
+            env_class = CollisionEnv
         self.logdir = logdir
         self.env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
             sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
-                lambda : sb3.common.monitor.Monitor(MazeEnv(
+                lambda : sb3.common.monitor.Monitor(env_class(
                     PointEnv,
                     CustomGoalReward4Rooms,
                     max_episode_size,
@@ -27,7 +32,7 @@ class Explore:
         )
         self.eval_env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
             sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
-                lambda : sb3.common.monitor.Monitor(MazeEnv(
+                lambda : sb3.common.monitor.Monitor(env_class(
                     PointEnv,
                     CustomGoalReward4Rooms,
                     max_episode_size,
@@ -71,7 +76,7 @@ class Explore:
             gamma = params['gamma'],
             tau = params['tau'],
             train_freq = (1, 'step'),
-            verbose = 2,
+            verbose = 0,
             device = 'auto'
         )
 

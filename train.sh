@@ -3,8 +3,9 @@
 export GOOGLE_APPLICATION_CREDENTIALS="key.json"
 PROJECT_ID=$(gcloud config list project --format "value(core.project)")
 BUCKET_NAME=${PROJECT_ID}-aiplatform
-LOGDIR="assets/out/models/exp10"
+LOGDIR="assets/out/models/exp11"
 POLICY_VERSION=1
+ENV_TYPE="collision"
 TIMESTEPS=1000000
 MAX_EPISODE_SIZE=2000
 LEARNING_TYPE="explore"
@@ -14,4 +15,5 @@ python3 train.py \
     --timesteps $TIMESTEPS \
     --max_episode_size $MAX_EPISODE_SIZE \
     --learning_type $LEARNING_TYPE \
-    --policy_version $POLICY_VERSION
+    --policy_version $POLICY_VERSION \
+    --env_type $ENV_TYPE

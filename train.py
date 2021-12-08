@@ -29,19 +29,26 @@ if __name__ == '__main__':
         type = int,
         help = 'policy version to be used'
     )
+    parser.add_argument(
+        '--env_type',
+        type = str,
+        help = 'choose between maze or collision. choice modifies reward'
+    )
     args = parser.parse_args()
     if args.learning_type == 'imitate':
         model = Imitate(
             logdir = args.logdir,
             max_episode_size = args.max_episode_size,
-            policy_version = args.policy_version
+            policy_version = args.policy_version,
+            env_type = args.env_type
         )
         model.learn(args.timesteps)
     elif args.learning_type == 'explore':
         model = Explore(
             logdir = args.logdir,
             max_episode_size = args.max_episode_size,
-            policy_version = args.policy_version
+            policy_version = args.policy_version,
+            env_type = args.env_type
         )
         model.learn(args.timesteps)
     else:

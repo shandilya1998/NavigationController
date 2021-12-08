@@ -262,7 +262,7 @@ class EvalCallback(sb3.common.callbacks.EvalCallback):
         best_model_save_path: Optional[str] = None,
         deterministic: bool = True,
         render: bool = False,
-        verbose: int = 1,
+        verbose: int = 0,
         warn: bool = True,
     ):
         super(EvalCallback, self).__init__(

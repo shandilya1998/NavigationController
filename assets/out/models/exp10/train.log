@@ -1908,3 +1908,40 @@ Episode length: 2001.00 +/- 0.00
 |    learning_rate   | 0.0005   |
 |    n_updates       | 573053   |
 ---------------------------------
+Terminated
+2021-12-08 14:11:14.385018: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: /usr/lib/nvidia-470:/usr/local/cuda/lib64:/root/.mujoco/mjpro150/bin:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
+2021-12-08 14:11:14.385090: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.
+/root/trainer
+Using cuda device
+Sufficient Memory Available. Using 22.516 GB with 30.201278464 GB available
+Logging to assets/out/models/exp10/TD3_16
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 631      |
+|    ep_rew_mean     | 222      |
+| time/              |          |
+|    episodes        | 4        |
+|    fps             | 75       |
+|    time_elapsed    | 33       |
+|    total timesteps | 2525     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 855      |
+|    ep_rew_mean     | 254      |
+| time/              |          |
+|    episodes        | 8        |
+|    fps             | 78       |
+|    time_elapsed    | 86       |
+|    total timesteps | 6843     |
+---------------------------------
+Found 1 GPUs for rendering. Using device 0.
+Eval num_timesteps=10000, episode_reward=-75.37 +/- 275.61
+Episode length: 2001.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2e+03    |
+|    mean_reward     | -75.4    |
+| time/              |          |
+|    total_timesteps | 10000    |
+---------------------------------

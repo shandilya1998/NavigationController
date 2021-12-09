@@ -62,6 +62,7 @@ class PointEnv(AgentModel):
             width = 100,
             height = 75,
             camera_name = 'mtdcam',
+            depth = True
         ))
 
     def reset_model(self):

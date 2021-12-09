@@ -34,13 +34,21 @@ if __name__ == '__main__':
         type = str,
         help = 'choose between maze or collision. choice modifies reward'
     )
+    parser.add_argument(
+        '--n_steps',
+        type = int,
+        help = 'number of images in observation input to policy',
+        const = 1,
+        default = 4
+    )
     args = parser.parse_args()
     if args.learning_type == 'imitate':
         model = Imitate(
             logdir = args.logdir,
             max_episode_size = args.max_episode_size,
             policy_version = args.policy_version,
-            env_type = args.env_type
+            env_type = args.env_type,
+            n_steps = args.n_steps
         )
         model.learn(args.timesteps)
     elif args.learning_type == 'explore':
@@ -48,7 +56,8 @@ if __name__ == '__main__':
             logdir = args.logdir,
             max_episode_size = args.max_episode_size,
             policy_version = args.policy_version,
-            env_type = args.env_type
+            env_type = args.env_type,
+            n_steps = args.n_steps
         )
         model.learn(args.timesteps)
     else:

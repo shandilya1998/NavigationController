@@ -9,6 +9,7 @@ ENV_TYPE="maze"
 TIMESTEPS=1000000
 MAX_EPISODE_SIZE=2000
 LEARNING_TYPE="explore"
+N_STEPS=4
 
 python3 train.py \
     --logdir $LOGDIR \
@@ -16,4 +17,5 @@ python3 train.py \
     --max_episode_size $MAX_EPISODE_SIZE \
     --learning_type $LEARNING_TYPE \
     --policy_version $POLICY_VERSION \
-    --env_type $ENV_TYPE
+    --env_type $ENV_TYPE \
+    --n_steps $N_STEPS

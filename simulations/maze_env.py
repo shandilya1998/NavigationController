@@ -38,7 +38,7 @@ class MazeEnv(gym.Env):
         self,
         model_cls: Type[AgentModel],
         maze_task: Type[maze_task.MazeTask] = maze_task.MazeTask,
-        max_episode_size: int = 10000,
+        max_episode_size: int = 2000,
         policy_version = 1,
         include_position: bool = True,
         maze_height: float = 0.5,
@@ -547,7 +547,7 @@ class MazeEnv(gym.Env):
         next_pos = self.wrapped_env.get_xy()
         collision_penalty = 0.0
         if self._is_in_collision():
-            collision_penalty += -0.1 * self._inner_reward_scaling
+            collision_penalty += -10 * self._inner_reward_scaling
         next_obs = self._get_obs()
         inner_reward = self._inner_reward_scaling * inner_reward
         if isinstance(next_obs, dict):
@@ -559,10 +559,9 @@ class MazeEnv(gym.Env):
         index = self.__get_current_cell()
         self._current_cell = index
         if done:
-            outer_reward += 1.0
+            outer_reward += 10.0
         if self.t > self.max_episode_size:
             done = True
-            outer_reward += -1.0
         reward = inner_reward + outer_reward + collision_penalty
         info['inner_reward'] = inner_reward
         info['outer_reward'] = outer_reward

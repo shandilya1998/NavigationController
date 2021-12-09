@@ -383,19 +383,80 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
 
     def reward(self, obs: np.ndarray, pos: np.ndarray) -> float:
         reward = 0.0
-        for i, goal in enumerate(self.goals):
-            sign = -0.01
-            if i == self.goal_index:
-                sign = 0.01
-            if goal.inframe(obs):
-                if np.linalg.norm(pos - goal.pos) <= goal.threshold * 5:
-                    return goal.reward_scale * sign
+        goal = self.goals[self.goal_index]
+        if goal.inframe(obs):
+            if np.linalg.norm(pos - goal.pos) <= goal.threshold * 5:
+                return goal.reward_scale
+            else:
+                return goal.reward_scale * (
+                    1 - np.linalg.norm(pos[: goal.dim] - goal.pos) / (np.linalg.norm(goal.pos))
+                )
         return reward
 
     def termination(self, pos: np.ndarray) -> bool:
         if self.goals[self.goal_index].neighbor(pos):
             return True
         return False
+
+class GoalRewardCollision(MazeTask):
+    def __init__(self,
+        scale: float
+    ) -> None:
+        super().__init__(scale)
+        self.set()
+
+    def set(self):
+        self.goal_index = np.random.randint(low = 0, high = 3)
+        self.colors = []
+        self.scales = []
+        self.goals = []
+        for i in range(3):
+            if i == self.goal_index:
+                self.colors.append(copy.deepcopy(RED))
+                self.scales.append(1.0)
+            else:
+                self.colors.append(copy.deepcopy(GREEN))
+                self.scales.append(1.0)
+
+        self.goals = [ 
+            MazeVisualGoal(np.array([
+                14.0 * self.scale,
+                -7.0 * self.scale
+            ]), self.scales[0], self.colors[0]),
+        ]   
+
+    def reward(self, obs: np.ndarray, pos: np.ndarray) -> float:
+        reward = 0.0 
+        return reward
+
+    def termination(self, pos: np.ndarray) -> bool:
+        if self.goals[self.goal_index].neighbor(pos):
+            return True
+        return False
+
+    @staticmethod
+    def create_maze() -> List[List[MazeCell]]:
+        E, B, R = MazeCell.EMPTY, MazeCell.BLOCK, MazeCell.ROBOT
+        return [
+            [B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B],
+            [B, E, E, B, E, E, B, E, E, B, E, E, B, E, E, E, E, B],
+            [B, E, E, B, E, E, B, E, E, B, E, E, B, E, E, E, E, B],
+            [B, E, E, B, E, E, B, E, E, B, E, E, B, E, E, E, E, B],
+            [B, E, E, B, B, E, B, B, E, B, B, E, B, B, E, E, E, B],
+            [B, E, E, E, B, E, E, B, E, E, B, E, E, B, E, E, E, B],
+            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
+            [B, E, E, E, B, E, E, B, E, E, B, E, E, B, E, E, E, B],
+            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
+            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
+            [B, E, E, E, B, E, E, B, E, E, B, E, E, B, E, E, E, B],
+            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
+            [B, E, E, E, B, E, E, B, E, E, B, E, E, B, E, E, E, B],
+            [B, E, E, B, B, E, B, B, E, B, B, E, B, B, E, E, E, B],
+            [B, E, E, B, E, E, B, E, E, B, E, E, B, E, E, E, E, B],
+            [B, E, E, B, E, E, B, E, E, B, E, E, B, E, E, E, E, B],
+            [B, R, E, B, E, E, B, E, E, B, E, E, B, E, E, E, E, B],
+            [B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B],
+        ]
 
 
 class GoalRewardTRoom(MazeTask):

@@ -39,7 +39,7 @@ ax.set_xlabel('steps')
 ax.set_ylabel('reward')
 total_reward = 0.0
 while not done:
-    ob, reward, done, info = env.step(ob['sampled_action'])
+    ob, reward, done, info = env.step(env.action_space.sample())#ob['sampled_action'])
     if reward != 0.0:
         count += 1
     if info['collision_penalty'] != 0:
@@ -66,11 +66,11 @@ while not done:
     ax.plot(REWARDS, color = 'r', linestyle = '--')
     plt.pause(0.1)
 pbar.close()
+print('Ideal Path:')
 print('total count:      {}'.format(count))
 print('collision counts: {}'.format(count_collisions))
 print('ball counts:      {}'.format(count_ball))
 print('total_reward:     {}'.format(total_reward))
-
 block_size = 50
 fig2, ax = plt.subplots(1,1)
 def xy_to_imgrowcol(x, y):

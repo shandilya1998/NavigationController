@@ -5,7 +5,7 @@ from simulations.collision_env import CollisionEnv
 from simulations.point import PointEnv
 from simulations.maze_task import CustomGoalReward4Rooms
 import stable_baselines3 as sb3
-from utils.td3_utils import TD3BG, TD3BGPolicy, DictReplayBuffer, TD3BGPolicyV2
+from utils.td3_utils import TD3BG, TD3BGPolicy, DictReplayBuffer, TD3BGPolicyV2, HistoryFeatureExtractor
 from constants import params
 from utils.callbacks import CustomCallback, CheckpointCallback, EvalCallback
 import os
@@ -14,7 +14,7 @@ import shutil
 torch.autograd.set_detect_anomaly(True)
 
 class Explore:
-    def __init__(self, logdir, max_episode_size, policy_version, env_type = 'maze'):
+    def __init__(self, logdir, max_episode_size, policy_version, env_type = 'maze', n_steps = 4):
         if env_type == 'maze':
             env_class = MazeEnv
         elif env_type == 'collision':
@@ -44,6 +44,7 @@ class Explore:
         n_actions = self.env.action_space.sample().shape[-1]
 
         model = TD3BG
+        policy_kwargs = None
         if policy_version == 1:
             policy_class = TD3BGPolicy
             action_noise = None
@@ -60,6 +61,16 @@ class Explore:
                 params['OU_MEAN'] * np.ones(n_actions),
                 params['OU_SIGMA'] * np.ones(n_actions)
             )
+        elif policy_version == 4:
+            model = sb3.TD3
+            policy_class = 'MlpPolicy'
+            action_noise = sb3.common.noise.OrnsteinUhlenbeckActionNoise(
+                params['OU_MEAN'] * np.ones(n_actions),
+                params['OU_SIGMA'] * np.ones(n_actions)
+            )
+            policy_kwargs = {
+                'feature_extractor_class' : HistoryFeatureExtractor
+            }
         else:
             raise ValueError('Expected policy version less than or equal to 2, got {}'.format(policy_version))
 
@@ -77,7 +88,8 @@ class Explore:
             tau = params['tau'],
             train_freq = (1, 'step'),
             verbose = 2,
-            device = 'auto'
+            device = 'auto',
+            policy_kwargs = policy_kwargs
         )
 
     def __set_rl_callback(self):

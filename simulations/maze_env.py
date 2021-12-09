@@ -40,6 +40,7 @@ class MazeEnv(gym.Env):
         maze_task: Type[maze_task.MazeTask] = maze_task.MazeTask,
         max_episode_size: int = 2000,
         policy_version = 1,
+        n_steps = 4,
         include_position: bool = True,
         maze_height: float = 0.5,
         maze_size_scaling: float = 4.0,
@@ -53,6 +54,7 @@ class MazeEnv(gym.Env):
         image_shape: Tuple[int, int] = (600, 480),
         **kwargs,
     ) -> None:
+        self.n_steps = n_steps
         self.policy_version = policy_version
         self.kwargs = kwargs
         self.top_view_size = params['top_view_size']
@@ -233,6 +235,7 @@ class MazeEnv(gym.Env):
                 self.agent_ids.append(self.model._geom_name2id[name])
         self._set_action_space()
         self.last_wrapped_obs = self.wrapped_env._get_obs().copy()
+        self.history = [np.zeros_like(self.last_wrapped_obs).copy() for i in range(self.n_steps)]
         ob = self._get_obs()
         self._set_observation_space(ob)
         self.__create_maze_graph()
@@ -428,6 +431,11 @@ class MazeEnv(gym.Env):
         img = self.wrapped_env._get_obs()
         if self.policy_version == 3:
             return img
+        elif self.policy_version == 4:
+            self.history.pop(0)
+            self.history.append(img)
+            obs = {'observation_{}'.format(i): ob for i, ob in enumerate(self.history)}
+            return obs
         else:
             try: 
                 sampled_action = self.get_action()

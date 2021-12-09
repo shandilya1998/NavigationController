@@ -31,6 +31,22 @@ class PassAsIsFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
             ob_t_1
         ]
 
+class HistoryFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
+    def __init__(self, observation_space: gym.Space):
+        features_dim = len(observation_space) * params['ctx']
+        super(PassAsIsFeaturesExtractor, self).__init__(observation_space, features_dim)
+        self.vc = VisualCortex(
+            observation_space,
+            params['num_ctx']
+        )    
+
+    def forward(self, observations):
+        out = []
+        for i in range(len(observation)):
+            out.append(self.vc(observations['observation_{}'.format(i)]))
+        out = torch.cat(out, -1)
+        return out
+
 class PassAsIsFeaturesExtractorV2(sb3.common.torch_layers.BaseFeaturesExtractor):
     def __init__(self, observation_space: gym.Space):
         super(PassAsIsFeaturesExtractorV2, self).__init__(observation_space, params['num_ctx'])

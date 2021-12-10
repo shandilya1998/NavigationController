@@ -58,12 +58,18 @@ class PointEnv(AgentModel):
         return next_obs, reward, False, {}
 
     def _get_obs(self):
-        return np.flipud(self.sim.render(
+        rgb, depth = self.sim.render(
             width = 100,
             height = 75,
             camera_name = 'mtdcam',
             depth = True
-        ))
+        )
+        depth = 255 * ((depth - depth.min()) / (depth.max() - depth.min()))
+        depth = depth.astype(np.uint8)
+        img = np.flipud(np.concatenate([
+            rgb, np.expand_dims(depth, -1)
+        ], -1))
+        return img
 
     def reset_model(self):
         qpos = self.init_qpos + self.np_random.uniform(

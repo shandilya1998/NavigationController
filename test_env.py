@@ -39,7 +39,7 @@ ax.set_xlabel('steps')
 ax.set_ylabel('reward')
 total_reward = 0.0
 while not done:
-    ob, reward, done, info = env.step(env.action_space.sample())#ob['sampled_action'])
+    ob, reward, done, info = env.step(ob['sampled_action'])
     if reward != 0.0:
         count += 1
     if info['collision_penalty'] != 0:

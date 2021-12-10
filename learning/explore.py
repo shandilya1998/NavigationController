@@ -87,7 +87,7 @@ class Explore:
             optimize_memory_usage = True,
             gamma = params['gamma'],
             tau = params['tau'],
-            train_freq = (1, 'step'),
+            train_freq = (1, 'episode'),
             verbose = 2,
             device = 'auto',
             policy_kwargs = policy_kwargs

@@ -38,7 +38,6 @@ if __name__ == '__main__':
         '--n_steps',
         type = int,
         help = 'number of images in observation input to policy',
-        const = 1,
         default = 4
     )
     args = parser.parse_args()

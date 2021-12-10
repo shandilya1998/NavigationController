@@ -5,7 +5,8 @@ from simulations.collision_env import CollisionEnv
 from simulations.point import PointEnv
 from simulations.maze_task import CustomGoalReward4Rooms
 import stable_baselines3 as sb3
-from utils.td3_utils import TD3BG, TD3BGPolicy, DictReplayBuffer, TD3BGPolicyV2, HistoryFeatureExtractor
+from utils.td3_utils import TD3BG, TD3BGPolicy, \
+    DictReplayBuffer, TD3BGPolicyV2, HistoryFeaturesExtractor
 from constants import params
 from utils.callbacks import CustomCallback, CheckpointCallback, EvalCallback
 import os

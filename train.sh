@@ -9,7 +9,7 @@ ENV_TYPE="maze"
 TIMESTEPS=1000000
 MAX_EPISODE_SIZE=2000
 LEARNING_TYPE="explore"
-N_STEPS=4
+N_STEPS=5
 
 python3 train.py \
     --logdir $LOGDIR \

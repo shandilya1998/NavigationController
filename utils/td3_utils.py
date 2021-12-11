@@ -55,19 +55,25 @@ class MultiModalFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor)
             observation_space,
             features_dim
         )
-        input_size = features_dim + observation_space['inertia'].shape[-1] + \
-            observation_space['history'].shape[-1]
-        self.fc = torch.nn.Sequential(
-            torch.nn.Linear(input_size, 512),
-            torch.nn.ReLU(),
-            torch.nn.Linear(512, features_dim),
-            torch.nn.Tanh()
+        input_size = 3 * features_dim
+        self.fc_inertia = torch.nn.Sequential(
+            torch.nn.Linear(observation_space['inertia'].shape[-1], features_dim),
+            torch.nn.ReLU()
         )
-        
+        self.fc_history = torch.nn.Sequential(
+            torch.nn.Linear(observation_space['history'].shape[-1], features_dim),
+            torch.nn.ReLU()
+        ) 
+        self.fc = torch.nn.Sequential(
+            torch.nn.Linear(input_size, features_dim),
+            torch.nn.ReLU(),
+        )
 
     def forward(self, observations):
         vision = self.vc(observations['observation'])
-        x = torch.cat([vision, observations['inertia'], observations['history']], -1)
+        inertia = self.fc_inertia(observations['inertia'])
+        history = self.fc_history(observations['history'])
+        x = torch.cat([vision, inertia, history], -1)
         out = self.fc(x)
         return out
 

@@ -3,8 +3,8 @@
 export GOOGLE_APPLICATION_CREDENTIALS="key.json"
 PROJECT_ID=$(gcloud config list project --format "value(core.project)")
 BUCKET_NAME=${PROJECT_ID}-aiplatform
-LOGDIR="assets/out/models/exp12"
-POLICY_VERSION=3
+LOGDIR="assets/out/models/exp13"
+POLICY_VERSION=5
 ENV_TYPE="maze"
 TIMESTEPS=1000000
 MAX_EPISODE_SIZE=2000

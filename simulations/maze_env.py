@@ -236,6 +236,8 @@ class MazeEnv(gym.Env):
         self._set_action_space()
         self.last_wrapped_obs = self.wrapped_env._get_obs().copy()
         self.history = [np.zeros_like(self.last_wrapped_obs).copy() for i in range(self.n_steps)]
+        action = self.action_space.sample()
+        self.actions = [np.zeros_like(action) for i in range(self.n_steps)]
         ob = self._get_obs()
         self._set_observation_space(ob)
         self.__create_maze_graph()
@@ -429,6 +431,10 @@ class MazeEnv(gym.Env):
 
     def _get_obs(self) -> np.ndarray:
         img = self.wrapped_env._get_obs()
+        try: 
+            sampled_action = self.get_action()
+        except:
+            sampled_action = np.zeros(self.action_space.shape)
         if self.policy_version == 3:
             return img
         elif self.policy_version == 4:
@@ -436,11 +442,20 @@ class MazeEnv(gym.Env):
             self.history.append(img)
             obs = {'observation_{}'.format(i): ob for i, ob in enumerate(self.history)}
             return obs
+        elif self.policy_version == 5:
+            inertia = np.concatenate([
+                self.data.qacc[:2],
+                self.data.qvel[-1:]
+            ])
+            history_action = np.concatenate(self.actions, -1)
+            obs = {
+                'observation' : img.copy(),
+                'history' : history_action.copy(),
+                'inertia' : inertia.copy(),
+                'sampled_action' : sampled_action
+            }
+            return obs
         else:
-            try: 
-                sampled_action = self.get_action()
-            except:
-                sampled_action = np.zeros(self.action_space.shape)
             obs = {
                 'observation' : img.copy(),
                 'last_observation' : self.last_wrapped_obs.copy(),
@@ -544,6 +559,8 @@ class MazeEnv(gym.Env):
         delta_yaw = self.state.v / self.state.WB * \
             np.tan(di) * self.dt
         delta_v = ai * self.dt
+        self.actions.pop(0)
+        self.actions.append(action.copy())
         action = np.array([
             (prev_v + delta_v) * np.cos(prev_yaw + delta_yaw),
             (prev_v + delta_v) * np.sin(prev_yaw + delta_yaw),

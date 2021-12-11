@@ -33,8 +33,8 @@ class PassAsIsFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
 
 class HistoryFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
     def __init__(self, observation_space: gym.Space):
-        features_dim = len(observation_space) * params['ctx']
-        super(PassAsIsFeaturesExtractor, self).__init__(observation_space, features_dim)
+        features_dim = len(observation_space) * params['num_ctx']
+        super(HistoryIsFeaturesExtractor, self).__init__(observation_space, features_dim)
         self.vc = VisualCortex(
             observation_space,
             params['num_ctx']
@@ -45,6 +45,30 @@ class HistoryFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
         for i in range(len(observation)):
             out.append(self.vc(observations['observation_{}'.format(i)]))
         out = torch.cat(out, -1)
+        return out
+
+class MultiModalFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
+    def __init__(self, observation_space: gym.Space):
+        features_dim = params['num_ctx']
+        super(MultiModalFeaturesExtractor, self).__init__(observation_space, features_dim)
+        self.vc = VisualCortex(
+            observation_space,
+            features_dim
+        )
+        input_size = features_dim + observation_space['inertia'].shape[-1] + \
+            observation_space['history'].shape[-1]
+        self.fc = torch.nn.Sequential(
+            torch.nn.Linear(input_size, 512),
+            torch.nn.ReLU(),
+            torch.nn.Linear(512, features_dim),
+            torch.nn.Tanh()
+        )
+        
+
+    def forward(self, observations):
+        vision = self.vc(observations['observation'])
+        x = torch.cat([vision, observations['inertia'], observations['history']], -1)
+        out = self.fc(x)
         return out
 
 class PassAsIsFeaturesExtractorV2(sb3.common.torch_layers.BaseFeaturesExtractor):

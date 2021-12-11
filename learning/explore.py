@@ -6,7 +6,8 @@ from simulations.point import PointEnv
 from simulations.maze_task import CustomGoalReward4Rooms
 import stable_baselines3 as sb3
 from utils.td3_utils import TD3BG, TD3BGPolicy, \
-    DictReplayBuffer, TD3BGPolicyV2, HistoryFeaturesExtractor
+    DictReplayBuffer, TD3BGPolicyV2, HistoryFeaturesExtractor, \
+    MultiModalFeaturesExtractor
 from constants import params
 from utils.callbacks import CustomCallback, CheckpointCallback, EvalCallback
 import os
@@ -27,7 +28,8 @@ class Explore:
                     PointEnv,
                     CustomGoalReward4Rooms,
                     max_episode_size,
-                    policy_version
+                    policy_version,
+                    n_steps
                 ))
             ]),
         )
@@ -37,7 +39,8 @@ class Explore:
                     PointEnv,
                     CustomGoalReward4Rooms,
                     max_episode_size,
-                    policy_version
+                    policy_version,
+                    n_steps
                 ))
             ]),
         )
@@ -46,6 +49,7 @@ class Explore:
 
         model = TD3BG
         policy_kwargs = None
+        optimize_memory_usage = True
         if policy_version == 1:
             policy_class = TD3BGPolicy
             action_noise = None
@@ -70,8 +74,19 @@ class Explore:
                 params['OU_SIGMA'] * np.ones(n_actions)
             )
             policy_kwargs = {
-                'feature_extractor_class' : HistoryFeatureExtractor
+                'features_extractor_class' : HistoryFeaturesExtractor
             }
+        elif policy_version == 5:
+            model = sb3.TD3
+            policy_class = 'MlpPolicy'
+            action_noise = sb3.common.noise.OrnsteinUhlenbeckActionNoise(
+                params['OU_MEAN'] * np.ones(n_actions),
+                params['OU_SIGMA'] * np.ones(n_actions)
+            )
+            policy_kwargs = {
+                'features_extractor_class' : MultiModalFeaturesExtractor
+            }
+            optimize_memory_usage = False
         else:
             raise ValueError('Expected policy version less than or equal to 2, got {}'.format(policy_version))
 
@@ -84,7 +99,7 @@ class Explore:
             batch_size = params['batch_size'],
             buffer_size = params['buffer_size'],
             action_noise = action_noise,
-            optimize_memory_usage = True,
+            optimize_memory_usage = optimize_memory_usage,
             gamma = params['gamma'],
             tau = params['tau'],
             train_freq = (1, 'episode'),

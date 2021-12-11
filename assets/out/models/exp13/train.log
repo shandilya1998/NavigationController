@@ -1860,3 +1860,63 @@ Episode length: 2001.00 +/- 0.00
 |    time_elapsed    | 19618    |
 |    total timesteps | 300496   |
 ---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 2e+03    |
+|    ep_rew_mean     | 1.5      |
+| time/              |          |
+|    episodes        | 156      |
+|    fps             | 15       |
+|    time_elapsed    | 20114    |
+|    total timesteps | 308500   |
+| train/             |          |
+|    actor_loss      | -0.023   |
+|    critic_loss     | 0.894    |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 286721   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 2e+03    |
+|    ep_rew_mean     | 2.2      |
+| time/              |          |
+|    episodes        | 160      |
+|    fps             | 15       |
+|    time_elapsed    | 20611    |
+|    total timesteps | 316504   |
+| train/             |          |
+|    actor_loss      | -0.00731 |
+|    critic_loss     | 0.888    |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 294725   |
+---------------------------------
+Eval num_timesteps=320000, episode_reward=111.90 +/- 58.37
+Episode length: 1931.60 +/- 96.88
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 1.93e+03 |
+|    mean_reward     | 112      |
+| time/              |          |
+|    total_timesteps | 320000   |
+| train/             |          |
+|    actor_loss      | -0.00118 |
+|    critic_loss     | 0.897    |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 298727   |
+---------------------------------
+New best mean reward!
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 2e+03    |
+|    ep_rew_mean     | 1.87     |
+| time/              |          |
+|    episodes        | 164      |
+|    fps             | 15       |
+|    time_elapsed    | 21240    |
+|    total timesteps | 324508   |
+| train/             |          |
+|    actor_loss      | 0.00308  |
+|    critic_loss     | 0.91     |
+|    learning_rate   | 0.0005   |
+|    n_updates       | 302729   |
+---------------------------------

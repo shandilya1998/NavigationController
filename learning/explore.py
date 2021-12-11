@@ -22,28 +22,38 @@ class Explore:
         elif env_type == 'collision':
             env_class = CollisionEnv
         self.logdir = logdir
-        self.env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
-            sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
-                lambda : sb3.common.monitor.Monitor(env_class(
-                    PointEnv,
-                    CustomGoalReward4Rooms,
-                    max_episode_size,
-                    policy_version,
-                    n_steps
-                ))
-            ])
+        self.env = sb3.common.vec_env.vec_normalize.VecNormalize(
+            sb3.common.vec_env.vec_transpose.VecTransposeImage(
+                sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
+                    lambda : sb3.common.monitor.Monitor(env_class(
+                        PointEnv,
+                        CustomGoalReward4Rooms,
+                        max_episode_size,
+                        policy_version,
+                        n_steps
+                    ))
+                ])
+            ),
+            norm_obs = True,
+            norm_reward = False,
+            clip_obs = 1.0,
         )
 
-        self.eval_env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
-            sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
-                lambda : sb3.common.monitor.Monitor(env_class(
-                    PointEnv,
-                    CustomGoalReward4Rooms,
-                    max_episode_size,
-                    policy_version,
-                    n_steps
-                ))
-            ])
+        self.eval_env = sb3.common.vec_env.vec_normalize.VecNormalize(
+            sb3.common.vec_env.vec_transpose.VecTransposeImage(
+                sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
+                    lambda : sb3.common.monitor.Monitor(env_class(
+                        PointEnv,
+                        CustomGoalReward4Rooms,
+                        max_episode_size,
+                        policy_version,
+                        n_steps
+                    ))
+                ])
+            ),
+            norm_obs = True,
+            norm_reward = False,
+            clip_obs = 1.0,
         )
         
         self.__set_rl_callback()

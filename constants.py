@@ -43,7 +43,7 @@ params = {
     'top_view_size'               : 50.,
     'batch_size'                  : 512,
     'lr'                          : 1e-3,
-    'final_lr'                    : 1e-5,
+    'final_lr'                    : 5e-5,
     'n_steps'                     : 2000,
     'gamma'                       : 0.98,
     'tau'                         : 0.005, 

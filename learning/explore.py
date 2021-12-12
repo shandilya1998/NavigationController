@@ -15,6 +15,25 @@ import shutil
 
 torch.autograd.set_detect_anomaly(True)
 
+def linear_schedule(initial_value, final_value):
+    """
+    Linear learning rate schedule.
+
+    :param initial_value: Initial learning rate.
+    :return: schedule that computes
+      current learning rate depending on remaining progress
+    """
+    def func(progress_remaining):
+        """
+        Progress will decrease from 1 (beginning) to 0.
+
+        :param progress_remaining:
+        :return: current learning rate
+        """
+        return progress_remaining * (initial_value - final_value) + final_value
+
+    return func
+
 class Explore:
     def __init__(self, logdir, max_episode_size, policy_version, env_type = 'maze', n_steps = 4):
         if env_type == 'maze':
@@ -106,7 +125,7 @@ class Explore:
             policy_class,
             self.env,
             tensorboard_log = self.logdir,
-            learning_rate = params['lr'],
+            learning_rate = linear_schedule(params['lr'], params['final_lr']),
             learning_starts = params['learning_starts'],
             batch_size = params['batch_size'],
             buffer_size = params['buffer_size'],
@@ -114,7 +133,7 @@ class Explore:
             optimize_memory_usage = optimize_memory_usage,
             gamma = params['gamma'],
             tau = params['tau'],
-            train_freq = (1, 'episode'),
+            train_freq = (200, 'step'),
             verbose = 2,
             device = 'auto',
             policy_kwargs = policy_kwargs

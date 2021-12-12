@@ -3548,3 +3548,116 @@ Episode length: 2001.00 +/- 0.00
 |    learning_rate   | 0.000569 |
 |    n_updates       | 240120   |
 ---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 2e+03    |
+|    ep_rew_mean     | 7.97     |
+| time/              |          |
+|    episodes        | 132      |
+|    fps             | 15       |
+|    time_elapsed    | 17285    |
+|    total timesteps | 264132   |
+| train/             |          |
+|    actor_loss      | 2.93     |
+|    critic_loss     | 1.6      |
+|    learning_rate   | 0.000567 |
+|    n_updates       | 244122   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 2e+03    |
+|    ep_rew_mean     | 5.66     |
+| time/              |          |
+|    episodes        | 136      |
+|    fps             | 15       |
+|    time_elapsed    | 17786    |
+|    total timesteps | 272136   |
+| train/             |          |
+|    actor_loss      | 2.8      |
+|    critic_loss     | 1.52     |
+|    learning_rate   | 0.000561 |
+|    n_updates       | 252126   |
+---------------------------------
+Eval num_timesteps=280000, episode_reward=8.96 +/- 54.83
+Episode length: 2001.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2e+03    |
+|    mean_reward     | 8.96     |
+| time/              |          |
+|    total_timesteps | 280000   |
+| train/             |          |
+|    actor_loss      | 2.74     |
+|    critic_loss     | 1.53     |
+|    learning_rate   | 0.000555 |
+|    n_updates       | 260130   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 2e+03    |
+|    ep_rew_mean     | 7.17     |
+| time/              |          |
+|    episodes        | 140      |
+|    fps             | 15       |
+|    time_elapsed    | 18426    |
+|    total timesteps | 280140   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 2e+03    |
+|    ep_rew_mean     | 6.93     |
+| time/              |          |
+|    episodes        | 144      |
+|    fps             | 15       |
+|    time_elapsed    | 18930    |
+|    total timesteps | 288144   |
+| train/             |          |
+|    actor_loss      | 2.68     |
+|    critic_loss     | 1.51     |
+|    learning_rate   | 0.00055  |
+|    n_updates       | 268134   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 2e+03    |
+|    ep_rew_mean     | 5.75     |
+| time/              |          |
+|    episodes        | 148      |
+|    fps             | 15       |
+|    time_elapsed    | 19433    |
+|    total timesteps | 296148   |
+| train/             |          |
+|    actor_loss      | 2.59     |
+|    critic_loss     | 1.5      |
+|    learning_rate   | 0.000544 |
+|    n_updates       | 276138   |
+---------------------------------
+Eval num_timesteps=300000, episode_reward=-37.28 +/- 68.30
+Episode length: 2001.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2e+03    |
+|    mean_reward     | -37.3    |
+| time/              |          |
+|    total_timesteps | 300000   |
+| train/             |          |
+|    actor_loss      | 2.58     |
+|    critic_loss     | 1.56     |
+|    learning_rate   | 0.000541 |
+|    n_updates       | 280140   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 2e+03    |
+|    ep_rew_mean     | 1.94     |
+| time/              |          |
+|    episodes        | 152      |
+|    fps             | 15       |
+|    time_elapsed    | 20068    |
+|    total timesteps | 304152   |
+| train/             |          |
+|    actor_loss      | 2.55     |
+|    critic_loss     | 1.52     |
+|    learning_rate   | 0.000538 |
+|    n_updates       | 284142   |
+---------------------------------

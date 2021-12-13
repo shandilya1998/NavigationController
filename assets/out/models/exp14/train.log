@@ -918,3 +918,59 @@ New best mean reward!
 |    learning_rate   | 0.000729 |
 |    n_updates       | 12006    |
 ---------------------------------
+Eval num_timesteps=40000, episode_reward=23.61 +/- 41.16
+Episode length: 1824.80 +/- 352.40
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 1.82e+03 |
+|    mean_reward     | 23.6     |
+| time/              |          |
+|    total_timesteps | 40000    |
+| train/             |          |
+|    actor_loss      | -0.604   |
+|    critic_loss     | 0.834    |
+|    learning_rate   | 0.000723 |
+|    n_updates       | 20010    |
+---------------------------------
+New best mean reward!
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 2e+03    |
+|    ep_rew_mean     | 57.7     |
+| time/              |          |
+|    episodes        | 20       |
+|    fps             | 16       |
+|    time_elapsed    | 2490     |
+|    total timesteps | 40020    |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 2e+03    |
+|    ep_rew_mean     | 58.3     |
+| time/              |          |
+|    episodes        | 24       |
+|    fps             | 15       |
+|    time_elapsed    | 3161     |
+|    total timesteps | 48024    |
+| train/             |          |
+|    actor_loss      | -0.851   |
+|    critic_loss     | 0.698    |
+|    learning_rate   | 0.000718 |
+|    n_updates       | 28014    |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 2e+03    |
+|    ep_rew_mean     | 56.5     |
+| time/              |          |
+|    episodes        | 28       |
+|    fps             | 14       |
+|    time_elapsed    | 3836     |
+|    total timesteps | 56028    |
+| train/             |          |
+|    actor_loss      | -1.06    |
+|    critic_loss     | 0.693    |
+|    learning_rate   | 0.000712 |
+|    n_updates       | 36018    |
+---------------------------------
+Terminated

@@ -444,9 +444,10 @@ class MazeEnv(gym.Env):
             return obs
         elif self.policy_version == 5:
             inertia = np.concatenate([
-                self.data.qacc[:2],
-                self.data.qvel[-1:]
-            ])
+                self.data.qpos,
+                self.data.qvel,
+                self.data.qacc
+            ], -1)
             history_action = np.concatenate(self.actions, -1)
             obs = {
                 'observation' : img.copy(),
@@ -567,7 +568,6 @@ class MazeEnv(gym.Env):
             delta_yaw / self.dt
         ])
         info = {}
-        prev_pos = self.wrapped_env.get_xy()
         inner_next_obs, inner_reward, _, info = self.wrapped_env.step(action)
         next_pos = self.wrapped_env.get_xy()
         collision_penalty = 0.0

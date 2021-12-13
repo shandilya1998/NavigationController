@@ -5214,3 +5214,85 @@ Traceback (most recent call last):
   File "/usr/local/lib/python3.6/site-packages/mujoco_py/builder.py", line 354, in user_warning_raise_exception
     raise MujocoException(warn + 'Check for NaN in simulation.')
 mujoco_py.builder.MujocoException: Unknown warning type Time = 19.0000.Check for NaN in simulation.
+running build_ext
+building 'mujoco_py.cymj' extension
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6/site-packages
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6/site-packages/mujoco_py
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6/site-packages/mujoco_py/gl
+gcc -pthread -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -I/usr/local/lib/python3.6/site-packages/mujoco_py -I/root/.mujoco/mjpro150/include -I/usr/local/lib/python3.6/site-packages/numpy/core/include -I/usr/local/lib/python3.6/site-packages/mujoco_py/vendor/egl -I/usr/local/include/python3.6m -c /usr/local/lib/python3.6/site-packages/mujoco_py/cymj.c -o /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6/site-packages/mujoco_py/cymj.o -fopenmp -w
+gcc -pthread -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -I/usr/local/lib/python3.6/site-packages/mujoco_py -I/root/.mujoco/mjpro150/include -I/usr/local/lib/python3.6/site-packages/numpy/core/include -I/usr/local/lib/python3.6/site-packages/mujoco_py/vendor/egl -I/usr/local/include/python3.6m -c /usr/local/lib/python3.6/site-packages/mujoco_py/gl/eglshim.c -o /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6/site-packages/mujoco_py/gl/eglshim.o -fopenmp -w
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/lib.linux-x86_64-3.6
+creating /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/lib.linux-x86_64-3.6/mujoco_py
+gcc -pthread -shared /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6/site-packages/mujoco_py/cymj.o /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/temp.linux-x86_64-3.6/usr/local/lib/python3.6/site-packages/mujoco_py/gl/eglshim.o -L/root/.mujoco/mjpro150/bin -Wl,--enable-new-dtags,-R/root/.mujoco/mjpro150/bin -lmujoco150 -lglewegl -o /usr/local/lib/python3.6/site-packages/mujoco_py/generated/_pyxbld_1.50.1.68_36_linuxgpuextensionbuilder/lib.linux-x86_64-3.6/mujoco_py/cymj.cpython-36m-x86_64-linux-gnu.so -fopenmp
+2021-12-13 13:54:51.184815: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: /usr/lib/nvidia-470:/usr/local/cuda/lib64:/root/.mujoco/mjpro150/bin:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
+2021-12-13 13:54:51.184902: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.
+/root/trainer
+Using cuda device
+Logging to assets/out/models/exp13/TD3_17
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 2e+03    |
+|    ep_rew_mean     | 14.2     |
+| time/              |          |
+|    episodes        | 4        |
+|    fps             | 79       |
+|    time_elapsed    | 100      |
+|    total timesteps | 8004     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 2e+03    |
+|    ep_rew_mean     | -25.3    |
+| time/              |          |
+|    episodes        | 8        |
+|    fps             | 81       |
+|    time_elapsed    | 197      |
+|    total timesteps | 16008    |
+---------------------------------
+Found 1 GPUs for rendering. Using device 0.
+Eval num_timesteps=20000, episode_reward=-203.59 +/- 394.98
+Episode length: 2001.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2e+03    |
+|    mean_reward     | -204     |
+| time/              |          |
+|    total_timesteps | 20000    |
+---------------------------------
+New best mean reward!
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 2e+03    |
+|    ep_rew_mean     | -27.6    |
+| time/              |          |
+|    episodes        | 12       |
+|    fps             | 45       |
+|    time_elapsed    | 522      |
+|    total timesteps | 24012    |
+| train/             |          |
+|    actor_loss      | 8.6      |
+|    critic_loss     | 3.19     |
+|    learning_rate   | 0.000978 |
+|    n_updates       | 4002     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 2e+03    |
+|    ep_rew_mean     | -29.3    |
+| time/              |          |
+|    episodes        | 16       |
+|    fps             | 38       |
+|    time_elapsed    | 823      |
+|    total timesteps | 32016    |
+| train/             |          |
+|    actor_loss      | 5.66     |
+|    critic_loss     | 1.52     |
+|    learning_rate   | 0.00097  |
+|    n_updates       | 12006    |
+---------------------------------

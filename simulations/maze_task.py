@@ -398,11 +398,15 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
             return True
         return False
 
-class GoalRewardCollision(MazeTask):
+class GoalRewardNoObstacle(GoalReward4Rooms):
     def __init__(self,
-        scale: float
-    ) -> None:
-        super().__init__(scale)
+        scale: float,
+        goal: Tuple[int, int] = (6.0, -6.0),
+        danger: List[Tuple[int, int]] = [
+            (0.0, -6.0),
+            (6.0, 0.0),
+        ]) -> None:
+        super().__init__(scale, goal)
         self.set()
 
     def set(self):
@@ -418,15 +422,31 @@ class GoalRewardCollision(MazeTask):
                 self.colors.append(copy.deepcopy(GREEN))
                 self.scales.append(1.0)
 
-        self.goals = [ 
+        self.goals = [
             MazeVisualGoal(np.array([
-                14.0 * self.scale,
-                -7.0 * self.scale
+                np.random.uniform(4.0, 6.0) * self.scale,
+                np.random.uniform(-6.0, -4.0) * self.scale
             ]), self.scales[0], self.colors[0]),
-        ]   
+            MazeVisualGoal(np.array([
+                np.random.uniform(0.0, 2.0) * self.scale,
+                np.random.uniform(-6.0, -4.0) * self.scale
+            ]), self.scales[1], self.colors[1]),
+            MazeVisualGoal(np.array([
+                np.random.uniform(4.0, 6.0) * self.scale,
+                np.random.uniform(-2.0, 0.0) * self.scale
+            ]), self.scales[2], self.colors[2]),
+        ]
 
     def reward(self, obs: np.ndarray, pos: np.ndarray) -> float:
-        reward = 0.0 
+        reward = 0.0
+        goal = self.goals[self.goal_index]
+        if goal.inframe(obs):
+            if np.linalg.norm(pos - goal.pos) <= goal.threshold * 5:
+                reward += goal.reward_scale
+            else:
+                reward += goal.reward_scale * (
+                    1 - np.linalg.norm(pos[: goal.dim] - goal.pos) / (np.linalg.norm(goal.pos))
+                )
         return reward
 
     def termination(self, pos: np.ndarray) -> bool:
@@ -438,26 +458,16 @@ class GoalRewardCollision(MazeTask):
     def create_maze() -> List[List[MazeCell]]:
         E, B, R = MazeCell.EMPTY, MazeCell.BLOCK, MazeCell.ROBOT
         return [
-            [B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B],
-            [B, E, E, B, E, E, B, E, E, B, E, E, B, E, E, E, E, B],
-            [B, E, E, B, E, E, B, E, E, B, E, E, B, E, E, E, E, B],
-            [B, E, E, B, E, E, B, E, E, B, E, E, B, E, E, E, E, B],
-            [B, E, E, B, B, E, B, B, E, B, B, E, B, B, E, E, E, B],
-            [B, E, E, E, B, E, E, B, E, E, B, E, E, B, E, E, E, B],
-            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
-            [B, E, E, E, B, E, E, B, E, E, B, E, E, B, E, E, E, B],
-            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
-            [B, E, E, E, B, E, E, B, E, E, B, E, E, B, E, E, E, B],
-            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
-            [B, E, E, E, B, E, E, B, E, E, B, E, E, B, E, E, E, B],
-            [B, E, E, B, B, E, B, B, E, B, B, E, B, B, E, E, E, B],
-            [B, E, E, B, E, E, B, E, E, B, E, E, B, E, E, E, E, B],
-            [B, E, E, B, E, E, B, E, E, B, E, E, B, E, E, E, E, B],
-            [B, R, E, B, E, E, B, E, E, B, E, E, B, E, E, E, E, B],
-            [B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B],
+            [B, B, B, B, B, B, B, B, B],
+            [B, E, E, E, E, E, E, E, B],
+            [B, E, E, E, E, E, E, E, B],
+            [B, E, E, E, E, E, E, E, B],
+            [B, E, E, E, E, E, E, E, B],
+            [B, E, E, E, E, E, E, E, B],
+            [B, E, E, E, E, E, E, E, B],
+            [B, R, E, E, E, E, E, E, B],
+            [B, B, B, B, B, B, B, B, B],
         ]
-
 
 class GoalRewardTRoom(MazeTask):
     REWARD_THRESHOLD: float = 0.9
@@ -681,7 +691,7 @@ class TaskRegistry:
         "Push": [DistRewardPush, GoalRewardPush],
         "Fall": [DistRewardFall, GoalRewardFall],
         "2Rooms": [DistReward2Rooms, GoalReward2Rooms, SubGoal2Rooms],
-        "4Rooms": [DistReward4Rooms, GoalReward4Rooms, CustomGoalReward4Rooms],
+        "4Rooms": [DistReward4Rooms, GoalReward4Rooms, CustomGoalReward4Rooms, GoalRewardNoObstacle],
         "TRoom": [DistRewardTRoom, GoalRewardTRoom, SubGoalTRoom],
         "BlockMaze": [DistRewardBlockMaze, GoalRewardBlockMaze],
         "Corridor": [DistRewardCorridor, GoalRewardCorridor, NoRewardCorridor],

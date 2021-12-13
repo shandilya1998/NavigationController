@@ -3,7 +3,7 @@ import numpy as np
 from simulations.maze_env import MazeEnv
 from simulations.collision_env import CollisionEnv
 from simulations.point import PointEnv
-from simulations.maze_task import CustomGoalReward4Rooms
+from simulations.maze_task import CustomGoalReward4Rooms, GoalRewardNoObstacle
 import stable_baselines3 as sb3
 from utils.td3_utils import TD3BG, TD3BGPolicy, \
     DictReplayBuffer, TD3BGPolicyV2, HistoryFeaturesExtractor, \
@@ -35,18 +35,22 @@ def linear_schedule(initial_value, final_value):
     return func
 
 class Explore:
-    def __init__(self, logdir, max_episode_size, policy_version, env_type = 'maze', n_steps = 4):
+    def __init__(self, logdir, max_episode_size, policy_version, env_type = 'maze', n_steps = 4, task_version = 1):
         if env_type == 'maze':
             env_class = MazeEnv
         elif env_type == 'collision':
             env_class = CollisionEnv
+        if task_version == 1:
+            task = CustomGoalReward4Rooms
+        elif task_version == 2:
+            task = GoalRewardNoObstacle
         self.logdir = logdir
         self.env = sb3.common.vec_env.vec_normalize.VecNormalize(
             sb3.common.vec_env.vec_transpose.VecTransposeImage(
                 sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
                     lambda : sb3.common.monitor.Monitor(env_class(
                         PointEnv,
-                        CustomGoalReward4Rooms,
+                        task,
                         max_episode_size,
                         policy_version,
                         n_steps

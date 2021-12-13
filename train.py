@@ -40,6 +40,11 @@ if __name__ == '__main__':
         help = 'number of images in observation input to policy',
         default = 4
     )
+    parser.add_argument(
+        '--task_version',
+        type = int,
+        help = 'choose between the different obstacle tasks'
+    )
     args = parser.parse_args()
     if args.learning_type == 'imitate':
         model = Imitate(
@@ -47,7 +52,8 @@ if __name__ == '__main__':
             max_episode_size = args.max_episode_size,
             policy_version = args.policy_version,
             env_type = args.env_type,
-            n_steps = args.n_steps
+            n_steps = args.n_steps,
+            task_version = args.task_version
         )
         model.learn(args.timesteps)
     elif args.learning_type == 'explore':
@@ -56,7 +62,8 @@ if __name__ == '__main__':
             max_episode_size = args.max_episode_size,
             policy_version = args.policy_version,
             env_type = args.env_type,
-            n_steps = args.n_steps
+            n_steps = args.n_steps,
+            task_version = args.task_version
         )
         model.learn(args.timesteps)
     else:

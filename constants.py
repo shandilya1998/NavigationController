@@ -41,7 +41,7 @@ params = {
     'OU_MEAN'                     : 0.0,
     'OU_SIGMA'                    : 0.08,
     'top_view_size'               : 50.,
-    'batch_size'                  : 16,
+    'batch_size'                  : 512,
     'lr'                          : 1e-3,
     'final_lr'                    : 1e-5,
     'n_steps'                     : 2000,

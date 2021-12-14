@@ -7,7 +7,9 @@ from simulations.maze_task import CustomGoalReward4Rooms, GoalRewardNoObstacle
 import stable_baselines3 as sb3
 from utils.td3_utils import TD3BG, TD3BGPolicy, \
     DictReplayBuffer, TD3BGPolicyV2, HistoryFeaturesExtractor, \
-    MultiModalFeaturesExtractor, NStepReplayBuffer, NStepDictReplayBuffer
+    MultiModalFeaturesExtractor, NStepReplayBuffer, \
+    NStepDictReplayBuffer, TD3Lambda, \
+    NStepLambdaDictReplayBuffer, NStepLambdaReplayBuffer
 from constants import params
 from utils.callbacks import CustomCallback, CheckpointCallback, EvalCallback
 import os
@@ -44,6 +46,7 @@ class Explore:
         history_steps = 4,
         task_version = 1,
         n_steps = 10,
+        lmbda = 0.9
     ):
         if env_type == 'maze':
             env_class = MazeEnv
@@ -87,6 +90,7 @@ class Explore:
         n_actions = self.env.action_space.sample().shape[-1]
 
         model = TD3BG
+        kwargs = {}
         policy_kwargs = None
         optimize_memory_usage = True
         replay_buffer_class = None
@@ -139,6 +143,17 @@ class Explore:
             if isinstance(self.env.observation_space, gym.spaces.dict.Dict):
                 replay_buffer_class = NStepDictReplayBuffer
 
+        if lmbda > 0 and lmbda < 1 and n_steps > 0:
+            replay_buffer_class = NStepLambdaReplayBuffer
+            if isinstance(self.env.observation_space, gym.spaces.dict.Dict):
+                replay_buffer_class = NStepLambdaDictReplayBuffer
+            replay_buffer_kwargs = { 
+                'n_steps' : n_steps,
+                'lmbda' : lmbda
+            }
+            model = TD3Lambda
+            kwargs['lmbda'] = lmbda
+            kwargs['n_steps'] = n_steps
 
         self.rl_model = model(
             policy_class,
@@ -157,7 +172,8 @@ class Explore:
             replay_buffer_kwargs = replay_buffer_kwargs,
             verbose = 2,
             device = 'auto',
-            policy_kwargs = policy_kwargs
+            policy_kwargs = policy_kwargs,
+            **kwargs
         )
 
     def __set_rl_callback(self):

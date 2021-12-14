@@ -802,7 +802,7 @@ class NStepReplayBuffer(sb3.common.buffers.ReplayBuffer):
     :param buffer_size: (int) Max number of element in the buffer
     :param observation_space: (spaces.Space) Observation space
     :param action_space: (spaces.Space) Action space
-    :param device: (Union[th.device, str]) PyTorch device
+    :param device: (Union[torch.device, str]) PyTorch device
         to which the values will be converted
     :param n_envs: (int) Number of parallel environments
     :param optimize_memory_usage: (bool) Enable a memory efficient variant
@@ -924,7 +924,7 @@ class NStepLambdaReplayBuffer(sb3.common.buffers.ReplayBuffer):
     :param buffer_size: (int) Max number of element in the buffer
     :param observation_space: (spaces.Space) Observation space
     :param action_space: (spaces.Space) Action space
-    :param device: (Union[th.device, str]) PyTorch device
+    :param device: (Union[torch.device, str]) PyTorch device
         to which the values will be converted
     :param n_envs: (int) Number of parallel environments
     :param optimize_memory_usage: (bool) Enable a memory efficient variant
@@ -955,10 +955,7 @@ class NStepLambdaReplayBuffer(sb3.common.buffers.ReplayBuffer):
         self.gamma = gamma
         self.lmbda = lmbda
 
-    def _get_samples(self, batch_inds: np.ndarray, env: Optional[sb3.common.vec_env.vec_normalize.VecNormalize] = None) -> sb3.common.type_aliases.ReplayBufferSamples:
-
-        actions = self.actions[batch_inds, 0, :]
-
+    def _get_samples(self, batch_inds: np.ndarray, env: Optional[sb3.common.vec_env.vec_normalize.VecNormalize] = None) -> ReplayBufferSamples:
         gamma = self.gamma
         lmbda = self.lmbda
         # Broadcasting turns 1dim arange matrix to 2 dimensional matrix that contains all
@@ -980,18 +977,19 @@ class NStepLambdaReplayBuffer(sb3.common.buffers.ReplayBuffer):
         # using indices we select the current transition, plus the next n_step ones
         rewards = np.squeeze(self.rewards[indices], axis=-1)
         rewards = self._normalize_reward(rewards, env) * not_dones
-        returns = np.sum(lmbdas * np.add.accumulate(gammas * rewards), -1)
+        returns = np.expand_dims(
+            np.sum(lmbdas * np.add.accumulate(gammas * rewards), -1) * (1 - lmbda), -1
+        ).astype(np.float32)
 
         obs = self._normalize_obs(self.observations[batch_inds, 0, :], env)
         if self.optimize_memory_usage:
-            next_obs = self._normalize_obs(self.observations[(next_obs_indices + 1) % self.buffer_size, 0, :], env)
+            next_obs = self._normalize_obs(self.observations[(indices + 1) % self.buffer_size, 0, :], env)
         else:
-            next_obs = self._normalize_obs(self.next_observations[next_obs_indices, 0, :], env)
+            next_obs = self._normalize_obs(self.next_observations[indices, 0, :], env)
 
-        dones = 1.0 - (not_dones[np.arange(len(batch_inds)), increments]).reshape(len(batch_inds), 1)
-
-        data = (obs, actions, next_obs, dones, rewards)
-        return sb3.common.type_aliases.ReplayBufferSamples(*tuple(map(self.to_torch, data)))
+        actions = self.actions[batch_inds]
+        data = (obs, actions, next_obs, dones, returns)
+        return ReplayBufferSamples(*tuple(map(self.to_torch, data)))
 
 class NStepDictReplayBuffer(sb3.common.buffers.DictReplayBuffer):
     """
@@ -999,7 +997,7 @@ class NStepDictReplayBuffer(sb3.common.buffers.DictReplayBuffer):
     :param buffer_size: (int) Max number of element in the buffer
     :param observation_space: (spaces.Space) Observation space
     :param action_space: (spaces.Space) Action space
-    :param device: (Union[th.device, str]) PyTorch device
+    :param device: (Union[torch.device, str]) PyTorch device
         to which the values will be converted
     :param n_envs: (int) Number of parallel environments
     :param optimize_memory_usage: (bool) Enable a memory efficient variant
@@ -1103,8 +1101,6 @@ class NStepDictReplayBuffer(sb3.common.buffers.DictReplayBuffer):
         next_observations = {key: self.to_torch(obs) for key, obs in next_obs_.items()}
 
         dones = 1.0 - (not_dones[np.arange(len(batch_inds)), increments]).reshape(len(batch_inds), 1)
-        
-        data = (obs_, actions, next_obs_, dones, rewards)
         return sb3.common.type_aliases.DictReplayBufferSamples(
             observations=observations,
             actions=self.to_torch(actions),
@@ -1114,6 +1110,218 @@ class NStepDictReplayBuffer(sb3.common.buffers.DictReplayBuffer):
             dones=self.to_torch(dones),
             rewards=self.to_torch(self._normalize_reward(rewards)),
         )
+
+TensorDict = Dict[Union[str, int], torch.Tensor]
+
+class DictReplayBufferSamples(ReplayBufferSamples):
+    observations: TensorDict
+    actions: torch.Tensor
+    next_observations: TensorDict
+    dones: torch.Tensor
+    returns: torch.Tensor
+
+class NStepLambdaDictReplayBuffer(sb3.common.buffers.DictReplayBuffer):
+    """  
+    Replay Buffer that computes N-step returns.
+    :param buffer_size: (int) Max number of element in the buffer
+    :param observation_space: (spaces.Space) Observation space
+    :param action_space: (spaces.Space) Action space
+    :param device: (Union[torch.device, str]) PyTorch device
+        to which the values will be converted
+    :param n_envs: (int) Number of parallel environments
+    :param optimize_memory_usage: (bool) Enable a memory efficient variant
+        of the replay buffer which reduces by almost a factor two the memory used,
+        at a cost of more complexity.
+        See https://github.com/DLR-RM/stable-baselines3/issues/37#issuecomment-637501195
+        and https://github.com/DLR-RM/stable-baselines3/pull/28#issuecomment-637559274
+    :param n_steps: (int) The number of transitions to consider when computing n-step returns
+    :param gamma:  (float) The discount factor for future rewards.
+    """
+
+    def __init__(
+        self,
+        buffer_size: int, 
+        observation_space: gym.spaces.Space,
+        action_space: gym.spaces.Space,
+        device: Union[torch.device, str] = "cpu",
+        n_envs: int = 1, 
+        optimize_memory_usage: bool = False,
+        n_steps: int = 1, 
+        gamma: float = 0.99,
+        lmbda: float = 0.9
+    ):   
+        super().__init__(buffer_size, observation_space, action_space, device, n_envs, optimize_memory_usage)
+        self.n_steps = int(n_steps)
+        if not 0 < n_steps <= buffer_size:
+            raise ValueError("n_steps needs to be strictly smaller than buffer_size, and strictly larger than 0")
+        self.gamma = gamma
+        self.lmbda = lmbda
+
+    def _get_samples(self, batch_inds: np.ndarray, env: Optional[sb3.common.vec_env.vec_normalize.VecNormalize] = None) -> DictReplayBufferSamples:
+        gamma = self.gamma
+        lmbda = self.lmbda
+        # Broadcasting turns 1dim arange matrix to 2 dimensional matrix that contains all
+        # the indices, % buffersize keeps us in buffer range
+        # indices is a [B x self.n_step ] matrix
+        indices = (np.arange(self.n_steps) + batch_inds.reshape(-1, 1)) % self.buffer_size
+
+        # two dim matrix of not dones. If done is true, then subsequent dones are turned to 0
+        # using accumulate. This ensures that we don't use invalid transitions
+        # not_dones is a [B x n_step] matrix
+        not_dones = np.squeeze(1.0 - self.dones[indices], axis=-1)
+        not_dones = np.multiply.accumulate(not_dones, axis=1)
+        dones = 1.0 - not_dones
+        # vector of the discount factor
+        # [n_step] vector
+        gammas = gamma ** np.arange(self.n_steps)
+        lmbdas = lmbda ** np.arange(self.n_steps)
+        # two dim matrix of rewards for the indices
+        # using indices we select the current transition, plus the next n_step ones
+        rewards = np.squeeze(self.rewards[indices], axis=-1)
+        rewards = self._normalize_reward(rewards, env) * not_dones
+        returns = np.expand_dims(
+            np.sum(lmbdas * np.add.accumulate(gammas * rewards), -1) * (1 - lmbda), -1
+        ).astype(np.float32)
+
+        obs_ = self._normalize_obs({key: obs[batch_inds, 0, :] for key, obs in self.observations.items()})
+        next_obs_ = self._normalize_obs({key: obs[(indices + 1) % self.buffer_size, 0, :] for key, obs in self.next_observations.items()})
+
+        observations = {key: self.to_torch(obs) for key, obs in obs_.items()}
+        next_observations = {key: self.to_torch(obs) for key, obs in next_obs_.items()}
+
+        actions = self.actions[batch_inds]
+
+        return DictReplayBufferSamples(
+            observations=observations,
+            actions=self.to_torch(actions),
+            next_observations=next_observations,
+            # Only use dones that are not due to timeouts
+            # deactivated by default (timeouts is initialized as an array of False)
+            dones=self.to_torch(dones),
+            returns=self.to_torch(returns),
+        )
+
+class TD3Lambda(sb3.td3.td3.TD3):
+    def __init__(
+        self,
+        policy: Union[str, Type[sb3.td3.policies.TD3Policy]],
+        env: Union[sb3.common.type_aliases.GymEnv, str],
+        learning_rate: Union[float, sb3.common.type_aliases.Schedule] = 1e-3,
+        buffer_size: int = 1000000,  # 1e6
+        learning_starts: int = 100,
+        batch_size: int = 100,
+        tau: float = 0.005,
+        gamma: float = 0.99,
+        n_steps: float = 5,
+        lmbda: float = 0.9,
+        train_freq: Union[int, Tuple[int, str]] = (1, "episode"),
+        gradient_steps: int = -1,
+        action_noise: Optional[sb3.common.noise.ActionNoise] = None,
+        replay_buffer_class: Optional[sb3.common.buffers.ReplayBuffer] = None,
+        replay_buffer_kwargs: Optional[Dict[str, Any]] = None,
+        optimize_memory_usage: bool = False,
+        policy_delay: int = 2,
+        target_policy_noise: float = 0.2,
+        target_noise_clip: float = 0.5,
+        tensorboard_log: Optional[str] = None,
+        create_eval_env: bool = False,
+        policy_kwargs: Dict[str, Any] = None,
+        verbose: int = 0,
+        seed: Optional[int] = None,
+        device: Union[torch.device, str] = "auto",
+        _init_setup_model: bool = True,
+    ):
+        self.lmbda = lmbda
+        self.n_steps = n_steps
+        super(TD3Lambda, self).__init__(
+            policy,
+            env,
+            learning_rate,
+            buffer_size,  # 1e6
+            learning_starts,
+            batch_size,
+            tau,
+            gamma,
+            train_freq,
+            gradient_steps,
+            action_noise,
+            replay_buffer_class,
+            replay_buffer_kwargs,
+            optimize_memory_usage,
+            policy_delay,
+            target_policy_noise,
+            target_noise_clip,
+            tensorboard_log,
+            create_eval_env,
+            policy_kwargs,
+            verbose,
+            seed,
+            device,
+            _init_setup_model
+        )
+
+    def train(self, gradient_steps: int, batch_size: int = 100) -> None:
+
+        # Update learning rate according to lr schedule
+        self._update_learning_rate([self.actor.optimizer, self.critic.optimizer])
+
+        actor_losses, critic_losses = [], []
+
+        for _ in range(gradient_steps):
+
+            self._n_updates += 1
+            # Sample replay buffer
+            replay_data = self.replay_buffer.sample(batch_size, env=self._vec_normalize_env)
+
+            with torch.no_grad():
+                # Select action according to policy and add clipped noise
+                target_q_values = replay_data.returns
+                for i in range(self.n_steps):
+                    actions = replay_data.actions.clone()
+                    noise = actions.data.normal_(0, self.target_policy_noise)
+                    noise = noise.clamp(-self.target_noise_clip, self.target_noise_clip)
+                    if isinstance(replay_data.observations, dict):
+                        next_observations = {key: ob[:, i] for key, ob in replay_data.next_observations.items()}
+                    else:
+                        next_observations = replay_data.next_observations[:, i]
+                    next_actions = (self.actor_target(next_observations) + noise).clamp(-1, 1)
+
+                    next_q_values = torch.cat(self.critic_target(next_observations, next_actions), dim=1)
+                    next_q_values, _ = torch.min(next_q_values, dim=1, keepdim=True)
+                    dones = torch.unsqueeze(replay_data.dones[:, i], -1)
+                    out = dones * next_q_values
+                    q_value = (1 - dones) * self.gamma * next_q_values * (self.lmbda ** i) * (1 - self.lmbda)
+                    target_q_values += q_value
+            # Get current Q-values estimates for each critic network
+            current_q_values = self.critic(replay_data.observations, replay_data.actions)
+
+            # Compute critic loss
+            critic_loss = sum([torch.nn.functional.mse_loss(current_q, target_q_values) for current_q in current_q_values])
+            critic_losses.append(critic_loss.item())
+
+            # Optimize the critics
+            self.critic.optimizer.zero_grad()
+            critic_loss.backward()
+            self.critic.optimizer.step()
+
+            # Delayed policy updates
+            if self._n_updates % self.policy_delay == 0:
+                # Compute actor loss
+                actor_loss = -self.critic.q1_forward(replay_data.observations, self.actor(replay_data.observations)).mean()
+                actor_losses.append(actor_loss.item())
+
+                # Optimize the actor
+                self.actor.optimizer.zero_grad()
+                actor_loss.backward()
+                self.actor.optimizer.step()
+
+                sb3.common.utils.polyak_update(self.critic.parameters(), self.critic_target.parameters(), self.tau)
+                sb3.common.utils.polyak_update(self.actor.parameters(), self.actor_target.parameters(), self.tau)
+
+        self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
+        if len(actor_losses) > 0:
+            self.logger.record("train/actor_loss", np.mean(actor_losses))
+        self.logger.record("train/critic_loss", np.mean(critic_losses))
 
 class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
     """

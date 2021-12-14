@@ -50,6 +50,11 @@ if __name__ == '__main__':
         type = int,
         help = 'number of steps of for n step TD return'
     )
+    parser.add_argument(
+        '--lmbda',
+        type = float,
+        help = 'value of lambda to choose between TD(0), TD(1) or TD(λ) learning'
+    )
     args = parser.parse_args()
     if args.learning_type == 'imitate':
         model = Imitate(
@@ -59,7 +64,8 @@ if __name__ == '__main__':
             env_type = args.env_type,
             history_steps = args.n_steps,
             task_version = args.task_version,
-            n_steps = args.n_steps
+            n_steps = args.n_steps,
+            lmbda = args.lmbda
         )
         model.learn(args.timesteps)
     elif args.learning_type == 'explore':
@@ -70,7 +76,8 @@ if __name__ == '__main__':
             env_type = args.env_type,
             history_steps = args.n_steps,
             task_version = args.task_version,
-            n_steps = args.n_steps
+            n_steps = args.n_steps,
+            lmbda = args.lmbda
         )
         model.learn(args.timesteps)
     else:

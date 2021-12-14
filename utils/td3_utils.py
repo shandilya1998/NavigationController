@@ -910,6 +910,89 @@ class NStepReplayBuffer(sb3.common.buffers.ReplayBuffer):
         data = (obs, actions, next_obs, dones, rewards)
         return sb3.common.type_aliases.ReplayBufferSamples(*tuple(map(self.to_torch, data)))
 
+
+class ReplayBufferSamples(NamedTuple):
+    observations: torch.Tensor
+    actions: torch.Tensor
+    next_observations: torch.Tensor
+    dones: torch.Tensor
+    returns: torch.Tensor
+
+class NStepLambdaReplayBuffer(sb3.common.buffers.ReplayBuffer):
+    """
+    Replay Buffer that computes N-step returns.
+    :param buffer_size: (int) Max number of element in the buffer
+    :param observation_space: (spaces.Space) Observation space
+    :param action_space: (spaces.Space) Action space
+    :param device: (Union[th.device, str]) PyTorch device
+        to which the values will be converted
+    :param n_envs: (int) Number of parallel environments
+    :param optimize_memory_usage: (bool) Enable a memory efficient variant
+        of the replay buffer which reduces by almost a factor two the memory used,
+        at a cost of more complexity.
+        See https://github.com/DLR-RM/stable-baselines3/issues/37#issuecomment-637501195
+        and https://github.com/DLR-RM/stable-baselines3/pull/28#issuecomment-637559274
+    :param n_steps: (int) The number of transitions to consider when computing n-step returns
+    :param gamma:  (float) The discount factor for future rewards.
+    """
+
+    def __init__(
+        self,
+        buffer_size: int,
+        observation_space: gym.spaces.Space,
+        action_space: gym.spaces.Space,
+        device: Union[torch.device, str] = "cpu",
+        n_envs: int = 1,
+        optimize_memory_usage: bool = False,
+        n_steps: int = 1,
+        gamma: float = 0.99,
+        lmbda: float = 0.9
+    ):
+        super().__init__(buffer_size, observation_space, action_space, device, n_envs, optimize_memory_usage)
+        self.n_steps = int(n_steps)
+        if not 0 < n_steps <= buffer_size:
+            raise ValueError("n_steps needs to be strictly smaller than buffer_size, and strictly larger than 0")
+        self.gamma = gamma
+        self.lmbda = lmbda
+
+    def _get_samples(self, batch_inds: np.ndarray, env: Optional[sb3.common.vec_env.vec_normalize.VecNormalize] = None) -> sb3.common.type_aliases.ReplayBufferSamples:
+
+        actions = self.actions[batch_inds, 0, :]
+
+        gamma = self.gamma
+        lmbda = self.lmbda
+        # Broadcasting turns 1dim arange matrix to 2 dimensional matrix that contains all
+        # the indices, % buffersize keeps us in buffer range
+        # indices is a [B x self.n_step ] matrix
+        indices = (np.arange(self.n_steps) + batch_inds.reshape(-1, 1)) % self.buffer_size
+
+        # two dim matrix of not dones. If done is true, then subsequent dones are turned to 0
+        # using accumulate. This ensures that we don't use invalid transitions
+        # not_dones is a [B x n_step] matrix
+        not_dones = np.squeeze(1 - self.dones[indices], axis=-1)
+        not_dones = np.multiply.accumulate(not_dones, axis=1)
+        dones = 1 - not_dones
+        # vector of the discount factor
+        # [n_step] vector
+        gammas = gamma ** np.arange(self.n_steps)
+        lmbdas = lmbda ** np.arange(self.n_steps)
+        # two dim matrix of rewards for the indices
+        # using indices we select the current transition, plus the next n_step ones
+        rewards = np.squeeze(self.rewards[indices], axis=-1)
+        rewards = self._normalize_reward(rewards, env) * not_dones
+        returns = np.sum(lmbdas * np.add.accumulate(gammas * rewards), -1)
+
+        obs = self._normalize_obs(self.observations[batch_inds, 0, :], env)
+        if self.optimize_memory_usage:
+            next_obs = self._normalize_obs(self.observations[(next_obs_indices + 1) % self.buffer_size, 0, :], env)
+        else:
+            next_obs = self._normalize_obs(self.next_observations[next_obs_indices, 0, :], env)
+
+        dones = 1.0 - (not_dones[np.arange(len(batch_inds)), increments]).reshape(len(batch_inds), 1)
+
+        data = (obs, actions, next_obs, dones, rewards)
+        return sb3.common.type_aliases.ReplayBufferSamples(*tuple(map(self.to_torch, data)))
+
 class NStepDictReplayBuffer(sb3.common.buffers.DictReplayBuffer):
     """
     Replay Buffer that computes N-step returns.
@@ -1014,7 +1097,7 @@ class NStepDictReplayBuffer(sb3.common.buffers.DictReplayBuffer):
 
         next_obs_indices = (increments + batch_inds) % self.buffer_size
         obs_ = self._normalize_obs({key: obs[batch_inds, 0, :] for key, obs in self.observations.items()})
-        next_obs_ = self._normalize_obs({key: obs[batch_inds, 0, :] for key, obs in self.next_observations.items()})
+        next_obs_ = self._normalize_obs({key: obs[next_obs_indices, 0, :] for key, obs in self.next_observations.items()})
 
         observations = {key: self.to_torch(obs) for key, obs in obs_.items()}
         next_observations = {key: self.to_torch(obs) for key, obs in next_obs_.items()}

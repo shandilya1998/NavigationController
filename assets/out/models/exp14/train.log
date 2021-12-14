@@ -3648,3 +3648,151 @@ Episode length: 2001.00 +/- 0.00
 |    learning_rate   | 0.000852 |
 |    n_updates       | 130065   |
 ---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.99e+03 |
+|    ep_rew_mean     | 8.22     |
+| time/              |          |
+|    episodes        | 80       |
+|    fps             | 15       |
+|    time_elapsed    | 10480    |
+|    total timesteps | 159451   |
+| train/             |          |
+|    actor_loss      | -0.829   |
+|    critic_loss     | 14.7     |
+|    learning_rate   | 0.000844 |
+|    n_updates       | 138069   |
+---------------------------------
+Eval num_timesteps=160000, episode_reward=-6.89 +/- 32.41
+Episode length: 2001.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2e+03    |
+|    mean_reward     | -6.89    |
+| time/              |          |
+|    total_timesteps | 160000   |
+| train/             |          |
+|    actor_loss      | -0.882   |
+|    critic_loss     | 14.9     |
+|    learning_rate   | 0.000842 |
+|    n_updates       | 140070   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.99e+03 |
+|    ep_rew_mean     | 9.5      |
+| time/              |          |
+|    episodes        | 84       |
+|    fps             | 15       |
+|    time_elapsed    | 11116    |
+|    total timesteps | 166829   |
+| train/             |          |
+|    actor_loss      | -1.08    |
+|    critic_loss     | 14.8     |
+|    learning_rate   | 0.000837 |
+|    n_updates       | 145447   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.99e+03 |
+|    ep_rew_mean     | 10.2     |
+| time/              |          |
+|    episodes        | 88       |
+|    fps             | 15       |
+|    time_elapsed    | 11644    |
+|    total timesteps | 174833   |
+| train/             |          |
+|    actor_loss      | -1.29    |
+|    critic_loss     | 14.7     |
+|    learning_rate   | 0.000829 |
+|    n_updates       | 153451   |
+---------------------------------
+Eval num_timesteps=180000, episode_reward=37.97 +/- 31.13
+Episode length: 2001.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2e+03    |
+|    mean_reward     | 38       |
+| time/              |          |
+|    total_timesteps | 180000   |
+| train/             |          |
+|    actor_loss      | -1.43    |
+|    critic_loss     | 14.7     |
+|    learning_rate   | 0.000823 |
+|    n_updates       | 159454   |
+---------------------------------
+New best mean reward!
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.99e+03 |
+|    ep_rew_mean     | 9.08     |
+| time/              |          |
+|    episodes        | 92       |
+|    fps             | 14       |
+|    time_elapsed    | 12318    |
+|    total timesteps | 182837   |
+| train/             |          |
+|    actor_loss      | -1.47    |
+|    critic_loss     | 14.7     |
+|    learning_rate   | 0.000821 |
+|    n_updates       | 161455   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.99e+03 |
+|    ep_rew_mean     | 8.75     |
+| time/              |          |
+|    episodes        | 96       |
+|    fps             | 14       |
+|    time_elapsed    | 12846    |
+|    total timesteps | 190841   |
+| train/             |          |
+|    actor_loss      | -1.56    |
+|    critic_loss     | 14.6     |
+|    learning_rate   | 0.000813 |
+|    n_updates       | 169459   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.99e+03 |
+|    ep_rew_mean     | 8.86     |
+| time/              |          |
+|    episodes        | 100      |
+|    fps             | 14       |
+|    time_elapsed    | 13377    |
+|    total timesteps | 198845   |
+| train/             |          |
+|    actor_loss      | -1.59    |
+|    critic_loss     | 14.6     |
+|    learning_rate   | 0.000805 |
+|    n_updates       | 177463   |
+---------------------------------
+Eval num_timesteps=200000, episode_reward=26.13 +/- 7.10
+Episode length: 2001.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2e+03    |
+|    mean_reward     | 26.1     |
+| time/              |          |
+|    total_timesteps | 200000   |
+| train/             |          |
+|    actor_loss      | -1.58    |
+|    critic_loss     | 14.3     |
+|    learning_rate   | 0.000803 |
+|    n_updates       | 179464   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.99e+03 |
+|    ep_rew_mean     | 5.76     |
+| time/              |          |
+|    episodes        | 104      |
+|    fps             | 14       |
+|    time_elapsed    | 14047    |
+|    total timesteps | 206849   |
+| train/             |          |
+|    actor_loss      | -1.57    |
+|    critic_loss     | 14.5     |
+|    learning_rate   | 0.000797 |
+|    n_updates       | 185467   |
+---------------------------------

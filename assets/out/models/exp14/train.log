@@ -3633,3 +3633,18 @@ Episode length: 2001.00 +/- 0.00
 |    learning_rate   | 0.00086  |
 |    n_updates       | 122061   |
 ---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.99e+03 |
+|    ep_rew_mean     | 6.1      |
+| time/              |          |
+|    episodes        | 76       |
+|    fps             | 15       |
+|    time_elapsed    | 9948     |
+|    total timesteps | 151447   |
+| train/             |          |
+|    actor_loss      | -0.617   |
+|    critic_loss     | 14.7     |
+|    learning_rate   | 0.000852 |
+|    n_updates       | 130065   |
+---------------------------------

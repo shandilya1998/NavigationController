@@ -458,15 +458,15 @@ class GoalRewardNoObstacle(GoalReward4Rooms):
     def create_maze() -> List[List[MazeCell]]:
         E, B, R = MazeCell.EMPTY, MazeCell.BLOCK, MazeCell.ROBOT
         return [
-            [B, B, B, B, B, B, B, B, B],
-            [B, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, B],
-            [B, R, E, E, E, E, E, E, B],
-            [B, B, B, B, B, B, B, B, B],
+            [E, E, E, E, E, E, E, E, E],
+            [E, E, E, E, E, E, E, E, E],
+            [E, E, E, E, E, E, E, E, E],
+            [E, E, E, E, E, E, E, E, E],
+            [E, E, E, E, E, E, E, E, E],
+            [E, E, E, E, E, E, E, E, E],
+            [E, E, E, E, E, E, E, E, E],
+            [E, R, E, E, E, E, E, E, E],
+            [E, E, E, E, E, E, E, E, E],
         ]
 
 class GoalRewardTRoom(MazeTask):

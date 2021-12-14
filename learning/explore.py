@@ -7,11 +7,12 @@ from simulations.maze_task import CustomGoalReward4Rooms, GoalRewardNoObstacle
 import stable_baselines3 as sb3
 from utils.td3_utils import TD3BG, TD3BGPolicy, \
     DictReplayBuffer, TD3BGPolicyV2, HistoryFeaturesExtractor, \
-    MultiModalFeaturesExtractor
+    MultiModalFeaturesExtractor, NStepReplayBuffer, NStepDictReplayBuffer
 from constants import params
 from utils.callbacks import CustomCallback, CheckpointCallback, EvalCallback
 import os
 import shutil
+import gym
 
 torch.autograd.set_detect_anomaly(True)
 
@@ -35,7 +36,15 @@ def linear_schedule(initial_value, final_value):
     return func
 
 class Explore:
-    def __init__(self, logdir, max_episode_size, policy_version, env_type = 'maze', n_steps = 4, task_version = 1):
+    def __init__(self,
+        logdir,
+        max_episode_size,
+        policy_version,
+        env_type = 'maze',
+        history_steps = 4,
+        task_version = 1,
+        n_steps = 10,
+    ):
         if env_type == 'maze':
             env_class = MazeEnv
         elif env_type == 'collision':
@@ -52,7 +61,7 @@ class Explore:
                     task,
                     max_episode_size,
                     policy_version,
-                    n_steps
+                    history_steps
                 ))
             ])
         )
@@ -64,7 +73,7 @@ class Explore:
                     CustomGoalReward4Rooms,
                     max_episode_size,
                     policy_version,
-                    n_steps
+                    history_steps
                 ))
             ])
         )
@@ -75,6 +84,8 @@ class Explore:
         model = TD3BG
         policy_kwargs = None
         optimize_memory_usage = True
+        replay_buffer_class = None
+        replay_buffer_kwargs = None
         if policy_version == 1:
             policy_class = TD3BGPolicy
             action_noise = None
@@ -115,6 +126,15 @@ class Explore:
         else:
             raise ValueError('Expected policy version less than or equal to 2, got {}'.format(policy_version))
 
+        if n_steps > 0:
+            replay_buffer_class = NStepReplayBuffer
+            replay_buffer_kwargs = {
+                'n_steps' : n_steps
+            }
+            if isinstance(self.env.observation_space, gym.spaces.dict.Dict):
+                replay_buffer_class = NStepDictReplayBuffer
+
+
         self.rl_model = model(
             policy_class,
             self.env,
@@ -128,6 +148,8 @@ class Explore:
             gamma = params['gamma'],
             tau = params['tau'],
             train_freq = (1, 'episode'),
+            replay_buffer_class = replay_buffer_class,
+            replay_buffer_kwargs = replay_buffer_kwargs,
             verbose = 2,
             device = 'auto',
             policy_kwargs = policy_kwargs

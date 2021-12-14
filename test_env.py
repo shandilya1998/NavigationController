@@ -40,7 +40,6 @@ ax.set_ylabel('reward')
 total_reward = 0.0
 while not done:
     ob, reward, done, info = env.step(ob['sampled_action'])
-    print(env.wrapped_env.sim.data.qvel[-1])
     if reward != 0.0:
         count += 1
     if info['collision_penalty'] != 0:

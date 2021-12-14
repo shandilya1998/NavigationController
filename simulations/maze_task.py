@@ -370,22 +370,22 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
             MazeVisualGoal(np.array([
                 np.random.uniform(4.0, 6.0) * self.scale,
                 np.random.uniform(-6.0, -4.0) * self.scale
-            ]), self.scales[0], self.colors[0]),
+            ]), self.scales[0], self.colors[0], 3),
             MazeVisualGoal(np.array([
                 np.random.uniform(0.0, 2.0) * self.scale,
                 np.random.uniform(-6.0, -4.0) * self.scale
-            ]), self.scales[1], self.colors[1]),
+            ]), self.scales[1], self.colors[1], 3),
             MazeVisualGoal(np.array([
                 np.random.uniform(4.0, 6.0) * self.scale,
                 np.random.uniform(-2.0, 0.0) * self.scale
-            ]), self.scales[2], self.colors[2]),
+            ]), self.scales[2], self.colors[2], 3),
         ]
 
     def reward(self, obs: np.ndarray, pos: np.ndarray) -> float:
         reward = 0.0
         goal = self.goals[self.goal_index]
         if goal.inframe(obs):
-            if np.linalg.norm(pos - goal.pos) <= goal.threshold * 5:
+            if np.linalg.norm(pos - goal.pos) <= goal.threshold * 4:
                 return goal.reward_scale
             else:
                 return goal.reward_scale * (
@@ -394,7 +394,7 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
         return reward
 
     def termination(self, obs: np.ndarray, pos: np.ndarray) -> bool:
-        if self.goals[self.goal_index].neighbor(pos) and self.goals[self.goal_index].inframe(obs)
+        if self.goals[self.goal_index].neighbor(pos) and self.goals[self.goal_index].inframe(obs):
             return True
         return False
 

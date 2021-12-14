@@ -393,8 +393,8 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
                 )
         return reward
 
-    def termination(self, pos: np.ndarray) -> bool:
-        if self.goals[self.goal_index].neighbor(pos):
+    def termination(self, obs: np.ndarray, pos: np.ndarray) -> bool:
+        if self.goals[self.goal_index].neighbor(pos) and self.goals[self.goal_index].inframe(obs)
             return True
         return False
 

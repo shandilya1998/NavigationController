@@ -47,12 +47,17 @@ class Explore:
     ):
         if env_type == 'maze':
             env_class = MazeEnv
+            print('Env Type: maze')
         elif env_type == 'collision':
             env_class = CollisionEnv
+            print('Env Type: collision')
+            raise ValueError
         if task_version == 1:
             task = CustomGoalReward4Rooms
+            print('Task: CustomGoalReward4Rooms')
         elif task_version == 2:
             task = GoalRewardNoObstacle
+            print('Task: GoalRewardNoObstacle')
         self.logdir = logdir
         self.env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
             sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
@@ -70,7 +75,7 @@ class Explore:
             sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
                 lambda : sb3.common.monitor.Monitor(env_class(
                     PointEnv,
-                    CustomGoalReward4Rooms,
+                    task,
                     max_episode_size,
                     policy_version,
                     history_steps

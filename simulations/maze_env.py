@@ -577,15 +577,12 @@ class MazeEnv(gym.Env):
         inner_reward = self._inner_reward_scaling * inner_reward
         if isinstance(next_obs, dict):
             img = next_obs['observation'].copy()
-            if next_obs['observation'].shape[-1] == 4:
-                img = img[:, :, :3]
-            outer_reward = self._task.reward(img, next_pos)
         else:
             img = next_obs.copy()
-            if next_obs.shape[-1] == 4:
-                img = img[:, :, :3]
-            outer_reward = self._task.reward(next_obs, next_pos)
-        done = self._task.termination(self.wrapped_env.get_xy())
+        if img.shape[-1] == 4:
+            img = img[:, :, :3]
+        outer_reward = self._task.reward(img, next_pos)
+        done = self._task.termination(img, self.wrapped_env.get_xy())
         info["position"] = self.wrapped_env.get_xy()
         index = self.__get_current_cell()
         self._current_cell = index

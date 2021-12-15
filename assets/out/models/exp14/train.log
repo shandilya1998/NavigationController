@@ -3796,3 +3796,196 @@ Episode length: 2001.00 +/- 0.00
 |    learning_rate   | 0.000797 |
 |    n_updates       | 185467   |
 ---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.99e+03 |
+|    ep_rew_mean     | 4.96     |
+| time/              |          |
+|    episodes        | 108      |
+|    fps             | 14       |
+|    time_elapsed    | 14577    |
+|    total timesteps | 214853   |
+| train/             |          |
+|    actor_loss      | -1.46    |
+|    critic_loss     | 14.9     |
+|    learning_rate   | 0.000789 |
+|    n_updates       | 193471   |
+---------------------------------
+Eval num_timesteps=220000, episode_reward=6.00 +/- 45.24
+Episode length: 2001.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2e+03    |
+|    mean_reward     | 6        |
+| time/              |          |
+|    total_timesteps | 220000   |
+| train/             |          |
+|    actor_loss      | -1.43    |
+|    critic_loss     | 14.9     |
+|    learning_rate   | 0.000783 |
+|    n_updates       | 199474   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.99e+03 |
+|    ep_rew_mean     | 4.67     |
+| time/              |          |
+|    episodes        | 112      |
+|    fps             | 14       |
+|    time_elapsed    | 15256    |
+|    total timesteps | 222857   |
+| train/             |          |
+|    actor_loss      | -1.42    |
+|    critic_loss     | 14.7     |
+|    learning_rate   | 0.000781 |
+|    n_updates       | 201475   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.99e+03 |
+|    ep_rew_mean     | 6.8      |
+| time/              |          |
+|    episodes        | 116      |
+|    fps             | 14       |
+|    time_elapsed    | 15792    |
+|    total timesteps | 230861   |
+| train/             |          |
+|    actor_loss      | -1.39    |
+|    critic_loss     | 14.9     |
+|    learning_rate   | 0.000773 |
+|    n_updates       | 209479   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.99e+03 |
+|    ep_rew_mean     | 8.4      |
+| time/              |          |
+|    episodes        | 120      |
+|    fps             | 14       |
+|    time_elapsed    | 16323    |
+|    total timesteps | 238865   |
+| train/             |          |
+|    actor_loss      | -1.46    |
+|    critic_loss     | 14.9     |
+|    learning_rate   | 0.000766 |
+|    n_updates       | 217483   |
+---------------------------------
+Eval num_timesteps=240000, episode_reward=34.46 +/- 12.84
+Episode length: 2001.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2e+03    |
+|    mean_reward     | 34.5     |
+| time/              |          |
+|    total_timesteps | 240000   |
+| train/             |          |
+|    actor_loss      | -1.47    |
+|    critic_loss     | 14.9     |
+|    learning_rate   | 0.000764 |
+|    n_updates       | 219484   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.99e+03 |
+|    ep_rew_mean     | 8.42     |
+| time/              |          |
+|    episodes        | 124      |
+|    fps             | 14       |
+|    time_elapsed    | 16982    |
+|    total timesteps | 246672   |
+| train/             |          |
+|    actor_loss      | -1.52    |
+|    critic_loss     | 14.6     |
+|    learning_rate   | 0.000758 |
+|    n_updates       | 225290   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.99e+03 |
+|    ep_rew_mean     | 7.34     |
+| time/              |          |
+|    episodes        | 128      |
+|    fps             | 14       |
+|    time_elapsed    | 17514    |
+|    total timesteps | 254676   |
+| train/             |          |
+|    actor_loss      | -1.54    |
+|    critic_loss     | 14.8     |
+|    learning_rate   | 0.00075  |
+|    n_updates       | 233294   |
+---------------------------------
+Eval num_timesteps=260000, episode_reward=14.67 +/- 14.59
+Episode length: 2001.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2e+03    |
+|    mean_reward     | 14.7     |
+| time/              |          |
+|    total_timesteps | 260000   |
+| train/             |          |
+|    actor_loss      | -1.45    |
+|    critic_loss     | 14.9     |
+|    learning_rate   | 0.000744 |
+|    n_updates       | 239297   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.99e+03 |
+|    ep_rew_mean     | 10.2     |
+| time/              |          |
+|    episodes        | 132      |
+|    fps             | 14       |
+|    time_elapsed    | 18189    |
+|    total timesteps | 262680   |
+| train/             |          |
+|    actor_loss      | -1.43    |
+|    critic_loss     | 14.9     |
+|    learning_rate   | 0.000742 |
+|    n_updates       | 241298   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.99e+03 |
+|    ep_rew_mean     | 6.78     |
+| time/              |          |
+|    episodes        | 136      |
+|    fps             | 14       |
+|    time_elapsed    | 18716    |
+|    total timesteps | 270684   |
+| train/             |          |
+|    actor_loss      | -1.4     |
+|    critic_loss     | 15.2     |
+|    learning_rate   | 0.000734 |
+|    n_updates       | 249302   |
+---------------------------------
+/root/trainer/simulations/point.py:67: RuntimeWarning: invalid value encountered in true_divide
+  depth = 255 * ((depth - depth.min()) / (depth.max() - depth.min()))
+Traceback (most recent call last):
+  File "train.py", line 75, in <module>
+    policy_version = args.policy_version,
+  File "/root/trainer/learning/explore.py", line 186, in learn
+    save_path = self.logdir,
+  File "/usr/local/lib/python3.6/site-packages/stable_baselines3/td3/td3.py", line 211, in learn
+    reset_num_timesteps=reset_num_timesteps,
+  File "/usr/local/lib/python3.6/site-packages/stable_baselines3/common/off_policy_algorithm.py", line 359, in learn
+    log_interval=log_interval,
+  File "/usr/local/lib/python3.6/site-packages/stable_baselines3/common/off_policy_algorithm.py", line 566, in collect_rollouts
+    new_obs, reward, done, infos = env.step(action)
+  File "/usr/local/lib/python3.6/site-packages/stable_baselines3/common/vec_env/base_vec_env.py", line 162, in step
+    return self.step_wait()
+  File "/usr/local/lib/python3.6/site-packages/stable_baselines3/common/vec_env/vec_transpose.py", line 83, in step_wait
+    observations, rewards, dones, infos = self.venv.step_wait()
+  File "/usr/local/lib/python3.6/site-packages/stable_baselines3/common/vec_env/dummy_vec_env.py", line 44, in step_wait
+    self.actions[env_idx]
+  File "/usr/local/lib/python3.6/site-packages/stable_baselines3/common/monitor.py", line 90, in step
+    observation, reward, done, info = self.env.step(action)
+  File "/root/trainer/simulations/maze_env.py", line 571, in step
+    inner_next_obs, inner_reward, _, info = self.wrapped_env.step(action)
+  File "/root/trainer/simulations/point.py", line 54, in step
+    self.sim.step()
+  File "mujoco_py/mjsim.pyx", line 119, in mujoco_py.cymj.MjSim.step
+  File "mujoco_py/cymj.pyx", line 115, in mujoco_py.cymj.wrap_mujoco_warning.__exit__
+  File "mujoco_py/cymj.pyx", line 75, in mujoco_py.cymj.c_warning_callback
+  File "/usr/local/lib/python3.6/site-packages/mujoco_py/builder.py", line 354, in user_warning_raise_exception
+    raise MujocoException(warn + 'Check for NaN in simulation.')
+mujoco_py.builder.MujocoException: Unknown warning type Time = 35.0000.Check for NaN in simulation.

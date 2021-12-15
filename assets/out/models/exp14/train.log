@@ -3989,3 +3989,125 @@ Traceback (most recent call last):
   File "/usr/local/lib/python3.6/site-packages/mujoco_py/builder.py", line 354, in user_warning_raise_exception
     raise MujocoException(warn + 'Check for NaN in simulation.')
 mujoco_py.builder.MujocoException: Unknown warning type Time = 35.0000.Check for NaN in simulation.
+2021-12-15 13:25:23.835215: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: :/home/shandilya/.mujoco/mjpro150/bin
+2021-12-15 13:25:23.835259: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.
+/home/shandilya/Desktop/Projects/NavigationController
+Env Type: maze
+Task: CustomGoalReward4Rooms
+Using cpu device
+Logging to assets/out/models/exp14/TD3_27
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 2e+03    |
+|    ep_rew_mean     | 33.7     |
+| time/              |          |
+|    episodes        | 4        |
+|    fps             | 14       |
+|    time_elapsed    | 556      |
+|    total timesteps | 8004     |
+| train/             |          |
+|    actor_loss      | 134      |
+|    critic_loss     | 127      |
+|    learning_rate   | 0.000994 |
+|    n_updates       | 6003     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 2e+03    |
+|    ep_rew_mean     | 36.5     |
+| time/              |          |
+|    episodes        | 8        |
+|    fps             | 12       |
+|    time_elapsed    | 1249     |
+|    total timesteps | 16008    |
+| train/             |          |
+|    actor_loss      | 126      |
+|    critic_loss     | 57.4     |
+|    learning_rate   | 0.000986 |
+|    n_updates       | 14007    |
+---------------------------------
+Eval num_timesteps=20000, episode_reward=-14.50 +/- 43.19
+Episode length: 2001.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2e+03    |
+|    mean_reward     | -14.5    |
+| time/              |          |
+|    total_timesteps | 20000    |
+| train/             |          |
+|    actor_loss      | 114      |
+|    critic_loss     | 53.4     |
+|    learning_rate   | 0.000982 |
+|    n_updates       | 18009    |
+---------------------------------
+New best mean reward!
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 2e+03    |
+|    ep_rew_mean     | 28.7     |
+| time/              |          |
+|    episodes        | 12       |
+|    fps             | 10       |
+|    time_elapsed    | 2218     |
+|    total timesteps | 24012    |
+| train/             |          |
+|    actor_loss      | 102      |
+|    critic_loss     | 48.7     |
+|    learning_rate   | 0.000978 |
+|    n_updates       | 22011    |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 2e+03    |
+|    ep_rew_mean     | 19.8     |
+| time/              |          |
+|    episodes        | 16       |
+|    fps             | 10       |
+|    time_elapsed    | 2974     |
+|    total timesteps | 32016    |
+| train/             |          |
+|    actor_loss      | 80.8     |
+|    critic_loss     | 24.6     |
+|    learning_rate   | 0.00097  |
+|    n_updates       | 30015    |
+---------------------------------
+Eval num_timesteps=40000, episode_reward=-6.41 +/- 33.87
+Episode length: 2001.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 2e+03    |
+|    mean_reward     | -6.41    |
+| time/              |          |
+|    total_timesteps | 40000    |
+| train/             |          |
+|    actor_loss      | 63.9     |
+|    critic_loss     | 14.5     |
+|    learning_rate   | 0.000962 |
+|    n_updates       | 38019    |
+---------------------------------
+New best mean reward!
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 2e+03    |
+|    ep_rew_mean     | 20.3     |
+| time/              |          |
+|    episodes        | 20       |
+|    fps             | 10       |
+|    time_elapsed    | 3947     |
+|    total timesteps | 40020    |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 2e+03    |
+|    ep_rew_mean     | 15.8     |
+| time/              |          |
+|    episodes        | 24       |
+|    fps             | 10       |
+|    time_elapsed    | 4674     |
+|    total timesteps | 48024    |
+| train/             |          |
+|    actor_loss      | 50.9     |
+|    critic_loss     | 13       |
+|    learning_rate   | 0.000954 |
+|    n_updates       | 46023    |
+---------------------------------

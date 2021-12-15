@@ -1201,6 +1201,188 @@ class NStepLambdaDictReplayBuffer(sb3.common.buffers.DictReplayBuffer):
             returns=self.to_torch(returns),
         )
 
+class PrioritisedReplayBufferSamples(sb3.common.type_aliases.ReplayBufferSamples):
+    observations: torch.Tensor
+    actions: torch.Tensor
+    next_observations: torch.Tensor
+    dones: torch.Tensor
+    returns: torch.Tensor
+    weights: torch.Tensor
+
+class PrioritisedReplayBuffer(sb3.common.buffers.ReplayBuffer):
+    def __init__(
+        self,
+        buffer_size: int,
+        observation_space: spaces.Space,
+        action_space: spaces.Space,
+        device: Union[th.device, str] = "cpu",
+        n_envs: int = 1,
+        optimize_memory_usage: bool = False,
+        handle_timeout_termination: bool = True,
+        alpha: float = 0.1,
+        beta: float = 0.1
+    ):
+        super(PrioritisedReplayBuffer, self).__init__(
+            buffer_size, observation_space, action_space, device, n_envs,
+            optimize_memory_usage, handle_timeout_termination
+        )
+        self.empty = True
+        self.alpha = alpha
+        self.beta = beta
+        self.priorities = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
+        self._random_state = np.random.RandomState()
+
+    def add(
+        self,
+        obs: np.ndarray,
+        next_obs: np.ndarray,
+        action: np.ndarray,
+        reward: np.ndarray,
+        done: np.ndarray,
+        infos: List[Dict[str, Any]],
+    ) -> None:
+        # Copy to avoid modification by reference
+        priority = 1.0 if self.empty else self.priorities.max()
+
+        if self.full:
+            if priority > self.priorities.min():
+                idx = self.priorities.argmin()
+                self.priorities[idx] = priority
+                self.observations[idx] = np.array(obs).copy()
+                if self.optimize_memory_usage:
+                    self.observations[(idx + 1) % self.buffer_size] = np.array(next_obs).copy()
+                else:
+                    self.next_observations[idx] = np.array(next_obs).copy()
+                self.actions[idx] = np.array(action).copy()
+                self.rewards[idx] = np.array(reward).copy()
+                self.dones[idx] = np.array(done).copy()
+                if self.handle_timeout_termination:
+                    self.timeouts[idx] = np.array([info.get("TimeLimit.truncated", False) for info in infos])
+            else:
+                pass # low priority experiences should not be included in buffer
+        else:
+            self.priorities[self.pos] = priority, experience)
+            self.observations[self.pos] = np.array(obs).copy()
+            if self.optimize_memory_usage:
+                self.observations[(self.pos + 1) % self.buffer_size] = np.array(next_obs).copy()
+            else:
+                self.next_observations[self.pos] = np.array(next_obs).copy()
+            self.actions[self.pos] = np.array(action).copy()
+            self.rewards[self.pos] = np.array(reward).copy()
+            self.dones[self.pos] = np.array(done).copy()
+            self.pos += 1
+            if self.handle_timeout_termination:
+                self.timeouts[self.pos] = np.array([info.get("TimeLimit.truncated", False) for info in infos])
+
+        if self.pos >= 0 or self.full:
+            self.empty = False
+        if self.pos == self.buffer_size:
+            self.full = True
+
+    def update_priorities(self, idxs: np.array, priorities: np.array) -> None:
+        """Update the priorities associated with particular experiences."""
+        self.priorities[idxs] = priorities
+
+    def sample(self, batch_size: int, env: Optional[sb3.common.vec_env.vec_normalize.VecNormalize] = None) -> PrioritisedReplayBufferSamples:
+        """
+        Sample elements from the replay buffer.
+        Custom sampling when using memory efficient variant,
+        as we should not sample the element with index `self.pos`
+        See https://github.com/DLR-RM/stable-baselines3/pull/28#issuecomment-637559274
+        :param batch_size: Number of element to sample
+        :param env: associated gym VecEnv
+            to normalize the observations/rewards when sampling
+        :return:
+        """
+        ps = self.priorities[:self.pos]
+        sampling_probs = ps**self.alpha / np.sum(ps**self.alpha)
+        batch_inds = self._random_state.choice(
+            np.arange(ps.size),
+            size = batch_size,
+            replace = True,
+            p = sampling_probs
+        )
+        weights = (self.pos * sampling_probs[batch_inds]) ** -self.beta
+        normalised_weights = weights / weights.max()
+        if self.optimize_memory_usage:
+            next_obs = self._normalize_obs(self.observations[(batch_inds + 1) % self.buffer_size, 0, :], env)
+        else:
+            next_obs = self._normalize_obs(self.next_observations[batch_inds, 0, :], env)
+
+        return PrioritisedReplayBufferSamples(
+            observations = self.to_torch(self._normalize_obs(self.observations[batch_inds, 0, :], env)),
+            actions = self.to_torch(self.actions[batch_inds]),
+            next_observations = self.to_torch(next_obs),
+            dones = self.to_torch(self.dones[batch_inds] * (1 - self.timeouts[batch_inds])),
+            rewards = self.to_torch(self._normalize_reward(self.rewards[batch_inds], env)),
+            weights = self.to_torch(normalised_weights)
+        )
+
+class PrioritisedTD3(sb3.td3.td3.TD3):
+    def train(self, gradient_steps: int, batch_size: int = 100) -> None:
+
+        # Update learning rate according to lr schedule
+        self._update_learning_rate([self.actor.optimizer, self.critic.optimizer])
+
+        actor_losses, critic_losses = [], []
+
+        for _ in range(gradient_steps):
+
+            self._n_updates += 1
+            # Sample replay buffer
+            replay_data = self.replay_buffer.sample(batch_size, env=self._vec_normalize_env)
+
+            with th.no_grad():
+                # Select action according to policy and add clipped noise
+                noise = replay_data.actions.clone().data.normal_(0, self.target_policy_noise)
+                noise = noise.clamp(-self.target_noise_clip, self.target_noise_clip)
+                next_actions = (self.actor_target(replay_data.next_observations) + noise).clamp(-1, 1)
+
+                # Compute the next Q-values: min over all critics targets
+                next_q_values = th.cat(self.critic_target(replay_data.next_observations, next_actions), dim=1)
+                next_q_values, _ = th.min(next_q_values, dim=1, keepdim=True)
+                target_q_values = replay_data.rewards + (1 - replay_data.dones) * self.gamma * next_q_values
+
+            # Get current Q-values estimates for each critic network
+            current_q_values = self.critic(replay_data.observations, replay_data.actions)
+
+            # Compute critic loss
+            deltas = sum(
+                [target_q_values - current_q for current_q in current_q_values]
+            ) / len(current_q_values)
+            priorities = (deltas.abs()
+                            .cpu()
+                            .detach()
+                            .numpy()
+                            .flatten())
+            self.replay_buffer.update_priorities(priorities)
+            critic_loss = torch.mean((deltas * replay_data.weights)**2)
+            critic_losses.append(critic_loss.item())
+
+            # Optimize the critics
+            self.critic.optimizer.zero_grad()
+            critic_loss.backward()
+            self.critic.optimizer.step()
+
+            # Delayed policy updates
+            if self._n_updates % self.policy_delay == 0:
+                # Compute actor loss
+                actor_loss = -self.critic.q1_forward(replay_data.observations, self.actor(replay_data.observations)).mean()
+                actor_losses.append(actor_loss.item())
+
+                # Optimize the actor
+                self.actor.optimizer.zero_grad()
+                actor_loss.backward()
+                self.actor.optimizer.step()
+
+                polyak_update(self.critic.parameters(), self.critic_target.parameters(), self.tau)
+                polyak_update(self.actor.parameters(), self.actor_target.parameters(), self.tau)
+
+        self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
+        if len(actor_losses) > 0:
+            self.logger.record("train/actor_loss", np.mean(actor_losses))
+        self.logger.record("train/critic_loss", np.mean(critic_losses))
+
 class TD3Lambda(sb3.td3.td3.TD3):
     def __init__(
         self,

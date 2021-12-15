@@ -144,6 +144,7 @@ class Explore:
                 replay_buffer_class = NStepDictReplayBuffer
 
         if lmbda > 0 and lmbda < 1 and n_steps > 0:
+            print('Using TD(λ) learning')
             replay_buffer_class = NStepLambdaReplayBuffer
             if isinstance(self.env.observation_space, gym.spaces.dict.Dict):
                 replay_buffer_class = NStepLambdaDictReplayBuffer

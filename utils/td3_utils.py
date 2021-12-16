@@ -1184,7 +1184,7 @@ class NStepLambdaDictReplayBuffer(sb3.common.buffers.DictReplayBuffer):
         ).astype(np.float32)
 
         obs_ = self._normalize_obs({key: obs[batch_inds, 0, :] for key, obs in self.observations.items()})
-        next_obs_ = self._normalize_obs({key: obs[(indices + 1) % self.buffer_size, 0, :] for key, obs in self.next_observations.items()})
+        next_obs_ = self._normalize_obs({key: obs[indices, 0, :] for key, obs in self.next_observations.items()})
 
         observations = {key: self.to_torch(obs) for key, obs in obs_.items()}
         next_observations = {key: self.to_torch(obs) for key, obs in next_obs_.items()}

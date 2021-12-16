@@ -136,6 +136,20 @@ class Explore:
                 'features_extractor_class' : MultiModalFeaturesExtractor
             }
             optimize_memory_usage = False
+        elif policy_version == 6:
+            model = sb3.TD3
+            policy_class = 'MlpPolicy'
+            action_noise = sb3.common.noise.OrnsteinUhlenbeckActionNoise(
+                params['OU_MEAN'] * np.ones(n_actions),
+                params['OU_SIGMA'] * np.ones(n_actions)
+            )
+            policy_kwargs = { 
+                'features_extractor_class' : MultiModalFeaturesExtractor
+                'features_extractor_kwargs' : {
+                    'n_steps' : history_steps
+                }
+            }
+            optimize_memory_usage = False
         else:
             raise ValueError('Expected policy version less than or equal to 2, got {}'.format(policy_version))
 

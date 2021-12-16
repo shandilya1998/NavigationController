@@ -456,7 +456,21 @@ class MazeEnv(gym.Env):
                 'observation' : img.copy(),
                 'history' : history_action.copy(),
                 'inertia' : inertia.copy(),
-                'sampled_action' : sampled_action
+                'sampled_action' : sampled_action.copy()
+            }
+            return obs
+        elif self.policy_version == 6:
+            inertia = np.concatenate([
+                self.data.qvel / self.wrapped_env.VELOCITY_LIMITS,
+                self.data.qacc / (self.wrapped_env.VELOCITY_LIMITS * 2)
+            ], -1)
+            high = self.action_space.high
+            action = self.actions[-1] / high
+            obs = {
+                'observation' : img.copy(),
+                'action' : action.copy(),
+                'inertia' : inertia.copy(),
+                'sampled_action' : sampled_action.copy()
             }
             return obs
         else:

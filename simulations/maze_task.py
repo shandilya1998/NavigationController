@@ -305,7 +305,6 @@ class GoalReward4Rooms(MazeTask):
             [B, B, B, B, B, B, B, B, B],
         ]
 
-
 class DistReward4Rooms(GoalReward4Rooms, DistRewardMixIn):
     pass
 
@@ -341,6 +340,40 @@ class MazeVisualGoal(MazeGoal):
         if len(keypoints) == 0:
             return False
         return True
+
+class GoalRewardSimple(GoalReward4Rooms):
+    def __init__(self, scale: float, goal: Tuple[int, int] = (2.0, 0.0)) -> None:
+        super().__init__(scale, goal)
+        self.goal_index = 0
+        self.goals = [MazeVisualGoal(np.array(goal) * scale, 1.0, RED, 3)]
+
+    def reward(self, obs: np.ndarray, pos: np.ndarray) -> float:
+        reward = 0.0
+        goal = self.goals[self.goal_index]
+        if goal.inframe(obs):
+            if np.linalg.norm(pos - goal.pos) <= goal.threshold * 4:
+                return goal.reward_scale
+            else:
+                return goal.reward_scale * (
+                    1 - np.linalg.norm(pos[: goal.dim] - goal.pos) / (np.linalg.norm(goal.pos))
+                )
+        return reward
+
+    def termination(self, obs: np.ndarray, pos: np.ndarray) -> bool:
+        if self.goals[self.goal_index].neighbor(pos) and self.goals[self.goal_index].inframe(obs):
+            return True
+        return False
+
+    @staticmethod
+    def create_maze() -> List[List[MazeCell]]:
+        E, B, R = MazeCell.EMPTY, MazeCell.BLOCK, MazeCell.ROBOT
+        return [
+            [B, B, B, B, B], 
+            [B, E, E, E, B]
+            [B, E, E, E, B],
+            [B, R, E, E, B], 
+            [B, B, B, B, B], 
+        ]
 
 class CustomGoalReward4Rooms(GoalReward4Rooms):
     def __init__(self,
@@ -401,47 +434,25 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
 class GoalRewardNoObstacle(GoalReward4Rooms):
     def __init__(self,
         scale: float,
-        goal: Tuple[int, int] = (6.0, -6.0),
-        danger: List[Tuple[int, int]] = [
-            (0.0, -6.0),
-            (6.0, 0.0),
-        ]) -> None:
+        goal: Tuple[int, int] = (2.0, -2.0)
+        ) -> None:
         super().__init__(scale, goal)
         self.set()
 
     def set(self):
-        self.goal_index = np.random.randint(low = 0, high = 3)
-        self.colors = []
-        self.scales = []
-        self.goals = []
-        for i in range(3):
-            if i == self.goal_index:
-                self.colors.append(copy.deepcopy(RED))
-                self.scales.append(1.0)
-            else:
-                self.colors.append(copy.deepcopy(GREEN))
-                self.scales.append(1.0)
-
+        self.goal_index = 0
         self.goals = [
             MazeVisualGoal(np.array([
-                np.random.uniform(4.0, 6.0) * self.scale,
-                np.random.uniform(-6.0, -4.0) * self.scale
-            ]), self.scales[0], self.colors[0]),
-            MazeVisualGoal(np.array([
-                np.random.uniform(0.0, 2.0) * self.scale,
-                np.random.uniform(-6.0, -4.0) * self.scale
-            ]), self.scales[1], self.colors[1]),
-            MazeVisualGoal(np.array([
-                np.random.uniform(4.0, 6.0) * self.scale,
+                np.random.uniform(1.0, 2.0) * self.scale,
                 np.random.uniform(-2.0, 0.0) * self.scale
-            ]), self.scales[2], self.colors[2]),
+            ]), 1.0, RED),
         ]
 
     def reward(self, obs: np.ndarray, pos: np.ndarray) -> float:
         reward = 0.0
         goal = self.goals[self.goal_index]
         if goal.inframe(obs):
-            if np.linalg.norm(pos - goal.pos) <= goal.threshold * 5:
+            if np.linalg.norm(pos - goal.pos) <= 1.5 * goal.threshold:
                 reward += goal.reward_scale
             else:
                 reward += goal.reward_scale * (
@@ -449,7 +460,7 @@ class GoalRewardNoObstacle(GoalReward4Rooms):
                 )
         return reward
 
-    def termination(self, pos: np.ndarray) -> bool:
+    def termination(self, obs: np.ndarray, pos: np.ndarray) -> bool:
         if self.goals[self.goal_index].neighbor(pos):
             return True
         return False
@@ -458,15 +469,11 @@ class GoalRewardNoObstacle(GoalReward4Rooms):
     def create_maze() -> List[List[MazeCell]]:
         E, B, R = MazeCell.EMPTY, MazeCell.BLOCK, MazeCell.ROBOT
         return [
-            [E, E, E, E, E, E, E, E, E],
-            [E, E, E, E, E, E, E, E, E],
-            [E, E, E, E, E, E, E, E, E],
-            [E, E, E, E, E, E, E, E, E],
-            [E, E, E, E, E, E, E, E, E],
-            [E, E, E, E, E, E, E, E, E],
-            [E, E, E, E, E, E, E, E, E],
-            [E, R, E, E, E, E, E, E, E],
-            [E, E, E, E, E, E, E, E, E],
+            [B, B, B, B, B],
+            [B, E, E, E, B],
+            [B, E, E, E, B],
+            [B, R, E, E, B],
+            [B, B, B, B, B],
         ]
 
 class GoalRewardTRoom(MazeTask):
@@ -685,7 +692,7 @@ class BanditBilliard(SubGoalBilliard):
 
 class TaskRegistry:
     REGISTRY: Dict[str, List[Type[MazeTask]]] = {
-        "SimpleRoom": [DistRewardSimpleRoom, GoalRewardSimpleRoom],
+        "SimpleRoom": [GoalRewardSimple, DistRewardSimpleRoom, GoalRewardSimpleRoom],
         "SquareRoom": [DistRewardSquareRoom, GoalRewardSquareRoom, NoRewardSquareRoom],
         "UMaze": [DistRewardUMaze, GoalRewardUMaze],
         "Push": [DistRewardPush, GoalRewardPush],

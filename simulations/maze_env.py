@@ -304,6 +304,7 @@ class MazeEnv(gym.Env):
         goal_pos = self._task.goals[self._task.goal_index].pos[:2]
         row, col = self._xy_to_rowcol(goal_pos[0], goal_pos[1])
         target = self._structure_to_graph_index(row, col)
+
         paths = list(nx.algorithms.shortest_paths.generic.all_shortest_paths(
             self._maze_graph,
             source,
@@ -380,8 +381,8 @@ class MazeEnv(gym.Env):
         self._maze_graph.add_nodes_from(np.arange(
             0, len(self._maze_structure) * len(self._maze_structure[0])
         ))
-        for i in range(num_col):
-            for j in range(num_row):
+        for i in range(num_row):
+            for j in range(num_col):
                 self._maze_graph.nodes[
                     self._structure_to_graph_index(i, j)
                 ]['struct'] = self._maze_structure[i][j]
@@ -395,8 +396,8 @@ class MazeEnv(gym.Env):
                     self._structure_to_graph_index(i, j)
                 ]['index'] = self._structure_to_graph_index(i, j)
 
-        for i in range(num_col):
-            for j in range(num_row):
+        for i in range(num_row):
+            for j in range(num_col):
                 self.__add_edges_to_maze_graph(self._maze_graph.nodes[
                     self._structure_to_graph_index(i, j)
                 ])

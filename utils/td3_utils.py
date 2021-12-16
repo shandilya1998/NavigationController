@@ -1213,9 +1213,9 @@ class PrioritisedReplayBuffer(sb3.common.buffers.ReplayBuffer):
     def __init__(
         self,
         buffer_size: int,
-        observation_space: spaces.Space,
-        action_space: spaces.Space,
-        device: Union[th.device, str] = "cpu",
+        observation_space: gym.spaces.Space,
+        action_space: gym.spaces.Space,
+        device: Union[torch.device, str] = "cpu",
         n_envs: int = 1,
         optimize_memory_usage: bool = False,
         handle_timeout_termination: bool = True,
@@ -1261,7 +1261,7 @@ class PrioritisedReplayBuffer(sb3.common.buffers.ReplayBuffer):
             else:
                 pass # low priority experiences should not be included in buffer
         else:
-            self.priorities[self.pos] = priority, experience)
+            self.priorities[self.pos] = priority
             self.observations[self.pos] = np.array(obs).copy()
             if self.optimize_memory_usage:
                 self.observations[(self.pos + 1) % self.buffer_size] = np.array(next_obs).copy()
@@ -1320,6 +1320,10 @@ class PrioritisedReplayBuffer(sb3.common.buffers.ReplayBuffer):
 
 class PrioritisedTD3(sb3.td3.td3.TD3):
     def train(self, gradient_steps: int, batch_size: int = 100) -> None:
+
+        """
+            https://colab.research.google.com/github/davidrpugh/stochastic-expatriate-descent/blob/2020-04-14-prioritized-experience-replay/_notebooks/2020-04-14-prioritized-experience-replay.ipynb
+        """
 
         # Update learning rate according to lr schedule
         self._update_learning_rate([self.actor.optimizer, self.critic.optimizer])

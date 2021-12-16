@@ -62,7 +62,7 @@ if __name__ == '__main__':
             max_episode_size = args.max_episode_size,
             policy_version = args.policy_version,
             env_type = args.env_type,
-            history_steps = args.n_steps,
+            history_steps = args.history_steps,
             task_version = args.task_version,
             n_steps = args.n_steps,
             lmbda = args.lmbda
@@ -74,7 +74,7 @@ if __name__ == '__main__':
             max_episode_size = args.max_episode_size,
             policy_version = args.policy_version,
             env_type = args.env_type,
-            history_steps = args.n_steps,
+            history_steps = args.history_steps,
             task_version = args.task_version,
             n_steps = args.n_steps,
             lmbda = args.lmbda

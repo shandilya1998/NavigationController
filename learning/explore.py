@@ -3,7 +3,8 @@ import numpy as np
 from simulations.maze_env import MazeEnv
 from simulations.collision_env import CollisionEnv
 from simulations.point import PointEnv
-from simulations.maze_task import CustomGoalReward4Rooms, GoalRewardNoObstacle
+from simulations.maze_task import CustomGoalReward4Rooms, \
+    GoalRewardNoObstacle, GoalRewardSimple
 import stable_baselines3 as sb3
 from utils.td3_utils import TD3BG, TD3BGPolicy, \
     DictReplayBuffer, TD3BGPolicyV2, HistoryFeaturesExtractor, \
@@ -61,6 +62,9 @@ class Explore:
         elif task_version == 2:
             task = GoalRewardNoObstacle
             print('Task: GoalRewardNoObstacle')
+        elif task_version == 3:
+            task = GoalRewardSimple
+            print('Task: GoalRewardSimple')
         self.logdir = logdir
         self.env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
             sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
@@ -156,6 +160,7 @@ class Explore:
             kwargs['lmbda'] = lmbda
             kwargs['n_steps'] = n_steps
 
+        print('Model: {}'.format(model))
         self.rl_model = model(
             policy_class,
             self.env,

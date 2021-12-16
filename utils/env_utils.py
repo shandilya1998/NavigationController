@@ -283,7 +283,6 @@ class TargetCourse:
 
         return ind, Lf
 
-
 def pure_pursuit_steer_control(state, trajectory, pind, WB = 4.0):
     ind, Lf = trajectory.search_target_index(state)
 
@@ -299,9 +298,7 @@ def pure_pursuit_steer_control(state, trajectory, pind, WB = 4.0):
         ind = len(trajectory.cx) - 1
 
     alpha = math.atan2(ty - state.rear_y, tx - state.rear_x) - state.yaw
-
     delta = math.atan2(2.0 * WB * math.sin(alpha) / Lf, 1.0)
-
     return delta, ind
 
 class Spline:

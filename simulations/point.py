@@ -18,8 +18,7 @@ class PointEnv(AgentModel):
     FILE: str = "point.xml"
     ORI_IND: int = 2
     RADIUS: float = 0.4
-
-    VELOCITY_LIMITS: float = 10.0
+    VELOCITY_LIMITS: float = 12.0
 
     def __init__(self, file_path: Optional[str] = 'point.xml') -> None:
         file_path = os.path.join(
@@ -29,11 +28,16 @@ class PointEnv(AgentModel):
             file_path
         )
         super().__init__(file_path, 1)
-        high = np.inf * np.ones(6, dtype=np.float32)
-        high[3:] = self.VELOCITY_LIMITS * 1.2
-        high[self.ORI_IND] = np.pi
-        low = -high
-        self.observation_space = gym.spaces.Box(low, high)
+        img = self._get_obs()
+        dtype = img.dtype
+        high = np.ones_like(img, dtype = dtype) * 255
+        low = np.zeros_like(img, dtype = dtype)
+        self.observation_space = gym.spaces.Box(
+            low,
+            high,
+            shape = img.shape,
+            dtype = dtype
+        )
 
 
     def _set_action_space(self):

@@ -369,8 +369,6 @@ class GoalRewardSimple(GoalReward4Rooms):
         E, B, R = MazeCell.EMPTY, MazeCell.BLOCK, MazeCell.ROBOT
         return [
             [B, B, B, B, B], 
-            [B, E, E, E, B]
-            [B, E, E, E, B],
             [B, R, E, E, B], 
             [B, B, B, B, B], 
         ]
@@ -443,21 +441,20 @@ class GoalRewardNoObstacle(GoalReward4Rooms):
         self.goal_index = 0
         self.goals = [
             MazeVisualGoal(np.array([
-                np.random.uniform(1.0, 2.0) * self.scale,
-                np.random.uniform(-2.0, 0.0) * self.scale
-            ]), 1.0, RED),
+                2.0, -2.0
+            ]) * self.scale, 1.0, RED),
         ]
 
     def reward(self, obs: np.ndarray, pos: np.ndarray) -> float:
         reward = 0.0
         goal = self.goals[self.goal_index]
         if goal.inframe(obs):
-            if np.linalg.norm(pos - goal.pos) <= 1.5 * goal.threshold:
-                reward += goal.reward_scale
-            else:
-                reward += goal.reward_scale * (
-                    1 - np.linalg.norm(pos[: goal.dim] - goal.pos) / (np.linalg.norm(goal.pos))
-                )
+            reward += goal.reward_scale * (
+                1 - np.linalg.norm(pos[: goal.dim] - goal.pos) / (np.linalg.norm(goal.pos))
+            )
+        if np.linalg.norm(pos - goal.pos) <= 1.5 * goal.threshold:
+            reward = goal.reward_scale
+
         return reward
 
     def termination(self, obs: np.ndarray, pos: np.ndarray) -> bool:

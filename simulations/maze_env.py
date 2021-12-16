@@ -288,7 +288,7 @@ class MazeEnv(gym.Env):
                     self.wrapped_env.sim.data.qvel[1]
                 )
             ),
-            WB = 1.0 * self._maze_size_scaling
+            WB = 0.2 * self._maze_size_scaling
         )
         self.lastIndex = len(self.x) - 1
         self.states = States()
@@ -445,11 +445,13 @@ class MazeEnv(gym.Env):
             return obs
         elif self.policy_version == 5:
             inertia = np.concatenate([
-                self.data.qpos,
-                self.data.qvel,
-                self.data.qacc
+                self.data.qvel / self.wrapped_env.VELOCITY_LIMITS,
+                self.data.qacc / (self.wrapped_env.VELOCITY_LIMITS * 2)
             ], -1)
-            history_action = np.concatenate(self.actions, -1)
+            high = self.action_space.high
+            history_action = np.concatenate(
+                [action / high for action in self.actions], -1
+            )
             obs = {
                 'observation' : img.copy(),
                 'history' : history_action.copy(),

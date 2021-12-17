@@ -351,7 +351,6 @@ class GoalRewardSimple(GoalReward4Rooms):
         self.goal_index = 0
         self.goals = [MazeVisualGoal(np.array(self.goal) * self.scale, 1.0, RED, 1.5)]
 
-
     def reward(self, obs: np.ndarray, pos: np.ndarray) -> float:
         reward = 0.0 
         goal = self.goals[self.goal_index]
@@ -359,7 +358,7 @@ class GoalRewardSimple(GoalReward4Rooms):
             reward += goal.reward_scale * ( 
                 1 - np.linalg.norm(pos[: goal.dim] - goal.pos) / (np.linalg.norm(goal.pos))
             )   
-        if np.linalg.norm(pos - goal.pos) <= 1.5 * goal.threshold:
+        if np.linalg.norm(pos - goal.pos) <= 2.0 * goal.threshold:
             reward = goal.reward_scale
 
         return reward

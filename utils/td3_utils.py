@@ -86,8 +86,12 @@ class MultiModalFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor)
             torch.nn.ReLU()
         ) 
         self.fc = torch.nn.Sequential(
-            torch.nn.Linear(input_size, features_dim),
+            torch.nn.Linear(input_size, 1024),
             torch.nn.ReLU(),
+            torch.nn.Linear(1024, 512),
+            torch.nn.ReLU(),
+            torch.nn.Linear(512, features_dim),
+            torch.nn.ReLU()
         )
 
     def forward(self, observations):

@@ -443,13 +443,10 @@ class MazeEnv(gym.Env):
             return obs
         elif self.policy_version == 5:
             inertia = np.concatenate([
-                self.data.qvel / self.wrapped_env.VELOCITY_LIMITS,
-                self.data.qacc / (self.wrapped_env.VELOCITY_LIMITS * 2)
+                self.data.qvel,
+                self.data.qacc
             ], -1)
-            high = self.action_space.high
-            history_action = np.concatenate(
-                [action / high for action in self.actions], -1
-            )
+            history_action = np.concatenate(self.actions, -1)
             obs = {
                 'observation' : img.copy(),
                 'history' : history_action.copy(),

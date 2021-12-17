@@ -34,7 +34,7 @@ class PassAsIsFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
 class MultiModalHistoryFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
     def __init__(self, observation_space: gym.Space, n_steps):
         features_dim = len(observation_space) * params['num_ctx']
-        super(HistoryIsFeaturesExtractor, self).__init__(observation_space, features_dim)
+        super(MultiModalHistoryFeaturesExtractor, self).__init__(observation_space, features_dim)
         self.vc = VisualCortex(
             observation_space,
             params['num_ctx']
@@ -45,7 +45,7 @@ class MultiModalHistoryFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExt
             torch.nn.ReLU()
         )
         self.fc_history = torch.nn.Sequential(
-            torch.nn.Linear(observation_space['history'].shape[-1], features_dim),
+            torch.nn.Linear(observation_space['action'].shape[-1], features_dim),
             torch.nn.ReLU()
         )
         self.fc = torch.nn.Sequential(
@@ -60,7 +60,7 @@ class MultiModalHistoryFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExt
 
     def forward(self, observations):
         out = []
-        for i, key in enumerate(self.observations_space.keys()):
+        for i, key in enumerate(self._observation_space.spaces.keys()):
             features = []
             for j in range(self.n_steps):
                 features.append(self.layers[key](observations[key][:, j]))
@@ -76,7 +76,7 @@ class MultiModalFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor)
             observation_space,
             features_dim
         )
-        input_size = len(observation_space) * features_dim
+        input_size = (len(observation_space) - 1) * features_dim
         self.fc_inertia = torch.nn.Sequential(
             torch.nn.Linear(observation_space['inertia'].shape[-1], features_dim),
             torch.nn.ReLU()
@@ -993,23 +993,6 @@ class NStepHistoryReplayBuffer(sb3.common.buffers.ReplayBuffer):
         return sb3.common.type_aliases.ReplayBufferSamples(*tuple(map(self.to_torch, data)))
 
 class NStepHistoryDictReplayBuffer(sb3.common.buffers.DictReplayBuffer):
-     """
-    Replay Buffer that computes N-step returns.
-    :param buffer_size: (int) Max number of element in the buffer
-    :param observation_space: (spaces.Space) Observation space
-    :param action_space: (spaces.Space) Action space
-    :param device: (Union[torch.device, str]) PyTorch device
-        to which the values will be converted
-    :param n_envs: (int) Number of parallel environments
-    :param optimize_memory_usage: (bool) Enable a memory efficient variant
-        of the replay buffer which reduces by almost a factor two the memory used,
-        at a cost of more complexity.
-        See https://github.com/DLR-RM/stable-baselines3/issues/37#issuecomment-637501195
-        and https://github.com/DLR-RM/stable-baselines3/pull/28#issuecomment-637559274
-    :param n_steps: (int) The number of transitions to consider when computing n-step returns
-    :param gamma:  (float) The discount factor for future rewards.
-    """
-
     def __init__(
         self,
         buffer_size: int,
@@ -1018,7 +1001,7 @@ class NStepHistoryDictReplayBuffer(sb3.common.buffers.DictReplayBuffer):
         device: Union[torch.device, str] = "cpu",
         n_envs: int = 1,
         optimize_memory_usage: bool = False,
-        n_steps: int = 1,
+        n_steps: int = 1
     ):
         super().__init__(buffer_size, observation_space, action_space, device, n_envs, optimize_memory_usage)
         self.n_steps = int(n_steps)
@@ -1659,6 +1642,66 @@ class TD3Lambda(sb3.td3.td3.TD3):
         if len(actor_losses) > 0:
             self.logger.record("train/actor_loss", np.mean(actor_losses))
         self.logger.record("train/critic_loss", np.mean(critic_losses))
+
+class TD3History(TD3Lambda):
+    def __init__(
+        self,
+        policy: Union[str, Type[sb3.td3.policies.TD3Policy]],
+        env: Union[sb3.common.type_aliases.GymEnv, str],
+        learning_rate: Union[float, sb3.common.type_aliases.Schedule] = 1e-3,
+        buffer_size: int = 1000000,  # 1e6
+        learning_starts: int = 100, 
+        batch_size: int = 100, 
+        tau: float = 0.005,
+        gamma: float = 0.99,
+        n_steps: float = 5, 
+        lmbda: float = 0.9, 
+        train_freq: Union[int, Tuple[int, str]] = (1, "episode"),
+        gradient_steps: int = -1,
+        action_noise: Optional[sb3.common.noise.ActionNoise] = None,
+        replay_buffer_class: Optional[sb3.common.buffers.ReplayBuffer] = None,
+        replay_buffer_kwargs: Optional[Dict[str, Any]] = None,
+        optimize_memory_usage: bool = False,
+        policy_delay: int = 2, 
+        target_policy_noise: float = 0.2, 
+        target_noise_clip: float = 0.5, 
+        tensorboard_log: Optional[str] = None,
+        create_eval_env: bool = False,
+        policy_kwargs: Dict[str, Any] = None,
+        verbose: int = 0, 
+        seed: Optional[int] = None,
+        device: Union[torch.device, str] = "auto",
+        _init_setup_model: bool = True,
+    ):   
+        self.lmbda = lmbda
+        self.n_steps = n_steps
+        assert train_freq[1] != 'steps'
+        super(TD3Lambda, self).__init__(
+            policy,
+            env, 
+            learning_rate,
+            buffer_size,  # 1e6
+            learning_starts,
+            batch_size,
+            tau, 
+            gamma,
+            train_freq,
+            gradient_steps,
+            action_noise,
+            replay_buffer_class,
+            replay_buffer_kwargs,
+            optimize_memory_usage,
+            policy_delay,
+            target_policy_noise,
+            target_noise_clip,
+            tensorboard_log,
+            create_eval_env,
+            policy_kwargs,
+            verbose,
+            seed,
+            device,
+            _init_setup_model
+        ) 
 
 class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
     """

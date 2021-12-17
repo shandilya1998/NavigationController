@@ -344,23 +344,28 @@ class MazeVisualGoal(MazeGoal):
 class GoalRewardSimple(GoalReward4Rooms):
     def __init__(self, scale: float, goal: Tuple[int, int] = (2.0, 0.0)) -> None:
         super().__init__(scale, goal)
+        self.goal = goal
+        self.set()
+
+    def set(self):
         self.goal_index = 0
-        self.goals = [MazeVisualGoal(np.array(goal) * scale, 1.0, RED, 3)]
+        self.goals = [MazeVisualGoal(np.array(self.goal) * self.scale, 1.0, RED, 1.5)]
+
 
     def reward(self, obs: np.ndarray, pos: np.ndarray) -> float:
-        reward = 0.0
+        reward = 0.0 
         goal = self.goals[self.goal_index]
         if goal.inframe(obs):
-            if np.linalg.norm(pos - goal.pos) <= goal.threshold * 4:
-                return goal.reward_scale
-            else:
-                return goal.reward_scale * (
-                    1 - np.linalg.norm(pos[: goal.dim] - goal.pos) / (np.linalg.norm(goal.pos))
-                )
+            reward += goal.reward_scale * ( 
+                1 - np.linalg.norm(pos[: goal.dim] - goal.pos) / (np.linalg.norm(goal.pos))
+            )   
+        if np.linalg.norm(pos - goal.pos) <= 1.5 * goal.threshold:
+            reward = goal.reward_scale
+
         return reward
 
     def termination(self, obs: np.ndarray, pos: np.ndarray) -> bool:
-        if self.goals[self.goal_index].neighbor(pos) and self.goals[self.goal_index].inframe(obs):
+        if self.goals[self.goal_index].neighbor(pos):
             return True
         return False
 

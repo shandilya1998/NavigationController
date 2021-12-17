@@ -1,5 +1,4 @@
 """
-
 Mujoco Maze environment.
 Based on `models`_ and `rllab`_.
 
@@ -304,7 +303,6 @@ class MazeEnv(gym.Env):
         goal_pos = self._task.goals[self._task.goal_index].pos[:2]
         row, col = self._xy_to_rowcol(goal_pos[0], goal_pos[1])
         target = self._structure_to_graph_index(row, col)
-
         paths = list(nx.algorithms.shortest_paths.generic.all_shortest_paths(
             self._maze_graph,
             source,
@@ -333,7 +331,7 @@ class MazeEnv(gym.Env):
         return row, col
 
     def _structure_to_graph_index(self, row, col):
-        return row * len(self._maze_structure) + col
+        return row * len(self._maze_structure[0]) + col
 
     def __check_structure_index_validity(self, i, j):
         valid = [True, True]
@@ -456,7 +454,21 @@ class MazeEnv(gym.Env):
                 'observation' : img.copy(),
                 'history' : history_action.copy(),
                 'inertia' : inertia.copy(),
-                'sampled_action' : sampled_action
+                'sampled_action' : sampled_action.copy()
+            }
+            return obs
+        elif self.policy_version == 6:
+            inertia = np.concatenate([
+                self.data.qvel / self.wrapped_env.VELOCITY_LIMITS,
+                self.data.qacc / (self.wrapped_env.VELOCITY_LIMITS * 2)
+            ], -1)
+            high = self.action_space.high
+            action = self.actions[-1] / high
+            obs = {
+                'observation' : img.copy(),
+                'action' : action.copy(),
+                'inertia' : inertia.copy(),
+                'sampled_action' : sampled_action.copy()
             }
             return obs
         else:

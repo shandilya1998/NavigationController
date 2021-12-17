@@ -14786,3 +14786,57 @@ Episode length: 251.00 +/- 0.00
 |    learning_rate   | 0.000744 |
 |    n_updates       | 256522   |
 ---------------------------------
+Eval num_timesteps=260000, episode_reward=10.10 +/- 0.07
+Episode length: 251.00 +/- 0.00
+---------------------------------
+| eval/              |          |
+|    mean_ep_length  | 251      |
+|    mean_reward     | 10.1     |
+| time/              |          |
+|    total_timesteps | 260000   |
+| train/             |          |
+|    actor_loss      | 4.6      |
+|    critic_loss     | 46.7     |
+|    learning_rate   | 0.000743 |
+|    n_updates       | 257526   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 251      |
+|    ep_rew_mean     | -0.214   |
+| time/              |          |
+|    episodes        | 1036     |
+|    fps             | 5        |
+|    time_elapsed    | 50399    |
+|    total timesteps | 260036   |
+---------------------------------
+Terminated
+2021-12-17 14:27:56.774611: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: /usr/lib/nvidia-470:/usr/local/cuda/lib64:/root/.mujoco/mjpro150/bin:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
+2021-12-17 14:27:56.774727: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.
+/root/trainer
+Env Type: maze
+Task: GoalRewardSimple
+Model: <class 'stable_baselines3.td3.td3.TD3'>
+Using cuda device
+Logging to assets/out/models/exp17/TD3_12
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 251      |
+|    ep_rew_mean     | -18.5    |
+| time/              |          |
+|    episodes        | 4        |
+|    fps             | 97       |
+|    time_elapsed    | 10       |
+|    total timesteps | 1004     |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 251      |
+|    ep_rew_mean     | -23.6    |
+| time/              |          |
+|    episodes        | 8        |
+|    fps             | 107      |
+|    time_elapsed    | 18       |
+|    total timesteps | 2008     |
+---------------------------------
+Terminated

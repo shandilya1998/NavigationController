@@ -31,21 +31,42 @@ class PassAsIsFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
             ob_t_1
         ]
 
-class HistoryFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
-    def __init__(self, observation_space: gym.Space):
+class MultiModalHistoryFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
+    def __init__(self, observation_space: gym.Space, n_steps):
         features_dim = len(observation_space) * params['num_ctx']
-        super(HistoryIsFeaturesExtractor, self).__init__(observation_space, features_dim)
+        super(MultiModalHistoryFeaturesExtractor, self).__init__(observation_space, features_dim)
         self.vc = VisualCortex(
             observation_space,
             params['num_ctx']
-        )    
+        )
+        input_size = n_steps * len(observation_space) * features_dim
+        self.fc_inertia = torch.nn.Sequential(
+            torch.nn.Linear(observation_space['inertia'].shape[-1], features_dim),
+            torch.nn.ReLU()
+        )
+        self.fc_history = torch.nn.Sequential(
+            torch.nn.Linear(observation_space['action'].shape[-1], features_dim),
+            torch.nn.ReLU()
+        )
+        self.fc = torch.nn.Sequential(
+            torch.nn.Linear(input_size, features_dim),
+            torch.nn.ReLU(),
+        )
+        self.layers = {}
+        self.layers['observation'] = self.vc
+        self.layers['inertia'] = self.fc_inertia
+        self.layers['action'] = self.fc_history
+        self.n_steps = n_steps
 
     def forward(self, observations):
         out = []
-        for i in range(len(observation)):
-            out.append(self.vc(observations['observation_{}'.format(i)]))
+        for i, key in enumerate(self._observation_space.spaces.keys()):
+            features = []
+            for j in range(self.n_steps):
+                features.append(self.layers[key](observations[key][:, j]))
+            out.append(torch.cat(features, -1))
         out = torch.cat(out, -1)
-        return out
+        return self.fc(out)
 
 class MultiModalFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
     def __init__(self, observation_space: gym.Space):
@@ -55,7 +76,7 @@ class MultiModalFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor)
             observation_space,
             features_dim
         )
-        input_size = 3 * features_dim
+        input_size = (len(observation_space) - 1) * features_dim
         self.fc_inertia = torch.nn.Sequential(
             torch.nn.Linear(observation_space['inertia'].shape[-1], features_dim),
             torch.nn.ReLU()
@@ -911,6 +932,119 @@ class NStepReplayBuffer(sb3.common.buffers.ReplayBuffer):
         return sb3.common.type_aliases.ReplayBufferSamples(*tuple(map(self.to_torch, data)))
 
 
+class NStepHistoryReplayBuffer(sb3.common.buffers.ReplayBuffer):
+    """
+    Replay Buffer that computes N-step returns.
+    :param buffer_size: (int) Max number of element in the buffer
+    :param observation_space: (spaces.Space) Observation space
+    :param action_space: (spaces.Space) Action space
+    :param device: (Union[torch.device, str]) PyTorch device
+        to which the values will be converted
+    :param n_envs: (int) Number of parallel environments
+    :param optimize_memory_usage: (bool) Enable a memory efficient variant
+        of the replay buffer which reduces by almost a factor two the memory used,
+        at a cost of more complexity.
+        See https://github.com/DLR-RM/stable-baselines3/issues/37#issuecomment-637501195
+        and https://github.com/DLR-RM/stable-baselines3/pull/28#issuecomment-637559274
+    :param n_steps: (int) The number of transitions to consider when computing n-step returns
+    :param gamma:  (float) The discount factor for future rewards.
+    """
+
+    def __init__(
+        self,
+        buffer_size: int,
+        observation_space: gym.spaces.Space,
+        action_space: gym.spaces.Space,
+        device: Union[torch.device, str] = "cpu",
+        n_envs: int = 1,
+        optimize_memory_usage: bool = False,
+        n_steps: int = 1,
+    ):
+        super().__init__(buffer_size, observation_space, action_space, device, n_envs, optimize_memory_usage)
+        self.n_steps = int(n_steps)
+        if not 0 < n_steps <= buffer_size:
+            raise ValueError("n_steps needs to be strictly smaller than buffer_size, and strictly larger than 0")
+
+    def _get_samples(self, batch_inds: np.ndarray, env: Optional[sb3.common.vec_env.vec_normalize.VecNormalize] = None) -> sb3.common.type_aliases.ReplayBufferSamples:
+        actions = self.actions[batch_inds]
+        # Broadcasting turns 1dim arange matrix to 2 dimensional matrix that contains all
+        # the indices, % buffersize keeps us in buffer range
+        # indices is a [B x self.n_step ] matrix
+        indices = (-np.arange(self.n_steps) + batch_inds.reshape(-1, 1)) % self.buffer_size
+
+        # two dim matrix of not dones. If done is true, then subsequent dones are turned to 0
+        # using accumulate. This ensures that we don't use invalid transitions
+        # not_dones is a [B x n_step] matrix
+        dones = self.dones[batch_inds]
+        not_dones = (1 - self.dones[indices])
+        not_dones = np.multiply.accumulate(not_dones, axis=1)
+        rewards = self._normalize_reward(self.rewards[batch_inds], env)
+
+        include = not_dones.copy()
+        for i in self.observation_shape.shape:
+            include = np.repeat(np.expand_dims(include, -1), -1, i)
+        obs = self._normalize_obs(self.observations[indices, 0, :], env) * include
+        if self.optimize_memory_usage:
+            next_obs = self._normalize_obs(self.observations[(indices + 1) % self.buffer_size, 0, :], env) * include
+        else:
+            next_obs = self._normalize_obs(self.next_observations[indices, 0, :], env) * include
+
+        data = (obs, actions, next_obs, dones, rewards)
+        return sb3.common.type_aliases.ReplayBufferSamples(*tuple(map(self.to_torch, data)))
+
+class NStepHistoryDictReplayBuffer(sb3.common.buffers.DictReplayBuffer):
+    def __init__(
+        self,
+        buffer_size: int,
+        observation_space: gym.spaces.Space,
+        action_space: gym.spaces.Space,
+        device: Union[torch.device, str] = "cpu",
+        n_envs: int = 1,
+        optimize_memory_usage: bool = False,
+        n_steps: int = 1
+    ):
+        super().__init__(buffer_size, observation_space, action_space, device, n_envs, optimize_memory_usage)
+        self.n_steps = int(n_steps)
+        if not 0 < n_steps <= buffer_size:
+            raise ValueError("n_steps needs to be strictly smaller than buffer_size, and strictly larger than 0")
+
+    def _get_samples(self, batch_inds: np.ndarray, env: Optional[sb3.common.vec_env.vec_normalize.VecNormalize] = None) -> sb3.common.type_aliases.ReplayBufferSamples:
+        actions = self.actions[batch_inds]
+        # Broadcasting turns 1dim arange matrix to 2 dimensional matrix that contains all
+        # the indices, % buffersize keeps us in buffer range
+        # indices is a [B x self.n_step ] matrix
+        indices = (-np.arange(self.n_steps) + batch_inds.reshape(-1, 1)) % self.buffer_size
+
+        # two dim matrix of not dones. If done is true, then subsequent dones are turned to 0
+        # using accumulate. This ensures that we don't use invalid transitions
+        # not_dones is a [B x n_step] matrix
+        dones = self.dones[batch_inds]
+        not_dones = (1 - self.dones[indices])
+        not_dones = np.multiply.accumulate(not_dones, axis=1)
+        rewards = self._normalize_reward(self.rewards[batch_inds], env) 
+
+        obs = {} 
+        next_obs = {} 
+        for key, ob in self.observation_shape.keys():
+            include = not_dones.copy()
+            for i in self.observation_shape.shape:
+                include = np.repeat(np.expand_dims(include, -1), -1, i)
+            obs[key] = self._normalize_obs(self.observations[key][indices, 0, :], env) * include
+            next_obs[key] = self._normalize_obs(self.next_observations[key][indices, 0, :], env) * include
+    
+        observations = {key: self.to_torch(obs) for key, obs in obs_.items()}
+        next_observations = {key: self.to_torch(obs) for key, obs in next_obs_.items()}
+
+        return sb3.common.type_aliases.DictReplayBufferSamples(
+            observations=observations,
+            actions=self.to_torch(actions),
+            next_observations=next_observations,
+            # Only use dones that are not due to timeouts
+            # deactivated by default (timeouts is initialized as an array of False)
+            dones=self.to_torch(dones),
+            rewards=self.to_torch(self._normalize_reward(rewards)),
+        )
+        
 class ReplayBufferSamples(NamedTuple):
     observations: torch.Tensor
     actions: torch.Tensor
@@ -1508,6 +1642,66 @@ class TD3Lambda(sb3.td3.td3.TD3):
         if len(actor_losses) > 0:
             self.logger.record("train/actor_loss", np.mean(actor_losses))
         self.logger.record("train/critic_loss", np.mean(critic_losses))
+
+class TD3History(TD3Lambda):
+    def __init__(
+        self,
+        policy: Union[str, Type[sb3.td3.policies.TD3Policy]],
+        env: Union[sb3.common.type_aliases.GymEnv, str],
+        learning_rate: Union[float, sb3.common.type_aliases.Schedule] = 1e-3,
+        buffer_size: int = 1000000,  # 1e6
+        learning_starts: int = 100, 
+        batch_size: int = 100, 
+        tau: float = 0.005,
+        gamma: float = 0.99,
+        n_steps: float = 5, 
+        lmbda: float = 0.9, 
+        train_freq: Union[int, Tuple[int, str]] = (1, "episode"),
+        gradient_steps: int = -1,
+        action_noise: Optional[sb3.common.noise.ActionNoise] = None,
+        replay_buffer_class: Optional[sb3.common.buffers.ReplayBuffer] = None,
+        replay_buffer_kwargs: Optional[Dict[str, Any]] = None,
+        optimize_memory_usage: bool = False,
+        policy_delay: int = 2, 
+        target_policy_noise: float = 0.2, 
+        target_noise_clip: float = 0.5, 
+        tensorboard_log: Optional[str] = None,
+        create_eval_env: bool = False,
+        policy_kwargs: Dict[str, Any] = None,
+        verbose: int = 0, 
+        seed: Optional[int] = None,
+        device: Union[torch.device, str] = "auto",
+        _init_setup_model: bool = True,
+    ):   
+        self.lmbda = lmbda
+        self.n_steps = n_steps
+        assert train_freq[1] != 'steps'
+        super(TD3Lambda, self).__init__(
+            policy,
+            env, 
+            learning_rate,
+            buffer_size,  # 1e6
+            learning_starts,
+            batch_size,
+            tau, 
+            gamma,
+            train_freq,
+            gradient_steps,
+            action_noise,
+            replay_buffer_class,
+            replay_buffer_kwargs,
+            optimize_memory_usage,
+            policy_delay,
+            target_policy_noise,
+            target_noise_clip,
+            tensorboard_log,
+            create_eval_env,
+            policy_kwargs,
+            verbose,
+            seed,
+            device,
+            _init_setup_model
+        ) 
 
 class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
     """

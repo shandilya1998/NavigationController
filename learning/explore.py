@@ -7,10 +7,12 @@ from simulations.maze_task import CustomGoalReward4Rooms, \
     GoalRewardNoObstacle, GoalRewardSimple
 import stable_baselines3 as sb3
 from utils.td3_utils import TD3BG, TD3BGPolicy, \
-    DictReplayBuffer, TD3BGPolicyV2, HistoryFeaturesExtractor, \
+    DictReplayBuffer, TD3BGPolicyV2, \
     MultiModalFeaturesExtractor, NStepReplayBuffer, \
     NStepDictReplayBuffer, TD3Lambda, \
-    NStepLambdaDictReplayBuffer, NStepLambdaReplayBuffer
+    NStepLambdaDictReplayBuffer, NStepLambdaReplayBuffer, \
+    MultiModalHistoryFeaturesExtractor, NStepHistoryReplayBuffer, \
+    NStepHistoryDictReplayBuffer
 from constants import params
 from utils.callbacks import CustomCallback, CheckpointCallback, EvalCallback
 import os
@@ -99,6 +101,26 @@ class Explore:
         optimize_memory_usage = True
         replay_buffer_class = None
         replay_buffer_kwargs = None
+        if n_steps > 0:
+            replay_buffer_class = NStepReplayBuffer
+            replay_buffer_kwargs = { 
+                'n_steps' : n_steps
+            }   
+            if isinstance(self.env.observation_space, gym.spaces.dict.Dict):
+                replay_buffer_class = NStepDictReplayBuffer
+
+        if lmbda > 0 and lmbda < 1 and n_steps > 0:
+            print('Using TD(λ) learning')
+            replay_buffer_class = NStepLambdaReplayBuffer
+            if isinstance(self.env.observation_space, gym.spaces.dict.Dict):
+                replay_buffer_class = NStepLambdaDictReplayBuffer
+            replay_buffer_kwargs = { 
+                'n_steps' : n_steps,
+                'lmbda' : lmbda
+            }   
+            model = TD3Lambda
+            kwargs['lmbda'] = lmbda
+            kwargs['n_steps'] = n_steps
         if policy_version == 1:
             policy_class = TD3BGPolicy
             action_noise = None
@@ -133,32 +155,32 @@ class Explore:
                 params['OU_SIGMA'] * np.ones(n_actions)
             )
             policy_kwargs = {
-                'features_extractor_class' : MultiModalFeaturesExtractor
+                'features_extractor_class' : MultiModalFeaturesExtractor,
+                'net_arch' : [512, 1024, 512, 128]
             }
+            optimize_memory_usage = False
+        elif policy_version == 6:
+            model = sb3.TD3
+            policy_class = 'MlpPolicy'
+            action_noise = sb3.common.noise.OrnsteinUhlenbeckActionNoise(
+                params['OU_MEAN'] * np.ones(n_actions),
+                params['OU_SIGMA'] * np.ones(n_actions)
+            )
+            policy_kwargs = { 
+                'features_extractor_class' : MultiModalHistoryFeaturesExtractor,
+                'features_extractor_kwargs' : {
+                    'n_steps' : history_steps
+                }
+            }
+            replay_buffer_class = NStepHistoryReplayBuffer
+            replay_buffer_kwargs = {
+                'n_steps' : history_steps
+            }
+            if isinstance(self.env.observation_space, gym.spaces.dict.Dict):
+                replay_buffer_class = NStepHistoryDictReplayBuffer
             optimize_memory_usage = False
         else:
             raise ValueError('Expected policy version less than or equal to 2, got {}'.format(policy_version))
-
-        if n_steps > 0:
-            replay_buffer_class = NStepReplayBuffer
-            replay_buffer_kwargs = {
-                'n_steps' : n_steps
-            }
-            if isinstance(self.env.observation_space, gym.spaces.dict.Dict):
-                replay_buffer_class = NStepDictReplayBuffer
-
-        if lmbda > 0 and lmbda < 1 and n_steps > 0:
-            print('Using TD(λ) learning')
-            replay_buffer_class = NStepLambdaReplayBuffer
-            if isinstance(self.env.observation_space, gym.spaces.dict.Dict):
-                replay_buffer_class = NStepLambdaDictReplayBuffer
-            replay_buffer_kwargs = { 
-                'n_steps' : n_steps,
-                'lmbda' : lmbda
-            }
-            model = TD3Lambda
-            kwargs['lmbda'] = lmbda
-            kwargs['n_steps'] = n_steps
 
         print('Model: {}'.format(model))
         self.rl_model = model(

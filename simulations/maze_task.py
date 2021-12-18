@@ -349,7 +349,7 @@ class GoalRewardSimple(GoalReward4Rooms):
 
     def set(self):
         self.goal_index = 0
-        self.goals = [MazeVisualGoal(np.array(self.goal) * self.scale, 1.0, RED, 1.5)]
+        self.goals = [MazeVisualGoal(np.array(self.goal) * self.scale, 1.0, RED, 1.25)]
 
     def reward(self, obs: np.ndarray, pos: np.ndarray) -> float:
         reward = 0.0 

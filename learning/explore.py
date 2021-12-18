@@ -129,7 +129,7 @@ class Explore:
             action_noise = sb3.common.noise.OrnsteinUhlenbeckActionNoise(
                 params['OU_MEAN'] * np.ones(n_actions),
                 params['OU_SIGMA'] * np.ones(n_actions),
-                dt = self.env.dt
+                dt = params['dt']
             )
         elif policy_version == 3:
             model = sb3.TD3
@@ -145,7 +145,7 @@ class Explore:
             action_noise = sb3.common.noise.OrnsteinUhlenbeckActionNoise(
                 params['OU_MEAN'] * np.ones(n_actions),
                 params['OU_SIGMA'] * np.ones(n_actions),
-                dt = self.dt
+                dt = params['dt']
             )
             policy_kwargs = {
                 'features_extractor_class' : HistoryFeaturesExtractor
@@ -156,7 +156,7 @@ class Explore:
             action_noise = sb3.common.noise.OrnsteinUhlenbeckActionNoise(
                 params['OU_MEAN'] * np.ones(n_actions),
                 params['OU_SIGMA'] * np.ones(n_actions),
-                dt = self.dt
+                dt = params['dt']
             )
             policy_kwargs = {
                 'features_extractor_class' : MultiModalFeaturesExtractor,
@@ -169,7 +169,7 @@ class Explore:
             action_noise = sb3.common.noise.OrnsteinUhlenbeckActionNoise(
                 params['OU_MEAN'] * np.ones(n_actions),
                 params['OU_SIGMA'] * np.ones(n_actions),
-                dt = self.dt
+                dt = params['dt']
             )
             policy_kwargs = { 
                 'features_extractor_class' : MultiModalHistoryFeaturesExtractor,

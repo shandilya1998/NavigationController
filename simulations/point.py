@@ -59,7 +59,7 @@ class PointEnv(AgentModel):
         next_obs = self._get_obs()
         pos = self.get_xy().copy()
         reward = np.sum(np.square(self.data.qvel[:2] / self.VELOCITY_LIMITS * 1.2)) / 2
-        return next_obs, reward, False, {}
+        return next_obs, 0.0, False, {}
 
     def _get_obs(self):
         rgb, depth = self.sim.render(

@@ -19,6 +19,11 @@ def convert_observation_to_space(observation, maximum = float('inf')):
             high = np.ones(observation.shape, dtype = observation.dtype) * 255
             space = gym.spaces.Box(low, high, dtype = observation.dtype)
             return space
+        if len(observation.shape) == 4:
+            low = np.zeros(observation.shape, dtype = observation.dtype)
+            high = np.ones(observation.shape, dtype = observation.dtype)
+            space = gym.spaces.Box(low, high, dtype = observation.dtype)
+            return space
         low = np.full(observation.shape, -maximum, dtype=np.float32)
         high = np.full(observation.shape, maximum, dtype=np.float32)
         space = gym.spaces.Box(low, high, dtype=observation.dtype)

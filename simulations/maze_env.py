@@ -237,6 +237,11 @@ class MazeEnv(gym.Env):
         self.history = [np.zeros_like(self.last_wrapped_obs).copy() for i in range(self.n_steps)]
         action = self.action_space.sample()
         self.actions = [np.zeros_like(action) for i in range(self.n_steps)]
+        inertia = np.concatenate([
+                self.data.qvel,
+                self.data.qacc
+            ], -1)
+        self.history_inertia = [np.zeros_like(inertia) for i in range(self.n_steps)]
         ob = self._get_obs()
         self._set_observation_space(ob)
         self.__create_maze_graph()
@@ -457,14 +462,18 @@ class MazeEnv(gym.Env):
         elif self.policy_version == 6:
             inertia = np.concatenate([
                 self.data.qvel / self.wrapped_env.VELOCITY_LIMITS,
-                self.data.qacc / (self.wrapped_env.VELOCITY_LIMITS * 2)
+                self.data.qacc / (2 * self.wrapped_env.VELOCITY_LIMITS)
             ], -1)
+            self.history_inertia.pop(0)
+            self.history_inertia.append(inertia.copy())
+            self.history.pop(0)
+            self.history.append(img.copy())
             high = self.action_space.high
-            action = self.actions[-1] / high
+            actions = [action / high for action in self.actions]
             obs = {
-                'observation' : img.copy(),
-                'action' : action.copy(),
-                'inertia' : inertia.copy(),
+                'observation' : np.stack(self.history, 0).copy() / 255.0,
+                'action' : np.stack(actions, 0).copy(),
+                'inertia' : np.stack(self.history_inertia, 0).copy(),
                 'sampled_action' : sampled_action.copy()
             }
             return obs
@@ -589,6 +598,9 @@ class MazeEnv(gym.Env):
             img = next_obs['observation'].copy()
         else:
             img = next_obs.copy()
+        if self.policy_version == 6:
+            img = img[0] * 255
+            img = img.astype(np.uint8)
         if img.shape[-1] == 4:
             img = img[:, :, :3]
         outer_reward = self._task.reward(img, next_pos)

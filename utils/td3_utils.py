@@ -9,6 +9,8 @@ import stable_baselines3 as sb3
 from bg.models import ControlNetwork, VisualCortex, ControlNetworkV2
 import copy
 from constants import params
+import time
+from collections import deque
 try:
     # Check memory used by replay buffer when possible
     import psutil
@@ -33,13 +35,15 @@ class PassAsIsFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
 
 class MultiModalHistoryFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
     def __init__(self, observation_space: gym.Space, n_steps):
-        features_dim = len(observation_space) * params['num_ctx']
+        features_dim = params['num_ctx']
         super(MultiModalHistoryFeaturesExtractor, self).__init__(observation_space, features_dim)
         self.vc = VisualCortex(
             observation_space,
             params['num_ctx']
         )
-        input_size = n_steps * len(observation_space) * features_dim
+        self.keys = ['observation', 'inertia', 'action']
+        input_size = n_steps * len(self.keys) * features_dim
+        self.input_size = input_size
         self.fc_inertia = torch.nn.Sequential(
             torch.nn.Linear(observation_space['inertia'].shape[-1], features_dim),
             torch.nn.ReLU()
@@ -60,7 +64,7 @@ class MultiModalHistoryFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExt
 
     def forward(self, observations):
         out = []
-        for i, key in enumerate(self._observation_space.spaces.keys()):
+        for i, key in enumerate(self.keys):
             features = []
             for j in range(self.n_steps):
                 features.append(self.layers[key](observations[key][:, j]))
@@ -264,7 +268,7 @@ class ContinuousCritic(sb3.common.policies.BaseModel):
     :param action_space: Action space
     :param net_arch: Network architecture
     :param features_extractor: Network to extract features
-        (a CNN when using images, a nn.Flatten() layer otherwise)
+        (a CNN when using images, a torch.nn.Flatten() layer otherwise)
     :param features_dim: Number of features
     :param activation_fn: Activation function
     :param normalize_images: Whether to normalize images or not,
@@ -339,7 +343,7 @@ class ContinuousCriticV2(sb3.common.policies.BaseModel):
     :param action_space: Action space
     :param net_arch: Network architecture
     :param features_extractor: Network to extract features
-        (a CNN when using images, a nn.Flatten() layer otherwise)
+        (a CNN when using images, a torch.nn.Flatten() layer otherwise)
     :param features_dim: Number of features
     :param activation_fn: Activation function
     :param normalize_images: Whether to normalize images or not,
@@ -1474,15 +1478,15 @@ class PrioritisedTD3(sb3.td3.td3.TD3):
             # Sample replay buffer
             replay_data = self.replay_buffer.sample(batch_size, env=self._vec_normalize_env)
 
-            with th.no_grad():
+            with torch.no_grad():
                 # Select action according to policy and add clipped noise
                 noise = replay_data.actions.clone().data.normal_(0, self.target_policy_noise)
                 noise = noise.clamp(-self.target_noise_clip, self.target_noise_clip)
                 next_actions = (self.actor_target(replay_data.next_observations) + noise).clamp(-1, 1)
 
                 # Compute the next Q-values: min over all critics targets
-                next_q_values = th.cat(self.critic_target(replay_data.next_observations, next_actions), dim=1)
-                next_q_values, _ = th.min(next_q_values, dim=1, keepdim=True)
+                next_q_values = torch.cat(self.critic_target(replay_data.next_observations, next_actions), dim=1)
+                next_q_values, _ = torch.min(next_q_values, dim=1, keepdim=True)
                 target_q_values = replay_data.rewards + (1 - replay_data.dones) * self.gamma * next_q_values
 
             # Get current Q-values estimates for each critic network
@@ -1524,6 +1528,555 @@ class PrioritisedTD3(sb3.td3.td3.TD3):
         if len(actor_losses) > 0:
             self.logger.record("train/actor_loss", np.mean(actor_losses))
         self.logger.record("train/critic_loss", np.mean(critic_losses))
+
+class NStepHistoryVecTransposeImage(sb3.common.vec_env.base_vec_env.VecEnvWrapper):
+    """
+    Re-order channels, from HxWxC to CxHxW.
+    It is required for PyTorch convolution layers.
+    :param venv:
+    """
+
+    def __init__(self, venv: sb3.common.vec_env.base_vec_env.VecEnv, n_steps, image_space_keys = None):
+        self.n_steps = n_steps
+        observation_space = copy.deepcopy(venv.observation_space)
+        if image_space_keys is None:
+            self.image_space_keys = ['observation']
+        else:
+            self.image_space_keys = image_space_keys
+        for key in self.image_space_keys:
+            observation_space.spaces[key] = self.transpose_space(observation_space[key])
+        super(NStepHistoryVecTransposeImage, self).__init__(venv, observation_space=observation_space)
+
+    def transpose_space(self, observation_space: gym.spaces.Box, key: str = "") -> gym.spaces.Box:
+        """
+        Transpose an observation space (re-order channels).
+        :param observation_space:
+        :param key: In case of dictionary space, the key of the observation space.
+        :return:
+        """
+        # Sanity checks
+        assert not (observation_space.shape[1] == 3 or observation_space.shape[1] == 4), \
+            "The observation space {key} must follow the channel last convention"
+        n_steps, height, width, channels = observation_space.shape
+        assert n_steps == self.n_steps, 'Observation Space must have {} steps, got {}'.format(self.n_steps, n_steps)
+        new_shape = (n_steps, channels, height, width)
+        return gym.spaces.Box(low=0, high=1, shape=new_shape, dtype=observation_space.dtype)
+
+    def transpose_image(self, image: np.ndarray) -> np.ndarray:
+        """
+        Transpose an image or batch of images (re-order channels).
+        :param image:
+        :return:
+        """
+        if len(image.shape) == 4:
+            return np.transpose(image, (0, 3, 1, 2))
+        return np.transpose(image, (0, 1, 4, 2, 3))
+
+    def transpose_observations(self, observations: Union[np.ndarray, Dict]) -> Union[np.ndarray, Dict]:
+        """
+        Transpose (if needed) and return new observations.
+        :param observations:
+        :return: Transposed observations
+        """
+        if isinstance(observations, dict):
+            # Avoid modifying the original object in place
+            observations = copy.deepcopy(observations)
+            for k in self.image_space_keys:
+                observations[k] = self.transpose_image(observations[k])
+        else:
+            observations = self.transpose_image(observations)
+        return observations
+
+    def step_wait(self) -> sb3.common.vec_env.base_vec_env.VecEnvStepReturn:
+        observations, rewards, dones, infos = self.venv.step_wait()
+
+        # Transpose the terminal observations
+        for idx, done in enumerate(dones):
+            if not done:
+                continue
+            if "terminal_observation" in infos[idx]:
+                infos[idx]["terminal_observation"] = self.transpose_observations(infos[idx]["terminal_observation"])
+
+        return self.transpose_observations(observations), rewards, dones, infos
+
+    def reset(self) -> Union[np.ndarray, Dict]:
+        """
+        Reset all environments
+        """
+        return self.transpose_observations(self.venv.reset())
+
+    def close(self) -> None:
+        self.venv.close()
+
+class TD3HistoryPolicy(sb3.td3.policies.TD3Policy):
+    """
+    Policy class (with both actor and critic) for TD3.
+    :param observation_space: Observation space
+    :param action_space: Action space
+    :param lr_schedule: Learning rate schedule (could be constant)
+    :param net_arch: The specification of the policy and value networks.
+    :param activation_fn: Activation function
+    :param features_extractor_class: Features extractor to use.
+    :param features_extractor_kwargs: Keyword arguments
+        to pass to the features extractor.
+    :param normalize_images: Whether to normalize images or not,
+         dividing by 255.0 (True by default)
+    :param optimizer_class: The optimizer to use,
+        ``torch.optim.Adam`` by default
+    :param optimizer_kwargs: Additional keyword arguments,
+        excluding the learning rate, to pass to the optimizer
+    :param n_critics: Number of critic networks to create.
+    :param share_features_extractor: Whether to share or not the features extractor
+        between the actor and the critic (this saves computation time)
+    """
+
+    def __init__(
+        self,
+        observation_space: gym.spaces.Space,
+        action_space: gym.spaces.Space,
+        lr_schedule: sb3.common.type_aliases.Schedule,
+        n_steps: int,
+        net_arch: Optional[Union[List[int], Dict[str, List[int]]]] = None,
+        activation_fn: Type[torch.nn.Module] = torch.nn.ReLU,
+        features_extractor_class: Type[sb3.common.torch_layers.BaseFeaturesExtractor] = sb3.common.torch_layers.FlattenExtractor,
+        features_extractor_kwargs: Optional[Dict[str, Any]] = None,
+        normalize_images: bool = True,
+        optimizer_class: Type[torch.optim.Optimizer] = torch.optim.Adam,
+        optimizer_kwargs: Optional[Dict[str, Any]] = None,
+        n_critics: int = 2,
+        share_features_extractor: bool = True,
+    ):
+        self.n_steps = n_steps
+        super(TD3HistoryPolicy, self).__init__(
+            observation_space,
+            action_space,
+            lr_schedule,
+            net_arch,
+            activation_fn,
+            features_extractor_class,
+            features_extractor_kwargs,
+            normalize_images,
+            optimizer_class=optimizer_class,
+            optimizer_kwargs=optimizer_kwargs,
+            n_critics = n_critics,
+            share_features_extractor = share_features_extractor
+        )
+
+    def predict(
+        self,
+        observation: Union[np.ndarray, Dict[str, np.ndarray]],
+        state: Optional[np.ndarray] = None,
+        mask: Optional[np.ndarray] = None,
+        deterministic: bool = False,
+    ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
+        """
+        Get the policy action and state from an observation (and optional state).
+        Includes sugar-coating to handle different observations (e.g. normalizing images).
+        :param observation: the input observation
+        :param state: The last states (can be None, used in recurrent policies)
+        :param mask: The last masks (can be None, used in recurrent policies)
+        :param deterministic: Whether or not to return deterministic actions.
+        :return: the model's action and the next state
+            (used in recurrent policies)
+        """
+        # TODO (GH/1): add support for RNN policies
+        # if state is None:
+        #     state = self.initial_state
+        # if mask is None:
+        #     mask = [False for _ in range(self.n_envs)]
+
+        if isinstance(observation, dict):
+            # need to copy the dict as the dict in VecFrameStack will become a torch tensor
+            observation = copy.deepcopy(observation)
+            for key, obs in observation.items():
+                obs_space = self.observation_space.spaces[key]
+                if sb3.common.preprocessing.is_image_space(obs_space):
+                    obs_ = np.stack([sb3.common.preprocessing.maybe_transpose(obs[:, i], obs_space) for i in range(self.n_steps)], 1)
+                else:
+                    obs_ = np.array(obs)
+                # Add batch dimension if needed
+                observation[key] = obs_.reshape((-1,) + self.observation_space[key].shape)
+
+        elif is_image_space(self.observation_space):
+            # Handle the different cases for images
+            # as PyTorch use channel first format
+            observation = np.stack([sb3.common.preprocessing.maybe_transpose(observation[:, i], obs_space) for i in range(self.n_steps)], 1)
+            observation = observation.reshape((-1,) + self.observation_space.shape)
+        else:
+            observation = np.array(observation)
+            observation = observation.reshape((-1,) + self.observation_space.shape)
+
+
+        observation = sb3.common.utils.obs_as_tensor(observation, self.device)
+
+        with torch.no_grad():
+            actions = self._predict(observation, deterministic=deterministic)
+        # Convert to numpy
+        actions = actions.cpu().numpy()
+
+        if isinstance(self.action_space, gym.spaces.Box):
+            if self.squash_output:
+                # Rescale to proper domain when using squashing
+                actions = self.unscale_action(actions)
+            else:
+                # Actions could be on arbitrary scale, so clip the actions to avoid
+                # out of bound error (e.g. if sampling from a Gaussian distribution)
+                actions = np.clip(actions, self.action_space.low, self.action_space.high)
+
+
+        return actions, state
+
+
+class TD3History(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
+    def __init__(
+        self,
+        policy: Union[str, Type[sb3.td3.policies.TD3Policy]],
+        env: Union[sb3.common.type_aliases.GymEnv, str],
+        learning_rate: Union[float, sb3.common.type_aliases.Schedule] = 1e-3,
+        buffer_size: int = 1000000,  # 1e6
+        learning_starts: int = 100, 
+        batch_size: int = 100, 
+        tau: float = 0.005,
+        gamma: float = 0.99,
+        n_steps: float = 5, 
+        train_freq: Union[int, Tuple[int, str]] = (1, "episode"),
+        gradient_steps: int = -1,
+        action_noise: Optional[sb3.common.noise.ActionNoise] = None,
+        replay_buffer_class: Optional[sb3.common.buffers.ReplayBuffer] = None,
+        replay_buffer_kwargs: Optional[Dict[str, Any]] = None,
+        optimize_memory_usage: bool = False,
+        policy_delay: int = 2, 
+        target_policy_noise: float = 0.2, 
+        target_noise_clip: float = 0.5, 
+        tensorboard_log: Optional[str] = None,
+        create_eval_env: bool = False,
+        policy_kwargs: Dict[str, Any] = None,
+        verbose: int = 0, 
+        seed: Optional[int] = None,
+        device: Union[torch.device, str] = "auto",
+        _init_setup_model: bool = True,
+    ):   
+        self.n_steps = n_steps
+        self.history = None
+        super(TD3History, self).__init__(
+            policy,
+            env,
+            sb3.td3.policies.TD3Policy,
+            learning_rate,
+            buffer_size,
+            learning_starts,
+            batch_size,
+            tau,
+            gamma,
+            train_freq,
+            gradient_steps,
+            action_noise=action_noise,
+            replay_buffer_class=replay_buffer_class,
+            replay_buffer_kwargs=replay_buffer_kwargs,
+            policy_kwargs=policy_kwargs,
+            tensorboard_log=tensorboard_log,
+            verbose=verbose,
+            device=device,
+            create_eval_env=create_eval_env,
+            seed=seed,
+            sde_support=False,
+            optimize_memory_usage=optimize_memory_usage,
+            supported_action_spaces=(gym.spaces.Box),
+        )
+        self.policy_delay = policy_delay
+        self.target_noise_clip = target_noise_clip
+        self.target_policy_noise = target_policy_noise
+
+        if _init_setup_model:
+            self._setup_model()
+
+    def _setup_model(self) -> None:
+        super(TD3History, self)._setup_model()
+        self._create_aliases()
+
+    def _create_aliases(self) -> None:
+        self.actor = self.policy.actor
+        self.actor_target = self.policy.actor_target
+        self.critic = self.policy.critic
+        self.critic_target = self.policy.critic_target
+
+    def train(self, gradient_steps: int, batch_size: int = 100) -> None:
+
+        # Update learning rate according to lr schedule
+        self._update_learning_rate([self.actor.optimizer, self.critic.optimizer])
+
+        actor_losses, critic_losses = [], []
+
+        for _ in range(gradient_steps):
+
+            self._n_updates += 1
+            # Sample replay buffer
+            replay_data = self.replay_buffer.sample(batch_size, env=self._vec_normalize_env)
+
+            with torch.no_grad():
+                # Select action according to policy and add clipped noise
+                noise = replay_data.actions.clone().data.normal_(0, self.target_policy_noise)
+                noise = noise.clamp(-self.target_noise_clip, self.target_noise_clip)
+                next_actions = (self.actor_target(replay_data.next_observations) + noise).clamp(-1, 1)
+
+                # Compute the next Q-values: min over all critics targets
+                next_q_values = torch.cat(self.critic_target(replay_data.next_observations, next_actions), dim=1)
+                next_q_values, _ = torch.min(next_q_values, dim=1, keepdim=True)
+                target_q_values = replay_data.rewards + (1 - replay_data.dones) * self.gamma * next_q_values
+
+            # Get current Q-values estimates for each critic network
+            current_q_values = self.critic(replay_data.observations, replay_data.actions)
+
+            # Compute critic loss
+            critic_loss = sum([F.mse_loss(current_q, target_q_values) for current_q in current_q_values])
+            critic_losses.append(critic_loss.item())
+
+            # Optimize the critics
+            self.critic.optimizer.zero_grad()
+            critic_loss.backward()
+            self.critic.optimizer.step()
+
+            # Delayed policy updates
+            if self._n_updates % self.policy_delay == 0:
+                # Compute actor loss
+                actor_loss = -self.critic.q1_forward(replay_data.observations, self.actor(replay_data.observations)).mean()
+                actor_losses.append(actor_loss.item())
+
+                # Optimize the actor
+                self.actor.optimizer.zero_grad()
+                actor_loss.backward()
+                self.actor.optimizer.step()
+
+                polyak_update(self.critic.parameters(), self.critic_target.parameters(), self.tau)
+                polyak_update(self.actor.parameters(), self.actor_target.parameters(), self.tau)
+
+        self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
+        if len(actor_losses) > 0:
+            self.logger.record("train/actor_loss", np.mean(actor_losses))
+        self.logger.record("train/critic_loss", np.mean(critic_losses))
+
+    def _setup_learn(
+        self,
+        total_timesteps: int,
+        eval_env: Optional[sb3.common.type_aliases.GymEnv],
+        callback: sb3.common.type_aliases.MaybeCallback = None,
+        eval_freq: int = 10000,
+        n_eval_episodes: int = 5,
+        log_path: Optional[str] = None,
+        reset_num_timesteps: bool = True,
+        tb_log_name: str = "run",
+    ) -> Tuple[int, sb3.common.callbacks.BaseCallback]:
+        """
+        Initialize different variables needed for training.
+        :param total_timesteps: The total number of samples (env steps) to train on
+        :param eval_env: Environment to use for evaluation.
+        :param callback: Callback(s) called at every step with state of the algorithm.
+        :param eval_freq: How many steps between evaluations
+        :param n_eval_episodes: How many episodes to play per evaluation
+        :param log_path: Path to a folder where the evaluations will be saved
+        :param reset_num_timesteps: Whether to reset or not the ``num_timesteps`` attribute
+        :param tb_log_name: the name of the run for tensorboard log
+        :return:
+        """
+        self.start_time = time.time()
+        if self.ep_info_buffer is None or reset_num_timesteps:
+            # Initialize buffers if they don't exist, or reinitialize if resetting counters
+            self.ep_info_buffer = deque(maxlen=100)
+            self.ep_success_buffer = deque(maxlen=100)
+
+        if self.action_noise is not None:
+            self.action_noise.reset()
+
+        if reset_num_timesteps:
+            self.num_timesteps = 0
+            self._episode_num = 0
+        else:
+            # Make sure training timesteps are ahead of the internal counter
+            total_timesteps += self.num_timesteps
+        self._total_timesteps = total_timesteps
+
+        # Avoid resetting the environment when calling ``.learn()`` consecutive times
+        if reset_num_timesteps or self._last_obs is None:
+            self._last_obs = self.env.reset()  # pytype: disable=annotation-type-mismatch
+            self._last_episode_starts = np.ones((self.env.num_envs,), dtype=bool)
+            # Retrieve unnormalized observation for saving into the buffer
+            if self._vec_normalize_env is not None:
+                self._last_original_obs = self._vec_normalize_env.get_original_obs()
+        self.history = [copy.deepcopy(self._last_obs) for i in range(self.n_steps)]
+
+        if eval_env is not None and self.seed is not None:
+            eval_env.seed(self.seed)
+
+        eval_env = self._get_eval_env(eval_env)
+
+        # Configure logger's outputs if no logger was passed
+        if not self._custom_logger:
+            self._logger = sb3.common.utils.configure_logger(self.verbose, self.tensorboard_log, tb_log_name, reset_num_timesteps)
+
+        # Create eval callback if needed
+        callback = self._init_callback(callback, eval_env, eval_freq, n_eval_episodes, log_path)
+        return total_timesteps, callback
+
+    def _sample_action(
+        self, learning_starts: int, action_noise: Optional[sb3.common.noise.ActionNoise] = None
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Sample an action according to the exploration policy.
+        This is either done by sampling the probability distribution of the policy,
+        or sampling a random action (from a uniform distribution over the action space)
+        or by adding noise to the deterministic output.
+        :param action_noise: Action noise that will be used for exploration
+            Required for deterministic policy (e.g. TD3). This can also be used
+            in addition to the stochastic policy for SAC.
+        :param learning_starts: Number of steps before learning for the warm-up phase.
+        :return: action to take in the environment
+            and scaled action that will be stored in the replay buffer.
+            The two differs when the action space is not normalized (bounds are not [-1, 1]).
+        """
+        # Select action randomly or according to policy
+        if self.num_timesteps < learning_starts and not (self.use_sde and self.use_sde_at_warmup):
+            # Warmup phase
+            unscaled_action = np.array([self.action_space.sample()])
+        else:
+            # Note: when using continuous actions,
+            # we assume that the policy uses tanh to scale the action
+            # We use non-deterministic action in the case of SAC, for TD3, it does not matter
+            if isinstance(self._last_obs, dict):
+                obs = {
+                    key: np.stack(
+                        [self.history[i][key] for i in range(len(self.history))], 1
+                    ) for key in self._last_obs.keys()
+                }
+            else:
+                obs = np.stack(self.history, 1)
+            unscaled_action, _ = self.predict(obs, deterministic=False)
+
+        # Rescale the action from [low, high] to [-1, 1]
+        if isinstance(self.action_space, gym.spaces.Box):
+            scaled_action = self.policy.scale_action(unscaled_action)
+
+            # Add noise to the action (improve exploration)
+            if action_noise is not None:
+                scaled_action = np.clip(scaled_action + action_noise(), -1, 1)
+
+            # We store the scaled action in the buffer
+            buffer_action = scaled_action
+            action = self.policy.unscale_action(scaled_action)
+        else:
+            # Discrete case, no need to normalize or clip
+            buffer_action = unscaled_action
+            action = buffer_action
+        return action, buffer_action
+
+    def _store_transition(
+        self,
+        replay_buffer: sb3.common.buffers.ReplayBuffer,
+        buffer_action: np.ndarray,
+        new_obs: np.ndarray,
+        reward: np.ndarray,
+        done: np.ndarray,
+        infos: List[Dict[str, Any]],
+    ) -> None:
+        """
+        Store transition in the replay buffer.
+        We store the normalized action and the unnormalized observation.
+        It also handles terminal observations (because VecEnv resets automatically).
+        :param replay_buffer: Replay buffer object where to store the transition.
+        :param buffer_action: normalized action
+        :param new_obs: next observation in the current episode
+            or first observation of the episode (when done is True)
+        :param reward: reward for the current transition
+        :param done: Termination signal
+        :param infos: List of additional information about the transition.
+            It may contain the terminal observations and information about timeout.
+        """
+        # Store only the unnormalized version
+        if self._vec_normalize_env is not None:
+            new_obs_ = self._vec_normalize_env.get_original_obs()
+            reward_ = self._vec_normalize_env.get_original_reward()
+        else:
+            # Avoid changing the original ones
+            self._last_original_obs, new_obs_, reward_ = self._last_obs, new_obs, reward
+
+        # As the VecEnv resets automatically, new_obs is already the
+        # first observation of the next episode
+        if done and infos[0].get("terminal_observation") is not None:
+            next_obs = infos[0]["terminal_observation"]
+            # VecNormalize normalizes the terminal observation
+            if self._vec_normalize_env is not None:
+                next_obs = self._vec_normalize_env.unnormalize_obs(next_obs)
+        else:
+            next_obs = new_obs_
+
+        replay_buffer.add(
+            self._last_original_obs,
+            next_obs,
+            buffer_action,
+            reward_,
+            done,
+            infos,
+        )
+
+        self._last_obs = new_obs
+        self.history.pop(0)
+        self.history.append(copy.deepcopy(self._last_obs))
+        # Save the unnormalized observation
+        if self._vec_normalize_env is not None:
+            self._last_original_obs = new_obs_
+
+    def learn(
+        self,
+        total_timesteps: int,
+        callback: sb3.common.type_aliases.MaybeCallback = None,
+        log_interval: int = 4,
+        eval_env: Optional[sb3.common.type_aliases.GymEnv] = None,
+        eval_freq: int = -1,
+        n_eval_episodes: int = 5,
+        tb_log_name: str = "TD3",
+        eval_log_path: Optional[str] = None,
+        reset_num_timesteps: bool = True,
+    ) -> sb3.common.off_policy_algorithm.OffPolicyAlgorithm:
+        total_timesteps, callback = self._setup_learn(
+            total_timesteps,
+            eval_env,
+            callback,
+            eval_freq,
+            n_eval_episodes,
+            eval_log_path,
+            reset_num_timesteps,
+            tb_log_name,
+        )
+
+        callback.on_training_start(locals(), globals())
+        while self.num_timesteps < total_timesteps:
+            rollout = self.collect_rollouts(
+                self.env,
+                train_freq=self.train_freq,
+                action_noise=self.action_noise,
+                callback=callback,
+                learning_starts=self.learning_starts,
+                replay_buffer=self.replay_buffer,
+                log_interval=log_interval,
+            )
+
+            if rollout.continue_training is False:
+                break
+
+            if self.num_timesteps > 0 and self.num_timesteps > self.learning_starts:
+                # If no `gradient_steps` is specified,
+                # do as many gradients steps as steps performed during the rollout
+                gradient_steps = self.gradient_steps if self.gradient_steps > 0 else rollout.episode_timesteps
+                self.train(batch_size=self.batch_size, gradient_steps=gradient_steps)
+
+        callback.on_training_end()
+        return self
+
+    def _excluded_save_params(self) -> List[str]:
+        return super(TD3History, self)._excluded_save_params() + ["actor", "critic", "actor_target", "critic_target"]
+
+    def _get_torch_save_params(self) -> Tuple[List[str], List[str]]:
+        state_dicts = ["policy", "actor.optimizer", "critic.optimizer"]
+        return state_dicts, []
 
 class TD3Lambda(sb3.td3.td3.TD3):
     def __init__(
@@ -1646,66 +2199,6 @@ class TD3Lambda(sb3.td3.td3.TD3):
         if len(actor_losses) > 0:
             self.logger.record("train/actor_loss", np.mean(actor_losses))
         self.logger.record("train/critic_loss", np.mean(critic_losses))
-
-class TD3History(TD3Lambda):
-    def __init__(
-        self,
-        policy: Union[str, Type[sb3.td3.policies.TD3Policy]],
-        env: Union[sb3.common.type_aliases.GymEnv, str],
-        learning_rate: Union[float, sb3.common.type_aliases.Schedule] = 1e-3,
-        buffer_size: int = 1000000,  # 1e6
-        learning_starts: int = 100, 
-        batch_size: int = 100, 
-        tau: float = 0.005,
-        gamma: float = 0.99,
-        n_steps: float = 5, 
-        lmbda: float = 0.9, 
-        train_freq: Union[int, Tuple[int, str]] = (1, "episode"),
-        gradient_steps: int = -1,
-        action_noise: Optional[sb3.common.noise.ActionNoise] = None,
-        replay_buffer_class: Optional[sb3.common.buffers.ReplayBuffer] = None,
-        replay_buffer_kwargs: Optional[Dict[str, Any]] = None,
-        optimize_memory_usage: bool = False,
-        policy_delay: int = 2, 
-        target_policy_noise: float = 0.2, 
-        target_noise_clip: float = 0.5, 
-        tensorboard_log: Optional[str] = None,
-        create_eval_env: bool = False,
-        policy_kwargs: Dict[str, Any] = None,
-        verbose: int = 0, 
-        seed: Optional[int] = None,
-        device: Union[torch.device, str] = "auto",
-        _init_setup_model: bool = True,
-    ):   
-        self.lmbda = lmbda
-        self.n_steps = n_steps
-        assert train_freq[1] != 'steps'
-        super(TD3Lambda, self).__init__(
-            policy,
-            env, 
-            learning_rate,
-            buffer_size,  # 1e6
-            learning_starts,
-            batch_size,
-            tau, 
-            gamma,
-            train_freq,
-            gradient_steps,
-            action_noise,
-            replay_buffer_class,
-            replay_buffer_kwargs,
-            optimize_memory_usage,
-            policy_delay,
-            target_policy_noise,
-            target_noise_clip,
-            tensorboard_log,
-            create_eval_env,
-            policy_kwargs,
-            verbose,
-            seed,
-            device,
-            _init_setup_model
-        ) 
 
 class TD3BG(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
     """

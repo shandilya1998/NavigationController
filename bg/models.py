@@ -3,6 +3,7 @@ import torch
 import torchvision as tv
 from constants import params
 import stable_baselines3 as sb3
+import gym
 
 def check_for_nan(inp, name):
     if torch.isnan(inp).any():
@@ -142,7 +143,15 @@ class VisualCortex(torch.nn.Module):
         num_ctx = 300,
     ):
         super(VisualCortex, self).__init__()
-        self.model = sb3.common.torch_layers.NatureCNN(observation_space['observation'], num_ctx)
+        img_obs = observation_space['observation']
+        if len(img_obs.shape) == 4:
+            img_obs = gym.spaces.Box(
+                low = img_obs.low[0],
+                high = img_obs.high[0] * 255.0,
+                dtype = np.uint8,
+                shape = img_obs.shape[1:]
+            )
+        self.model = sb3.common.torch_layers.NatureCNN(img_obs, num_ctx)
     
     def forward(self, img):
         return self.model(img)

@@ -12,7 +12,8 @@ from utils.td3_utils import TD3BG, TD3BGPolicy, \
     NStepDictReplayBuffer, TD3Lambda, \
     NStepLambdaDictReplayBuffer, NStepLambdaReplayBuffer, \
     MultiModalHistoryFeaturesExtractor, NStepHistoryReplayBuffer, \
-    NStepHistoryDictReplayBuffer
+    NStepHistoryDictReplayBuffer, TD3History, TD3HistoryPolicy, \
+    NStepHistoryVecTransposeImage
 from constants import params
 from utils.callbacks import CustomCallback, CheckpointCallback, EvalCallback
 import os
@@ -67,8 +68,17 @@ class Explore:
         elif task_version == 3:
             task = GoalRewardSimple
             print('Task: GoalRewardSimple')
+        if policy_version == 6:
+            VecTransposeImage = NStepHistoryVecTransposeImage
+            kwargs = {
+                'n_steps' : history_steps,
+                'image_space_keys' : ['observation']
+            }
+        else:
+            VecTransposeImage = sb3.common.vec_env.vec_transpose.VecTransposeImage
+            kwargs = {}
         self.logdir = logdir
-        self.env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
+        self.env = VecTransposeImage(
             sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
                 lambda : sb3.common.monitor.Monitor(env_class(
                     PointEnv,
@@ -77,21 +87,20 @@ class Explore:
                     policy_version,
                     history_steps
                 ))
-            ])
+            ]), **kwargs
+        )
+        self.eval_env = VecTransposeImage(
+            sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
+                lambda : sb3.common.monitor.Monitor(env_class(
+                    PointEnv,
+                    task,
+                    max_episode_size,
+                    policy_version,
+                    history_steps
+                ))
+            ]), **kwargs
         )
 
-        self.eval_env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
-            sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
-                lambda : sb3.common.monitor.Monitor(env_class(
-                    PointEnv,
-                    task,
-                    max_episode_size,
-                    policy_version,
-                    history_steps
-                ))
-            ])
-        )
-        
         self.__set_rl_callback()
         n_actions = self.env.action_space.sample().shape[-1]
 
@@ -176,14 +185,9 @@ class Explore:
                 'features_extractor_class' : MultiModalHistoryFeaturesExtractor,
                 'features_extractor_kwargs' : {
                     'n_steps' : history_steps
-                }
+                },
+                'net_arch' : [512, 1024, 512, 128],
             }
-            replay_buffer_class = NStepHistoryReplayBuffer
-            replay_buffer_kwargs = {
-                'n_steps' : history_steps
-            }
-            if isinstance(self.env.observation_space, gym.spaces.dict.Dict):
-                replay_buffer_class = NStepHistoryDictReplayBuffer
             optimize_memory_usage = False
         elif policy_version == 7:
             model = sb3.SAC
@@ -202,6 +206,8 @@ class Explore:
             raise ValueError('Expected policy version less than or equal to 2, got {}'.format(policy_version))
 
         print('Model: {}'.format(model))
+        print('Policy: {}'.format(policy_class))
+        print('Replay Buffer: {}'.format(replay_buffer_class))
         self.rl_model = model(
             policy_class,
             self.env,

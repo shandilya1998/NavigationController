@@ -160,7 +160,8 @@ class Explore:
             )
             policy_kwargs = {
                 'features_extractor_class' : MultiModalFeaturesExtractor,
-                'net_arch' : [512, 1024, 512, 128]
+                'net_arch' : [512, 1024, 512, 128],
+                'n_critics' : 3
             }
             optimize_memory_usage = False
         elif policy_version == 6:
@@ -183,6 +184,19 @@ class Explore:
             }
             if isinstance(self.env.observation_space, gym.spaces.dict.Dict):
                 replay_buffer_class = NStepHistoryDictReplayBuffer
+            optimize_memory_usage = False
+        elif policy_version == 7:
+            model = sb3.SAC
+            policy_class = 'MlpPolicy'
+            action_noise = sb3.common.noise.OrnsteinUhlenbeckActionNoise(
+                params['OU_MEAN'] * np.ones(n_actions),
+                params['OU_SIGMA'] * np.ones(n_actions),
+                dt = params['dt']
+            )
+            policy_kwargs = {
+                'features_extractor_class' : MultiModalFeaturesExtractor,
+                'net_arch' : [512, 1024, 512, 128]
+            }
             optimize_memory_usage = False
         else:
             raise ValueError('Expected policy version less than or equal to 2, got {}'.format(policy_version))

@@ -39,7 +39,7 @@ params = {
     'af'                          : [256, 1],
     'critic_net_arch'             : [400, 300],
     'OU_MEAN'                     : 0.0,
-    'OU_SIGMA'                    : 0.05,
+    'OU_SIGMA'                    : 0.1,
     'top_view_size'               : 50.,
     'batch_size'                  : 1024,
     'lr'                          : 1e-3,

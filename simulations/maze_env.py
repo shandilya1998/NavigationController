@@ -441,7 +441,7 @@ class MazeEnv(gym.Env):
             self.history.append(img)
             obs = {'observation_{}'.format(i): ob for i, ob in enumerate(self.history)}
             return obs
-        elif self.policy_version == 5:
+        elif self.policy_version == 5 or self.policy_version == 7:
             inertia = np.concatenate([
                 self.data.qvel,
                 self.data.qacc

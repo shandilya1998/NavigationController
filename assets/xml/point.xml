@@ -32,6 +32,6 @@
     <actuator>
         <velocity joint="ballx" ctrlrange="-12 12" ctrllimited="true" kv="100"/>
         <velocity joint="bally" ctrlrange="-12 12" ctrllimited="true" kv="100"/>
-        <velocity joint="rot" ctrlrange="-12 12" ctrllimited="true" kv="100"/>
+        <position joint="rot" ctrlrange="-3.14 3.14" ctrllimited="true" kp="40"/>
     </actuator>
 </mujoco>

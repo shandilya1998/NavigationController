@@ -38,7 +38,6 @@ class MazeEnv(gym.Env):
         model_cls: Type[AgentModel],
         maze_task: Type[maze_task.MazeTask] = maze_task.MazeTask,
         max_episode_size: int = 2000,
-        policy_version = 1,
         n_steps = 4,
         include_position: bool = True,
         maze_height: float = 0.5,
@@ -54,7 +53,6 @@ class MazeEnv(gym.Env):
         **kwargs,
     ) -> None:
         self.n_steps = n_steps
-        self.policy_version = policy_version
         self.kwargs = kwargs
         self.top_view_size = params['top_view_size']
         self.t = 0  # time steps
@@ -325,8 +323,19 @@ class MazeEnv(gym.Env):
         di, self.target_ind = pure_pursuit_steer_control(
             self.state, self.target_course, self.target_ind, self.state.WB
         )
+        prev_yaw = copy.deepcopy(self.state.yaw)
+        self.state.update(ai, di)
+        self.states.append(self.t * self.dt, self.state)
+        yaw = copy.deepcopy(self.state.yaw)
+        delta_yaw = yaw - prev_yaw
+        if yaw > np.pi:
+            yaw -= np.pi * 2
+        elif yaw < -np.pi:
+            yaw += 2 * np.pi
         self.sampled_action = np.array([
-            ai, di
+            (self.state.v) * np.cos(yaw),
+            (self.state.v) * np.sin(yaw),
+            yaw
         ])
         return self.sampled_action
 
@@ -409,11 +418,7 @@ class MazeEnv(gym.Env):
         return self.wrapped_env.get_ori()
 
     def _set_action_space(self):
-        low = self.wrapped_env.action_space.low * 2 / self.dt
-        high = self.wrapped_env.action_space.high * 2 / self.dt
-        low = np.array([low[0] * np.sqrt(2), low[-1]], dtype = np.float32)
-        high = np.array([high[0] * np.sqrt(2), high[-1]], dtype = np.float32)
-        self._action_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
+        self._action_space = self.wrapped_env.action_space
 
     def _set_observation_space(self, observation):
         self.observation_space = convert_observation_to_space(observation)
@@ -436,74 +441,22 @@ class MazeEnv(gym.Env):
     def _get_obs(self) -> np.ndarray:
         img = self.wrapped_env._get_obs()
         inframe, reversemask = self._task.goals[self._task.goal_index].inframe(img[:, :, :3])
-        try: 
-            sampled_action = self.get_action()
-        except:
-            sampled_action = np.zeros(self.action_space.shape)
-        if self.policy_version == 3:
-            return img, inframe
-        elif self.policy_version == 4:
-            self.history.pop(0)
-            self.history.append(img)
-            obs = {'observation_{}'.format(i): ob for i, ob in enumerate(self.history)}
-            return obs, inframe
-        elif self.policy_version == 5:
-            inertia = np.concatenate([
-                self.data.qvel,
-                self.data.qacc
-            ], -1)
-            history_action = np.concatenate(self.actions, -1)
-            obs = {
-                'observation' : img.copy(),
-                'history' : history_action.copy(),
-                'inertia' : inertia.copy(),
-                'sampled_action' : sampled_action.copy(),
-            }
-            return obs. inframe
-        elif self.policy_version == 6:
-            inertia = np.concatenate([
-                self.data.qvel / self.wrapped_env.VELOCITY_LIMITS,
-                self.data.qacc / (2 * self.wrapped_env.VELOCITY_LIMITS)
-            ], -1)
-            self.history_inertia.pop(0)
-            self.history_inertia.append(inertia.copy())
-            self.history.pop(0)
-            self.history.append(img.copy())
-            high = self.action_space.high
-            actions = [action / high for action in self.actions]
-            obs = {
-                'observation' : np.concatenate(self.history, -1).copy() / 255.0,
-                'action' : np.concatenate(actions, -1).copy(),
-                'inertia' : np.concatenate(self.history_inertia, -1).copy(),
-                'sampled_action' : sampled_action.copy(),
-            }
-            return obs, inframe
-        elif self.policy_version == 7:
-            inertia = np.concatenate([
-                self.data.qvel / self.wrapped_env.VELOCITY_LIMITS,
-                self.data.qacc / (2 * self.wrapped_env.VELOCITY_LIMITS)
-            ], -1) 
-            self.history_inertia.pop(0)
-            self.history_inertia.append(inertia.copy())
-            self.history.pop(0)
-            self.history.append(img.copy())
-            high = self.action_space.high
-            actions = [action / high for action in self.actions]
-            obs = {
-                'observation' : np.stack([img[:, :, 3], reversemask], -1) / 255.0,
-                'action' : np.concatenate(actions, -1).copy(),
-                'inertia' : np.concatenate(self.history_inertia, -1).copy(),
-                'sampled_action' : sampled_action.copy(),
-            }
-            return obs, inframe
-        else:
-            obs = {
-                'observation' : img.copy(),
-                'last_observation' : self.last_wrapped_obs.copy(),
-                'sampled_action' : sampled_action.copy(),
-            }
-            self.last_wrapped_obs = img.copy()
-            return obs, inframe
+        inertia = np.concatenate([
+            self.data.qvel / self.wrapped_env.VELOCITY_LIMITS,
+            self.data.qacc / (2 * self.wrapped_env.VELOCITY_LIMITS)
+        ], -1) 
+        self.history_inertia.pop(0)
+        self.history_inertia.append(inertia.copy())
+        self.history.pop(0)
+        self.history.append(img.copy())
+        high = self.action_space.high
+        actions = [action / high for action in self.actions]
+        obs = {
+            'observation' : np.stack([img[:, :, 3], reversemask], -1) / 255.0,
+            'action' : np.concatenate(actions, -1).copy(),
+            'inertia' : np.concatenate(self.history_inertia, -1).copy(),
+        }
+        return obs, inframe
 
     def reset(self) -> np.ndarray:
         self.t = 0
@@ -594,43 +547,14 @@ class MazeEnv(gym.Env):
         self.t += 1
         ai = action[0]
         di = action[1]
-        prev_yaw = copy.deepcopy(self.state.yaw)
-        prev_v = copy.deepcopy(self.state.v)
-        self.state.update(ai, di)
-        self.states.append(self.t * self.dt, self.state)
-        delta_yaw = self.state.v / self.state.WB * \
-            np.tan(di) * self.dt
-        delta_v = ai * self.dt
-        self.actions.pop(0)
-        self.actions.append(action.copy())
-        action = np.array([
-            (prev_v + delta_v) * np.cos(prev_yaw + delta_yaw),
-            (prev_v + delta_v) * np.sin(prev_yaw + delta_yaw),
-            delta_yaw / self.dt
-        ])
         info = {}
         inner_next_obs, inner_reward, _, info = self.wrapped_env.step(action)
         next_pos = self.wrapped_env.get_xy()
         collision_penalty = 0.0
         next_obs, inframe = self._get_obs()
         inner_reward = self._inner_reward_scaling * inner_reward
-        if self.policy_version != 7:
-            if isinstance(next_obs, dict):
-                img = next_obs['observation'].copy()
-                depth = None
-            else:
-                img = next_obs.copy()
-            if self.policy_version == 6:
-                img = img[0] * 255
-                depth = img[:, :, 3]
-                img = img.astype(np.uint8)
-            if img.shape[-1] == 4:
-                depth = img[:, : 3]
-                img = img[:, :, :3]
-        else:
-            img = next_obs['observation'].copy()
-        outer_reward = self._task.reward(img, next_pos, inframe)
-        done = self._task.termination(img, self.wrapped_env.get_xy(), inframe)
+        outer_reward = self._task.reward(next_pos, inframe)
+        done = self._task.termination(self.wrapped_env.get_xy(), inframe)
         info["position"] = self.wrapped_env.get_xy()
         index = self.__get_current_cell()
         self._current_cell = index

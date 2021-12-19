@@ -351,7 +351,7 @@ class GoalRewardSimple(GoalReward4Rooms):
         self.goal_index = 0
         self.goals = [MazeVisualGoal(np.array(self.goal) * self.scale, 1.0, RED, 1.25)]
 
-    def reward(self, obs: np.ndarray, pos: np.ndarray, inframe: bool) -> float:
+    def reward(self, pos: np.ndarray, inframe: bool) -> float:
         reward = 0.0 
         goal = self.goals[self.goal_index]
         if inframe:
@@ -363,7 +363,7 @@ class GoalRewardSimple(GoalReward4Rooms):
 
         return reward
 
-    def termination(self, obs: np.ndarray, pos: np.ndarray, inframe: bool) -> bool:
+    def termination(self, pos: np.ndarray, inframe: bool) -> bool:
         if self.goals[self.goal_index].neighbor(pos):
             return True
         return False
@@ -416,7 +416,7 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
             ]), self.scales[2], self.colors[2], 3),
         ]
 
-    def reward(self, obs: np.ndarray, pos: np.ndarray, inframe: bool) -> float:
+    def reward(self, pos: np.ndarray, inframe: bool) -> float:
         reward = 0.0
         goal = self.goals[self.goal_index]
         if inframe:
@@ -428,7 +428,7 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
                 )
         return reward
 
-    def termination(self, obs: np.ndarray, pos: np.ndarray, inframe: bool) -> bool:
+    def termination(self, pos: np.ndarray, inframe: bool) -> bool:
         if self.goals[self.goal_index].neighbor(pos) and inframe:
             return True
         return False
@@ -449,7 +449,7 @@ class GoalRewardNoObstacle(GoalReward4Rooms):
             ]) * self.scale, 1.0, RED),
         ]
 
-    def reward(self, obs: np.ndarray, pos: np.ndarray, inframe: bool) -> float:
+    def reward(self, pos: np.ndarray, inframe: bool) -> float:
         reward = 0.0
         goal = self.goals[self.goal_index]
         if inframe:
@@ -461,7 +461,7 @@ class GoalRewardNoObstacle(GoalReward4Rooms):
 
         return reward
 
-    def termination(self, obs: np.ndarray, pos: np.ndarray, inframe: bool) -> bool:
+    def termination(self, pos: np.ndarray, inframe: bool) -> bool:
         if self.goals[self.goal_index].neighbor(pos):
             return True
         return False

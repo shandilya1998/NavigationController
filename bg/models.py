@@ -165,13 +165,11 @@ class VisualCortexV2(torch.nn.Module):
         # Re-ordering will be done by pre-preprocessing or wrapper
         n_input_channels = observation_space.shape[0]
         self.cnn = torch.nn.Sequential(
-            torch.nn.Conv2d(n_input_channels, 64, kernel_size=8, stride=4, padding=0),
+            torch.nn.Conv2d(n_input_channels, 32, kernel_size=8, stride=4, padding=0),
             torch.nn.ReLU(),
-            torch.nn.Conv2d(64, 128, kernel_size=4, stride=2, padding=0),
+            torch.nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=0),
             torch.nn.ReLU(),
-            torch.nn.Conv2d(128, 64, kernel_size=3, stride=1, padding=0),
-            torch.nn.ReLU(),
-            torch.nn.Conv2d(64, 32, kernel_size=3, stride=1, padding=0),
+            torch.nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=0),
             torch.nn.ReLU(),
             torch.nn.Flatten(),
         )

@@ -25,11 +25,6 @@ if __name__ == '__main__':
         help = 'choose between imitate and explore'
     )
     parser.add_argument(
-        '--policy_version',
-        type = int,
-        help = 'policy version to be used'
-    )
-    parser.add_argument(
         '--env_type',
         type = str,
         help = 'choose between maze or collision. choice modifies reward'
@@ -60,7 +55,6 @@ if __name__ == '__main__':
         model = Imitate(
             logdir = args.logdir,
             max_episode_size = args.max_episode_size,
-            policy_version = args.policy_version,
             env_type = args.env_type,
             history_steps = args.history_steps,
             task_version = args.task_version,
@@ -72,7 +66,6 @@ if __name__ == '__main__':
         model = Explore(
             logdir = args.logdir,
             max_episode_size = args.max_episode_size,
-            policy_version = args.policy_version,
             env_type = args.env_type,
             history_steps = args.history_steps,
             task_version = args.task_version,

@@ -109,7 +109,7 @@ class MultiModalFeaturesExtractorV2(sb3.common.torch_layers.BaseFeaturesExtracto
             observation_space['observation'],
             features_dim
         )
-        input_size = (len(observation_space) - 1) * features_dim
+        input_size = len(observation_space) * features_dim
         self.fc_inertia = torch.nn.Sequential(
             torch.nn.Linear(observation_space['inertia'].shape[-1], features_dim),
             torch.nn.ReLU()

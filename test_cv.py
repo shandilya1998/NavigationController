@@ -3,7 +3,7 @@ from simulations.collision_env import CollisionEnv
 from simulations.point import PointEnv
 from simulations.maze_task import CustomGoalReward4Rooms, \
     GoalRewardNoObstacle
-env = MazeEnv(PointEnv, GoalRewardNoObstacle, policy_version = 5)
+env = MazeEnv(PointEnv, GoalRewardNoObstacle)
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
@@ -267,8 +267,10 @@ line, = ax.plot(REWARDS, color = 'r', linestyle = '--')
 ax.set_xlabel('steps')
 ax.set_ylabel('reward')
 total_reward = 0.0
+ac = env.get_action()
 while not done:
-    ob, reward, done, info = env.step(ob['sampled_action'])
+    ob, reward, done, info = env.step(ac)
+    ac = env.get_action()
     if reward != 0.0:
         count += 1
     if info['collision_penalty'] != 0:
@@ -278,19 +280,9 @@ while not done:
     pbar.update(1)
     steps += 1
     pos = env.wrapped_env.sim.data.qpos.copy()    
-    img = cv2.cvtColor(ob['observation'][:, :, :3], cv2.COLOR_RGB2BGR)
-    depth = cv2.cvtColor(ob['observation'][:, :, 3], cv2.COLOR_RGB2BGR)
-    cv2.imwrite(os.path.join('assets', 'plots', 'tests', 'test_image_{}.png'.format(steps)), img)
-    IMAGES.append(img)
+    depth = ob['observation'][:, :, 0]
     top = env.render('rgb_array')
-    keypoints, reversemask = blob_detect(
-        img, 
-        min_range,
-        max_range,
-        imshow = True
-    )
     cv2.imshow('depth stream', depth)
-    cv2.imshow('camera stream', img)
     cv2.imshow('position stream', top)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break

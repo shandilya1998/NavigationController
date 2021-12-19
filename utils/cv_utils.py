@@ -110,7 +110,7 @@ def blob_detect(image,                  #-- The frame (cv standard)
                 blur=0,                 #-- blur value (default 0)
                 blob_params=None,       #-- blob parameters (default None)
                 search_window=None,     #-- window where to search as [x_min, y_min, x_max, y_max] adimensional (0.0 to 1.0) starting from top left corner
-                imshow=False
+                imshow=True
                ):
 
 
@@ -139,14 +139,12 @@ def blob_detect(image,                  #-- The frame (cv standard)
     #- Show HSV Mask
     if imshow:
         cv2.imshow("Dilate Mask", mask)   
-        #cv2.waitKey(0)
         
     mask = cv2.erode(mask, None, iterations=2)
     
     #- Show dilate/erode mask
     if imshow:
         cv2.imshow("Erode Mask", mask)
-        #cv2.waitKey(0)
     
     #- Cut the image using the search mask
     mask = apply_search_window(mask, search_window)
@@ -192,8 +190,9 @@ def blob_detect(image,                  #-- The frame (cv standard)
     
     if imshow:
         cv2.imshow("Reverse Mask", reversemask)
-        #cv2.waitKey(0)
-        
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            pass
+
     keypoints = detector.detect(reversemask)
 
     return keypoints, reversemask

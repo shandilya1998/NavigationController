@@ -45,7 +45,6 @@ class Explore:
     def __init__(self,
         logdir,
         max_episode_size,
-        policy_version,
         env_type = 'maze',
         history_steps = 4,
         task_version = 1,
@@ -68,15 +67,11 @@ class Explore:
         elif task_version == 3:
             task = GoalRewardSimple
             print('Task: GoalRewardSimple')
-        if policy_version == 6 or policy_version == 7:
-            VecTransposeImage = NStepHistoryVecTransposeImage
-            kwargs = {
-                'n_steps' : history_steps,
-                'image_space_keys' : ['observation']
+        VecTransposeImage = NStepHistoryVecTransposeImage
+        kwargs = {
+            'n_steps' : history_steps,
+            'image_space_keys' : ['observation']
             }
-        else:
-            VecTransposeImage = sb3.common.vec_env.vec_transpose.VecTransposeImage
-            kwargs = {}
         self.logdir = logdir
         self.env = VecTransposeImage(
             sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
@@ -84,7 +79,6 @@ class Explore:
                     PointEnv,
                     task,
                     max_episode_size,
-                    policy_version,
                     history_steps
                 ))
             ]), **kwargs
@@ -95,7 +89,6 @@ class Explore:
                     PointEnv,
                     task,
                     max_episode_size,
-                    policy_version,
                     history_steps
                 ))
             ]), **kwargs
@@ -104,7 +97,6 @@ class Explore:
         self.__set_rl_callback()
         n_actions = self.env.action_space.sample().shape[-1]
 
-        model = TD3BG
         kwargs = {}
         policy_kwargs = None
         optimize_memory_usage = True
@@ -130,82 +122,19 @@ class Explore:
             model = TD3Lambda
             kwargs['lmbda'] = lmbda
             kwargs['n_steps'] = n_steps
-        if policy_version == 1:
-            policy_class = TD3BGPolicy
-            action_noise = None
-        elif policy_version == 2:
-            policy_class = TD3BGPolicyV2
-            action_noise = sb3.common.noise.OrnsteinUhlenbeckActionNoise(
-                params['OU_MEAN'] * np.ones(n_actions),
-                params['OU_SIGMA'] * np.ones(n_actions),
-                dt = params['dt']
-            )
-        elif policy_version == 3:
-            model = sb3.TD3
-            policy_class = 'CnnPolicy'
-            action_noise = sb3.common.noise.OrnsteinUhlenbeckActionNoise(
-                params['OU_MEAN'] * np.ones(n_actions),
-                params['OU_SIGMA'] * np.ones(n_actions)
-            
-            )
-        elif policy_version == 4:
-            model = sb3.TD3
-            policy_class = 'MlpPolicy'
-            action_noise = sb3.common.noise.OrnsteinUhlenbeckActionNoise(
-                params['OU_MEAN'] * np.ones(n_actions),
-                params['OU_SIGMA'] * np.ones(n_actions),
-                dt = params['dt']
-            )
-            policy_kwargs = {
-                'features_extractor_class' : HistoryFeaturesExtractor
-            }
-        elif policy_version == 5:
-            model = sb3.TD3
-            policy_class = 'MlpPolicy'
-            action_noise = sb3.common.noise.OrnsteinUhlenbeckActionNoise(
-                params['OU_MEAN'] * np.ones(n_actions),
-                params['OU_SIGMA'] * np.ones(n_actions),
-                dt = params['dt']
-            )
-            policy_kwargs = {
-                'features_extractor_class' : MultiModalFeaturesExtractor,
-                'net_arch' : [512, 1024, 512, 128],
-                'n_critics' : 3
-            }
-            optimize_memory_usage = False
-        elif policy_version == 6:
-            model = sb3.TD3
-            policy_class = 'MlpPolicy'
-            action_noise = sb3.common.noise.OrnsteinUhlenbeckActionNoise(
-                params['OU_MEAN'] * np.ones(n_actions),
-                params['OU_SIGMA'] * np.ones(n_actions),
-                dt = params['dt']
-            )
-            policy_kwargs = { 
-                'features_extractor_class' : MultiModalHistoryFeaturesExtractor,
-                'features_extractor_kwargs' : {
-                    'n_steps' : history_steps
-                },
-                'net_arch' : [512, 1024, 512, 128],
-            }
-            optimize_memory_usage = False
-        elif policy_version == 7:
-            model = sb3.TD3
-            policy_class = 'MlpPolicy'
-            action_noise = sb3.common.noise.OrnsteinUhlenbeckActionNoise(
-                params['OU_MEAN'] * np.ones(n_actions),
-                params['OU_SIGMA'] * np.ones(n_actions),
-                dt = params['dt']
-            )   
-            policy_kwargs = { 
-                'features_extractor_class' : MultiModalFeaturesExtractorV2,
-                'net_arch' : [512, 1024, 512, 128],
-                'n_critics' : 3
-            }   
-            optimize_memory_usage = False
-        else:
-            raise ValueError('Expected policy version less than or equal to 2, got {}'.format(policy_version))
-
+        model = sb3.TD3
+        policy_class = 'MlpPolicy'
+        action_noise = sb3.common.noise.OrnsteinUhlenbeckActionNoise(
+            params['OU_MEAN'] * np.ones(n_actions),
+            params['OU_SIGMA'] * np.ones(n_actions),
+            dt = params['dt']
+        )   
+        policy_kwargs = { 
+            'features_extractor_class' : MultiModalFeaturesExtractorV2,
+            'net_arch' : [512, 1024, 512, 128],
+            'n_critics' : 3
+        }   
+        optimize_memory_usage = False
         print('Model: {}'.format(model))
         print('Policy: {}'.format(policy_class))
         print('Replay Buffer: {}'.format(replay_buffer_class))

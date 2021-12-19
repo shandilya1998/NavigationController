@@ -13,7 +13,7 @@ from utils.td3_utils import TD3BG, TD3BGPolicy, \
     NStepLambdaDictReplayBuffer, NStepLambdaReplayBuffer, \
     MultiModalHistoryFeaturesExtractor, NStepHistoryReplayBuffer, \
     NStepHistoryDictReplayBuffer, TD3History, TD3HistoryPolicy, \
-    NStepHistoryVecTransposeImage
+    NStepHistoryVecTransposeImage, MultiModalFeaturesExtractorV2
 from constants import params
 from utils.callbacks import CustomCallback, CheckpointCallback, EvalCallback
 import os
@@ -68,7 +68,7 @@ class Explore:
         elif task_version == 3:
             task = GoalRewardSimple
             print('Task: GoalRewardSimple')
-        if policy_version == 6:
+        if policy_version == 6 or policy_version == 7:
             VecTransposeImage = NStepHistoryVecTransposeImage
             kwargs = {
                 'n_steps' : history_steps,
@@ -196,11 +196,12 @@ class Explore:
                 params['OU_MEAN'] * np.ones(n_actions),
                 params['OU_SIGMA'] * np.ones(n_actions),
                 dt = params['dt']
-            )
-            policy_kwargs = {
-                'features_extractor_class' : MultiModalFeaturesExtractor,
-                'net_arch' : [512, 1024, 512, 128]
-            }
+            )   
+            policy_kwargs = { 
+                'features_extractor_class' : MultiModalFeaturesExtractorV2,
+                'net_arch' : [512, 1024, 512, 128],
+                'n_critics' : 3
+            }   
             optimize_memory_usage = False
         else:
             raise ValueError('Expected policy version less than or equal to 2, got {}'.format(policy_version))

@@ -32145,3 +32145,138 @@ Episode length: 121.80 +/- 28.17
 |    learning_rate   | 0.000786 |
 |    n_updates       | 213571   |
 ---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 135      |
+|    ep_rew_mean     | -6.35    |
+| time/              |          |
+|    episodes        | 1672     |
+|    fps             | 8        |
+|    time_elapsed    | 25606    |
+|    total timesteps | 216945   |
+| train/             |          |
+|    actor_loss      | 2.25     |
+|    critic_loss     | 3.58     |
+|    learning_rate   | 0.000785 |
+|    n_updates       | 214348   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 137      |
+|    ep_rew_mean     | -6.23    |
+| time/              |          |
+|    episodes        | 1676     |
+|    fps             | 8        |
+|    time_elapsed    | 25670    |
+|    total timesteps | 217612   |
+| train/             |          |
+|    actor_loss      | 2.24     |
+|    critic_loss     | 3.67     |
+|    learning_rate   | 0.000785 |
+|    n_updates       | 214884   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 134      |
+|    ep_rew_mean     | -6.46    |
+| time/              |          |
+|    episodes        | 1680     |
+|    fps             | 8        |
+|    time_elapsed    | 25724    |
+|    total timesteps | 217889   |
+| train/             |          |
+|    actor_loss      | 2.24     |
+|    critic_loss     | 3.8      |
+|    learning_rate   | 0.000784 |
+|    n_updates       | 215357   |
+---------------------------------
+Terminated
+Traceback (most recent call last):
+  File "/root/tools/google-cloud-sdk/lib/gcloud.py", line 104, in <module>
+    main()
+  File "/root/tools/google-cloud-sdk/lib/gcloud.py", line 76, in main
+    gcloud_main = _import_gcloud_main()
+  File "/root/tools/google-cloud-sdk/lib/gcloud.py", line 56, in _import_gcloud_main
+    import googlecloudsdk.gcloud_main
+  File "/root/tools/google-cloud-sdk/lib/googlecloudsdk/gcloud_main.py", line 35, in <module>
+    from googlecloudsdk.calliope import cli
+  File "/root/tools/google-cloud-sdk/lib/googlecloudsdk/calliope/cli.py", line 32, in <module>
+    from googlecloudsdk.calliope import backend
+  File "/root/tools/google-cloud-sdk/lib/googlecloudsdk/calliope/backend.py", line 39, in <module>
+    from googlecloudsdk.calliope import parser_extensions
+  File "/root/tools/google-cloud-sdk/lib/googlecloudsdk/calliope/parser_extensions.py", line 85, in <module>
+    from googlecloudsdk.core.updater import update_manager
+  File "/root/tools/google-cloud-sdk/lib/googlecloudsdk/core/updater/update_manager.py", line 41, in <module>
+    from googlecloudsdk.core.updater import installers
+  File "/root/tools/google-cloud-sdk/lib/googlecloudsdk/core/updater/installers.py", line 30, in <module>
+    from googlecloudsdk.core import local_file_adapter
+  File "/root/tools/google-cloud-sdk/lib/googlecloudsdk/core/local_file_adapter.py", line 25, in <module>
+    import requests
+  File "/root/tools/google-cloud-sdk/lib/third_party/requests/__init__.py", line 112, in <module>
+    from . import utils
+  File "/root/tools/google-cloud-sdk/lib/third_party/requests/utils.py", line 26, in <module>
+    from ._internal_utils import to_native_string
+  File "/root/tools/google-cloud-sdk/lib/third_party/requests/_internal_utils.py", line 11, in <module>
+    from .compat import is_py2, builtin_str, str
+  File "/root/tools/google-cloud-sdk/lib/third_party/requests/compat.py", line 59, in <module>
+    from http import cookiejar as cookielib
+  File "/usr/local/lib/python3.6/http/cookiejar.py", line 300, in <module>
+    )?$""", re.X | re. ASCII)
+  File "/root/tools/google-cloud-sdk/lib/googlecloudsdk/core/util/lazy_regex.py", line 74, in _lazy_compile
+    return real_compile(pattern, flags)
+  File "/usr/local/lib/python3.6/re.py", line 233, in compile
+    return _compile(pattern, flags)
+  File "/usr/local/lib/python3.6/re.py", line 301, in _compile
+    p = sre_compile.compile(pattern, flags)
+  File "/usr/local/lib/python3.6/sre_compile.py", line 566, in compile
+    code = _code(p, flags)
+  File "/usr/local/lib/python3.6/sre_compile.py", line 551, in _code
+    _compile(code, p.data, flags)
+  File "/usr/local/lib/python3.6/sre_compile.py", line 134, in _compile
+    _compile(code, av[2], flags)
+  File "/usr/local/lib/python3.6/sre_compile.py", line 146, in _compile
+    _compile(code, p, (flags | add_flags) & ~del_flags)
+  File "/usr/local/lib/python3.6/sre_compile.py", line 146, in _compile
+    _compile(code, p, (flags | add_flags) & ~del_flags)
+  File "/usr/local/lib/python3.6/sre_compile.py", line 187, in _compile
+    _compile(code, av, flags)
+  File "/usr/local/lib/python3.6/sre_compile.py", line 126, in _compile
+    _compile(code, av[2], flags)
+  File "/usr/local/lib/python3.6/sre_compile.py", line 72, in _compile
+    if (flags & SRE_FLAG_IGNORECASE and
+  File "/usr/local/lib/python3.6/enum.py", line 806, in __and__
+    return self.__class__(self._value_ & self.__class__(other)._value_)
+  File "/usr/local/lib/python3.6/enum.py", line 267, in __call__
+    def __call__(cls, value, names=None, *, module=None, qualname=None, type=None, start=1):
+KeyboardInterrupt
+2021-12-18 20:07:48.241835: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: /usr/lib/nvidia-470:/usr/local/cuda/lib64:/root/.mujoco/mjpro150/bin:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
+2021-12-18 20:07:48.241924: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.
+/root/trainer
+Env Type: maze
+Task: GoalRewardSimple
+Model: <class 'stable_baselines3.td3.td3.TD3'>
+Policy: MlpPolicy
+Replay Buffer: None
+Using cuda device
+Logging to assets/out/models/exp18/TD3_24
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 130      |
+|    ep_rew_mean     | -5.94    |
+| time/              |          |
+|    episodes        | 4        |
+|    fps             | 63       |
+|    time_elapsed    | 8        |
+|    total timesteps | 519      |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 166      |
+|    ep_rew_mean     | -5.63    |
+| time/              |          |
+|    episodes        | 8        |
+|    fps             | 76       |
+|    time_elapsed    | 17       |
+|    total timesteps | 1327     |
+---------------------------------
+Terminated

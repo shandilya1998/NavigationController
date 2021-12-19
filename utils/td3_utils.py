@@ -6,7 +6,8 @@ from functools import partial
 import gym
 from typing import Any, Dict, List, Optional, Tuple, Type, Union, NamedTuple
 import stable_baselines3 as sb3
-from bg.models import ControlNetwork, VisualCortex, ControlNetworkV2
+from bg.models import ControlNetwork, VisualCortex, ControlNetworkV2, \
+    VisualCortexV2
 import copy
 from constants import params
 import time
@@ -37,12 +38,12 @@ class MultiModalHistoryFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExt
     def __init__(self, observation_space: gym.Space, n_steps):
         features_dim = params['num_ctx']
         super(MultiModalHistoryFeaturesExtractor, self).__init__(observation_space, features_dim)
-        self.vc = VisualCortex(
-            observation_space,
+        self.vc = VisualCortexV2(
+            observation_space['observation'],
             params['num_ctx']
         )
         self.keys = ['observation', 'inertia', 'action']
-        input_size = n_steps * len(self.keys) * features_dim
+        input_size = len(self.keys) * features_dim
         self.input_size = input_size
         self.fc_inertia = torch.nn.Sequential(
             torch.nn.Linear(observation_space['inertia'].shape[-1], features_dim),
@@ -57,18 +58,12 @@ class MultiModalHistoryFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExt
             torch.nn.ReLU(),
         )
         self.layers = {}
-        self.layers['observation'] = self.vc
-        self.layers['inertia'] = self.fc_inertia
-        self.layers['action'] = self.fc_history
-        self.n_steps = n_steps
 
     def forward(self, observations):
         out = []
-        for i, key in enumerate(self.keys):
-            features = []
-            for j in range(self.n_steps):
-                features.append(self.layers[key](observations[key][:, j]))
-            out.append(torch.cat(features, -1))
+        out.append(self.fc_inertia(observations['inertia']))
+        out.append(self.fc_history(observations['action']))
+        out.append(self.vc(observations['observation']))
         out = torch.cat(out, -1)
         return self.fc(out)
 
@@ -102,6 +97,40 @@ class MultiModalFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor)
         vision = self.vc(observations['observation'])
         inertia = self.fc_inertia(observations['inertia'])
         history = self.fc_history(observations['history'])
+        x = torch.cat([vision, inertia, history], -1)
+        out = self.fc(x)
+        return out
+
+class MultiModalFeaturesExtractorV2(sb3.common.torch_layers.BaseFeaturesExtractor):
+    def __init__(self, observation_space: gym.Space):
+        features_dim = params['num_ctx']
+        super(MultiModalFeaturesExtractorV2, self).__init__(observation_space, features_dim)
+        self.vc = VisualCortexV2(
+            observation_space['observation'],
+            features_dim
+        )
+        input_size = (len(observation_space) - 1) * features_dim
+        self.fc_inertia = torch.nn.Sequential(
+            torch.nn.Linear(observation_space['inertia'].shape[-1], features_dim),
+            torch.nn.ReLU()
+        )
+        self.fc_history = torch.nn.Sequential(
+            torch.nn.Linear(observation_space['action'].shape[-1], features_dim),
+            torch.nn.ReLU()
+        )
+        self.fc = torch.nn.Sequential(
+            torch.nn.Linear(input_size, 1024),
+            torch.nn.ReLU(),
+            torch.nn.Linear(1024, 512),
+            torch.nn.ReLU(),
+            torch.nn.Linear(512, features_dim),
+            torch.nn.ReLU()
+        )
+
+    def forward(self, observations):
+        vision = self.vc(observations['observation'])
+        inertia = self.fc_inertia(observations['inertia'])
+        history = self.fc_history(observations['action'])
         x = torch.cat([vision, inertia, history], -1)
         out = self.fc(x)
         return out
@@ -1557,9 +1586,8 @@ class NStepHistoryVecTransposeImage(sb3.common.vec_env.base_vec_env.VecEnvWrappe
         # Sanity checks
         assert not (observation_space.shape[1] == 3 or observation_space.shape[1] == 4), \
             "The observation space {key} must follow the channel last convention"
-        n_steps, height, width, channels = observation_space.shape
-        assert n_steps == self.n_steps, 'Observation Space must have {} steps, got {}'.format(self.n_steps, n_steps)
-        new_shape = (n_steps, channels, height, width)
+        height, width, channels = observation_space.shape
+        new_shape = (channels, height, width)
         return gym.spaces.Box(low=0, high=1, shape=new_shape, dtype=observation_space.dtype)
 
     def transpose_image(self, image: np.ndarray) -> np.ndarray:
@@ -1568,9 +1596,9 @@ class NStepHistoryVecTransposeImage(sb3.common.vec_env.base_vec_env.VecEnvWrappe
         :param image:
         :return:
         """
-        if len(image.shape) == 4:
-            return np.transpose(image, (0, 3, 1, 2))
-        return np.transpose(image, (0, 1, 4, 2, 3))
+        if len(image.shape) == 3:
+            return np.transpose(image, (2, 0, 1))
+        return np.transpose(image, (0, 3, 1, 2))
 
     def transpose_observations(self, observations: Union[np.ndarray, Dict]) -> Union[np.ndarray, Dict]:
         """

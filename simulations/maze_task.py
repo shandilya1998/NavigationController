@@ -332,14 +332,14 @@ class MazeVisualGoal(MazeGoal):
         out = cv2.cvtColor(obs, cv2.COLOR_RGB2BGR)
         #cv2.imshow('stream', out)
         #cv2.waitKey(1)
-        keypoints, _ = blob_detect(
+        keypoints, reversemask = blob_detect(
             out,
             self.min_range,
             self.max_range
         )
         if len(keypoints) == 0:
-            return False
-        return True
+            return False, reversemask
+        return True, reversemask
 
 class GoalRewardSimple(GoalReward4Rooms):
     def __init__(self, scale: float, goal: Tuple[int, int] = (2.0, 0.0)) -> None:
@@ -351,10 +351,10 @@ class GoalRewardSimple(GoalReward4Rooms):
         self.goal_index = 0
         self.goals = [MazeVisualGoal(np.array(self.goal) * self.scale, 1.0, RED, 1.25)]
 
-    def reward(self, obs: np.ndarray, pos: np.ndarray) -> float:
+    def reward(self, obs: np.ndarray, pos: np.ndarray, inframe: bool) -> float:
         reward = 0.0 
         goal = self.goals[self.goal_index]
-        if goal.inframe(obs):
+        if inframe:
             reward += goal.reward_scale * ( 
                 1 - np.linalg.norm(pos[: goal.dim] - goal.pos) / (np.linalg.norm(goal.pos))
             )   
@@ -363,7 +363,7 @@ class GoalRewardSimple(GoalReward4Rooms):
 
         return reward
 
-    def termination(self, obs: np.ndarray, pos: np.ndarray) -> bool:
+    def termination(self, obs: np.ndarray, pos: np.ndarray, inframe: bool) -> bool:
         if self.goals[self.goal_index].neighbor(pos):
             return True
         return False
@@ -416,10 +416,10 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
             ]), self.scales[2], self.colors[2], 3),
         ]
 
-    def reward(self, obs: np.ndarray, pos: np.ndarray) -> float:
+    def reward(self, obs: np.ndarray, pos: np.ndarray, inframe: bool) -> float:
         reward = 0.0
         goal = self.goals[self.goal_index]
-        if goal.inframe(obs):
+        if inframe:
             if np.linalg.norm(pos - goal.pos) <= goal.threshold * 4:
                 return goal.reward_scale
             else:
@@ -428,8 +428,8 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
                 )
         return reward
 
-    def termination(self, obs: np.ndarray, pos: np.ndarray) -> bool:
-        if self.goals[self.goal_index].neighbor(pos) and self.goals[self.goal_index].inframe(obs):
+    def termination(self, obs: np.ndarray, pos: np.ndarray, inframe: bool) -> bool:
+        if self.goals[self.goal_index].neighbor(pos) and inframe:
             return True
         return False
 
@@ -449,10 +449,10 @@ class GoalRewardNoObstacle(GoalReward4Rooms):
             ]) * self.scale, 1.0, RED),
         ]
 
-    def reward(self, obs: np.ndarray, pos: np.ndarray) -> float:
+    def reward(self, obs: np.ndarray, pos: np.ndarray, inframe: bool) -> float:
         reward = 0.0
         goal = self.goals[self.goal_index]
-        if goal.inframe(obs):
+        if inframe:
             reward += goal.reward_scale * (
                 1 - np.linalg.norm(pos[: goal.dim] - goal.pos) / (np.linalg.norm(goal.pos))
             )
@@ -461,7 +461,7 @@ class GoalRewardNoObstacle(GoalReward4Rooms):
 
         return reward
 
-    def termination(self, obs: np.ndarray, pos: np.ndarray) -> bool:
+    def termination(self, obs: np.ndarray, pos: np.ndarray, inframe: bool) -> bool:
         if self.goals[self.goal_index].neighbor(pos):
             return True
         return False
@@ -503,7 +503,6 @@ class GoalRewardTRoom(MazeTask):
             [B, E, E, R, E, E, B],
             [B, B, B, B, B, B, B],
         ]
-
 
 class DistRewardTRoom(GoalRewardTRoom, DistRewardMixIn):
     pass

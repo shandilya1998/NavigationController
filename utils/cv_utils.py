@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import os
 import math
-
+import matplotlib.pyplot as plt
 
 def circle_detect_v2(img):
     gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
@@ -113,19 +113,23 @@ def blob_detect(image,                  #-- The frame (cv standard)
                 imshow=False
                ):
 
+
     #- Blur image to remove noise
     if blur > 0: 
         image    = cv2.blur(image, (blur, blur))
-        
+
+    if imshow:
+        cv2.imshow('blur', image)
+
     #- Search window
     if search_window is None: search_window = [0.0, 0.0, 1.0, 1.0]
     
     #- Convert image from BGR to HSV
     hsv     = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    
+
     #- Apply HSV threshold
     mask    = cv2.inRange(hsv,hsv_min, hsv_max)
-    
+
     #- Show HSV Mask
     if imshow:
         cv2.imshow("HSV Mask", mask)
@@ -135,21 +139,21 @@ def blob_detect(image,                  #-- The frame (cv standard)
     #- Show HSV Mask
     if imshow:
         cv2.imshow("Dilate Mask", mask)   
-        cv2.waitKey(0)
+        #cv2.waitKey(0)
         
     mask = cv2.erode(mask, None, iterations=2)
     
     #- Show dilate/erode mask
     if imshow:
         cv2.imshow("Erode Mask", mask)
-        cv2.waitKey(0)
+        #cv2.waitKey(0)
     
     #- Cut the image using the search mask
     mask = apply_search_window(mask, search_window)
     
     if imshow:
         cv2.imshow("Searching Mask", mask)
-        cv2.waitKey(0)
+        #cv2.waitKey(0)
 
     #- build default blob detection parameters, if none have been provided
     if blob_params is None:
@@ -188,7 +192,7 @@ def blob_detect(image,                  #-- The frame (cv standard)
     
     if imshow:
         cv2.imshow("Reverse Mask", reversemask)
-        cv2.waitKey(0)
+        #cv2.waitKey(0)
         
     keypoints = detector.detect(reversemask)
 

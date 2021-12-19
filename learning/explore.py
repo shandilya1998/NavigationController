@@ -190,7 +190,7 @@ class Explore:
             }
             optimize_memory_usage = False
         elif policy_version == 7:
-            model = sb3.SAC
+            model = sb3.TD3
             policy_class = 'MlpPolicy'
             action_noise = sb3.common.noise.OrnsteinUhlenbeckActionNoise(
                 params['OU_MEAN'] * np.ones(n_actions),

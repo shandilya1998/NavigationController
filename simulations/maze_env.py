@@ -242,7 +242,7 @@ class MazeEnv(gym.Env):
                 self.data.qacc
             ], -1)
         self.history_inertia = [np.zeros_like(inertia) for i in range(self.n_steps)]
-        ob = self._get_obs()
+        ob, inframe = self._get_obs()
         self._set_observation_space(ob)
         self.__create_maze_graph()
         self.sampled_path = self.__sample_path()
@@ -435,18 +435,19 @@ class MazeEnv(gym.Env):
 
     def _get_obs(self) -> np.ndarray:
         img = self.wrapped_env._get_obs()
+        inframe, reversemask = self._task.goals[self._task.goal_index].inframe(img[:, :, :3])
         try: 
             sampled_action = self.get_action()
         except:
             sampled_action = np.zeros(self.action_space.shape)
         if self.policy_version == 3:
-            return img
+            return img, inframe
         elif self.policy_version == 4:
             self.history.pop(0)
             self.history.append(img)
             obs = {'observation_{}'.format(i): ob for i, ob in enumerate(self.history)}
-            return obs
-        elif self.policy_version == 5 or self.policy_version == 7:
+            return obs, inframe
+        elif self.policy_version == 5:
             inertia = np.concatenate([
                 self.data.qvel,
                 self.data.qacc
@@ -456,9 +457,9 @@ class MazeEnv(gym.Env):
                 'observation' : img.copy(),
                 'history' : history_action.copy(),
                 'inertia' : inertia.copy(),
-                'sampled_action' : sampled_action.copy()
+                'sampled_action' : sampled_action.copy(),
             }
-            return obs
+            return obs. inframe
         elif self.policy_version == 6:
             inertia = np.concatenate([
                 self.data.qvel / self.wrapped_env.VELOCITY_LIMITS,
@@ -471,20 +472,38 @@ class MazeEnv(gym.Env):
             high = self.action_space.high
             actions = [action / high for action in self.actions]
             obs = {
-                'observation' : np.stack(self.history, 0).copy() / 255.0,
-                'action' : np.stack(actions, 0).copy(),
-                'inertia' : np.stack(self.history_inertia, 0).copy(),
-                'sampled_action' : sampled_action.copy()
+                'observation' : np.concatenate(self.history, -1).copy() / 255.0,
+                'action' : np.concatenate(actions, -1).copy(),
+                'inertia' : np.concatenate(self.history_inertia, -1).copy(),
+                'sampled_action' : sampled_action.copy(),
             }
-            return obs
+            return obs, inframe
+        elif self.policy_version == 7:
+            inertia = np.concatenate([
+                self.data.qvel / self.wrapped_env.VELOCITY_LIMITS,
+                self.data.qacc / (2 * self.wrapped_env.VELOCITY_LIMITS)
+            ], -1) 
+            self.history_inertia.pop(0)
+            self.history_inertia.append(inertia.copy())
+            self.history.pop(0)
+            self.history.append(img.copy())
+            high = self.action_space.high
+            actions = [action / high for action in self.actions]
+            obs = {
+                'observation' : np.stack([img[:, :, 3], reversemask], -1) / 255.0,
+                'action' : np.concatenate(actions, -1).copy(),
+                'inertia' : np.concatenate(self.history_inertia, -1).copy(),
+                'sampled_action' : sampled_action.copy(),
+            }
+            return obs, inframe
         else:
             obs = {
                 'observation' : img.copy(),
                 'last_observation' : self.last_wrapped_obs.copy(),
-                'sampled_action' : sampled_action.copy()
+                'sampled_action' : sampled_action.copy(),
             }
             self.last_wrapped_obs = img.copy()
-            return obs
+            return obs, inframe
 
     def reset(self) -> np.ndarray:
         self.t = 0
@@ -501,7 +520,8 @@ class MazeEnv(gym.Env):
         self.__find_all_waypoints()
         self.__find_cubic_spline_path()
         self.__setup_vel_control()
-        return self._get_obs()
+        obs, inframe =  self._get_obs()
+        return obs
 
     @property
     def viewer(self) -> Any:
@@ -592,19 +612,25 @@ class MazeEnv(gym.Env):
         inner_next_obs, inner_reward, _, info = self.wrapped_env.step(action)
         next_pos = self.wrapped_env.get_xy()
         collision_penalty = 0.0
-        next_obs = self._get_obs()
+        next_obs, inframe = self._get_obs()
         inner_reward = self._inner_reward_scaling * inner_reward
-        if isinstance(next_obs, dict):
-            img = next_obs['observation'].copy()
+        if self.policy_version != 7:
+            if isinstance(next_obs, dict):
+                img = next_obs['observation'].copy()
+                depth = None
+            else:
+                img = next_obs.copy()
+            if self.policy_version == 6:
+                img = img[0] * 255
+                depth = img[:, :, 3]
+                img = img.astype(np.uint8)
+            if img.shape[-1] == 4:
+                depth = img[:, : 3]
+                img = img[:, :, :3]
         else:
-            img = next_obs.copy()
-        if self.policy_version == 6:
-            img = img[0] * 255
-            img = img.astype(np.uint8)
-        if img.shape[-1] == 4:
-            img = img[:, :, :3]
-        outer_reward = self._task.reward(img, next_pos)
-        done = self._task.termination(img, self.wrapped_env.get_xy())
+            img = next_obs['observation'].copy()
+        outer_reward = self._task.reward(img, next_pos, inframe)
+        done = self._task.termination(img, self.wrapped_env.get_xy(), inframe)
         info["position"] = self.wrapped_env.get_xy()
         index = self.__get_current_cell()
         self._current_cell = index

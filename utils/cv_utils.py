@@ -195,7 +195,7 @@ def blob_detect(image,                  #-- The frame (cv standard)
 
     keypoints = detector.detect(reversemask)
 
-    return keypoints, reversemask
+    return keypoints, mask
 
 #---------- Draw detected blobs: returns the image
 #-- return(im_with_keypoints)

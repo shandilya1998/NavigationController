@@ -325,10 +325,9 @@ class MazeEnv(gym.Env):
         prev_yaw = copy.deepcopy(self.state.yaw)
         self.state.update(ai, di)
         self.states.append(self.t * self.dt, self.state)
-        yaw = self.state.yaw
         self.sampled_action = np.array([
-            (self.state.v) * np.cos(yaw),
-            (self.state.v) * np.sin(yaw),
+            self.state.v,
+            self.state.yaw,
         ])
         return self.sampled_action
 
@@ -443,7 +442,7 @@ class MazeEnv(gym.Env):
         high = self.action_space.high
         actions = [action / high for action in self.actions]
         obs = {
-            'observation' : np.stack([img[:, :, 3], reversemask], -1) / 255.0,
+            'observation' : np.stack([img, reversemask], -1) / 255.0,
             'action' : np.concatenate(actions, -1).copy(),
             'inertia' : np.concatenate(self.history_inertia, -1).copy(),
         }

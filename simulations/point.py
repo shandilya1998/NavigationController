@@ -14,12 +14,48 @@ from simulations.agent_model import AgentModel
 from constants import params
 from utils.env_utils import convert_observation_to_space
 from collections import defaultdict, OrderedDict
+import math
+import cv2
+
+class RunningStats:
+
+    def __init__(self):
+        self.n = 0
+        self.old_m = 0
+        self.new_m = 0
+        self.old_s = 0
+        self.new_s = 0
+
+    def clear(self):
+        self.n = 0
+    
+    def push(self, x):
+        self.n += 1
+    
+        if self.n == 1:
+            self.old_m = self.new_m = x
+            self.old_s = 0
+        else:
+            self.new_m = self.old_m + (x - self.old_m) / self.n
+            self.new_s = self.old_s + (x - self.old_m) * (x - self.new_m)
+        
+            self.old_m = self.new_m
+            self.old_s = self.new_s
+
+    def mean(self):
+        return self.new_m if self.n else 0.0
+
+    def variance(self):
+        return self.new_s / (self.n - 1) if self.n > 1 else 0.0
+    
+    def standard_deviation(self):
+        return math.sqrt(self.variance())
 
 class PointEnv(AgentModel):
     FILE: str = "point.xml"
     ORI_IND: int = 2
     RADIUS: float = 0.4
-    VELOCITY_LIMITS: float = 12.0
+    VELOCITY_LIMITS: float = 10.0
 
     def __init__(self, file_path: Optional[str] = 'point.xml') -> None:
         file_path = os.path.join(
@@ -28,6 +64,8 @@ class PointEnv(AgentModel):
             'xml',
             file_path
         )
+        self.rs1 = RunningStats()
+        self.rs2 = RunningStats()
         super().__init__(file_path, 1)
         img = self._get_obs()
         dtype = img.dtype
@@ -41,10 +79,10 @@ class PointEnv(AgentModel):
         )
 
     def _set_action_space(self):
-        bounds = self.model.actuator_ctrlrange.copy().astype(np.float32)
-        low, high = bounds.T
-        self.action_dim = low.shape[-1] - 1
-        self.action_space = gym.spaces.Box(low=low[:-1], high=high[:-1], dtype=np.float32)
+        low = np.array([-self.VELOCITY_LIMITS * 1.41, -np.pi], dtype = np.float32)
+        high = np.array([self.VELOCITY_LIMITS * 1.41, np.pi], dtype = np.float32)
+        self.action_dim = 2
+        self.action_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
         return self.action_space
 
     def _set_observation_space(self, observation):
@@ -52,8 +90,11 @@ class PointEnv(AgentModel):
         return self.observation_space
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
-        yaw = np.arctan2(action[1], action[0])
-        action = np.concatenate([action, np.array([yaw],dtype = np.float32)], -1)
+        speed = action[0]
+        yaw = action[1]
+        vx = speed * np.cos(yaw)
+        vy = speed * np.sin(yaw)
+        action = np.array([vx, vy, yaw], dtype = np.float32)
         self.sim.data.ctrl[:] = action
         prev_pos = self.get_xy().copy()
         for _ in range(0, self.frame_skip):
@@ -64,6 +105,9 @@ class PointEnv(AgentModel):
         reward -= np.square(self.data.qvel[2]) * 5e-3
         return next_obs, reward, False, {}
 
+    def gaussian(self, x, mean, std):
+        return np.exp(-0.5 * ((x - mean) / std) ** 2)
+
     def _get_obs(self):
         rgb, depth = self.sim.render(
             width = 100,
@@ -71,8 +115,9 @@ class PointEnv(AgentModel):
             camera_name = 'mtdcam',
             depth = True
         )
-        depth = 255 * ((depth - depth.min()) / (depth.max() - depth.min()))
+        depth = 255 * (depth - 0.97) / 0.03
         depth = depth.astype(np.uint8)
+        #cv2.imshow('depth', np.flipud(depth / 255.0))
         img = np.flipud(np.concatenate([
             rgb, np.expand_dims(depth, -1)
         ], -1))

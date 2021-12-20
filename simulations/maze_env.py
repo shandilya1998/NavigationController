@@ -232,7 +232,6 @@ class MazeEnv(gym.Env):
                 self.agent_ids.append(self.model._geom_name2id[name])
         self._set_action_space()
         self.last_wrapped_obs = self.wrapped_env._get_obs().copy()
-        self.history = [np.zeros_like(self.last_wrapped_obs).copy() for i in range(self.n_steps)]
         action = self.action_space.sample()
         self.actions = [np.zeros_like(action) for i in range(self.n_steps)]
         inertia = np.concatenate([
@@ -326,16 +325,10 @@ class MazeEnv(gym.Env):
         prev_yaw = copy.deepcopy(self.state.yaw)
         self.state.update(ai, di)
         self.states.append(self.t * self.dt, self.state)
-        yaw = copy.deepcopy(self.state.yaw)
-        delta_yaw = yaw - prev_yaw
-        if yaw > np.pi:
-            yaw -= np.pi * 2
-        elif yaw < -np.pi:
-            yaw += 2 * np.pi
+        yaw = self.state.yaw
         self.sampled_action = np.array([
             (self.state.v) * np.cos(yaw),
             (self.state.v) * np.sin(yaw),
-            yaw
         ])
         return self.sampled_action
 
@@ -447,8 +440,6 @@ class MazeEnv(gym.Env):
         ], -1) 
         self.history_inertia.pop(0)
         self.history_inertia.append(inertia.copy())
-        self.history.pop(0)
-        self.history.append(img.copy())
         high = self.action_space.high
         actions = [action / high for action in self.actions]
         obs = {

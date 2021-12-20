@@ -13,6 +13,7 @@ import os
 from simulations.agent_model import AgentModel
 from constants import params
 from utils.env_utils import convert_observation_to_space
+from collections import defaultdict, OrderedDict
 
 class PointEnv(AgentModel):
     FILE: str = "point.xml"
@@ -39,12 +40,11 @@ class PointEnv(AgentModel):
             dtype = dtype
         )
 
-
     def _set_action_space(self):
         bounds = self.model.actuator_ctrlrange.copy().astype(np.float32)
         low, high = bounds.T
-        self.action_dim = low.shape[-1]
-        self.action_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
+        self.action_dim = low.shape[-1] - 1
+        self.action_space = gym.spaces.Box(low=low[:-1], high=high[:-1], dtype=np.float32)
         return self.action_space
 
     def _set_observation_space(self, observation):
@@ -52,8 +52,9 @@ class PointEnv(AgentModel):
         return self.observation_space
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
+        yaw = np.arctan2(action[1], action[0])
+        action = np.concatenate([action, np.array([yaw],dtype = np.float32)], -1)
         self.sim.data.ctrl[:] = action
-        yaw = action[-1]
         prev_pos = self.get_xy().copy()
         for _ in range(0, self.frame_skip):
             self.sim.step()

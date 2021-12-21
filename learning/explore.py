@@ -15,6 +15,8 @@ from utils.td3_utils import TD3BG, TD3BGPolicy, \
     NStepHistoryDictReplayBuffer, TD3History, TD3HistoryPolicy, \
     NStepHistoryVecTransposeImage, MultiModalFeaturesExtractorV2, \
     TD3SS
+from utils.rtd3_utils import RTD3, RecurrentTD3Policy, EpisodicReplayBuffer, \
+    EpisodicDictReplayBuffer
 from constants import params
 from utils.callbacks import CustomCallback, CheckpointCallback, EvalCallback
 import os
@@ -108,23 +110,39 @@ class Explore:
             if isinstance(self.env.observation_space, gym.spaces.dict.Dict):
                 replay_buffer_class = NStepDictReplayBuffer
 
+        policy_class = 'MlpPolicy'
+        policy_kwargs = { 
+            'features_extractor_class' : MultiModalFeaturesExtractorV2,
+            'net_arch' : [512, 1024, 512],
+            'n_critics' : 3 
+        }
         if model_type == 'standard':
             model = sb3.TD3
         elif model_type == 'self-supervised':
             model = TD3SS
         elif model_type == 'lambda':
             model = TD3Lambda
-        policy_class = 'MlpPolicy'
+        elif model_type == 'recurrent':
+            model = RTD3
+            policy_class = RecurrentTD3Policy
+            kwargs['n_steps'] = history_steps
+            replay_buffer_class = EpisodicReplayBuffer
+            replay_buffer_kwargs = {
+                'max_episode_size' : max_episode_size,
+            }
+            if isinstance(self.env.observation_space, gym.spaces.dict.Dict):
+                replay_buffer_class = EpisodicDictReplayBuffer
+        else:
+            raise ValueError(
+                'Expected one of `standard`, `self-supervised`, `lambda` or `recurrent`, got {}'.format(
+                    model_type
+                )
+            )
         action_noise = sb3.common.noise.OrnsteinUhlenbeckActionNoise(
             params['OU_MEAN'] * np.ones(n_actions),
             params['OU_SIGMA'] * np.ones(n_actions),
             dt = params['dt']
         )   
-        policy_kwargs = { 
-            'features_extractor_class' : MultiModalFeaturesExtractorV2,
-            'net_arch' : [512, 1024, 512, 128],
-            'n_critics' : 3
-        }   
         optimize_memory_usage = False
         if lmbda > 0 and lmbda < 1 and n_steps > 0:
             print('Using TD(λ) learning')

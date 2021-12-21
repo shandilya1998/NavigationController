@@ -442,7 +442,7 @@ class MazeEnv(gym.Env):
         high = self.action_space.high
         actions = [action / high for action in self.actions]
         obs = {
-            'observation' : np.stack([img, reversemask], -1) / 255.0,
+            'observation' : np.stack([img[:, :, 3], reversemask], -1) / 255.0,
             'action' : np.concatenate(actions, -1).copy(),
             'inertia' : np.concatenate(self.history_inertia, -1).copy(),
         }

@@ -50,6 +50,11 @@ if __name__ == '__main__':
         type = float,
         help = 'value of lambda to choose between TD(0), TD(1) or TD(λ) learning'
     )
+    parser.add_argument(
+        '--model_type',
+        type = str,
+        help = 'choose between self-supervised, standard and lambda'
+    )
     args = parser.parse_args()
     if args.learning_type == 'imitate':
         model = Imitate(
@@ -59,7 +64,8 @@ if __name__ == '__main__':
             history_steps = args.history_steps,
             task_version = args.task_version,
             n_steps = args.n_steps,
-            lmbda = args.lmbda
+            lmbda = args.lmbda,
+            model_type = args.model_type
         )
         model.learn(args.timesteps)
     elif args.learning_type == 'explore':
@@ -70,7 +76,8 @@ if __name__ == '__main__':
             history_steps = args.history_steps,
             task_version = args.task_version,
             n_steps = args.n_steps,
-            lmbda = args.lmbda
+            lmbda = args.lmbda,
+            model_type = args.model_type
         )
         model.learn(args.timesteps)
     else:

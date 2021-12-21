@@ -234,6 +234,12 @@ class MazeEnv(gym.Env):
         self.last_wrapped_obs = self.wrapped_env._get_obs().copy()
         action = self.action_space.sample()
         self.actions = [np.zeros_like(action) for i in range(self.n_steps)]
+        self.__create_maze_graph()
+        self.sampled_path = self.__sample_path()
+        self._current_cell = copy.deepcopy(self.sampled_path[0])
+        self.__find_all_waypoints()
+        self.__find_cubic_spline_path()
+        self.__setup_vel_control()
         inertia = np.concatenate([
                 self.data.qvel,
                 self.data.qacc
@@ -241,12 +247,6 @@ class MazeEnv(gym.Env):
         self.history_inertia = [np.zeros_like(inertia) for i in range(self.n_steps)]
         ob, inframe = self._get_obs()
         self._set_observation_space(ob)
-        self.__create_maze_graph()
-        self.sampled_path = self.__sample_path()
-        self._current_cell = copy.deepcopy(self.sampled_path[0])
-        self.__find_all_waypoints()
-        self.__find_cubic_spline_path()
-        self.__setup_vel_control()
 
     def __find_all_waypoints(self):
         self.wx = []
@@ -441,10 +441,12 @@ class MazeEnv(gym.Env):
         self.history_inertia.append(inertia.copy())
         high = self.action_space.high
         actions = [action / high for action in self.actions]
+        sampled_action = self.get_action().astype(np.float32)
         obs = {
-            'observation' : np.stack([img, reversemask], -1) / 255.0,
+            'observation' : img.copy(),
             'action' : np.concatenate(actions, -1).copy(),
             'inertia' : np.concatenate(self.history_inertia, -1).copy(),
+            'sampled_action' : sampled_action.copy()
         }
         return obs, inframe
 

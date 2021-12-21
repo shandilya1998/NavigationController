@@ -13,7 +13,8 @@ from utils.td3_utils import TD3BG, TD3BGPolicy, \
     NStepLambdaDictReplayBuffer, NStepLambdaReplayBuffer, \
     MultiModalHistoryFeaturesExtractor, NStepHistoryReplayBuffer, \
     NStepHistoryDictReplayBuffer, TD3History, TD3HistoryPolicy, \
-    NStepHistoryVecTransposeImage, MultiModalFeaturesExtractorV2
+    NStepHistoryVecTransposeImage, MultiModalFeaturesExtractorV2, \
+    TD3SS
 from constants import params
 from utils.callbacks import CustomCallback, CheckpointCallback, EvalCallback
 import os
@@ -49,7 +50,8 @@ class Explore:
         history_steps = 4,
         task_version = 1,
         n_steps = 10,
-        lmbda = 0.9
+        lmbda = 0.9,
+        model_type = 'standard'
     ):
         if env_type == 'maze':
             env_class = MazeEnv
@@ -67,11 +69,7 @@ class Explore:
         elif task_version == 3:
             task = GoalRewardSimple
             print('Task: GoalRewardSimple')
-        VecTransposeImage = NStepHistoryVecTransposeImage
-        kwargs = {
-            'n_steps' : history_steps,
-            'image_space_keys' : ['observation']
-            }
+        VecTransposeImage = sb3.common.vec_env.vec_transpose.VecTransposeImage
         self.logdir = logdir
         self.env = VecTransposeImage(
             sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
@@ -81,7 +79,7 @@ class Explore:
                     max_episode_size,
                     history_steps
                 ))
-            ]), **kwargs
+            ])
         )
         self.eval_env = VecTransposeImage(
             sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
@@ -91,7 +89,7 @@ class Explore:
                     max_episode_size,
                     history_steps
                 ))
-            ]), **kwargs
+            ])
         )
 
         self.__set_rl_callback()
@@ -110,19 +108,12 @@ class Explore:
             if isinstance(self.env.observation_space, gym.spaces.dict.Dict):
                 replay_buffer_class = NStepDictReplayBuffer
 
-        if lmbda > 0 and lmbda < 1 and n_steps > 0:
-            print('Using TD(λ) learning')
-            replay_buffer_class = NStepLambdaReplayBuffer
-            if isinstance(self.env.observation_space, gym.spaces.dict.Dict):
-                replay_buffer_class = NStepLambdaDictReplayBuffer
-            replay_buffer_kwargs = { 
-                'n_steps' : n_steps,
-                'lmbda' : lmbda
-            }   
+        if model_type == 'standard':
+            model = sb3.TD3
+        elif model_type == 'self-supervised':
+            model = TD3SS
+        elif model_type == 'lambda':
             model = TD3Lambda
-            kwargs['lmbda'] = lmbda
-            kwargs['n_steps'] = n_steps
-        model = sb3.TD3
         policy_class = 'MlpPolicy'
         action_noise = sb3.common.noise.OrnsteinUhlenbeckActionNoise(
             params['OU_MEAN'] * np.ones(n_actions),
@@ -135,6 +126,19 @@ class Explore:
             'n_critics' : 3
         }   
         optimize_memory_usage = False
+        if lmbda > 0 and lmbda < 1 and n_steps > 0:
+            print('Using TD(λ) learning')
+            replay_buffer_class = NStepLambdaReplayBuffer
+            if isinstance(self.env.observation_space, gym.spaces.dict.Dict):
+                replay_buffer_class = NStepLambdaDictReplayBuffer
+            replay_buffer_kwargs = { 
+                'n_steps' : n_steps,
+                'lmbda' : lmbda
+            }   
+            model = TD3Lambda
+            kwargs['lmbda'] = lmbda
+            kwargs['n_steps'] = n_steps
+
         print('Model: {}'.format(model))
         print('Policy: {}'.format(policy_class))
         print('Replay Buffer: {}'.format(replay_buffer_class))

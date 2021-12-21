@@ -109,7 +109,7 @@ class MultiModalFeaturesExtractorV2(sb3.common.torch_layers.BaseFeaturesExtracto
             observation_space['observation'],
             features_dim
         )
-        input_size = len(observation_space) * features_dim
+        input_size = (len(observation_space) - 1) * features_dim
         self.fc_inertia = torch.nn.Sequential(
             torch.nn.Linear(observation_space['inertia'].shape[-1], features_dim),
             torch.nn.ReLU()
@@ -1550,8 +1550,8 @@ class PrioritisedTD3(sb3.td3.td3.TD3):
                 actor_loss.backward()
                 self.actor.optimizer.step()
 
-                polyak_update(self.critic.parameters(), self.critic_target.parameters(), self.tau)
-                polyak_update(self.actor.parameters(), self.actor_target.parameters(), self.tau)
+                sb3.common.utils.polyak_update(self.critic.parameters(), self.critic_target.parameters(), self.tau)
+                sb3.common.utils.polyak_update(self.actor.parameters(), self.actor_target.parameters(), self.tau)
 
         self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
         if len(actor_losses) > 0:
@@ -1754,6 +1754,122 @@ class TD3HistoryPolicy(sb3.td3.policies.TD3Policy):
 
         return actions, state
 
+class TD3SS(sb3.td3.td3.TD3):
+    def __init__(
+        self,
+        policy: Union[str, Type[sb3.td3.policies.TD3Policy]],
+        env: Union[sb3.common.type_aliases.GymEnv, str],
+        learning_rate: Union[float, sb3.common.type_aliases.Schedule] = 1e-3,
+        buffer_size: int = 1000000,  # 1e6
+        learning_starts: int = 100,
+        batch_size: int = 100,
+        tau: float = 0.005,
+        gamma: float = 0.99,
+        n_steps: float = 5,
+        lmbda: float = 0.9,
+        train_freq: Union[int, Tuple[int, str]] = (1, "episode"),
+        gradient_steps: int = -1,
+        action_noise: Optional[sb3.common.noise.ActionNoise] = None,
+        replay_buffer_class: Optional[sb3.common.buffers.ReplayBuffer] = None,
+        replay_buffer_kwargs: Optional[Dict[str, Any]] = None,
+        optimize_memory_usage: bool = False,
+        policy_delay: int = 2,
+        target_policy_noise: float = 0.2,
+        target_noise_clip: float = 0.5,
+        tensorboard_log: Optional[str] = None,
+        create_eval_env: bool = False,
+        policy_kwargs: Dict[str, Any] = None,
+        verbose: int = 0,
+        seed: Optional[int] = None,
+        device: Union[torch.device, str] = "auto",
+        _init_setup_model: bool = True,
+    ):
+        self.lmbda = lmbda
+        self.n_steps = n_steps
+        super(TD3SS, self).__init__(
+            policy,
+            env,
+            learning_rate,
+            buffer_size,  # 1e6
+            learning_starts,
+            batch_size,
+            tau,
+            gamma,
+            train_freq,
+            gradient_steps,
+            action_noise, 
+            replay_buffer_class,
+            replay_buffer_kwargs,
+            optimize_memory_usage,
+            policy_delay,
+            target_policy_noise,
+            target_noise_clip,
+            tensorboard_log,
+            create_eval_env,
+            policy_kwargs,
+            verbose,
+            seed,
+            device,
+            _init_setup_model
+        )
+
+    def train(self, gradient_steps: int, batch_size: int = 100) -> None:
+
+        # Update learning rate according to lr schedule
+        self._update_learning_rate([self.actor.optimizer, self.critic.optimizer])
+
+        actor_losses, critic_losses = [], []
+
+        for _ in range(gradient_steps):
+
+            self._n_updates += 1
+            # Sample replay buffer
+            replay_data = self.replay_buffer.sample(batch_size, env=self._vec_normalize_env)
+
+            with torch.no_grad():
+                # Select action according to policy and add clipped noise
+                noise = replay_data.actions.clone().data.normal_(0, self.target_policy_noise)
+                noise = noise.clamp(-self.target_noise_clip, self.target_noise_clip)
+                next_actions = (self.actor_target(replay_data.next_observations) + noise).clamp(-1, 1)
+
+                # Compute the next Q-values: min over all critics targets
+                next_q_values = torch.cat(self.critic_target(replay_data.next_observations, next_actions), dim=1)
+                next_q_values, _ = torch.min(next_q_values, dim=1, keepdim=True)
+                target_q_values = replay_data.rewards + (1 - replay_data.dones) * self.gamma * next_q_values
+
+            # Get current Q-values estimates for each critic network
+            current_q_values = self.critic(replay_data.observations, replay_data.actions)
+
+            # Compute critic loss
+            critic_loss = sum([torch.nn.functional.mse_loss(current_q, target_q_values) for current_q in current_q_values])
+            critic_losses.append(critic_loss.item())
+
+            # Optimize the critics
+            self.critic.optimizer.zero_grad()
+            critic_loss.backward()
+            self.critic.optimizer.step()
+
+            # Delayed policy updates
+            if self._n_updates % self.policy_delay == 0:
+                # Compute actor loss
+                actions = self.actor(replay_data.observations)
+                actor_loss = -self.critic.q1_forward(replay_data.observations, actions).mean()
+                actor_loss += torch.nn.functional.mse_loss(actions, replay_data.observations['sampled_action'])
+                actor_losses.append(actor_loss.item())
+
+                # Optimize the actor
+                self.actor.optimizer.zero_grad()
+                actor_loss.backward()
+                self.actor.optimizer.step()
+
+                sb3.common.utils.polyak_update(self.critic.parameters(), self.critic_target.parameters(), self.tau)
+                sb3.common.utils.polyak_update(self.actor.parameters(), self.actor_target.parameters(), self.tau)
+
+        self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
+        if len(actor_losses) > 0:
+            self.logger.record("train/actor_loss", np.mean(actor_losses))
+        self.logger.record("train/critic_loss", np.mean(critic_losses))
+
 
 class TD3History(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
     def __init__(
@@ -1856,7 +1972,7 @@ class TD3History(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             current_q_values = self.critic(replay_data.observations, replay_data.actions)
 
             # Compute critic loss
-            critic_loss = sum([F.mse_loss(current_q, target_q_values) for current_q in current_q_values])
+            critic_loss = sum([torch.nn.functional.mse_loss(current_q, target_q_values) for current_q in current_q_values])
             critic_losses.append(critic_loss.item())
 
             # Optimize the critics
@@ -1875,8 +1991,8 @@ class TD3History(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 actor_loss.backward()
                 self.actor.optimizer.step()
 
-                polyak_update(self.critic.parameters(), self.critic_target.parameters(), self.tau)
-                polyak_update(self.actor.parameters(), self.actor_target.parameters(), self.tau)
+                sb3.common.utils.polyak_update(self.critic.parameters(), self.critic_target.parameters(), self.tau)
+                sb3.common.utils.polyak_update(self.actor.parameters(), self.actor_target.parameters(), self.tau)
 
         self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
         if len(actor_losses) > 0:

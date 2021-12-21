@@ -3,15 +3,16 @@
 export GOOGLE_APPLICATION_CREDENTIALS="key.json"
 PROJECT_ID=$(gcloud config list project --format "value(core.project)")
 BUCKET_NAME=${PROJECT_ID}-aiplatform
-LOGDIR="assets/out/models/exp19"
+LOGDIR="assets/out/models/exp20"
 ENV_TYPE="maze"
 TIMESTEPS=1000000
-MAX_EPISODE_SIZE=250
+MAX_EPISODE_SIZE=500
 LEARNING_TYPE="explore"
 HISTORY_STEPS=3
-TASK_VERSION=3
+TASK_VERSION=2
 N_STEPS=0
 LAMBDA=1
+MODEL_TYPE='self-supervised'
 
 python3 train.py \
     --logdir $LOGDIR \
@@ -22,4 +23,5 @@ python3 train.py \
     --history_steps $HISTORY_STEPS \
     --task_version $TASK_VERSION \
     --n_steps $N_STEPS \
-    --lmbda $LAMBDA
+    --lmbda $LAMBDA \
+    --model_type $MODEL_TYPE

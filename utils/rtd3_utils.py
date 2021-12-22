@@ -316,7 +316,10 @@ class EpisodicDictReplayBuffer(sb3.common.buffers.BaseBuffer):
             to normalize the observations/rewards when sampling
         :return:
         """
-        batch_inds = np.random.randint(0, self.ep, size=batch_size)
+        if not self.full:
+            batch_inds = np.random.randint(0, self.ep, size=batch_size)
+        else:
+            batch_inds = np.random.randint(0, self.n_ep, size=batch_size)    
         return self._get_samples(batch_inds, env=env)
 
     def _get_samples(self, batch_inds: np.ndarray, env: Optional[sb3.common.vec_env.vec_normalize.VecNormalize] = None) -> DictReplayBufferSamples:
@@ -358,28 +361,30 @@ class LSTM(torch.nn.Module):
     def __init__(self, input_dim, output_dim, net_arch, squash_output = True):
         super(LSTM, self).__init__()
         if len(net_arch) > 0: 
-            self.modules = [torch.nn.LSTMCell(input_dim, net_arch[0])]
+            self.layers = [torch.nn.LSTMCell(input_dim, net_arch[0])]
         else:
-            self.modules = [] 
+            self.layers = [] 
 
         for idx in range(len(net_arch) - 1):
-            self.modules.append(torch.nn.LSTMCell(net_arch[idx], net_arch[idx + 1])) 
+            self.layers.append(torch.nn.LSTMCell(net_arch[idx], net_arch[idx + 1])) 
 
         if output_dim > 0: 
             last_layer_dim = net_arch[-1] if len(net_arch) > 0 else input_dim
-            self.modules.append(torch.nn.Linear(last_layer_dim, output_dim))
+            self.layers.append(torch.nn.Linear(last_layer_dim, output_dim))
         if squash_output:
-            self.modules.append(torch.nn.Tanh())
+            self.layers.append(torch.nn.Tanh())
         self.offset = 2 if squash_output else 1
+        self.layers = torch.nn.ModuleList(self.layers)
+        self.net_arch = net_arch
 
     def forward(self, x, states):
         next_states = []
-        for i in range(len(self.modules) - self.offset):
-            state = self.modules[i](x, states[i])
+        for i in range(len(self.net_arch)):
+            state = self.layers[i](x, states[i])
             next_states.append(state)
             x = state[0]
         for i in range(self.offset):
-            x = self.modules[-self.offset + i](x)
+            x = self.layers[-self.offset + i](x)
         return x, next_states
 
 def create_lstm(

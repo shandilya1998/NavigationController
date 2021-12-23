@@ -1007,72 +1007,56 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         with torch.no_grad():
             _, next_hidden_state = self.actor_target(replay_data.observations[0], hidden_state)
         num_updates = math.ceil(gradient_steps / self.n_steps)
-        for up in range(num_updates):
-            critic_loss = 0.0
-            actor_loss = 0.0
-            for j in range(self.n_steps):
-                i = up * self.n_steps + j
-                if i >= gradient_steps:
-                    break
-                with torch.no_grad():
-                    # Select action according to policy and add clipped noise
-                    noise = replay_data.actions[i].clone().data.normal_(0, self.target_policy_noise)
-                    noise = noise.clamp(-self.target_noise_clip, self.target_noise_clip)
-                    next_actions, next_hidden_state = self.actor_target(replay_data.next_observations[i], next_hidden_state)
-                    next_actions = (next_actions + noise).clamp(-1, 1)
-                    # Compute the next Q-values: min over all critics targets
-                    next_q_values = torch.cat(self.critic_target(replay_data.next_observations[i], next_actions), dim=1)
-                    next_q_values, _ = torch.min(next_q_values, dim=1, keepdim=True)
-                    target_q_values = replay_data.rewards[i] + (1 - replay_data.dones[i]) * self.gamma * next_q_values
+        for i in range(gradient_steps):
+            with torch.no_grad():
+                # Select action according to policy and add clipped noise
+                noise = replay_data.actions[i].clone().data.normal_(0, self.target_policy_noise)
+                noise = noise.clamp(-self.target_noise_clip, self.target_noise_clip)
+                next_actions, next_hidden_state = self.actor_target(replay_data.next_observations[i], next_hidden_state)
+                next_actions = (next_actions + noise).clamp(-1, 1)
+                # Compute the next Q-values: min over all critics targets
+                next_q_values = torch.cat(self.critic_target(replay_data.next_observations[i], next_actions), dim=1)
+                next_q_values, _ = torch.min(next_q_values, dim=1, keepdim=True)
+                target_q_values = replay_data.rewards[i] + (1 - replay_data.dones[i]) * self.gamma * next_q_values
 
-                # Get current Q-values estimates for each critic network
-                current_q_values = self.critic(replay_data.observations[i], replay_data.actions[i])
+            # Get current Q-values estimates for each critic network
+            current_q_values = self.critic(replay_data.observations[i], replay_data.actions[i])
 
-                # Compute critic loss
-                _critic_loss = sum([torch.nn.functional.mse_loss(current_q, target_q_values) for current_q in current_q_values])
-                critic_loss += _critic_loss
-                critic_losses.append(_critic_loss.item())
+            # Compute critic loss
+            critic_loss = sum([torch.nn.functional.mse_loss(current_q, target_q_values) for current_q in current_q_values])
+            critic_losses.append(critic_loss.item())
 
-                # Optimize the critics
+            # Optimize the critics
             self.critic.optimizer.zero_grad()
             critic_loss.backward()
             self.critic.optimizer.step()
             lst = []
-            for i in range(len(self.policy.net_arch)):
+            for k in range(len(self.policy.net_arch)):
                 lst.append(
                     (
-                        next_hidden_state[i][0].detach(),
-                        next_hidden_state[i][1].detach()
+                        next_hidden_state[k][0].detach(),
+                        next_hidden_state[k][1].detach()
                     )
                 )
             next_hidden_state = lst
-            count = 0
-            for j in range(self.n_steps):
-                i = up * self.n_steps + j
-                if i >= gradient_steps:
-                    break
-                # Delayed policy updates
-                self._n_updates += 1
-                if self._n_updates % self.policy_delay == 0:
-                    # Compute actor loss
-                    count += 1
-                    actions, hidden_state= self.actor(replay_data.observations[i], hidden_state)
-                    _actor_loss = -self.critic.q1_forward(replay_data.observations[i], actions).mean()
-                    actor_loss += _actor_loss
-                    actor_losses.append(_actor_loss.item())
-                    # Optimize the actor
-            if count > 0:
+            self._n_updates += 1
+            actions, hidden_state= self.actor(replay_data.observations[i], hidden_state)
+            if self._n_updates % self.policy_delay == 0:
+                # Compute actor loss
+                actor_loss = -self.critic.q1_forward(replay_data.observations[i], actions).mean()
+                actor_losses.append(actor_loss.item())
+                # Optimize the actor
                 self.actor.optimizer.zero_grad()
                 actor_loss.backward()
                 self.actor.optimizer.step()
                 sb3.common.utils.polyak_update(self.critic.parameters(), self.critic_target.parameters(), self.tau)
                 sb3.common.utils.polyak_update(self.actor.parameters(), self.actor_target.parameters(), self.tau)
             lst = [] 
-            for i in range(len(self.policy.net_arch)):
+            for k in range(len(self.policy.net_arch)):
                 lst.append(
                     (
-                        hidden_state[i][0].detach(),
-                        hidden_state[i][1].detach()
+                        hidden_state[k][0].detach(),
+                        hidden_state[k][1].detach()
                     )
                 )
             hidden_state = lst

@@ -6,13 +6,14 @@ import argparse
 from utils.callbacks import evaluate_policy
 from simulations.maze_env import MazeEnv
 from simulations.point import PointEnv
-from simulations.maze_task import CustomGoalReward4Rooms
+from simulations.maze_task import CustomGoalReward4Rooms, GoalRewardNoObstacle
 import os
 from utils.td3_utils import TD3BG
 import cv2
 import skvideo.io as skv
 import numpy as np
 from constants import params
+from utils.rtd3_utils import RTD3
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -37,7 +38,7 @@ if __name__ == '__main__':
         sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
             lambda : sb3.common.monitor.Monitor(MazeEnv(
                 PointEnv,
-                CustomGoalReward4Rooms,
+                GoalRewardNoObstacle,
                 args.max_episode_size
             ))  
         ]), 
@@ -75,18 +76,23 @@ if __name__ == '__main__':
         video1.write(observation)
         video2.write(screen)
 
-    model = TD3BG.load(
+    model = RTD3.load(
         path = model_path,
         env = env,
         device = 'auto',
-        print_system_info=True
+        print_system_info=True,
+        custom_objects = {
+            'hidden_state': [
+            (torch.zeros((1, size)).to('cpu'), torch.zeros((1, size)).to('cpu')) \
+                for size in [400, 300]
+            ]
+        }
     )
-
     evaluate_policy(
         model,
         env,
         callback = grab_screens,
-        n_eval_episodes = 1,
+        n_eval_episodes = 5,
         deterministic = True,
     )
     cv2.destroyAllWindows()

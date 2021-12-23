@@ -38,7 +38,7 @@ class MazeEnv(gym.Env):
         model_cls: Type[AgentModel],
         maze_task: Type[maze_task.MazeTask] = maze_task.MazeTask,
         max_episode_size: int = 2000,
-        n_steps = 4,
+        n_steps = 5,
         include_position: bool = True,
         maze_height: float = 0.5,
         maze_size_scaling: float = 4.0,

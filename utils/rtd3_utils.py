@@ -161,18 +161,18 @@ class EpisodicReplayBuffer(sb3.common.buffers.BaseBuffer):
             Refer to EpisodicDictReplayBuffer
         """
         raise NotImplementedError
-        max_size = self.episode_lengths[batch_inds].max()
+        size = self.episode_lengths[batch_inds].max()
         if self.optimize_memory_usage:
             obs = self._normalize_obs(self.observations[batch_inds, :-1, 0, :], env)
             next_obs = self._normalize_obs(self.observations[batch_inds, 1: 0, :], env)
         else:
             obs = self._normalize_obs(self.observations[batch_inds, :, 0, :], env)
             next_obs = self._normalize_obs(self.next_observations[batch_inds, :, 0, :], env)
-        obs = obs[:, :max_size]
-        next_obs = next_obs[:, :max_size]
-        actions = self.actions[batch_inds, :max_size, 0, :]
-        dones = self.dones[batch_inds, :max_size] * (1 - self.timeouts[batch_inds, :max_size])
-        rewards = self._normalize_reward(self.rewards[batch_inds, :max_size], env)
+        obs = obs[:, :size]
+        next_obs = next_obs[:, :size]
+        actions = self.actions[batch_inds, :size, 0, :]
+        dones = self.dones[batch_inds, :size] * (1 - self.timeouts[batch_inds, :size])
+        rewards = self._normalize_reward(self.rewards[batch_inds, :size], env)
 
         data = (
             obs,
@@ -323,31 +323,31 @@ class EpisodicDictReplayBuffer(sb3.common.buffers.BaseBuffer):
         return self._get_samples(batch_inds, env=env)
 
     def _get_samples(self, batch_inds: np.ndarray, env: Optional[sb3.common.vec_env.vec_normalize.VecNormalize] = None) -> DictReplayBufferSamples:
-        max_size = self.episode_lengths[batch_inds].max()
+        size = self.episode_lengths[batch_inds].min()
         obs = [
             self._normalize_obs({key: obs[batch_inds, i, 0, :] for key, obs in self.observations.items()}) \
-                for i in range(max_size)
+                for i in range(size)
         ]
         next_obs = [
             self._normalize_obs({key: obs[batch_inds, i, 0, :] for key, obs in self.next_observations.items()}) \
-                for i in range(max_size)
+                for i in range(size)
         ]
         observations = [{key: self.to_torch(ob) for key, ob in obs_.items()} for obs_ in obs]
         next_observations = [{key: self.to_torch(ob) for key, ob in obs_.items()} for obs_ in next_obs]
         actions = [
             self.to_torch(
                 self.actions[batch_inds, i, 0, :]
-            ) for i in range(max_size)
+            ) for i in range(size)
         ]
         dones = [
             self.to_torch(
                 self.dones[batch_inds, i] * (1 - self.timeouts[batch_inds, i])
-            ) for i in range(max_size)
+            ) for i in range(size)
         ]
         rewards = [
             self.to_torch(
                 self._normalize_reward(self.rewards[batch_inds, i], env)
-            ) for i in range(max_size)
+            ) for i in range(size)
         ]
         return DictReplayBufferSamples(
             observations=observations,

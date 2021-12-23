@@ -79,8 +79,8 @@ class PointEnv(AgentModel):
         )
 
     def _set_action_space(self):
-        low = np.array([-self.VELOCITY_LIMITS * 1.41, -np.pi], dtype = np.float32)
-        high = np.array([self.VELOCITY_LIMITS * 1.41, np.pi], dtype = np.float32)
+        low = np.array([0.0, -np.pi / 2], dtype = np.float32)
+        high = np.array([self.VELOCITY_LIMITS * 1.41, np.pi / 2], dtype = np.float32)
         self.action_dim = 2
         self.action_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
         return self.action_space
@@ -96,14 +96,12 @@ class PointEnv(AgentModel):
         vy = speed * np.sin(yaw)
         action = np.array([vx, vy, yaw], dtype = np.float32)
         self.sim.data.ctrl[:] = action
-        prev_pos = self.get_xy().copy()
         for _ in range(0, self.frame_skip):
             self.sim.step()
         next_obs = self._get_obs()
-        pos = self.get_xy().copy()
-        reward = np.sum(np.square(self.data.qvel[:2] / self.VELOCITY_LIMITS * 1.2)) / 2
-        reward -= np.square(self.data.qvel[2]) * 5e-3
-        return next_obs, reward, False, {}
+        #reward = np.sum(np.square(self.data.qvel[:2] / self.VELOCITY_LIMITS)) / 2
+        #reward += -np.square(self.data.qvel[2]) * 5e-3
+        return next_obs, 0.0, False, {}
 
     def gaussian(self, x, mean, std):
         return np.exp(-0.5 * ((x - mean) / std) ** 2)

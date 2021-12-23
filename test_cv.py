@@ -280,7 +280,7 @@ while not done:
     pbar.update(1)
     steps += 1
     pos = env.wrapped_env.sim.data.qpos.copy()    
-    depth = ob['observation'][:, :, 0]
+    depth = ob['observation'][:, :, 3]
     top = env.render('rgb_array')
     cv2.imshow('depth stream', depth)
     cv2.imshow('position stream', top)

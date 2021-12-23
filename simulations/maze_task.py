@@ -445,7 +445,7 @@ class GoalRewardNoObstacle(GoalReward4Rooms):
         self.goal_index = 0
         self.goals = [
             MazeVisualGoal(np.array([
-                2.0, -2.0
+                np.random.choice([-2, -1, 1, 2]), np.random.choice([-2, -1, 1, 2])
             ]) * self.scale, 1.0, RED),
         ]
 
@@ -470,11 +470,13 @@ class GoalRewardNoObstacle(GoalReward4Rooms):
     def create_maze() -> List[List[MazeCell]]:
         E, B, R = MazeCell.EMPTY, MazeCell.BLOCK, MazeCell.ROBOT
         return [
-            [B, B, B, B, B],
-            [B, E, E, E, B],
-            [B, E, E, E, B],
-            [B, R, E, E, B],
-            [B, B, B, B, B],
+            [B, B, B, B, B, B, B],
+            [B, E, E, E, E, E, B],
+            [B, E, E, E, E, E, B],
+            [B, E, E, R, E, E, B],
+            [B, E, E, E, E, E, B],
+            [B, E, E, E, E, E, B],
+            [B, B, B, B, B, B, B],
         ]
 
 class GoalRewardTRoom(MazeTask):

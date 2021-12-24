@@ -109,6 +109,10 @@ class MultiModalFeaturesExtractorV2(sb3.common.torch_layers.BaseFeaturesExtracto
             observation_space['observation'],
             features_dim
         )
+        self.mask_vc = VisualCortexV2(
+            observation_space['mask'],
+            features_dim
+        )
         input_size = (len(observation_space.spaces) - 1) * features_dim
         self.fc_inertia = torch.nn.Sequential(
             torch.nn.Linear(observation_space['inertia'].shape[-1], features_dim),
@@ -118,10 +122,14 @@ class MultiModalFeaturesExtractorV2(sb3.common.torch_layers.BaseFeaturesExtracto
             torch.nn.Linear(observation_space['action'].shape[-1], features_dim),
             torch.nn.ReLU()
         )
-        self.fc = torch.nn.Sequential(
-            torch.nn.Linear(input_size, 1024),
+        self.fc_goal = torch.nn.Sequential(
+            torch.nn.Linear(observation_space['goal'].shape[-1], 512),
             torch.nn.ReLU(),
-            torch.nn.Linear(1024, 512),
+            torch.nn.Linear(512, features_dim),
+            torch.nn.ReLU()
+        )
+        self.fc = torch.nn.Sequential(
+            torch.nn.Linear(input_size, 512),
             torch.nn.ReLU(),
             torch.nn.Linear(512, features_dim),
             torch.nn.ReLU()
@@ -129,9 +137,11 @@ class MultiModalFeaturesExtractorV2(sb3.common.torch_layers.BaseFeaturesExtracto
 
     def forward(self, observations):
         vision = self.vc(observations['observation'])
+        mask = self.mask_vc(observations['mask'])
         inertia = self.fc_inertia(observations['inertia'])
         history = self.fc_history(observations['action'])
-        x = torch.cat([vision, inertia, history], -1)
+        goal = self.fc_goal(observations['goal'])
+        x = torch.cat([vision, inertia, history, mask, goal], -1)
         out = self.fc(x)
         return out
 

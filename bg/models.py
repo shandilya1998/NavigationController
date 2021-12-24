@@ -178,7 +178,6 @@ class VisualCortexV2(torch.nn.Module):
         with torch.no_grad():
             n_flatten = self.cnn(torch.as_tensor(observation_space.sample()[None]).float()).shape[1]
 
-        print(n_flatten)
         self.linear = torch.nn.Sequential(torch.nn.Linear(n_flatten, features_dim), torch.nn.ReLU())
 
     def forward(self, observations: torch.Tensor) -> torch.Tensor:

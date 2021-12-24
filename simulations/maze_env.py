@@ -442,10 +442,15 @@ class MazeEnv(gym.Env):
         high = self.action_space.high
         actions = [action / high for action in self.actions]
         sampled_action = self.get_action().astype(np.float32)
+        goal = np.ones((2,), dtype = np.float32) * -100
+        if inframe:
+            goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
         obs = {
             'observation' : img.copy(),
             'action' : np.concatenate(actions, -1).copy(),
             'inertia' : np.concatenate(self.history_inertia, -1).copy(),
+            'goal' : goal.copy(),
+            'mask' : np.expand_dims(reversemask, 0).copy() / 255.0,
             'sampled_action' : sampled_action.copy()
         }
         return obs, inframe
@@ -555,7 +560,7 @@ class MazeEnv(gym.Env):
         if self.t > self.max_episode_size:
             done = True
         if self._is_in_collision() and not done:
-            collision_penalty += -10 * self._inner_reward_scaling
+            collision_penalty += -50 * self._inner_reward_scaling
             done = True
         reward = inner_reward + outer_reward + collision_penalty
         info['inner_reward'] = inner_reward

@@ -457,9 +457,8 @@ class GoalRewardNoObstacle(GoalReward4Rooms):
         )
         if inframe:
             reward += goal.reward_scale
-        if np.linalg.norm(pos - goal.pos) <= 1.5 * goal.threshold:
+        if np.linalg.norm(pos - goal.pos) <= 2 * goal.threshold:
             reward += goal.reward_scale
-
         return reward
 
     def termination(self, pos: np.ndarray, inframe: bool) -> bool:

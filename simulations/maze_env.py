@@ -234,6 +234,10 @@ class MazeEnv(gym.Env):
         self.last_wrapped_obs = self.wrapped_env._get_obs().copy()
         action = self.action_space.sample()
         self.actions = [np.zeros_like(action) for i in range(self.n_steps)]
+        self.velocities = [np.zeros_like(self.data.qvel) for i in range(self.n_steps)]
+        self.accelerations = [np.zeros_like(self.data.qacc) for i in range(self.n_steps)]
+        goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
+        self.goals = [goal.copy() for i in range(self.n_steps)]
         self.__create_maze_graph()
         self.sampled_path = self.__sample_path()
         self._current_cell = copy.deepcopy(self.sampled_path[0])
@@ -244,7 +248,6 @@ class MazeEnv(gym.Env):
                 self.data.qvel,
                 self.data.qacc
             ], -1)
-        self.history_inertia = [np.zeros_like(inertia) for i in range(self.n_steps)]
         ob, inframe = self._get_obs()
         self._set_observation_space(ob)
 
@@ -433,21 +436,21 @@ class MazeEnv(gym.Env):
     def _get_obs(self) -> np.ndarray:
         img = self.wrapped_env._get_obs()
         inframe, reversemask = self._task.goals[self._task.goal_index].inframe(img[:, :, :3])
-        inertia = np.concatenate([
-            self.data.qvel / self.wrapped_env.VELOCITY_LIMITS,
-            self.data.qacc / (2 * self.wrapped_env.VELOCITY_LIMITS)
-        ], -1) 
-        self.history_inertia.pop(0)
-        self.history_inertia.append(inertia.copy())
         high = self.action_space.high
-        actions = [action / high for action in self.actions]
         sampled_action = self.get_action().astype(np.float32)
         goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
+        self.velocities.pop(0)
+        self.velocities.append(self.data.qvel.copy())
+        self.accelerations.pop(0)
+        self.accelerations.append(self.data.qacc.copy())
+        self.goals.pop(0)
+        self.goals.append(goal)
         obs = {
             'observation' : img.copy(),
-            'action' : np.concatenate(actions, -1).copy(),
-            'inertia' : np.concatenate(self.history_inertia, -1).copy(),
-            'goal' : goal.copy(),
+            'actions' : np.concatenate(self.actions, -1).copy(),
+            'velocity' : np.concatenate(self.velocities, -1).copy(),
+            'acceleration' : np.concatenate(self.accelerations, -1).copy(),
+            'goal' : np.concatenate(self.goals, -1).copy(),
             'mask' : np.expand_dims(reversemask, 0).copy() / 255.0,
             'sampled_action' : sampled_action.copy()
         }
@@ -458,11 +461,17 @@ class MazeEnv(gym.Env):
         self.close()
         self._task.set()
         self.set_env()
-        self.wrapped_env.reset()
+        self.wrapped_env.reset() 
         # Samples a new start position
         if len(self._init_positions) > 1:
             xy = np.random.choice(self._init_positions)
             self.wrapped_env.set_xy(xy)
+        action = self.actions[0]
+        self.actions = [np.zeros_like(action) for i in range(self.n_steps)]
+        self.velocities = [np.zeros_like(self.data.qvel) for i in range(self.n_steps)]
+        self.accelerations = [np.zeros_like(self.data.qacc) for i in range(self.n_steps)]
+        goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
+        self.goals = [goal.copy() for i in range(self.n_steps)]
         self.sampled_path = self.__sample_path()
         self._current_cell = copy.deepcopy(self.sampled_path[0])
         self.__find_all_waypoints()
@@ -540,9 +549,9 @@ class MazeEnv(gym.Env):
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         self.t += 1
-        ai = action[0]
-        di = action[1]
         info = {}
+        self.actions.pop(0)
+        self.actions.append(action.copy())
         inner_next_obs, inner_reward, _, info = self.wrapped_env.step(action)
         next_pos = self.wrapped_env.get_xy()
         collision_penalty = 0.0

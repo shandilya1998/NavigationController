@@ -109,23 +109,25 @@ class MultiModalFeaturesExtractorV2(sb3.common.torch_layers.BaseFeaturesExtracto
             observation_space['observation'],
             features_dim
         )
-        self.mask_vc = VisualCortexV2(
+        self.vc_mask = VisualCortexV2(
             observation_space['mask'],
             features_dim
         )
         input_size = (len(observation_space.spaces) - 1) * features_dim
-        self.fc_inertia = torch.nn.Sequential(
-            torch.nn.Linear(observation_space['inertia'].shape[-1], features_dim),
+        self.fc_velocity = torch.nn.Sequential(
+            torch.nn.Linear(observation_space['velocity'].shape[-1], features_dim),
+            torch.nn.ReLU()
+        )
+        self.fc_acceleration = torch.nn.Sequential(
+            torch.nn.Linear(observation_space['acceleration'].shape[-1], features_dim),
             torch.nn.ReLU()
         )
         self.fc_history = torch.nn.Sequential(
-            torch.nn.Linear(observation_space['action'].shape[-1], features_dim),
+            torch.nn.Linear(observation_space['actions'].shape[-1], features_dim),
             torch.nn.ReLU()
         )
         self.fc_goal = torch.nn.Sequential(
-            torch.nn.Linear(observation_space['goal'].shape[-1], 512),
-            torch.nn.ReLU(),
-            torch.nn.Linear(512, features_dim),
+            torch.nn.Linear(observation_space['goal'].shape[-1], features_dim),
             torch.nn.ReLU()
         )
         self.fc = torch.nn.Sequential(
@@ -136,12 +138,13 @@ class MultiModalFeaturesExtractorV2(sb3.common.torch_layers.BaseFeaturesExtracto
         )
 
     def forward(self, observations):
-        vision = self.vc(observations['observation'])
-        mask = self.mask_vc(observations['mask'])
-        inertia = self.fc_inertia(observations['inertia'])
-        history = self.fc_history(observations['action'])
+        observation = self.vc(observations['observation'])
+        mask = self.vc_mask(observations['mask'])
+        velocity = self.fc_velocity(observations['velocity'])
+        acceleration = self.fc_acceleration(observations['acceleration'])
+        actions = self.fc_history(observations['actions'])
         goal = self.fc_goal(observations['goal'])
-        x = torch.cat([vision, inertia, history, mask, goal], -1)
+        x = torch.cat([observation, velocity, acceleration, actions, mask, goal], -1)
         out = self.fc(x)
         return out
 

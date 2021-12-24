@@ -442,9 +442,7 @@ class MazeEnv(gym.Env):
         high = self.action_space.high
         actions = [action / high for action in self.actions]
         sampled_action = self.get_action().astype(np.float32)
-        goal = np.ones((2,), dtype = np.float32) * -100
-        if inframe:
-            goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
+        goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
         obs = {
             'observation' : img.copy(),
             'action' : np.concatenate(actions, -1).copy(),

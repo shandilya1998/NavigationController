@@ -99,9 +99,9 @@ class PointEnv(AgentModel):
         for _ in range(0, self.frame_skip):
             self.sim.step()
         next_obs = self._get_obs()
-        reward = np.sum(np.square(self.data.qvel[:2] / self.VELOCITY_LIMITS)) / 2
-        reward = -np.square(self.data.qvel[2]) * 5e-3
-        return next_obs, reward, False, {}
+        #reward = np.sum(np.square(self.data.qvel[:2] / self.VELOCITY_LIMITS)) / 2
+        #reward = -np.square(self.data.qvel[2]) * 5e-3
+        return next_obs, 0.0, False, {}
 
     def gaussian(self, x, mean, std):
         return np.exp(-0.5 * ((x - mean) / std) ** 2)

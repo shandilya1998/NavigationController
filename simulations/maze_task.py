@@ -417,19 +417,18 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
         ]
 
     def reward(self, pos: np.ndarray, inframe: bool) -> float:
-        reward = 0.0
         goal = self.goals[self.goal_index]
+        reward = goal.reward_scale * (
+            1 - np.linalg.norm(pos[: goal.dim] - goal.pos) / (np.linalg.norm(goal.pos))
+        )
         if inframe:
-            if np.linalg.norm(pos - goal.pos) <= goal.threshold * 4:
-                return goal.reward_scale
-            else:
-                return goal.reward_scale * (
-                    1 - np.linalg.norm(pos[: goal.dim] - goal.pos) / (np.linalg.norm(goal.pos))
-                )
+            reward += goal.reward_scale
+        if np.linalg.norm(pos - goal.pos) <= 2 * goal.threshold:
+            reward += goal.reward_scale
         return reward
 
     def termination(self, pos: np.ndarray, inframe: bool) -> bool:
-        if self.goals[self.goal_index].neighbor(pos) and inframe:
+        if self.goals[self.goal_index].neighbor(pos):
             return True
         return False
 
@@ -450,7 +449,6 @@ class GoalRewardNoObstacle(GoalReward4Rooms):
         ]
 
     def reward(self, pos: np.ndarray, inframe: bool) -> float:
-        reward = 0.0
         goal = self.goals[self.goal_index]
         reward = goal.reward_scale * (
             1 - np.linalg.norm(pos[: goal.dim] - goal.pos) / (np.linalg.norm(goal.pos))

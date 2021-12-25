@@ -563,7 +563,7 @@ class MazeEnv(gym.Env):
         index = self.__get_current_cell()
         self._current_cell = index
         if done:
-            outer_reward += 10.0
+            outer_reward += 50.0
         if self.t > self.max_episode_size:
             done = True
         if self._is_in_collision() and not done:

@@ -324,7 +324,7 @@ class EpisodicDictReplayBuffer(sb3.common.buffers.BaseBuffer):
         return self._get_samples(batch_inds, env=env)
 
     def _get_samples(self, batch_inds: np.ndarray, env: Optional[sb3.common.vec_env.vec_normalize.VecNormalize] = None) -> DictReplayBufferSamples:
-        size = int(self.episode_lengths[batch_inds].mean())
+        size = self.episode_lengths[batch_inds].mean()
         obs = [
             self._normalize_obs({key: obs[batch_inds, i, 0, :] for key, obs in self.observations.items()}) \
                 for i in range(size)
@@ -1100,7 +1100,6 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             _, next_hidden_state_critic = self.critic_target(replay_data.observations[0], hidden_state_critic, next_ac)
         num_updates = math.ceil(gradient_steps / self.n_steps)
         for i in range(gradient_steps):
-            self._n_updates += 1
             with torch.no_grad():
                 # Select action according to policy and add clipped noise
                 noise = replay_data.actions[i].clone().data.normal_(0, self.target_policy_noise)
@@ -1145,6 +1144,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     )
                 lst_2.append(lst_3)
             hidden_state_critic = lst_2
+            self._n_updates += 1
             actions, hidden_state = self.actor(replay_data.observations[i], hidden_state)
             q_val, hidden_state_loss = self.critic.q1_forward(replay_data.observations[i], hidden_state_loss, actions)
             if self._n_updates % self.policy_delay == 0:

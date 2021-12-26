@@ -418,11 +418,11 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
 
     def reward(self, pos: np.ndarray, inframe: bool) -> float:
         goal = self.goals[self.goal_index]
-        reward = goal.reward_scale * (
-            1 - np.linalg.norm(pos[: goal.dim] - goal.pos) / (np.linalg.norm(goal.pos))
-        )
+        reward = 0.0
         if inframe:
-            reward += goal.reward_scale
+            reward = goal.reward_scale * (
+                1 - np.linalg.norm(pos[: goal.dim] - goal.pos) / (np.linalg.norm(goal.pos))
+            )
         if np.linalg.norm(pos - goal.pos) <= 2 * goal.threshold:
             reward += goal.reward_scale
         return reward

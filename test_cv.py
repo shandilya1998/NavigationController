@@ -1,9 +1,9 @@
 from simulations.maze_env import MazeEnv
 from simulations.collision_env import CollisionEnv
-from simulations.point import PointEnv
+from simulations.point import PointEnv, PointEnvV2
 from simulations.maze_task import CustomGoalReward4Rooms, \
     GoalRewardNoObstacle
-env = MazeEnv(PointEnv, GoalRewardNoObstacle)
+env = MazeEnv(PointEnvV2, CustomGoalReward4Rooms)
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
@@ -281,7 +281,9 @@ while not done:
     steps += 1
     pos = env.wrapped_env.sim.data.qpos.copy()    
     depth = ob['observation'][:, :, 3]
+    img = ob['observation'][:, :, :3]
     top = env.render('rgb_array')
+    cv2.imshow('stream', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
     cv2.imshow('depth stream', depth)
     cv2.imshow('position stream', top)
     if cv2.waitKey(1) & 0xFF == ord('q'):

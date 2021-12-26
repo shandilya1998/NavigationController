@@ -325,7 +325,6 @@ class MazeEnv(gym.Env):
         di, self.target_ind = pure_pursuit_steer_control(
             self.state, self.target_course, self.target_ind, self.state.WB
         )
-        prev_yaw = copy.deepcopy(self.state.yaw)
         self.state.update(ai, di)
         self.states.append(self.t * self.dt, self.state)
         self.sampled_action = np.array([

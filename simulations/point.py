@@ -154,3 +154,28 @@ class PointEnv(AgentModel):
         qpos = self.sim.data.qpos.copy()
         qpos[self.ORI_IND] = ori
         self.set_state(qpos, self.data.qvel)
+
+
+class PointEnvV2(PointEnv):
+    def __init__(self, file_path: Optional[str] = 'point.xml') -> None:
+        super(PointEnvV2, self).__init__(file_path)
+    
+    def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
+        speed = action[0]
+        yaw = action[1]
+        dx = speed * np.cos(yaw) * self.dt
+        dy = speed * np.sin(yaw) * self.dt
+        qpos = self.sim.data.qpos.copy()
+        next_qpos = np.array([
+            qpos[0] + dx,
+            qpos[1] + dy,
+            yaw
+        ], dtype = np.float32)
+        qvel = self.sim.data.qvel.copy()
+        self.set_state(next_qpos, qvel)
+        for _ in range(0, self.frame_skip):
+            self.sim.step()
+        next_obs = self._get_obs()
+        reward = np.sum(np.square(self.data.qvel[:2] / self.VELOCITY_LIMITS)) / 2
+        reward = -np.square(self.data.qvel[2]) * 1e-3
+        return next_obs, 0.0, False, {}

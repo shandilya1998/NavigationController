@@ -32,25 +32,34 @@ if __name__ == '__main__':
         type = int,
         help = 'maximum episode length'
     )
+    parser.add_argument(
+        '--history_steps',
+        type = int,
+        help = 'number of images in observation input to policy',
+        default = 4
+    )
     args = parser.parse_args()
 
     env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
         sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
             lambda : sb3.common.monitor.Monitor(MazeEnv(
                 PointEnv,
-                GoalRewardNoObstacle,
-                args.max_episode_size
+                CustomGoalReward4Rooms,
+                args.max_episode_size,
+                args.history_steps
             ))  
         ]), 
     )
     model_path = os.path.join(args.logdir, args.model_file)
+    top = env.render(mode="rgb_array").shape
+    obs = env.observation_space['observation'].shape
     video1 = cv2.VideoWriter(
         '{}_evaluation_camera_view.avi'.format(model_path),
-        cv2.VideoWriter_fourcc(*"MJPG"), 10, env.observation_space['observation'].shape[-2:], isColor = True
+        cv2.VideoWriter_fourcc(*"MJPG"), 10, (obs[2], obs[1]), isColor = True
     )
     video2 = cv2.VideoWriter(
         '{}_evaluation_top_view.avi'.format(model_path),
-        cv2.VideoWriter_fourcc(*"MJPG"), 10, (450, 450), isColor = True
+        cv2.VideoWriter_fourcc(*"MJPG"), 10, (top[0], top[1]), isColor = True
     )
     def grab_screens(
         _locals: Dict[str, Any],
@@ -67,12 +76,8 @@ if __name__ == '__main__':
         """
         screen = env.render(mode="rgb_array")
         # PyTorch uses CxHxW vs HxWxC gym (and tensorflow) image convention
-        observation = _locals['observations']['observation'][0].transpose(1, 2, 0)
-        screen = cv2.cvtColor(screen, cv2.COLOR_RGB2BGR)
-        observation = cv2.cvtColor(
-            observation,
-            cv2.COLOR_RGB2BGR
-        )
+        observation = _locals['observations']['observation'][0, :3].transpose(1, 2, 0)
+        observation = cv2.cvtColor(observation, cv2.COLOR_RGB2BGR)
         video1.write(observation)
         video2.write(screen)
 

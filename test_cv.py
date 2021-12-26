@@ -2,8 +2,8 @@ from simulations.maze_env import MazeEnv
 from simulations.collision_env import CollisionEnv
 from simulations.point import PointEnv, PointEnvV2
 from simulations.maze_task import CustomGoalReward4Rooms, \
-    GoalRewardNoObstacle
-env = MazeEnv(PointEnv, CustomGoalReward4Rooms)
+    GoalRewardNoObstacle, GoalRewardSimple
+env = MazeEnv(PointEnv, GoalRewardSimple)
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
@@ -155,7 +155,7 @@ def blob_detect(image,                  #-- The frame (cv standard)
                 blur=0,                 #-- blur value (default 0)
                 blob_params=None,       #-- blob parameters (default None)
                 search_window=None,     #-- window where to search as [x_min, y_min, x_max, y_max] adimensional (0.0 to 1.0) starting from top left corner
-                imshow=False
+                imshow=True
                ):
 
 

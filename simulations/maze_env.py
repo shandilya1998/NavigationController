@@ -327,10 +327,15 @@ class MazeEnv(gym.Env):
         )
         self.state.update(ai, di)
         self.states.append(self.t * self.dt, self.state)
+        # Refer to simulations/point PointEnv: def step() for more information
+        _vx = copy.deepcopy(self.state.v)
+        _vy = 0.0
+        yaw = copy.deepcopy(self.state.yaw)
         self.sampled_action = np.array([
-            self.state.v,
-            self.state.yaw,
-        ])
+            _vx,
+            _vy,
+            yaw,
+        ], dtype = np.float32)
         return self.sampled_action
 
     def _graph_to_structure_index(self, index):
@@ -555,7 +560,21 @@ class MazeEnv(gym.Env):
         next_pos = self.wrapped_env.get_xy()
         collision_penalty = 0.0
         next_obs, inframe = self._get_obs()
-        inner_reward = self._inner_reward_scaling * inner_reward
+        # Computing the reward in "https://ieeexplore.ieee.org/document/8398461"
+        goal = self.goals[-1]
+        yaw = self.wrapped_env.get_ori()
+        theta_t = np.arctan2(goal[1], goal[0]) - yaw
+        if theta_t < -np.pi:
+            theta_t += 2 * np.pi
+        elif theta_t > np.pi:
+            theta_t -= 2 * np.pi
+        _vx, _vy, vyaw = self.wrapped_env.data.qvel.copy()
+        yaw = self.wrapped_env.get_ori()
+        vx = _vx * np.cos(yaw) + _vy * np.sin(yaw)
+        # vmax is the maximum possible velocity along the forward direction
+        vmax = self.wrapped_env.VELOCITY_LIMITS * 1.4
+        inner_reward = -1 + (vx / vmax) * np.cos(theta_t) * (1 - (1.4 * np.abs(theta_t) / vmax))
+        #inner_reward = self._inner_reward_scaling * inner_reward
         outer_reward = self._task.reward(next_pos, inframe)
         done = self._task.termination(self.wrapped_env.get_xy(), inframe)
         info["position"] = self.wrapped_env.get_xy()
@@ -567,7 +586,6 @@ class MazeEnv(gym.Env):
             done = True
         if self._is_in_collision() and not done:
             collision_penalty += -50 * self._inner_reward_scaling
-            done = True
         reward = inner_reward + outer_reward + collision_penalty
         info['inner_reward'] = inner_reward
         info['outer_reward'] = outer_reward

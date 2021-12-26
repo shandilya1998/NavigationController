@@ -79,9 +79,9 @@ class PointEnv(AgentModel):
         )
 
     def _set_action_space(self):
-        low = np.array([0.0, -np.pi / 2], dtype = np.float32)
-        high = np.array([self.VELOCITY_LIMITS * 1.41, np.pi / 2], dtype = np.float32)
-        self.action_dim = 2
+        bounds = self.model.actuator_ctrlrange.copy().astype(np.float32)
+        low, high = bounds.T
+        self.action_dim = 3
         self.action_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
         return self.action_space
 
@@ -90,19 +90,22 @@ class PointEnv(AgentModel):
         return self.observation_space
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
-        speed = action[0]
-        yaw = action[1]
-        prev_yaw = self.get_ori()
-        vx = speed * np.cos(yaw)
-        vy = speed * np.sin(yaw)
-        action = np.array([vx, vy, yaw], dtype = np.float32)
+        # _vx and _vy are parallel and perpendicular to direction of motion respectively
+        _vx = action[0]
+        _vy = action[1]
+        vyaw = action[2] 
+        yaw = self.get_ori()
+        # vx and vy are along the x and y axes respectively
+        vx = _vx * np.cos(yaw) - _vy * np.sin(yaw)
+        vy = _vx * np.sin(yaw) + _vy * np.cos(yaw)
+        action = np.array([vx, vy, vyaw], dtype = np.float32)
         self.sim.data.ctrl[:] = action
         for _ in range(0, self.frame_skip):
             self.sim.step()
         next_obs = self._get_obs()
-        reward = speed * 7.5e-2
-        reward += -5e-3 * np.abs(yaw - prev_yaw) / self.dt
-        return next_obs, reward, False, {}
+        reward = np.linalg.norm(self.data.qvel[:2]) * 7.5e-2
+        reward += -5e-3 * np.abs(self.data.qvel[self.ORI_IND])
+        return next_obs, 0.0, False, {}
 
     def gaussian(self, x, mean, std):
         return np.exp(-0.5 * ((x - mean) / std) ** 2)

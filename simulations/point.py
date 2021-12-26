@@ -92,6 +92,7 @@ class PointEnv(AgentModel):
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         speed = action[0]
         yaw = action[1]
+        prev_yaw = self.get_ori()
         vx = speed * np.cos(yaw)
         vy = speed * np.sin(yaw)
         action = np.array([vx, vy, yaw], dtype = np.float32)
@@ -99,8 +100,8 @@ class PointEnv(AgentModel):
         for _ in range(0, self.frame_skip):
             self.sim.step()
         next_obs = self._get_obs()
-        reward = np.sum(np.square(self.data.qvel[:2] / self.VELOCITY_LIMITS)) / 2
-        reward = -np.square(self.data.qvel[2]) * 5e-3
+        reward = speed * 7.5e-2
+        reward += -5e-3 * np.abs(yaw - prev_yaw) / self.dt
         return next_obs, reward, False, {}
 
     def gaussian(self, x, mean, std):

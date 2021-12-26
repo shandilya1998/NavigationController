@@ -3,7 +3,7 @@ from simulations.collision_env import CollisionEnv
 from simulations.point import PointEnv, PointEnvV2
 from simulations.maze_task import CustomGoalReward4Rooms, \
     GoalRewardNoObstacle
-env = MazeEnv(PointEnvV2, CustomGoalReward4Rooms)
+env = MazeEnv(PointEnv, CustomGoalReward4Rooms)
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
@@ -269,7 +269,7 @@ ax.set_ylabel('reward')
 total_reward = 0.0
 ac = env.get_action()
 while not done:
-    ob, reward, done, info = env.step(ac)
+    ob, reward, done, info = env.step(env.action_space.sample())
     ac = env.get_action()
     if reward != 0.0:
         count += 1

@@ -1106,7 +1106,6 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 i = up * self.n_steps + j
                 if i >= gradient_steps:
                     break
-                print(i, len(replay_data.next_observations))
                 self._n_updates += 1
                 with torch.no_grad():
                     # Select action according to policy and add clipped noise

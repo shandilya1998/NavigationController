@@ -3,7 +3,7 @@ from simulations.collision_env import CollisionEnv
 from simulations.point import PointEnv, PointEnvV2
 from simulations.maze_task import CustomGoalReward4Rooms, \
     GoalRewardNoObstacle, GoalRewardSimple
-env = MazeEnv(PointEnv, GoalRewardSimple)
+env = MazeEnv(PointEnv, CustomGoalReward4Rooms)
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
@@ -269,7 +269,7 @@ ax.set_ylabel('reward')
 total_reward = 0.0
 ac = env.get_action()
 while not done:
-    ob, reward, done, info = env.step(env.action_space.sample())
+    ob, reward, done, info = env.step(ob['sampled_action'])#env.action_space.sample())
     ac = env.get_action()
     if reward != 0.0:
         count += 1
@@ -283,19 +283,21 @@ while not done:
     depth = ob['observation'][:, :, 3]
     img = ob['observation'][:, :, :3]
     top = env.render('rgb_array')
+    """
     cv2.imshow('stream', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
     cv2.imshow('depth stream', depth)
     cv2.imshow('position stream', top)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
+    """
     POS.append(pos.copy())
     OBS.append(ob.copy())
     REWARDS.append(reward)
     total_reward += reward
     INFO.append(info)
-    ax.clear()
-    ax.plot(REWARDS, color = 'r', linestyle = '--')
-    plt.pause(0.1)
+    #ax.clear()
+ax.plot(REWARDS, color = 'r', linestyle = '--')
+#plt.pause(0.1)
 pbar.close()
 print('Ideal Path:')
 print('total count:      {}'.format(count))

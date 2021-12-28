@@ -322,12 +322,9 @@ class MazeEnv(gym.Env):
         self.state.update(ai, di)
         self.states.append(self.t * self.dt, self.state)
         # Refer to simulations/point PointEnv: def step() for more information
-        yaw = copy.deepcopy(self.state.yaw)
-        vyaw = yaw - prev_yaw
-
         self.sampled_action = np.array([
             self.state.v,
-            vyaw / self.wrapped_env.dt,
+            self.state.yaw,
         ], dtype = np.float32)
         return self.sampled_action
 
@@ -563,12 +560,12 @@ class MazeEnv(gym.Env):
             theta_t += 2 * np.pi
         elif theta_t > np.pi:
             theta_t -= 2 * np.pi
-        _vx, _vy, vyaw = self.wrapped_env.data.qvel.copy()
+        qvel = self.wrapped_env.data.qvel.copy()
+        vyaw = qvel[self.wrapped_env.self.ORI_IND]
         yaw = self.wrapped_env.get_ori()
-        vx = _vx * np.cos(yaw) + _vy * np.sin(yaw)
-        # vmax is the maximum possible velocity along the forward direction
+        vx = np.linalg.norm(qvel[:2])
         vmax = self.wrapped_env.VELOCITY_LIMITS * 1.4
-        inner_reward = -1 + (vx / vmax) * np.cos(theta_t) * (1 - (1.4 * np.abs(theta_t) / vmax))
+        inner_reward = -1 + (vx / vmax) * np.cos(theta_t) * (1 - (1.4 * np.abs(vyaw) / vmax))
         #inner_reward = self._inner_reward_scaling * inner_reward
         outer_reward = self._task.reward(next_pos, inframe)
         done = self._task.termination(self.wrapped_env.get_xy(), inframe)

@@ -91,13 +91,12 @@ class PointEnv(AgentModel):
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         # _vx and _vy are parallel and perpendicular to direction of motion respectively
-        _vx = action[0]
-        vyaw = action[1]
-        yaw = self.get_ori()
+        v = action[0]
+        yaw = action[1]
         # vx and vy are along the x and y axes respectively
-        vx = _vx * np.cos(yaw)
-        vy = _vx * np.sin(yaw)
-        action = np.array([vx, vy, vyaw], dtype = np.float32)
+        vx = v * np.cos(yaw)
+        vy = v * np.sin(yaw)
+        action = np.array([vx, vy, yaw], dtype = np.float32)
         self.sim.data.ctrl[:] = action
         for _ in range(0, self.frame_skip):
             self.sim.step()

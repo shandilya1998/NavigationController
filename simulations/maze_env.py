@@ -561,7 +561,7 @@ class MazeEnv(gym.Env):
         elif theta_t > np.pi:
             theta_t -= 2 * np.pi
         qvel = self.wrapped_env.data.qvel.copy()
-        vyaw = qvel[self.wrapped_env.self.ORI_IND]
+        vyaw = qvel[self.wrapped_env.ORI_IND]
         yaw = self.wrapped_env.get_ori()
         vx = np.linalg.norm(qvel[:2])
         vmax = self.wrapped_env.VELOCITY_LIMITS * 1.4

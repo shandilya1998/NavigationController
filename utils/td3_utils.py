@@ -109,11 +109,7 @@ class MultiModalFeaturesExtractorV2(sb3.common.torch_layers.BaseFeaturesExtracto
             observation_space['observation'],
             features_dim
         )
-        self.vc_mask = VisualCortexV2(
-            observation_space['mask'],
-            features_dim
-        )
-        input_size = (len(observation_space.spaces) - 1) * features_dim
+        input_size = (len(observation_space.spaces) - 2) * features_dim
         self.fc_velocity = torch.nn.Sequential(
             torch.nn.Linear(observation_space['velocity'].shape[-1], features_dim),
             torch.nn.ReLU()
@@ -139,12 +135,11 @@ class MultiModalFeaturesExtractorV2(sb3.common.torch_layers.BaseFeaturesExtracto
 
     def forward(self, observations):
         observation = self.vc(observations['observation'])
-        mask = self.vc_mask(observations['mask'])
         velocity = self.fc_velocity(observations['velocity'])
         acceleration = self.fc_acceleration(observations['acceleration'])
         actions = self.fc_history(observations['actions'])
         goal = self.fc_goal(observations['goal'])
-        x = torch.cat([observation, velocity, acceleration, actions, mask, goal], -1)
+        x = torch.cat([observation, velocity, acceleration, actions, goal], -1)
         out = self.fc(x)
         return out
 

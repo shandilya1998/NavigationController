@@ -1,7 +1,7 @@
 #!/bin/sh
 
 LOGDIR="assets/out/models/exp22"
-MODEL_FILE="rl_model_300000_steps"
+MODEL_FILE="rl_model_860000_steps"
 MAX_EPISODE_SIZE=500
 HISTORY_STEPS=15
 

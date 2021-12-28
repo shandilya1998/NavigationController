@@ -279,19 +279,12 @@ class MazeEnv(gym.Env):
         self.target_speed = np.random.uniform(
             low = 0.0,
             high = self.wrapped_env.VELOCITY_LIMITS
-
         )
         self.state = State(
             x = self.wrapped_env.sim.data.qpos[0],
             y = self.wrapped_env.sim.data.qpos[1],
             yaw = self.wrapped_env.sim.data.qpos[2],
-            v = np.sqrt(
-                np.square(
-                    self.wrapped_env.sim.data.qvel[0]
-                ) + np.square(
-                    self.wrapped_env.sim.data.qvel[1]
-                )
-            ),
+            v = np.linalg.norm(self.wrapped_env.sim.data.qvel[:2]),
             WB = 0.2 * self._maze_size_scaling
         )
         self.lastIndex = len(self.x) - 1
@@ -449,13 +442,15 @@ class MazeEnv(gym.Env):
         self.accelerations.append(self.data.qacc.copy())
         self.goals.pop(0)
         self.goals.append(goal)
+        aux = (2 * np.stack([img[:, :, 3], reversemask], 0).copy() / 255.0 - 1)
+        aux = aux.astype(np.float32)
         obs = {
-            'observation' : img.copy(),
+            'observation' : img[:, :, :3].copy(),
             'actions' : np.concatenate(self.actions, -1).copy(),
             'velocity' : np.concatenate(self.velocities, -1).copy(),
             'acceleration' : np.concatenate(self.accelerations, -1).copy(),
             'goal' : np.concatenate(self.goals, -1).copy(),
-            'mask' : np.expand_dims(reversemask, 0).copy() / 255.0,
+            'aux' : aux,
             'sampled_action' : sampled_action.copy()
         }
         return obs, inframe

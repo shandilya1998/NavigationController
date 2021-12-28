@@ -369,13 +369,41 @@ class LSTM(torch.nn.Module):
         for idx in range(len(net_arch) - 1):
             self.layers.append(torch.nn.LSTMCell(net_arch[idx], net_arch[idx + 1])) 
 
+        self.action_layers = []
         if output_dim > 0: 
             last_layer_dim = net_arch[-1] if len(net_arch) > 0 else input_dim
-            self.layers.append(torch.nn.Linear(last_layer_dim, output_dim))
+            self.action_layers.append(torch.nn.Linear(last_layer_dim, output_dim))
         if squash_output:
-            self.layers.append(torch.nn.Tanh())
+            self.action_layers.append(torch.nn.Tanh())
+
+
+        self.int_layers = torch.nn.Sequential(
+            torch.nn.Linear(net_arch[-1], 1500),
+            torch.nn.ReLU()
+        )
+        self.aux_layers = torch.nn.Sequential(
+            torch.nn.ConvTranspose2d(
+                5, 32, kernel_size = (2, 2), stride = (2, 2)
+            ),
+            torch.nn.ReLU(),
+            torch.nn.ConvTranspose2d(
+                32, 64, kernel_size = (4, 4), stride = (2, 2),
+                padding = (1, 1), dilation = (1, 1)
+            ),
+            torch.nn.ReLU(),
+            torch.nn.ConvTranspose2d(
+                64, 32, kernel_size = (6, 6), stride = (1, 1), dilation = (3, 4)
+            ),
+            torch.nn.ReLU(),
+            torch.nn.ConvTranspose2d(
+                32, 2, kernel_size = (3, 3), padding = (1, 1), stride = (1, 1),
+                dilation = (1, 1)
+            ),
+            torch.nn.Tanh()
+        )
         self.offset = 2 if squash_output else 1
         self.layers = torch.nn.ModuleList(self.layers)
+        self.action_layers = torch.nn.ModuleList(self.action_layers)
         self.net_arch = net_arch
 
     def forward(self, x, states):
@@ -384,9 +412,12 @@ class LSTM(torch.nn.Module):
             state = self.layers[i](x, states[i])
             next_states.append(state)
             x = state[0]
+        intermediate = self.int_layers(x)
+        intermediate = intermediate.view(-1, 5, 15, 20)
+        aux_out = self.aux_layers(intermediate)
         for i in range(self.offset):
-            x = self.layers[-self.offset + i](x)
-        return x, next_states
+            x = self.action_layers[i](x)
+        return x, next_states, aux_out
 
 def create_lstm(
     input_dim: int,
@@ -535,7 +566,7 @@ class RecurrentActor(sb3.common.policies.BasePolicy):
         observation = sb3.common.utils.obs_as_tensor(observation, self.device)
 
         with torch.no_grad():
-            actions, state = self._predict(observation, state, deterministic=deterministic)
+            actions, state, _ = self._predict(observation, state, deterministic=deterministic)
         # Convert to numpy
         actions = actions.cpu().numpy()
 
@@ -618,11 +649,13 @@ class RecurrentContinuousCritic(sb3.common.policies.BaseModel):
         qvalue_input = torch.cat([features, actions], dim=1)
         _states = []
         outputs = []
+        aux = []
         for i, q_net in enumerate(self.q_networks):
-            out, state = q_net(qvalue_input, states[i])
+            out, state, _aux = q_net(qvalue_input, states[i])
             outputs.append(out)
             _states.append(state)
-        return tuple(outputs), _states
+            aux.append(_aux)
+        return tuple(outputs), _states, aux
 
     def q1_forward(self, obs: torch.Tensor, states: List[Tuple[torch.Tensor]], actions: torch.Tensor) -> torch.Tensor:
         """
@@ -829,7 +862,7 @@ class RecurrentTD3Policy(sb3.common.policies.BasePolicy):
         observation = sb3.common.utils.obs_as_tensor(observation, self.device)
 
         with torch.no_grad():
-            actions, state = self._predict(observation, state, deterministic=deterministic)
+            actions, state, _ = self._predict(observation, state, deterministic=deterministic)
         # Convert to numpy
         actions = actions.cpu().numpy()
 
@@ -1096,8 +1129,8 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 for size in self.policy.net_arch
         ] 
         with torch.no_grad():
-            next_ac, next_hidden_state = self.actor_target(replay_data.observations[0], hidden_state)
-            _, next_hidden_state_critic = self.critic_target(replay_data.observations[0], hidden_state_critic, next_ac)
+            next_ac, next_hidden_state, _= self.actor_target(replay_data.observations[0], hidden_state)
+            _, next_hidden_state_critic, _ = self.critic_target(replay_data.observations[0], hidden_state_critic, next_ac)
         num_updates = math.ceil(gradient_steps / self.n_steps)
         for up in range(num_updates):
             critic_loss = 0.0
@@ -1110,19 +1143,20 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     # Select action according to policy and add clipped noise
                     noise = replay_data.actions[i].clone().data.normal_(0, self.target_policy_noise)
                     noise = noise.clamp(-self.target_noise_clip, self.target_noise_clip)
-                    next_actions, next_hidden_state = self.actor_target(replay_data.next_observations[i], next_hidden_state)
+                    next_actions, next_hidden_state, _ = self.actor_target(replay_data.next_observations[i], next_hidden_state)
                     next_actions = (next_actions + noise).clamp(-1, 1)
                     # Compute the next Q-values: min over all critics targets
-                    next_q_values, next_hidden_state_critic = self.critic_target(replay_data.next_observations[i], next_hidden_state_critic, next_actions)
+                    next_q_values, next_hidden_state_critic, _ = self.critic_target(replay_data.next_observations[i], next_hidden_state_critic, next_actions)
                     next_q_values = torch.cat(next_q_values, dim=1)
                     next_q_values, _ = torch.min(next_q_values, dim=1, keepdim=True)
                     target_q_values = replay_data.rewards[i] + (1 - replay_data.dones[i]) * self.gamma * next_q_values
 
                 # Get current Q-values estimates for each critic network
-                current_q_values, hidden_state_critic = self.critic(replay_data.observations[i], hidden_state_critic, replay_data.actions[i])
+                current_q_values, hidden_state_critic, aux_out = self.critic(replay_data.observations[i], hidden_state_critic, replay_data.actions[i])
 
                 # Compute critic loss
                 critic_loss += sum([torch.nn.functional.mse_loss(current_q, target_q_values) for current_q in current_q_values])
+                critic_loss += sum([torch.nn.functional.mse_loss(aux, replay_data.observations[i]['aux']) for aux in aux_out])
             critic_losses.append(critic_loss.item())
 
             # Optimize the critics
@@ -1156,12 +1190,12 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 if i >= gradient_steps:
                     break
                 self._n_updates += 1 
-                actions, hidden_state = self.actor(replay_data.observations[i], hidden_state)
-                q_val, hidden_state_loss = self.critic.q1_forward(replay_data.observations[i], hidden_state_loss, actions)
+                actions, hidden_state, aux_out_ac = self.actor(replay_data.observations[i], hidden_state)
+                q_val, hidden_state_loss, _ = self.critic.q1_forward(replay_data.observations[i], hidden_state_loss, actions)
                 if self._n_updates % self.policy_delay == 0:
                     # Compute actor loss
                     count += 1
-                    actor_loss += -q_val.mean()
+                    actor_loss += -q_val.mean() + torch.nn.functional.mse_loss(aux_out_ac, replay_data.observations[i]['aux'])
             if count > 0:
                 actor_losses.append(actor_loss.item())
                 # Optimize the actor

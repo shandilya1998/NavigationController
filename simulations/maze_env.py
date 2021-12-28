@@ -563,9 +563,9 @@ class MazeEnv(gym.Env):
         qvel = self.wrapped_env.data.qvel.copy()
         vyaw = qvel[self.wrapped_env.ORI_IND]
         yaw = self.wrapped_env.get_ori()
-        vx = np.linalg.norm(qvel[:2])
+        v = np.linalg.norm(qvel[:2])
         vmax = self.wrapped_env.VELOCITY_LIMITS * 1.4
-        inner_reward = -1 + (vx / vmax) * np.cos(theta_t) * (1 - (1.4 * np.abs(vyaw) / vmax))
+        inner_reward = -1 + (v / vmax) * np.cos(theta_t) * (1 - (1.4 * np.abs(vyaw) / vmax))
         #inner_reward = self._inner_reward_scaling * inner_reward
         outer_reward = self._task.reward(next_pos, inframe)
         done = self._task.termination(self.wrapped_env.get_xy(), inframe)
@@ -573,11 +573,11 @@ class MazeEnv(gym.Env):
         index = self.__get_current_cell()
         self._current_cell = index
         if done:
-            outer_reward += 50.0
+            outer_reward += 400.0
         if self.t > self.max_episode_size:
             done = True
         if self._is_in_collision() and not done:
-            collision_penalty += -50 * self._inner_reward_scaling
+            collision_penalty += -50.0 * self._inner_reward_scaling
         reward = inner_reward + outer_reward + collision_penalty
         info['inner_reward'] = inner_reward
         info['outer_reward'] = outer_reward

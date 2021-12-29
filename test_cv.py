@@ -280,12 +280,15 @@ while not done:
     steps += 1
     pos = env.wrapped_env.sim.data.qpos.copy()    
     depth = ob['aux'][:, :, 0]
-    depth = depth.astype(np.uint8)
+    mask = ob['aux'][:, :, 1]
+    gray = ob['aux'][:, :, 2]
     img = ob['observation']
     top = env.render('rgb_array')
     cv2.imshow('stream', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
     cv2.imshow('depth stream', depth)
     cv2.imshow('position stream', top)
+    cv2.imshow('mask', mask)
+    cv2.imshow('gray', gray)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
     POS.append(pos.copy())

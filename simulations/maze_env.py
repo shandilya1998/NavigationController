@@ -272,7 +272,10 @@ class MazeEnv(gym.Env):
         return self._action_space
 
     def __setup_vel_control(self):
-        self.target_speed = self.wrapped_env.VELOCITY_LIMITS * 1.4
+        self.target_speed = np.random.uniform(
+            low = self.wrapped_env.VELOCITY_LIMITS * 0.5,
+            high = self.wrapped_env.VELOCITY_LIMITS * 1.4
+        )
         self.state = State(
             x = self.wrapped_env.sim.data.qpos[0],
             y = self.wrapped_env.sim.data.qpos[1],
@@ -429,7 +432,6 @@ class MazeEnv(gym.Env):
         self.goals.append(goal)
         gray = cv2.cvtColor(img[:, :, :3], cv2.COLOR_RGB2GRAY)
         aux = np.stack([img[:, :, 3], reversemask, gray], -1).copy()
-        aux = aux.astype(np.float32)
         obs = {
             'observation' : img[:, :, :3].copy(),
             'actions' : np.concatenate(self.actions, -1).copy(),
@@ -575,6 +577,7 @@ class MazeEnv(gym.Env):
             done = True
         if self._is_in_collision() and not done:
             collision_penalty += -50.0 * self._inner_reward_scaling
+            done = True
         reward = inner_reward + outer_reward + collision_penalty
         info['inner_reward'] = inner_reward
         info['outer_reward'] = outer_reward

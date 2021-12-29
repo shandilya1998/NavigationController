@@ -405,15 +405,15 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
             MazeVisualGoal(np.array([
                 np.random.uniform(4.0, 6.0) * self.scale,
                 np.random.uniform(-6.0, -4.0) * self.scale
-            ]), self.scales[0], self.colors[0], 1.5),
+            ]), self.scales[0], self.colors[0], 2),
             MazeVisualGoal(np.array([
                 np.random.uniform(0.0, 2.0) * self.scale,
                 np.random.uniform(-6.0, -4.0) * self.scale
-            ]), self.scales[1], self.colors[1], 1.5),
+            ]), self.scales[1], self.colors[1], 2),
             MazeVisualGoal(np.array([
                 np.random.uniform(4.0, 6.0) * self.scale,
                 np.random.uniform(-2.0, 0.0) * self.scale
-            ]), self.scales[2], self.colors[2], 1.5),
+            ]), self.scales[2], self.colors[2], 2),
         ]
 
     def reward(self, pos: np.ndarray, inframe: bool) -> float:
@@ -423,7 +423,7 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
             reward = goal.reward_scale * (
                 1 - np.linalg.norm(pos[: goal.dim] - goal.pos) / (np.linalg.norm(goal.pos))
             )
-        if np.linalg.norm(pos - goal.pos) <= 2 * goal.threshold:
+        if np.linalg.norm(pos - goal.pos) <= 2.25 * goal.threshold:
             reward += goal.reward_scale
         return reward
 
@@ -445,7 +445,7 @@ class GoalRewardNoObstacle(GoalReward4Rooms):
         self.goals = [
             MazeVisualGoal(np.array([
                 np.random.choice([-2, -1, 1, 2]), np.random.choice([-2, -1, 1, 2])
-            ]) * self.scale, 1.0, RED),
+            ]) * self.scale, 1.0, RED, 2.0),
         ]
 
     def reward(self, pos: np.ndarray, inframe: bool) -> float:
@@ -455,7 +455,7 @@ class GoalRewardNoObstacle(GoalReward4Rooms):
         )
         if inframe:
             reward += goal.reward_scale
-        if np.linalg.norm(pos - goal.pos) <= 2 * goal.threshold:
+        if np.linalg.norm(pos - goal.pos) <= 2.25 * goal.threshold:
             reward += goal.reward_scale
         return reward
 

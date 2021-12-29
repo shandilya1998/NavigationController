@@ -123,7 +123,7 @@ class PointEnv(AgentModel):
             camera_name = 'mtdcam',
             depth = True
         )
-        depth = 255 * (depth - 0.97) / 0.03
+        depth = 255 * (depth - 0.965) / 0.035
         depth = depth.astype(np.uint8)
         #cv2.imshow('depth', np.flipud(depth / 255.0))
         img = np.flipud(np.concatenate([

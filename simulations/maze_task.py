@@ -314,7 +314,7 @@ class MazeVisualGoal(MazeGoal):
         pos: np.ndarray,
         reward_scale: float = 1.0,
         rgb: Rgb = RED,
-        threshold: float = 1.5,
+        threshold: float = 1.0,
         custom_size: Optional[float] = None,
     ):
         super(MazeVisualGoal, self).__init__(pos,
@@ -405,15 +405,15 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
             MazeVisualGoal(np.array([
                 np.random.uniform(4.0, 6.0) * self.scale,
                 np.random.uniform(-6.0, -4.0) * self.scale
-            ]), self.scales[0], self.colors[0], 3),
+            ]), self.scales[0], self.colors[0], 1.5),
             MazeVisualGoal(np.array([
                 np.random.uniform(0.0, 2.0) * self.scale,
                 np.random.uniform(-6.0, -4.0) * self.scale
-            ]), self.scales[1], self.colors[1], 3),
+            ]), self.scales[1], self.colors[1], 1.5),
             MazeVisualGoal(np.array([
                 np.random.uniform(4.0, 6.0) * self.scale,
                 np.random.uniform(-2.0, 0.0) * self.scale
-            ]), self.scales[2], self.colors[2], 3),
+            ]), self.scales[2], self.colors[2], 1.5),
         ]
 
     def reward(self, pos: np.ndarray, inframe: bool) -> float:

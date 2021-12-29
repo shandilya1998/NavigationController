@@ -1,5 +1,4 @@
 from simulations.maze_env import MazeEnv
-from simulations.collision_env import CollisionEnv
 from simulations.point import PointEnv, PointEnvV2
 from simulations.maze_task import CustomGoalReward4Rooms, \
     GoalRewardNoObstacle, GoalRewardSimple
@@ -280,24 +279,23 @@ while not done:
     pbar.update(1)
     steps += 1
     pos = env.wrapped_env.sim.data.qpos.copy()    
-    depth = ob['observation'][:, :, 3]
-    img = ob['observation'][:, :, :3]
+    depth = ob['aux'][:, :, 0]
+    depth = depth.astype(np.uint8)
+    img = ob['observation']
     top = env.render('rgb_array')
-    """
     cv2.imshow('stream', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
     cv2.imshow('depth stream', depth)
     cv2.imshow('position stream', top)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
-    """
     POS.append(pos.copy())
     OBS.append(ob.copy())
     REWARDS.append(reward)
     total_reward += reward
     INFO.append(info)
-    #ax.clear()
-ax.plot(REWARDS, color = 'r', linestyle = '--')
-#plt.pause(0.1)
+    ax.clear()
+    ax.plot(REWARDS, color = 'r', linestyle = '--')
+    plt.pause(0.1)
 pbar.close()
 print('Ideal Path:')
 print('total count:      {}'.format(count))

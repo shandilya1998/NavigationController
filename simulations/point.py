@@ -79,8 +79,8 @@ class PointEnv(AgentModel):
         )
 
     def _set_action_space(self):
-        low = np.array([0.0, -np.pi / 2], dtype = np.float32)
-        high = np.array([self.VELOCITY_LIMITS * 1.41, np.pi / 2], dtype = np.float32)
+        low = np.array([0.0, -np.pi], dtype = np.float32)
+        high = np.array([self.VELOCITY_LIMITS * 1.41, np.pi], dtype = np.float32)
         self.action_dim = 2
         self.action_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
         return self.action_space
@@ -96,8 +96,16 @@ class PointEnv(AgentModel):
         # vx and vy are along the x and y axes respectively
         vx = v * np.cos(yaw)
         vy = v * np.sin(yaw)
+        """
         action = np.array([vx, vy, yaw], dtype = np.float32)
         self.sim.data.ctrl[:] = action
+        """
+        qpos = self.data.qpos.copy()
+        qvel = self.data.qvel.copy()
+        qpos[self.ORI_IND] = yaw
+        qvel[0] = vx
+        qvel[1] = vy
+        self.set_state(qpos, qvel)
         for _ in range(0, self.frame_skip):
             self.sim.step()
         next_obs = self._get_obs()

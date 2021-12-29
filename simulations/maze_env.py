@@ -22,12 +22,13 @@ import networkx as nx
 from simulations import maze_env_utils, maze_task
 from simulations.agent_model import AgentModel
 from utils.env_utils import convert_observation_to_space, \
-    quintic_polynomials_planner, proportional_control, \
-    pure_pursuit_steer_control, State, TargetCourse, States, \
-    calc_spline_course, Spline2D, Spline
+    calc_spline_course, TargetCourse, proportional_control, \
+    State, pure_pursuit_steer_control
 import random
 import copy
 from constants import params
+import math
+import cv2
 
 # Directory that contains mujoco xml files.
 MODEL_DIR = os.path.join(os.getcwd(), 'assets', 'xml')
@@ -259,38 +260,28 @@ class MazeEnv(gym.Env):
             x, y = self._rowcol_to_xy(row, col)
             self.wx.append(copy.deepcopy(x))
             self.wy.append(copy.deepcopy(y))
+        self.wx.append(self._task.goals[self._task.goal_index].pos[0])
+        self.wy.append(self._task.goals[self._task.goal_index].pos[1])
+        self.final = [self.wx[-1], self.wy[-1]]
 
     def __find_cubic_spline_path(self):
-        sp = Spline2D(self.wx, self.wy)
-        s = np.arange(0, sp.s[-1], params['ds'])
-        self.x, self.y, self.yaw, self.k = [], [], [], []
-        for i_s in s:
-            ix, iy = sp.calc_position(i_s)
-            self.x.append(ix)
-            self.y.append(iy)
-            self.yaw.append(sp.calc_yaw(i_s))
-            self.k.append(sp.calc_curvature(i_s))
+        self.cx, self.cy, self.cyaw, self.ck, self.s = calc_spline_course(self.wx, self.wy, params['ds'])
 
     @property
     def action_space(self):
         return self._action_space
 
     def __setup_vel_control(self):
-        self.target_speed = np.random.uniform(
-            low = 0.0,
-            high = self.wrapped_env.VELOCITY_LIMITS
-        )
+        self.target_speed = self.wrapped_env.VELOCITY_LIMITS * 1.4
         self.state = State(
             x = self.wrapped_env.sim.data.qpos[0],
             y = self.wrapped_env.sim.data.qpos[1],
             yaw = self.wrapped_env.sim.data.qpos[2],
             v = np.linalg.norm(self.wrapped_env.sim.data.qvel[:2]),
-            WB = 0.2 * self._maze_size_scaling
+            WB = 0.2 * self._maze_size_scaling,
         )
-        self.lastIndex = len(self.x) - 1
-        self.states = States()
-        self.states.append(self.t * self.dt, self.state)
-        self.target_course = TargetCourse(self.x, self.y)
+        self.last_idx = len(self.cx) - 1
+        self.target_course = TargetCourse(self.cx, self.cy)
         self.target_ind, _ = self.target_course.search_target_index(self.state)
 
     def __sample_path(self):
@@ -309,22 +300,19 @@ class MazeEnv(gym.Env):
         return random.choice(paths)
 
     def get_action(self):
-        robot_x, robot_y = self.wrapped_env.get_xy()
-        robot_ori = self.wrapped_env.get_ori()
-        robot_ori = robot_ori % (2 * np.pi)
-        if robot_ori > np.pi:
-            robot_ori -= 2 * np.pi
         ai = proportional_control(self.target_speed, self.state.v)
         di, self.target_ind = pure_pursuit_steer_control(
-            self.state, self.target_course, self.target_ind, self.state.WB
+            self.state, self.target_course, self.target_ind
         )
-        prev_yaw = copy.deepcopy(self.state.yaw)
-        self.state.update(ai, di)
-        self.states.append(self.t * self.dt, self.state)
+        yaw = self.state.yaw +  self.state.v / self.state.WB * math.tan(di) * self.dt
+        v = self.state.v + ai * self.dt
+        #self.state.update(ai, di, self.dt)
+        #v = self.state.v
+        #yaw = self.state.yaw
         # Refer to simulations/point PointEnv: def step() for more information
         self.sampled_action = np.array([
-            self.state.v,
-            self.state.yaw,
+            v,
+            yaw,
         ], dtype = np.float32)
         return self.sampled_action
 
@@ -380,7 +368,7 @@ class MazeEnv(gym.Env):
         num_vertices = num_row * num_col
         self._maze_graph = nx.DiGraph()
         self._maze_graph.add_nodes_from(np.arange(
-            0, len(self._maze_structure) * len(self._maze_structure[0])
+            0, num_vertices
         ))
         for i in range(num_row):
             for j in range(num_col):
@@ -439,7 +427,8 @@ class MazeEnv(gym.Env):
         self.accelerations.append(self.data.qacc.copy())
         self.goals.pop(0)
         self.goals.append(goal)
-        aux = (2 * np.stack([img[:, :, 3], reversemask], 0).copy() / 255.0 - 1)
+        gray = cv2.cvtColor(img[:, :, :3], cv2.COLOR_RGB2GRAY)
+        aux = np.stack([img[:, :, 3], reversemask, gray], -1).copy()
         aux = aux.astype(np.float32)
         obs = {
             'observation' : img[:, :, :3].copy(),
@@ -549,6 +538,14 @@ class MazeEnv(gym.Env):
         self.actions.pop(0)
         self.actions.append(action.copy())
         inner_next_obs, inner_reward, _, info = self.wrapped_env.step(action)
+        x, y = self.wrapped_env.get_xy()
+        yaw = self.get_ori()
+        if yaw > np.pi:
+            yaw -= 2 * np.pi
+        elif yaw < -np.pi:
+            yaw += 2 * np.pi
+        v = np.linalg.norm(self.data.qvel[:2])
+        self.state.set(x, y, v, yaw)
         next_pos = self.wrapped_env.get_xy()
         collision_penalty = 0.0
         next_obs, inframe = self._get_obs()

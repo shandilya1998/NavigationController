@@ -82,10 +82,8 @@ def evaluate_policy(
     current_rewards = np.zeros(n_envs)
     current_lengths = np.zeros(n_envs, dtype="int")
     observations = env.reset()
-    states = [
-            (torch.zeros((1, size)).to(model.device), torch.zeros((1, size)).to(model.device)) \
-                for size in model.policy.net_arch
-        ]
+    size = model.policy.net_arch[-1]
+    states = (torch.zeros((1, size)).to(model.device), torch.zeros((1, size)).to(model.device))
     while (episode_counts < episode_count_targets).any():
         actions, states = model.predict(observations, state=states, deterministic=deterministic)
         observations, rewards, dones, infos = env.step(actions)
@@ -122,10 +120,8 @@ def evaluate_policy(
                     current_rewards[i] = 0
                     current_lengths[i] = 0
                     if states is not None:
-                        states = [ 
-                            (torch.zeros((1, size)).to(model.device), torch.zeros((1, size)).to(model.device)) \
-                                for size in model.policy.net_arch
-                        ] 
+                        size = model.policy.net_arch[-1]
+                        states = (torch.zeros((1, size)).to(model.device), torch.zeros((1, size)).to(model.device))
 
         if render:
             env.render()

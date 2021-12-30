@@ -11,6 +11,7 @@ import math
 import torch
 import copy
 import warnings
+from constants import params
 
 TensorDict = Dict[Union[str, int], torch.Tensor]
 
@@ -372,6 +373,8 @@ class LSTM(torch.nn.Module):
         if output_dim > 0: 
             last_layer_dim = net_arch[-1] if len(net_arch) > 0 else input_dim
             self.layers.append(torch.nn.Linear(last_layer_dim, output_dim))
+        torch.nn.init.uniform_(self.layers[-1].weight, -3e-3, 3e-3)
+        torch.nn.init.uniform_(self.layers[-1].bias, -3e-4, 3e-4)
         if squash_output:
             self.layers.append(torch.nn.Tanh())
         self.offset = 2 if squash_output else 1
@@ -723,7 +726,7 @@ class RecurrentTD3Policy(sb3.common.policies.BasePolicy):
         # Initialize the target to have the same weights as the actor
         self.actor_target.load_state_dict(self.actor.state_dict())
 
-        self.actor.optimizer = self.optimizer_class(self.actor.parameters(), lr=lr_schedule(1), **self.optimizer_kwargs)
+        self.actor.optimizer = self.optimizer_class(self.actor.parameters(), lr=params['actor_lr'], **self.optimizer_kwargs)
 
         if self.share_features_extractor:
             self.critic = self.make_critic(features_extractor=self.actor.features_extractor)
@@ -739,7 +742,7 @@ class RecurrentTD3Policy(sb3.common.policies.BasePolicy):
             self.critic_target = self.make_critic(features_extractor=None)
 
         self.critic_target.load_state_dict(self.critic.state_dict())
-        self.critic.optimizer = self.optimizer_class(self.critic.parameters(), lr=lr_schedule(1), **self.optimizer_kwargs)
+        self.critic.optimizer = self.optimizer_class(self.critic.parameters(), lr=params['critic_lr'], weight_decay = params['critic_weight_decay'], **self.optimizer_kwargs)
 
     def _get_constructor_parameters(self) -> Dict[str, Any]:
         data = super()._get_constructor_parameters()

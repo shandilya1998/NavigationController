@@ -359,15 +359,15 @@ class EpisodicDictReplayBuffer(sb3.common.buffers.BaseBuffer):
         )
 
 class LSTM(torch.nn.Module):
-    def __init__(self, input_dim, output_dim, net_arch, squash_output = True):
+    def __init__(self, input_dim, output_dim, net_arch, squash_output = False):
         super(LSTM, self).__init__()
-        if len(net_arch) > 0: 
-            self.layers = [torch.nn.LSTMCell(input_dim, net_arch[0])]
-        else:
-            self.layers = [] 
-
+        self.layers = []
+        input_size = copy.deepcopy(input_dim)
         for idx in range(len(net_arch) - 1):
-            self.layers.append(torch.nn.LSTMCell(net_arch[idx], net_arch[idx + 1])) 
+            self.layers.append(torch.nn.Linear(input_size, net_arch[idx]))
+            self.layers.append(torch.nn.ReLU())
+            input_size = copy.deepcopy(net_arch[idx])
+        self.layers.append(torch.nn.LSTMCell(input_size, net_arch[-1]))
 
         if output_dim > 0: 
             last_layer_dim = net_arch[-1] if len(net_arch) > 0 else input_dim
@@ -380,10 +380,10 @@ class LSTM(torch.nn.Module):
 
     def forward(self, x, states):
         next_states = []
-        for i in range(len(self.net_arch)):
-            state = self.layers[i](x, states[i])
-            next_states.append(state)
-            x = state[0]
+        for i in range(len(self.layers) - 1 - self.offset):
+            x = self.layers[i](x)
+        next_states = self.layers[-1 - self.offset](x, states)
+        x = next_states[0]
         for i in range(self.offset):
             x = self.layers[-self.offset + i](x)
         return x, next_states
@@ -458,7 +458,7 @@ class RecurrentActor(sb3.common.policies.BasePolicy):
         self.features_dim = features_dim
 
         action_dim = sb3.common.preprocessing.get_action_dim(self.action_space)
-        self.mu = LSTM(features_dim, action_dim, net_arch, squash_output=True)
+        self.mu = LSTM(features_dim, action_dim, net_arch, squash_output=False)
 
     def _get_constructor_parameters(self) -> Dict[str, Any]:
         data = super()._get_constructor_parameters()
@@ -471,12 +471,12 @@ class RecurrentActor(sb3.common.policies.BasePolicy):
         )
         return data
 
-    def forward(self, obs: torch.Tensor, state: List[Tuple[torch.Tensor]]) -> torch.Tensor:
+    def forward(self, obs: torch.Tensor, state: Tuple[torch.Tensor]) -> Tuple[torch.Tensor, Tuple[torch.Tensor]]:
         # assert deterministic, 'The TD3 actor only outputs deterministic actions'
         features = self.extract_features(obs)
         return self.mu(features, state)
 
-    def _predict(self, observation: torch.Tensor, state: List[Tuple[torch.Tensor]], deterministic: bool = False) -> torch.Tensor:
+    def _predict(self, observation: torch.Tensor, state: Tuple[torch.Tensor], deterministic: bool = False) -> Tuple[torch.Tensor, Tuple[torch.Tensor]]:
         # Note: the deterministic deterministic parameter is ignored in the case of TD3.
         #   Predictions are always deterministic.
         return self.forward(observation, state)
@@ -484,10 +484,10 @@ class RecurrentActor(sb3.common.policies.BasePolicy):
     def predict(
         self,
         observation: Union[np.ndarray, Dict[str, np.ndarray]],
-        state: Union[List[Tuple[torch.Tensor]], List[torch.Tensor]] = None,
+        state: Tuple[torch.Tensor] = None,
         mask: Optional[np.ndarray] = None,
         deterministic: bool = False,
-    ) -> Tuple[np.ndarray, Union[List[Tuple[torch.Tensor]], List[torch.Tensor]]]:
+    ) -> Tuple[np.ndarray, Tuple[torch.Tensor]]:
         """ 
         Get the policy action and state from an observation (and optional state).
         Includes sugar-coating to handle different observations (e.g. normalizing images).
@@ -610,7 +610,7 @@ class RecurrentContinuousCritic(sb3.common.policies.BaseModel):
             self.add_module(f"qf{idx}", q_net)
             self.q_networks.append(q_net)
 
-    def forward(self, obs: torch.Tensor, states: List[List[Tuple[torch.Tensor]]], actions: torch.Tensor) -> Tuple[torch.Tensor, ...]:
+    def forward(self, obs: torch.Tensor, states: List[Tuple[torch.Tensor]], actions: torch.Tensor) -> Tuple[Tuple[torch.Tensor], List[Tuple[torch.Tensor]]]:
         # Learn the features extractor using the policy loss only
         # when the features_extractor is shared with the actor
         with torch.set_grad_enabled(not self.share_features_extractor):
@@ -624,7 +624,7 @@ class RecurrentContinuousCritic(sb3.common.policies.BaseModel):
             _states.append(state)
         return tuple(outputs), _states
 
-    def q1_forward(self, obs: torch.Tensor, states: List[Tuple[torch.Tensor]], actions: torch.Tensor) -> torch.Tensor:
+    def q1_forward(self, obs: torch.Tensor, states: Tuple[torch.Tensor], actions: torch.Tensor) -> Tuple[torch.Tensor, Tuple[torch.Tensor]]:
         """
         Only predict the Q-value using the first network.
         This allows to reduce computation when all the estimates are not needed
@@ -767,10 +767,10 @@ class RecurrentTD3Policy(sb3.common.policies.BasePolicy):
         critic_kwargs = self._update_features_extractor(self.critic_kwargs, features_extractor)
         return RecurrentContinuousCritic(**critic_kwargs).to(self.device)
 
-    def forward(self, observation: torch.Tensor, state: List[Tuple[torch.Tensor]], deterministic: bool = False) -> torch.Tensor:
+    def forward(self, observation: torch.Tensor, state: Tuple[torch.Tensor], deterministic: bool = False) -> Tuple[torch.Tensor, Tuple[torch.Tensor]]:
         return self._predict(observation, deterministic=deterministic)
 
-    def _predict(self, observation: torch.Tensor, state: List[Tuple[torch.Tensor]], deterministic: bool = False) -> torch.Tensor:
+    def _predict(self, observation: torch.Tensor, state: Tuple[torch.Tensor], deterministic: bool = False) -> Tuple[torch.Tensor, Tuple[torch.Tensor]]:
         # Note: the deterministic deterministic parameter is ignored in the case of TD3.
         #   Predictions are always deterministic.
         return self.actor(observation, state)
@@ -778,10 +778,10 @@ class RecurrentTD3Policy(sb3.common.policies.BasePolicy):
     def predict(
         self,
         observation: Union[np.ndarray, Dict[str, np.ndarray]],
-        state: Union[List[Tuple[torch.Tensor]], List[torch.Tensor]] = None,
+        state: Tuple[torch.Tensor] = None,
         mask: Optional[np.ndarray] = None,
         deterministic: bool = False,
-    ) -> Tuple[np.ndarray, Union[List[Tuple[torch.Tensor]], List[torch.Tensor]]]:
+    ) -> Tuple[np.ndarray, Tuple[torch.Tensor]]:
         """
         Get the policy action and state from an observation (and optional state).
         Includes sugar-coating to handle different observations (e.g. normalizing images).
@@ -958,10 +958,8 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
 
     def _setup_model(self) -> None:
         super(RTD3, self)._setup_model()
-        self.hidden_state = [
-            (torch.zeros((1, size)).to(self.device), torch.zeros((1, size)).to(self.device)) \
-                for size in self.policy.net_arch
-        ]
+        size = self.policy.net_arch[-1]
+        self.hidden_state = (torch.zeros((1, size)).to(self.device), torch.zeros((1, size)).to(self.device))
         self._create_aliases()
 
     def _create_aliases(self) -> None:
@@ -1055,10 +1053,8 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             next_obs = new_obs_
 
         if done:
-            self.hidden_state = [
-                (torch.zeros((1, size)).to(self.device), torch.zeros((1, size)).to(self.device)) \
-                    for size in self.policy.net_arch
-            ]
+            size = self.policy.net_arch[-1]
+            self.hidden_state = (torch.zeros((1, size)).to(self.device), torch.zeros((1, size)).to(self.device))
 
         replay_buffer.add(
             self._last_original_obs,
@@ -1074,6 +1070,13 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         if self._vec_normalize_env is not None:
             self._last_original_obs = new_obs_
 
+    def invert_gradient(self,delta_a,current_a):
+        with torch.no_grad():
+            index = delta_a>0
+            delta_a[index] *=  (index.float() * (1.0 - current_a) / 2.0)[index]
+            delta_a[~index] *= ((~index).float() * (current_a - -1.0) / 2.0)[~index]
+        return delta_a
+
     def update_policy(self,
         gradient_steps: int,
         batch_size: int,
@@ -1081,48 +1084,35 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
     ):
         # Need to modify
         actor_losses, critic_losses = [], []
-        hidden_state = [
-            (torch.zeros((batch_size, size)).to(self.device), torch.zeros((batch_size, size)).to(self.device)) \
-                for size in self.policy.net_arch
-        ] 
+        size = self.policy.net_arch[-1]
+        hidden_state = (torch.zeros((batch_size, size)).to(self.device), torch.zeros((batch_size, size)).to(self.device))
         hidden_state_critic = [
-            [
-                (torch.zeros((batch_size, size)).to(self.device), torch.zeros((batch_size, size)).to(self.device)) \
-                    for size in self.policy.net_arch
-            ] for i in range(self.n_critics)
-        ]
-        hidden_state_loss = [
             (torch.zeros((batch_size, size)).to(self.device), torch.zeros((batch_size, size)).to(self.device)) \
-                for size in self.policy.net_arch
-        ] 
+                for i in range(self.n_critics)
+        ]
+        hidden_state_loss = (torch.zeros((batch_size, size)).to(self.device), torch.zeros((batch_size, size)).to(self.device))
         with torch.no_grad():
             next_ac, next_hidden_state = self.actor_target(replay_data.observations[0], hidden_state)
             _, next_hidden_state_critic = self.critic_target(replay_data.observations[0], hidden_state_critic, next_ac)
         num_updates = math.ceil(gradient_steps / self.n_steps)
-        for up in range(num_updates):
-            critic_loss = 0.0
-            actor_loss = 0.0
-            for j in range(self.n_steps):
-                i = up * self.n_steps + j
-                if i >= gradient_steps:
-                    break
-                with torch.no_grad():
-                    # Select action according to policy and add clipped noise
-                    noise = replay_data.actions[i].clone().data.normal_(0, self.target_policy_noise)
-                    noise = noise.clamp(-self.target_noise_clip, self.target_noise_clip)
-                    next_actions, next_hidden_state = self.actor_target(replay_data.next_observations[i], next_hidden_state)
-                    next_actions = (next_actions + noise).clamp(-1, 1)
-                    # Compute the next Q-values: min over all critics targets
-                    next_q_values, next_hidden_state_critic = self.critic_target(replay_data.next_observations[i], next_hidden_state_critic, next_actions)
-                    next_q_values = torch.cat(next_q_values, dim=1)
-                    next_q_values, _ = torch.min(next_q_values, dim=1, keepdim=True)
-                    target_q_values = replay_data.rewards[i] + (1 - replay_data.dones[i]) * self.gamma * next_q_values
+        for i in range(gradient_steps):
+            with torch.no_grad():
+                # Select action according to policy and add clipped noise
+                noise = replay_data.actions[i].clone().data.normal_(0, self.target_policy_noise)
+                noise = noise.clamp(-self.target_noise_clip, self.target_noise_clip)
+                next_actions, next_hidden_state = self.actor_target(replay_data.next_observations[i], next_hidden_state)
+                next_actions = (next_actions + noise).clamp(-1, 1)
+                # Compute the next Q-values: min over all critics targets
+                next_q_values, next_hidden_state_critic = self.critic_target(replay_data.next_observations[i], next_hidden_state_critic, next_actions)
+                next_q_values = torch.cat(next_q_values, dim=1)
+                next_q_values, _ = torch.min(next_q_values, dim=1, keepdim=True)
+                target_q_values = replay_data.rewards[i] + (1 - replay_data.dones[i]) * self.gamma * next_q_values
 
-                # Get current Q-values estimates for each critic network
-                current_q_values, hidden_state_critic = self.critic(replay_data.observations[i], hidden_state_critic, replay_data.actions[i])
+            # Get current Q-values estimates for each critic network
+            current_q_values, hidden_state_critic = self.critic(replay_data.observations[i], hidden_state_critic, replay_data.actions[i])
 
-                # Compute critic loss
-                critic_loss += sum([torch.nn.functional.mse_loss(current_q, target_q_values) for current_q in current_q_values])
+            # Compute critic loss
+            critic_loss = sum([torch.nn.functional.mse_loss(current_q, target_q_values) for current_q in current_q_values])
             critic_losses.append(critic_loss.item())
 
             # Optimize the critics
@@ -1130,64 +1120,43 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             critic_loss.backward()
             self.critic.optimizer.step()
             lst_1 = []
-            for k in range(len(self.policy.net_arch)):
+            for k in range(self.n_critics):
                 lst_1.append(
                     (
-                        next_hidden_state[k][0].detach(),
-                        next_hidden_state[k][1].detach()
+                        hidden_state_critic[k][0].detach(),
+                        hidden_state_critic[k][1].detach()
                     )
                 )
-            next_hidden_state = lst_1
-            lst_2 = []
-            for k in range(self.n_critics):
-                lst_3 = []
-                for l in range(len(self.policy.net_arch)):
-                    lst_3.append(
-                        (
-                            hidden_state_critic[k][l][0].detach(),
-                            hidden_state_critic[k][l][1].detach()
-                        )
-                    )
-                lst_2.append(lst_3)
-            hidden_state_critic = lst_2
-            count = 0
-            for j in range(self.n_steps):
-                i = up * self.n_steps + j
-                if i >= gradient_steps:
-                    break
-                self._n_updates += 1 
-                actions, hidden_state = self.actor(replay_data.observations[i], hidden_state)
-                q_val, hidden_state_loss = self.critic.q1_forward(replay_data.observations[i], hidden_state_loss, actions)
-                if self._n_updates % self.policy_delay == 0:
-                    # Compute actor loss
-                    count += 1
-                    actor_loss += -q_val.mean()
-            if count > 0:
-                actor_losses.append(actor_loss.item())
+            hidden_state_critic = lst_1
+            self._n_updates += 1 
+            with torch.no_grad():
+                actions, _ = self.actor(replay_data.observations[i], hidden_state)
+            actions.requires_grad = True
+            q_val, hidden_state_loss = self.critic.q1_forward(replay_data.observations[i], hidden_state_loss, actions)
+            # Compute actor loss
+            self.critic.zero_grad()
+            actor_loss = q_val.mean()
+            actor_loss.backward()
+            delta_a = copy.deepcopy(actions.grad.data)
+            delta_a = self.invert_gradient(delta_a, actions)
+            actions, hidden_state = self.actor(replay_data.observations[i], hidden_state)
+            if self._n_updates % self.policy_delay == 0:
+                out = -torch.mul(delta_a, actions)
+                actor_losses.append(torch.mean(out).item())
                 # Optimize the actor
                 self.actor.optimizer.zero_grad()
-                actor_loss.backward()
+                out.backward(torch.ones(out.shape).to(self.device))
                 self.actor.optimizer.step()
                 sb3.common.utils.polyak_update(self.critic.parameters(), self.critic_target.parameters(), self.tau)
                 sb3.common.utils.polyak_update(self.actor.parameters(), self.actor_target.parameters(), self.tau)
-            lst_4 = [] 
-            for k in range(len(self.policy.net_arch)):
-                lst_4.append(
-                    (
-                        hidden_state[k][0].detach(),
-                        hidden_state[k][1].detach()
-                    )
-                )
-            hidden_state = lst_4
-            lst_5 = []
-            for k in range(len(self.policy.net_arch)):
-                lst_5.append(
-                    (
-                        hidden_state_loss[k][0].detach(),
-                        hidden_state_loss[k][1].detach()
-                    )
-                )
-            hidden_state_loss = lst_5
+            hidden_state =(
+                hidden_state[0].detach(),
+                hidden_state[1].detach()
+            )
+            hidden_state_loss = (
+                hidden_state_loss[0].detach(),
+                hidden_state_loss[1].detach()
+            )
 
         self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
         if len(actor_losses) > 0: 

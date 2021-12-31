@@ -140,6 +140,7 @@ class MazeEnv(gym.Env):
         self.movable_blocks = []
         self.object_balls = []
         torso_x, torso_y = self._find_robot()
+        self.obstacles = []
         for i in range(len(self._maze_structure)):
             for j in range(len(self._maze_structure[0])):
                 struct = self._maze_structure[i][j]
@@ -162,6 +163,7 @@ class MazeEnv(gym.Env):
                         conaffinity="1",
                         rgba="0.9 0.9 0.9 1",
                     )
+                    self.obstacles.append(self._xy_to_rowcol(x, y))
                 if struct.is_block():
                     # Unmovable block.
                     # Offset all coordinates so that robot starts at the origin.
@@ -177,6 +179,7 @@ class MazeEnv(gym.Env):
                         conaffinity="1",
                         rgba="0.4 0.4 0.4 1",
                     )
+                    self.obstacles.append(self._xy_to_rowcol(x, y))
                 elif struct.can_move():
                     # Movable block.
                     self.movable_blocks.append(f"movable_{i}_{j}")
@@ -191,10 +194,12 @@ class MazeEnv(gym.Env):
                         h,
                         height_offset,
                     )
+                    self.obstacles.append(self._xy_to_rowcol(x, y))
                 elif struct.is_object_ball():
                     # Movable Ball
                     self.object_balls.append(f"objball_{i}_{j}")
                     _add_object_ball(worldbody, i, j, x, y, self._task.OBJECT_BALL_SIZE)
+                    self.obstacles.append(self._xy_to_rowcol(x, y))
 
         torso = tree.find(".//body[@name='torso']")
         geoms = torso.findall(".//geom")
@@ -251,9 +256,9 @@ class MazeEnv(gym.Env):
         self.__find_cubic_spline_path()
         self.__setup_vel_control()
         inertia = np.concatenate([
-                self.data.qvel,
-                self.data.qacc
-            ], -1)
+            self.data.qvel,
+            self.data.qacc
+        ], -1)
         ob, inframe = self._get_obs()
         self._set_observation_space(ob)
 
@@ -539,6 +544,32 @@ class MazeEnv(gym.Env):
             else:
                 return False
 
+    def check_distance(self, pos):
+        (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(pos[0], pos[1])
+        blind = False
+        collision = False
+        neighbors = [
+            (row + 1, col),
+            (row, col + 1),
+            (row - 1, col),
+            (row, col - 1)
+        ]
+        row_frac -= 0.5
+        col_frac -= 0.5
+        rpos = np.array([row_frac, col_frac], dtype = np.float32)
+        for nrow, ncol in neighbors:
+            if not self._maze_structure[nrow][ncol].is_empty():
+                rdir = (nrow - row)
+                cdir = (ncol - col)
+                direction = np.array([rdir, cdir], dtype = np.float32)
+                distance = np.dot(rpos, direction)
+                if distance > 0.325:
+                    collision = True
+                if distance > 0.36:
+                    blind = True
+        #print('almost collision: {}, blind: {}'.format(collision, blind))
+        return collision, blind
+
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         self.t += 1
         info = {}
@@ -547,7 +578,6 @@ class MazeEnv(gym.Env):
         inner_next_obs, inner_reward, _, info = self.wrapped_env.step(action)
         x, y = self.wrapped_env.get_xy()
         (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(x, y)
-        print('x: {}, row: {}, {}'.format(x, row, row_frac), 'y: {}, col: {}, {}'.format(y, col, col_frac))
         yaw = self.get_ori()
         if yaw > np.pi:
             yaw -= 2 * np.pi
@@ -578,6 +608,12 @@ class MazeEnv(gym.Env):
         info["position"] = self.wrapped_env.get_xy()
         index = self.__get_current_cell()
         self._current_cell = index
+        almost_collision, blind = self.check_distance(next_pos)
+        if almost_collision:
+            collision_penalty += -1.0 * self._inner_reward_scaling
+        if blind:
+            collision_penalty += -2.0 * self._inner_reward_scaling
+            next_obs['observation'] = np.zeros_like(next_obs['observation'])
         if done:
             outer_reward += 400.0
         if self.t > self.max_episode_size:
@@ -667,7 +703,7 @@ class MazeEnv(gym.Env):
                     col - int(block_size / 10): col + int(block_size / 10)
                 ] = [0, 255, 0]
 
-        return img
+        return np.flipud(img)
 
 def _add_object_ball(
     worldbody: ET.Element, i: str, j: str, x: float, y: float, size: float

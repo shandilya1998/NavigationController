@@ -405,15 +405,15 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
             MazeVisualGoal(np.array([
                 np.random.uniform(4.0, 6.0) * self.scale,
                 np.random.uniform(-6.0, -4.0) * self.scale
-            ]), self.scales[0], self.colors[0], 2),
+            ]), self.scales[0], self.colors[0], 2.25),
             MazeVisualGoal(np.array([
                 np.random.uniform(0.0, 2.0) * self.scale,
                 np.random.uniform(-6.0, -4.0) * self.scale
-            ]), self.scales[1], self.colors[1], 2),
+            ]), self.scales[1], self.colors[1], 2.25),
             MazeVisualGoal(np.array([
                 np.random.uniform(4.0, 6.0) * self.scale,
                 np.random.uniform(-2.0, 0.0) * self.scale
-            ]), self.scales[2], self.colors[2], 2),
+            ]), self.scales[2], self.colors[2], 2.25),
         ]
 
     def reward(self, pos: np.ndarray, inframe: bool) -> float:
@@ -423,7 +423,7 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
             reward = goal.reward_scale * (
                 1 - np.linalg.norm(pos[: goal.dim] - goal.pos) / (np.linalg.norm(goal.pos))
             )
-        if np.linalg.norm(pos - goal.pos) <= 2.25 * goal.threshold:
+        if np.linalg.norm(pos - goal.pos) <= 2.5 * goal.threshold:
             reward += goal.reward_scale
         return reward
 

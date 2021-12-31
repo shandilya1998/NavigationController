@@ -309,8 +309,8 @@ block_size = 50
 fig2, ax = plt.subplots(1,1)
 def xy_to_imgrowcol(x, y):
     (row, row_frac), (col, col_frac) = env._xy_to_rowcol_v2(x, y)
-    row = block_size * row + int((row_frac) * block_size) + int(block_size / 2)
-    col = block_size * col + int((col_frac) * block_size) + int(block_size / 2)
+    row = block_size * row + int((row_frac) * block_size)
+    col = block_size * col + int((col_frac) * block_size)
     return int(row), int(col)
 
 img = np.zeros(

@@ -88,6 +88,11 @@ class MazeEnv(gym.Env):
 
         def func2(x):
             x_int, x_frac = int(x), x % 1 
+            if x_frac > 0.5:
+                x_int += 1
+                x_frac -= 0.5
+            else:
+                x_frac += 0.5
             return x_int, x_frac
 
         self._xy_to_rowcol = lambda x, y: (
@@ -541,6 +546,8 @@ class MazeEnv(gym.Env):
         self.actions.append(action.copy())
         inner_next_obs, inner_reward, _, info = self.wrapped_env.step(action)
         x, y = self.wrapped_env.get_xy()
+        (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(x, y)
+        print('x: {}, row: {}, {}'.format(x, row, row_frac), 'y: {}, col: {}, {}'.format(y, col, col_frac))
         yaw = self.get_ori()
         if yaw > np.pi:
             yaw -= 2 * np.pi
@@ -598,8 +605,8 @@ class MazeEnv(gym.Env):
 
     def xy_to_imgrowcol(self, x, y): 
         (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(x, y)
-        row = self.top_view_size * row + int((row_frac) * self.top_view_size) + self.top_view_size / 2 
-        col = self.top_view_size * col + int((col_frac) * self.top_view_size) + self.top_view_size / 2 
+        row = self.top_view_size * row + int(row_frac * self.top_view_size)
+        col = self.top_view_size * col + int(col_frac * self.top_view_size)
         return row, col 
 
     def render(self, mode = 'human', **kwargs):
@@ -639,8 +646,8 @@ class MazeEnv(gym.Env):
 
         def xy_to_imgrowcol(x, y):
             (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(x, y)
-            row = block_size * row + int((row_frac) * block_size) + int(block_size / 2)
-            col = block_size * col + int((col_frac) * block_size) + int(block_size / 2)
+            row = block_size * row + int((row_frac) * block_size)
+            col = block_size * col + int((col_frac) * block_size)
             return int(row), int(col)
 
         pos = self.wrapped_env.get_xy() 
@@ -660,7 +667,7 @@ class MazeEnv(gym.Env):
                     col - int(block_size / 10): col + int(block_size / 10)
                 ] = [0, 255, 0]
 
-        return np.flipud(img)
+        return img
 
 def _add_object_ball(
     worldbody: ET.Element, i: str, j: str, x: float, y: float, size: float

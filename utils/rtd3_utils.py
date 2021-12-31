@@ -461,7 +461,7 @@ class RecurrentActor(sb3.common.policies.BasePolicy):
         self.features_dim = features_dim
 
         action_dim = sb3.common.preprocessing.get_action_dim(self.action_space)
-        self.mu = LSTM(features_dim, action_dim, net_arch, squash_output=False)
+        self.mu = LSTM(features_dim, action_dim, net_arch, squash_output = True)
 
     def _get_constructor_parameters(self) -> Dict[str, Any]:
         data = super()._get_constructor_parameters()

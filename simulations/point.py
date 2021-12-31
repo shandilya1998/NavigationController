@@ -96,16 +96,16 @@ class PointEnv(AgentModel):
         # vx and vy are along the x and y axes respectively
         vx = v * np.cos(yaw)
         vy = v * np.sin(yaw)
-        """
         action = np.array([vx, vy, yaw], dtype = np.float32)
         self.sim.data.ctrl[:] = action
         """
         qpos = self.data.qpos.copy()
-        qvel = self.data.qvel.copy()
+        qvel = self.data.qvel
         qpos[self.ORI_IND] = yaw
-        qvel[0] = vx
-        qvel[1] = vy
+        qpos[0] += vx * self.dt
+        qpos[1] += vy * self.dt
         self.set_state(qpos, qvel)
+        """
         for _ in range(0, self.frame_skip):
             self.sim.step()
         next_obs = self._get_obs()

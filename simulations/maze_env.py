@@ -544,10 +544,11 @@ class MazeEnv(gym.Env):
             else:
                 return False
 
-    def check_distance(self, pos):
+    def check_position(self, pos):
         (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(pos[0], pos[1])
         blind = False
         collision = False
+        outbound = False
         neighbors = [
             (row + 1, col),
             (row, col + 1),
@@ -557,18 +558,21 @@ class MazeEnv(gym.Env):
         row_frac -= 0.5
         col_frac -= 0.5
         rpos = np.array([row_frac, col_frac], dtype = np.float32)
-        for nrow, ncol in neighbors:
-            if not self._maze_structure[nrow][ncol].is_empty():
-                rdir = (nrow - row)
-                cdir = (ncol - col)
-                direction = np.array([rdir, cdir], dtype = np.float32)
-                distance = np.dot(rpos, direction)
-                if distance > 0.325:
-                    collision = True
-                if distance > 0.36:
-                    blind = True
+        if row > 0 and col > 0 and row < len(self._maze_structure) - 1 and col < len(self._maze_structure[0]) - 1:
+            for nrow, ncol in neighbors:
+                if not self._maze_structure[nrow][ncol].is_empty():
+                    rdir = (nrow - row)
+                    cdir = (ncol - col)
+                    direction = np.array([rdir, cdir], dtype = np.float32)
+                    distance = np.dot(rpos, direction)
+                    if distance > 0.325:
+                        collision = True
+                    if distance > 0.36:
+                        blind = True
+        else:
+            outbound = True
         #print('almost collision: {}, blind: {}'.format(collision, blind))
-        return collision, blind
+        return collision, blind, outbound
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         self.t += 1
@@ -599,7 +603,6 @@ class MazeEnv(gym.Env):
         qvel = self.wrapped_env.data.qvel.copy()
         vyaw = qvel[self.wrapped_env.ORI_IND]
         yaw = self.wrapped_env.get_ori()
-        v = np.linalg.norm(qvel[:2])
         vmax = self.wrapped_env.VELOCITY_LIMITS * 1.4
         inner_reward = -1 + (v / vmax) * np.cos(theta_t) * (1 - (1.4 * np.abs(vyaw) / vmax))
         #inner_reward = self._inner_reward_scaling * inner_reward
@@ -608,12 +611,16 @@ class MazeEnv(gym.Env):
         info["position"] = self.wrapped_env.get_xy()
         index = self.__get_current_cell()
         self._current_cell = index
-        almost_collision, blind = self.check_distance(next_pos)
+        almost_collision, blind, outbound = self.check_position(next_pos)
         if almost_collision:
             collision_penalty += -1.0 * self._inner_reward_scaling
         if blind:
             collision_penalty += -2.0 * self._inner_reward_scaling
             next_obs['observation'] = np.zeros_like(next_obs['observation'])
+        if outbound:
+            collision_penalty += -100.0 * self._inner_reward_scaling
+            next_obs['observation'] = np.zeros_like(next_obs['observation'])
+            done = True
         if done:
             outer_reward += 400.0
         if self.t > self.max_episode_size:

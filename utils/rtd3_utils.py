@@ -454,14 +454,14 @@ class RecurrentActor(sb3.common.policies.BasePolicy):
             action_space,
             features_extractor=features_extractor,
             normalize_images=normalize_images,
-            squash_output=True,
+            squash_output=False,
         )
 
         self.net_arch = net_arch
         self.features_dim = features_dim
 
         action_dim = sb3.common.preprocessing.get_action_dim(self.action_space)
-        self.mu = LSTM(features_dim, action_dim, net_arch, squash_output = True)
+        self.mu = LSTM(features_dim, action_dim, net_arch, squash_output = False)
 
     def _get_constructor_parameters(self) -> Dict[str, Any]:
         data = super()._get_constructor_parameters()
@@ -681,7 +681,7 @@ class RecurrentTD3Policy(sb3.common.policies.BasePolicy):
             features_extractor_kwargs,
             optimizer_class=optimizer_class,
             optimizer_kwargs=optimizer_kwargs,
-            squash_output=True,
+            squash_output=False,
         )
 
         # Default network architecture, from the original paper
@@ -913,7 +913,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         replay_buffer_class: Optional[sb3.common.buffers.ReplayBuffer] = None,
         replay_buffer_kwargs: Optional[Dict[str, Any]] = None,
         optimize_memory_usage: bool = False,
-        policy_delay: int = 2,
+        policy_delay: int = 1,
         target_policy_noise: float = 0.2,
         target_noise_clip: float = 0.5,
         tensorboard_log: Optional[str] = None,
@@ -962,6 +962,9 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
     def _setup_model(self) -> None:
         super(RTD3, self)._setup_model()
         size = self.policy.net_arch[-1]
+        self.max_p = torch.from_numpy(self.action_space.high)
+        self.min_p = torch.from_numpy(self.action_space.low)
+        self.rnge = (self.max_p - self.min_p).detach()
         self.hidden_state = (torch.zeros((1, size)).to(self.device), torch.zeros((1, size)).to(self.device))
         self._create_aliases()
 
@@ -1073,12 +1076,17 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         if self._vec_normalize_env is not None:
             self._last_original_obs = new_obs_
 
-    def invert_gradient(self,delta_a,current_a):
+    def _invert_gradients(self, grad, vals):  
+        self.max_p = torch.from_numpy(self.action_space.high)
+        self.min_p = torch.from_numpy(self.action_space.low)
+        self.rnge = self.max_p - self.min_p
         with torch.no_grad():
-            index = delta_a>0
-            delta_a[index] *=  (index.float() * (1.0 - current_a) / 2.0)[index]
-            delta_a[~index] *= ((~index).float() * (current_a - -1.0) / 2.0)[~index]
-        return delta_a
+            for n in range(grad.shape[0]):
+                # index = grad < 0  # actually > but Adam minimises, so reversed (could also double negate the grad)
+                index = grad[n] > 0
+                grad[n][index] *= (index.float() * (self.max_p - vals[n]) / self.rnge)[index]
+                grad[n][~index] *= ((~index).float() * (vals[n] - self.min_p) / self.rnge)[~index]
+        return grad
 
     def update_policy(self,
         gradient_steps: int,
@@ -1132,36 +1140,25 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 )
             hidden_state_critic = lst_1
             self._n_updates += 1 
-            """
             with torch.no_grad():
                 actions, _ = self.actor(replay_data.observations[i], hidden_state)
             actions.requires_grad = True
-            """
-            # comment out next line when using gradient inversion
-            actions, hidden_state = self.actor(replay_data.observations[i], hidden_state)
             q_val, hidden_state_loss = self.critic.q1_forward(replay_data.observations[i], hidden_state_loss, actions)
             # Compute actor loss
-            """
             self.critic.zero_grad()
-            actor_loss = q_val.mean()
-            actor_loss.backward()
+            q_val = q_val.mean()
+            q_val.backward()
             delta_a = copy.deepcopy(actions.grad.data)
-            delta_a = self.invert_gradient(delta_a, actions)
             actions, hidden_state = self.actor(replay_data.observations[i], hidden_state)
-            """
-            if self._n_updates % self.policy_delay == 0:
-                #out = -torch.mul(delta_a, actions)
-                out = -q_val.mean()
-                actor_losses.append(out.item())
-                #actor_losses.append(-torch.mean(q_val).item())
-                # Optimize the actor
-                self.actor.optimizer.zero_grad()
-                # Uncoment next statement for gradient inversion
-                #out.backward(torch.ones(out.shape).to(self.device))
-                out.backward()
-                self.actor.optimizer.step()
-                sb3.common.utils.polyak_update(self.critic.parameters(), self.critic_target.parameters(), self.tau)
-                sb3.common.utils.polyak_update(self.actor.parameters(), self.actor_target.parameters(), self.tau)
+            delta_a[:] = self._invert_gradients(delta_a.cpu(), actions.cpu())
+            out = -torch.mul(delta_a, actions)
+            actor_losses.append(-torch.mean(q_val).item())
+            # Optimize the actor
+            self.actor.optimizer.zero_grad()
+            out.backward(torch.ones(out.shape).to(self.device))
+            self.actor.optimizer.step()
+            sb3.common.utils.polyak_update(self.critic.parameters(), self.critic_target.parameters(), self.tau)
+            sb3.common.utils.polyak_update(self.actor.parameters(), self.actor_target.parameters(), self.tau)
             hidden_state =(
                 hidden_state[0].detach(),
                 hidden_state[1].detach()

@@ -53,6 +53,7 @@ class MazeEnv(gym.Env):
         image_shape: Tuple[int, int] = (600, 480),
         **kwargs,
     ) -> None:
+        self.collision_count = 0
         self.n_steps = n_steps
         self.kwargs = kwargs
         self.top_view_size = params['top_view_size']
@@ -458,6 +459,7 @@ class MazeEnv(gym.Env):
         return obs, inframe
 
     def reset(self) -> np.ndarray:
+        self.collision_count = 0
         self.t = 0
         self.close()
         self._task.set()
@@ -629,7 +631,9 @@ class MazeEnv(gym.Env):
         if self._is_in_collision() and not done:
             collision_penalty += -50.0 * self._inner_reward_scaling
             next_obs['observation'] = np.zeros_like(next_obs['observation'])
-            done = True
+            self.collision_count += 1
+            if self.collision_count > params['collision_threshold']:
+                done = True
         reward = inner_reward + outer_reward + collision_penalty
         info['inner_reward'] = inner_reward
         info['outer_reward'] = outer_reward

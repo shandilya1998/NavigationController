@@ -110,20 +110,8 @@ class MultiModalFeaturesExtractorV2(sb3.common.torch_layers.BaseFeaturesExtracto
             features_dim
         )
         input_size = (len(observation_space.spaces) - 2) * features_dim
-        self.fc_velocity = torch.nn.Sequential(
-            torch.nn.Linear(observation_space['velocity'].shape[-1], features_dim),
-            torch.nn.ReLU()
-        )
-        self.fc_acceleration = torch.nn.Sequential(
-            torch.nn.Linear(observation_space['acceleration'].shape[-1], features_dim),
-            torch.nn.ReLU()
-        )
-        self.fc_history = torch.nn.Sequential(
-            torch.nn.Linear(observation_space['actions'].shape[-1], features_dim),
-            torch.nn.ReLU()
-        )
-        self.fc_goal = torch.nn.Sequential(
-            torch.nn.Linear(observation_space['goal'].shape[-1], features_dim),
+        self.fc_sensors = torch.nn.Sequential(
+            torch.nn.Linear(observation_space['sensors'].shape[-1], features_dim),
             torch.nn.ReLU()
         )
         self.fc = torch.nn.Sequential(
@@ -135,11 +123,8 @@ class MultiModalFeaturesExtractorV2(sb3.common.torch_layers.BaseFeaturesExtracto
 
     def forward(self, observations):
         observation = self.vc(observations['observation'])
-        velocity = self.fc_velocity(observations['velocity'])
-        acceleration = self.fc_acceleration(observations['acceleration'])
-        actions = self.fc_history(observations['actions'])
-        goal = self.fc_goal(observations['goal'])
-        x = torch.cat([observation, velocity, acceleration, actions, goal], -1)
+        sensors = self.fc_sensors(observations['sensors'])
+        x = torch.cat([observation, sensors], -1)
         out = self.fc(x)
         return out
 

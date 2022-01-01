@@ -443,12 +443,15 @@ class MazeEnv(gym.Env):
         self.goals.append(goal)
         gray = cv2.cvtColor(img[:, :, :3], cv2.COLOR_RGB2GRAY)
         aux = np.stack([img[:, :, 3], reversemask, gray], -1).copy()
+        sensors = np.concatenate([
+            np.concatenate(self.actions, -1).copy(),
+            np.concatenate(self.velocities, -1).copy(),
+            np.concatenate(self.accelerations, -1).copy(),
+            np.concatenate(self.goals, -1).copy()
+        ], -1)
         obs = {
             'observation' : img[:, :, :3].copy(),
-            'actions' : np.concatenate(self.actions, -1).copy(),
-            'velocity' : np.concatenate(self.velocities, -1).copy(),
-            'acceleration' : np.concatenate(self.accelerations, -1).copy(),
-            'goal' : np.concatenate(self.goals, -1).copy(),
+            'sensors' : sensors,
             'aux' : aux,
             'sampled_action' : sampled_action.copy()
         }

@@ -373,8 +373,8 @@ class LSTM(torch.nn.Module):
         if output_dim > 0: 
             last_layer_dim = net_arch[-1] if len(net_arch) > 0 else input_dim
             self.layers.append(torch.nn.Linear(last_layer_dim, output_dim))
-        torch.nn.init.uniform_(self.layers[-1].weight, -3e-3, 3e-3)
-        torch.nn.init.uniform_(self.layers[-1].bias, -3e-4, 3e-4)
+        torch.nn.init.uniform_(self.layers[-1].weight, -1e-3, 1e-3)
+        torch.nn.init.uniform_(self.layers[-1].bias, -1e-4, 1e-4)
         if squash_output:
             self.layers.append(torch.nn.Tanh())
         self.offset = 2 if squash_output else 1
@@ -454,7 +454,7 @@ class RecurrentActor(sb3.common.policies.BasePolicy):
             action_space,
             features_extractor=features_extractor,
             normalize_images=normalize_images,
-            squash_output=False,
+            squash_output=True,
         )
 
         self.net_arch = net_arch
@@ -681,7 +681,7 @@ class RecurrentTD3Policy(sb3.common.policies.BasePolicy):
             features_extractor_kwargs,
             optimizer_class=optimizer_class,
             optimizer_kwargs=optimizer_kwargs,
-            squash_output=False,
+            squash_output=True,
         )
 
         # Default network architecture, from the original paper
@@ -962,8 +962,8 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
     def _setup_model(self) -> None:
         super(RTD3, self)._setup_model()
         size = self.policy.net_arch[-1]
-        self.max_p = torch.from_numpy(self.action_space.high)
-        self.min_p = torch.from_numpy(self.action_space.low)
+        self.max_p = torch.from_numpy(np.ones_like(self.action_space.high))
+        self.min_p = torch.from_numpy(-np.ones_like(self.action_space.low))
         self.rnge = (self.max_p - self.min_p).detach()
         self.hidden_state = (torch.zeros((1, size)).to(self.device), torch.zeros((1, size)).to(self.device))
         self._create_aliases()
@@ -1077,9 +1077,6 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             self._last_original_obs = new_obs_
 
     def _invert_gradients(self, grad, vals):  
-        self.max_p = torch.from_numpy(self.action_space.high)
-        self.min_p = torch.from_numpy(self.action_space.low)
-        self.rnge = self.max_p - self.min_p
         with torch.no_grad():
             for n in range(grad.shape[0]):
                 # index = grad < 0  # actually > but Adam minimises, so reversed (could also double negate the grad)

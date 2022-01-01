@@ -629,6 +629,7 @@ class MazeEnv(gym.Env):
         if self._is_in_collision() and not done:
             collision_penalty += -50.0 * self._inner_reward_scaling
             next_obs['observation'] = np.zeros_like(next_obs['observation'])
+            done = True
         reward = inner_reward + outer_reward + collision_penalty
         info['inner_reward'] = inner_reward
         info['outer_reward'] = outer_reward

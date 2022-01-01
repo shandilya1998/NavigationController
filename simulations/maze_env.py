@@ -595,7 +595,6 @@ class MazeEnv(gym.Env):
         next_obs, inframe = self._get_obs()
         # Computing the reward in "https://ieeexplore.ieee.org/document/8398461"
         goal = self.goals[-1]
-        yaw = self.wrapped_env.get_ori()
         theta_t = np.arctan2(goal[1], goal[0]) - yaw
         if theta_t < -np.pi:
             theta_t += 2 * np.pi
@@ -603,7 +602,6 @@ class MazeEnv(gym.Env):
             theta_t -= 2 * np.pi
         qvel = self.wrapped_env.data.qvel.copy()
         vyaw = qvel[self.wrapped_env.ORI_IND]
-        yaw = self.wrapped_env.get_ori()
         vmax = self.wrapped_env.VELOCITY_LIMITS * 1.4
         inner_reward = -1 + (v / vmax) * np.cos(theta_t) * (1 - (1.4 * np.abs(vyaw) / vmax))
         #inner_reward = self._inner_reward_scaling * inner_reward

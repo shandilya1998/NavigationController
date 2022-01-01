@@ -461,7 +461,7 @@ class RecurrentActor(sb3.common.policies.BasePolicy):
         self.features_dim = features_dim
 
         action_dim = sb3.common.preprocessing.get_action_dim(self.action_space)
-        self.mu = LSTM(features_dim, action_dim, net_arch, squash_output = True)
+        self.mu = LSTM(features_dim, action_dim, net_arch, squash_output = False)
 
     def _get_constructor_parameters(self) -> Dict[str, Any]:
         data = super()._get_constructor_parameters()
@@ -1132,32 +1132,29 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 )
             hidden_state_critic = lst_1
             self._n_updates += 1 
-            """
             with torch.no_grad():
                 actions, _ = self.actor(replay_data.observations[i], hidden_state)
             actions.requires_grad = True
-            """
             # comment out next line when using gradient inversion
-            actions, hidden_state = self.actor(replay_data.observations[i], hidden_state)
+            # actions, hidden_state = self.actor(replay_data.observations[i], hidden_state)
             q_val, hidden_state_loss = self.critic.q1_forward(replay_data.observations[i], hidden_state_loss, actions)
             # Compute actor loss
-            """
             self.critic.zero_grad()
             actor_loss = q_val.mean()
             actor_loss.backward()
             delta_a = copy.deepcopy(actions.grad.data)
             delta_a = self.invert_gradient(delta_a, actions)
             actions, hidden_state = self.actor(replay_data.observations[i], hidden_state)
-            """
             if self._n_updates % self.policy_delay == 0:
-                #out = -torch.mul(delta_a, actions)
-                out = -q_val.mean()
-                actor_losses.append(out.item())
+                out = -torch.mul(delta_a, actions)
+                #out = -q_val.mean()
+                #actor_losses.append(out.item())
+                actor_losses.append(-torch.mean(q_val).item())
                 # Optimize the actor
                 self.actor.optimizer.zero_grad()
                 # Uncoment next statement for gradient inversion
-                #out.backward(torch.ones(out.shape).to(self.device))
-                out.backward()
+                out.backward(torch.ones(out.shape).to(self.device))
+                #out.backward()
                 self.actor.optimizer.step()
                 sb3.common.utils.polyak_update(self.critic.parameters(), self.critic_target.parameters(), self.tau)
                 sb3.common.utils.polyak_update(self.actor.parameters(), self.actor_target.parameters(), self.tau)

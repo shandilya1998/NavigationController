@@ -317,15 +317,16 @@ class MazeEnv(gym.Env):
         di, self.target_ind = pure_pursuit_steer_control(
             self.state, self.target_course, self.target_ind
         )
-        yaw = self.state.yaw +  self.state.v / self.state.WB * math.tan(di) * self.dt
+        #yaw = self.state.yaw +  self.state.v / self.state.WB * math.tan(di) * self.dt
         v = self.state.v + ai * self.dt
+        vyaw = self.state.v / self.state.WB * math.tan(di)
         #self.state.update(ai, di, self.dt)
         #v = self.state.v
         #yaw = self.state.yaw
         # Refer to simulations/point PointEnv: def step() for more information
         self.sampled_action = np.array([
             v,
-            yaw,
+            vyaw,
         ], dtype = np.float32)
         return self.sampled_action
 
@@ -620,7 +621,6 @@ class MazeEnv(gym.Env):
         if outbound:
             collision_penalty += -100.0 * self._inner_reward_scaling
             next_obs['observation'] = np.zeros_like(next_obs['observation'])
-            done = True
         if done:
             outer_reward += 400.0
         if self.t > self.max_episode_size:

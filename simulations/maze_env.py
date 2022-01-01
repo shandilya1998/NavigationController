@@ -321,7 +321,6 @@ class MazeEnv(gym.Env):
         v = self.state.v + ai * self.dt
         vyaw = self.state.v / self.state.WB * math.tan(di)
         #self.state.update(ai, di, self.dt)
-        print(vyaw)
         #v = self.state.v
         #yaw = self.state.yaw
         # Refer to simulations/point PointEnv: def step() for more information

@@ -79,8 +79,8 @@ class PointEnv(AgentModel):
         )
 
     def _set_action_space(self):
-        low = np.array([0.0, -np.pi], dtype = np.float32)
-        high = np.array([self.VELOCITY_LIMITS * 1.41, np.pi], dtype = np.float32)
+        low = np.array([0.0, -1.5], dtype = np.float32)
+        high = np.array([self.VELOCITY_LIMITS * 1.41, 1.5], dtype = np.float32)
         self.action_dim = 2
         self.action_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
         return self.action_space

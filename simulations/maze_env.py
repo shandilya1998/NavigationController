@@ -321,6 +321,7 @@ class MazeEnv(gym.Env):
         v = self.state.v + ai * self.dt
         vyaw = self.state.v / self.state.WB * math.tan(di)
         #self.state.update(ai, di, self.dt)
+        print(vyaw)
         #v = self.state.v
         #yaw = self.state.yaw
         # Refer to simulations/point PointEnv: def step() for more information
@@ -571,7 +572,7 @@ class MazeEnv(gym.Env):
                     distance = np.dot(rpos, direction)
                     if distance > 0.325:
                         collision = True
-                    if distance > 0.36:
+                    if distance > 0.375:
                         blind = True
         else:
             outbound = True

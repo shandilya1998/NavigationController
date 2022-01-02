@@ -581,6 +581,7 @@ class MazeEnv(gym.Env):
         return collision, blind, outbound
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
+        action = np.clip(action, a_min = self.action_space.low, a_max = self.action_space.high)
         self.t += 1
         info = {}
         self.actions.pop(0)
@@ -608,7 +609,7 @@ class MazeEnv(gym.Env):
         qvel = self.wrapped_env.data.qvel.copy()
         vyaw = qvel[self.wrapped_env.ORI_IND]
         vmax = self.wrapped_env.VELOCITY_LIMITS * 1.4
-        inner_reward = -1 + (v / vmax) * np.cos(theta_t) * (1 - (1.4 * np.abs(vyaw) / vmax))
+        inner_reward = -1 + (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / self.action_space.high[1]))
         #inner_reward = self._inner_reward_scaling * inner_reward
         outer_reward = self._task.reward(next_pos, inframe)
         done = self._task.termination(self.wrapped_env.get_xy(), inframe)

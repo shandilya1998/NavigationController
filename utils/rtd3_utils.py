@@ -373,8 +373,8 @@ class LSTM(torch.nn.Module):
         if output_dim > 0: 
             last_layer_dim = net_arch[-1] if len(net_arch) > 0 else input_dim
             self.layers.append(torch.nn.Linear(last_layer_dim, output_dim))
-        torch.nn.init.uniform_(self.layers[-1].weight, -1e-3, 1e-3)
-        torch.nn.init.uniform_(self.layers[-1].bias, -1e-4, 1e-4)
+        torch.nn.init.uniform_(self.layers[-1].weight, -3e-3, 3e-3)
+        torch.nn.init.uniform_(self.layers[-1].bias, -3e-4, 3e-4)
         if squash_output:
             self.layers.append(torch.nn.Tanh())
         self.offset = 2 if squash_output else 1
@@ -994,7 +994,8 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         # Select action randomly or according to policy
         if self.num_timesteps < learning_starts and not (self.use_sde and self.use_sde_at_warmup):
             # Warmup phase
-            unscaled_action = np.array([self.action_space.sample()])
+            #unscaled_action = np.array([self.action_space.sample()])
+            unscaled_action = self._last_obs['sampled_action']
         else:
             # Note: when using continuous actions,
             # we assume that the policy uses tanh to scale the action

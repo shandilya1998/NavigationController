@@ -246,10 +246,6 @@ class MazeEnv(gym.Env):
         self.last_wrapped_obs = self.wrapped_env._get_obs().copy()
         action = self.action_space.sample()
         self.actions = [np.zeros_like(action) for i in range(self.n_steps)]
-        self.velocities = [np.zeros_like(self.data.qvel) for i in range(self.n_steps)]
-        self.accelerations = [np.zeros_like(self.data.qacc) for i in range(self.n_steps)]
-        goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
-        self.goals = [goal.copy() for i in range(self.n_steps)]
         self.__create_maze_graph()
         self.sampled_path = self.__sample_path()
         self._current_cell = copy.deepcopy(self.sampled_path[0])
@@ -436,20 +432,18 @@ class MazeEnv(gym.Env):
         high = self.action_space.high
         sampled_action = self.get_action().astype(np.float32)
         goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
-        self.velocities.pop(0)
-        self.velocities.append(self.data.qvel.copy())
-        self.accelerations.pop(0)
-        self.accelerations.append(self.data.qacc.copy())
-        self.goals.pop(0)
-        self.goals.append(goal)
+        goal = np.array([
+            np.linalg.norm(goal),
+            np.arctan2(goal[1], goal[0])
+        ], dtype = np.float32)
+        sensors = np.concatenate([
+            self.data.qvel.copy(),
+            self.actions[-1].copy(),
+            self.data.qpos[-1:].copy(),
+            goal.copy(),
+        ], -1)
         gray = cv2.cvtColor(img[:, :, :3], cv2.COLOR_RGB2GRAY)
         aux = np.stack([img[:, :, 3], reversemask, gray], -1).copy()
-        sensors = np.concatenate([
-            np.concatenate(self.actions, -1).copy(),
-            np.concatenate(self.velocities, -1).copy(),
-            np.concatenate(self.accelerations, -1).copy(),
-            np.concatenate(self.goals, -1).copy()
-        ], -1)
         obs = {
             'observation' : img[:, :, :3].copy(),
             'sensors' : sensors,
@@ -471,10 +465,6 @@ class MazeEnv(gym.Env):
             self.wrapped_env.set_xy(xy)
         action = self.actions[0]
         self.actions = [np.zeros_like(action) for i in range(self.n_steps)]
-        self.velocities = [np.zeros_like(self.data.qvel) for i in range(self.n_steps)]
-        self.accelerations = [np.zeros_like(self.data.qacc) for i in range(self.n_steps)]
-        goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
-        self.goals = [goal.copy() for i in range(self.n_steps)]
         self.sampled_path = self.__sample_path()
         self._current_cell = copy.deepcopy(self.sampled_path[0])
         self.__find_all_waypoints()
@@ -600,7 +590,7 @@ class MazeEnv(gym.Env):
         collision_penalty = 0.0
         next_obs, inframe = self._get_obs()
         # Computing the reward in "https://ieeexplore.ieee.org/document/8398461"
-        goal = self.goals[-1]
+        goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
         theta_t = np.arctan2(goal[1], goal[0]) - yaw
         if theta_t < -np.pi:
             theta_t += 2 * np.pi

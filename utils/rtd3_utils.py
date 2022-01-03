@@ -12,6 +12,7 @@ import torch
 import copy
 import warnings
 from constants import params
+from bg.models import VisualCortexV2
 
 TensorDict = Dict[Union[str, int], torch.Tensor]
 
@@ -427,6 +428,53 @@ def create_lstm(
         modules.append(torch.nn.Tanh())
     return modules
 
+class Actor(torch.nn.Module):
+    def __init__(
+        self,
+        observation_space: gym.spaces.Space,
+        features_dim,
+        output_dim,
+        net_arch,
+        squash_output = False 
+    ):
+        super(Actor, self).__init__()
+        self.vc = VisualCortexV2(
+            observation_space['observation'],
+            features_dim - observation_space['sensors'].shape[-1]
+        )
+        self.mu = LSTM(features_dim, output_dim, net_arch, squash_output)
+
+    def forward(self, observation, hidden_state):
+        visual, sensors = observation
+        visual = self.vc(visual)
+        x = torch.cat([visual, sensors], -1)
+        x, hidden_state = self.mu(x, hidden_state)
+        return x, hidden_state
+
+class Critic(torch.nn.Module):
+    def __init__(
+        self,
+        observation_space,
+        action_dim,
+        features_dim,
+        output_dim,
+        net_arch,
+        squash_output = False
+    ):
+        super(Critic, self).__init__()
+        self.vc = VisualCortexV2(
+            observation_space['observation'],
+            features_dim - observation_space['sensors'].shape[-1]
+        )
+        self.mu = LSTM(features_dim + action_dim, 1, net_arch, squash_output)
+
+    def forward(self, observation, hidden_state, action):
+        visual, sensors = observation
+        visual = self.vc(visual)
+        x = torch.cat([visual, sensors, action], -1)
+        x, hidden_state = self.mu(x, hidden_state)
+        return x, hidden_state
+
 class RecurrentActor(sb3.common.policies.BasePolicy):
     """
     Actor network (policy) for TD3.
@@ -461,7 +509,7 @@ class RecurrentActor(sb3.common.policies.BasePolicy):
         self.features_dim = features_dim
 
         action_dim = sb3.common.preprocessing.get_action_dim(self.action_space)
-        self.mu = LSTM(features_dim, action_dim, net_arch, squash_output = False)
+        self.mu = Actor(observation_space, features_dim, action_dim, net_arch, squash_output = False)
 
     def _get_constructor_parameters(self) -> Dict[str, Any]:
         data = super()._get_constructor_parameters()
@@ -608,7 +656,7 @@ class RecurrentContinuousCritic(sb3.common.policies.BaseModel):
         self.n_critics = n_critics
         self.q_networks = []
         for idx in range(n_critics):
-            q_net = LSTM(features_dim + action_dim, 1, net_arch, squash_output = False)
+            q_net = Critic(observation_space, action_dim, features_dim, 1, net_arch, squash_output = False)
             #q_net = nn.Sequential(*q_net)
             self.add_module(f"qf{idx}", q_net)
             self.q_networks.append(q_net)
@@ -618,11 +666,10 @@ class RecurrentContinuousCritic(sb3.common.policies.BaseModel):
         # when the features_extractor is shared with the actor
         with torch.set_grad_enabled(not self.share_features_extractor):
             features = self.extract_features(obs)
-        qvalue_input = torch.cat([features, actions], dim=1)
         _states = []
         outputs = []
         for i, q_net in enumerate(self.q_networks):
-            out, state = q_net(qvalue_input, states[i])
+            out, state = q_net(features, states[i], actions)
             outputs.append(out)
             _states.append(state)
         return tuple(outputs), _states
@@ -635,7 +682,7 @@ class RecurrentContinuousCritic(sb3.common.policies.BaseModel):
         """
         with torch.no_grad():
             features = self.extract_features(obs)
-        return self.q_networks[0](torch.cat([features, actions], dim=1), states)
+        return self.q_networks[0](features, states, actions)
 
 class RecurrentTD3Policy(sb3.common.policies.BasePolicy):
     """

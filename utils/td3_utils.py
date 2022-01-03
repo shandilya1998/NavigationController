@@ -105,16 +105,9 @@ class MultiModalFeaturesExtractorV2(sb3.common.torch_layers.BaseFeaturesExtracto
     def __init__(self, observation_space: gym.Space):
         features_dim = params['num_ctx']
         super(MultiModalFeaturesExtractorV2, self).__init__(observation_space, features_dim)
-        self.vc = VisualCortexV2(
-            observation_space['observation'],
-            features_dim - observation_space['sensors'].shape[-1]
-        )
 
     def forward(self, observations):
-        observation = self.vc(observations['observation'])
-        sensors = observations['sensors']
-        x = torch.cat([observation, sensors], -1)
-        return x
+        return observations['observation'], observations['sensors']
 
 class PassAsIsFeaturesExtractorV2(sb3.common.torch_layers.BaseFeaturesExtractor):
     def __init__(self, observation_space: gym.Space):

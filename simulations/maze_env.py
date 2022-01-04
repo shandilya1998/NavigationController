@@ -426,6 +426,13 @@ class MazeEnv(gym.Env):
         ymin, ymax = (ymin - 0.5) * scaling - y0, (ymax + 0.5) * scaling - y0
         return xmin, xmax, ymin, ymax
 
+    def check_angle(self, angle):
+        if angle > np.pi:
+            angle -= 2 * np.pi
+        elif angle < -np.pi:
+            angle += 2 * np.pi
+        return angle
+    
     def _get_obs(self) -> np.ndarray:
         img = self.wrapped_env._get_obs()
         inframe, reversemask = self._task.goals[self._task.goal_index].inframe(img[:, :, :3])
@@ -433,13 +440,19 @@ class MazeEnv(gym.Env):
         sampled_action = self.get_action().astype(np.float32)
         goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
         goal = np.array([
-            np.linalg.norm(goal),
-            np.arctan2(goal[1], goal[0])
+            np.linalg.norm(goal) / np.linalg.norm(self._task.goals[self._task.goal_index].pos),
+            (self.check_angle(np.arctan2(goal[1], goal[0]) - self.get_ori()) + np.pi) / (2 * np.pi)
         ], dtype = np.float32)
+        max_vel = np.array([
+            self.wrapped_env.VELOCITY_LIMITS,
+            self.wrapped_env.VELOCITY_LIMITS,
+            self.action_space.high[1]
+        ])
+        min_vel = -max_vel
         sensors = np.concatenate([
-            self.data.qvel.copy(),
-            self.actions[-1].copy(),
-            self.data.qpos[-1:].copy(),
+            (self.data.qvel.copy() - min_vel) / (max_vel - min_vel),
+            (self.actions[-1].copy() - self.action_space.low) / (self.action_space.high - self.action_space.low),
+            np.array([(self.get_ori() + np.pi) / (2 * np.pi)], dtype = np.float32),
             goal.copy(),
         ], -1)
         gray = cv2.cvtColor(img[:, :, :3], cv2.COLOR_RGB2GRAY)
@@ -580,28 +593,21 @@ class MazeEnv(gym.Env):
         x, y = self.wrapped_env.get_xy()
         (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(x, y)
         yaw = self.get_ori()
-        if yaw > np.pi:
-            yaw -= 2 * np.pi
-        elif yaw < -np.pi:
-            yaw += 2 * np.pi
         v = np.linalg.norm(self.data.qvel[:2])
         self.state.set(x, y, v, yaw)
         next_pos = self.wrapped_env.get_xy()
         collision_penalty = 0.0
         next_obs, inframe = self._get_obs()
         # Computing the reward in "https://ieeexplore.ieee.org/document/8398461"
-        goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
-        theta_t = np.arctan2(goal[1], goal[0]) - yaw
-        if theta_t < -np.pi:
-            theta_t += 2 * np.pi
-        elif theta_t > np.pi:
-            theta_t -= 2 * np.pi
+        goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy() 
+        rho = np.linalg.norm(goal) / np.linalg.norm(self._task.goals[self._task.goal_index].pos)
+        theta_t = self.check_angle(np.arctan2(goal[1], goal[0]) - self.get_ori())
         qvel = self.wrapped_env.data.qvel.copy()
         vyaw = qvel[self.wrapped_env.ORI_IND]
         vmax = self.wrapped_env.VELOCITY_LIMITS * 1.4
         inner_reward = -1 + (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / self.action_space.high[1]))
         #inner_reward = self._inner_reward_scaling * inner_reward
-        outer_reward = self._task.reward(next_pos, inframe)
+        outer_reward = self._task.reward(next_pos, inframe) - rho
         done = self._task.termination(self.wrapped_env.get_xy(), inframe)
         info["position"] = self.wrapped_env.get_xy()
         index = self.__get_current_cell()

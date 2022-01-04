@@ -440,13 +440,18 @@ class Actor(torch.nn.Module):
         super(Actor, self).__init__()
         self.vc = VisualCortexV2(
             observation_space['observation'],
-            features_dim - observation_space['sensors'].shape[-1]
+            features_dim
         )
-        self.mu = LSTM(features_dim, output_dim, net_arch, squash_output)
+        self. fc_sensors = torch.nn.Sequential(
+            torch.nn.Linear(observation_space['sensors'].shape[-1], features_dim),
+            torch.nn.ReLU()
+        )
+        self.mu = LSTM(2 * features_dim, output_dim, net_arch, squash_output)
 
     def forward(self, observation, hidden_state):
         visual, sensors = observation
         visual = self.vc(visual)
+        sensors = self.fc_sensors(sensors)
         x = torch.cat([visual, sensors], -1)
         x, hidden_state = self.mu(x, hidden_state)
         return x, hidden_state
@@ -464,14 +469,23 @@ class Critic(torch.nn.Module):
         super(Critic, self).__init__()
         self.vc = VisualCortexV2(
             observation_space['observation'],
-            features_dim - observation_space['sensors'].shape[-1]
+            features_dim
         )
-        self.mu = LSTM(features_dim + action_dim, 1, net_arch, squash_output)
+        self.fc_sensors_actions = torch.nn.Sequential(
+            torch.nn.Linear(
+                observation_space['sensors'].shape[-1] + action_dim,
+                features_dim
+            ),
+            torch.nn.ReLU()
+        )
+        self.mu = LSTM(2 * features_dim, 1, net_arch, squash_output)
 
     def forward(self, observation, hidden_state, action):
         visual, sensors = observation
         visual = self.vc(visual)
-        x = torch.cat([visual, sensors, action], -1)
+        y = torch.cat([sensors, action], -1)
+        y = self.fc_sensors_actions(y)
+        x = torch.cat([visual, y], -1)
         x, hidden_state = self.mu(x, hidden_state)
         return x, hidden_state
 

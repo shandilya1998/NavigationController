@@ -157,7 +157,13 @@ class PointEnv(AgentModel):
         self.set_state(qpos, self.sim.data.qvel)
 
     def get_ori(self):
-        return self.sim.data.qpos[self.ORI_IND]
+        ori = self.sim.data.qpos[self.ORI_IND]
+        ori -= int(ori / (2 * np.pi)) * 2 * np.pi
+        if ori > np.pi:
+            ori -= 2 * np.pi
+        elif ori < -np.pi:
+            ori += 2 * np.pi
+        return ori
 
     def get_v(self):
         return np.linalg.norm(self.sim.data.qvel[:2])

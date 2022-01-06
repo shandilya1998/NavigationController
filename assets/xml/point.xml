@@ -26,7 +26,10 @@
             <joint name="ballx" type="slide" axis="1 0 0" pos="0 0 0" />
             <joint name="bally" type="slide" axis="0 1 0" pos="0 0 0" />
             <joint name="rot" type="hinge" axis="0 0 1" pos="0 0 0" limited="false" damping="2.5"/>
-            <camera name="mtdcam" mode="fixed" pos="0.5 0 0.5" xyaxes="0 -1 0 0 0 1"/>
+            <camera name="mtdcam1" mode="fixed" pos="0.5 0 0.5" xyaxes="0 -1 0 0 0 1"/>
+            <camera name="mtdcam2" mode="fixed" pos="-0.5 0 0.5" xyaxes="0 1 0 0 0 1"/>
+            <camera name="mtdcam3" mode="fixed" pos="0 -0.5 0.5" xyaxes="-1 0 0 0 0 1"/>
+            <camera name="mtdcam4" mode="fixed" pos="0 0.5 0.5" xyaxes="1 0 0 0 0 1"/>
         </body>
     </worldbody>
     <actuator>

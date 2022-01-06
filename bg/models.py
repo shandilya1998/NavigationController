@@ -4,6 +4,7 @@ import torchvision as tv
 from constants import params
 import stable_baselines3 as sb3
 import gym
+from typing import NamedTuple, Any, Dict, List, Optional, Tuple, Type, Union
 
 def check_for_nan(inp, name):
     if torch.isnan(inp).any():
@@ -181,6 +182,45 @@ class VisualCortexV2(torch.nn.Module):
         self.linear = torch.nn.Sequential(torch.nn.Linear(n_flatten, features_dim), torch.nn.ReLU())
 
     def forward(self, observations: torch.Tensor) -> torch.Tensor:
+        return self.linear(self.cnn(observations))
+
+class VisualCortexV3(torch.nn.Module):
+    def __init__(self,
+        observation_space: gym.spaces.Box,
+        features_dim: int = 512):
+        super(VisualCortexV3, self).__init__()
+        # We assume CxHxW images (channels first)
+        # Re-ordering will be done by pre-preprocessing or wrapper
+        n_input_channels = observation_space['front'].shape[0] + observation_space['back'].shape[0] + \
+            observation_space['right'].shape[0] + observation_space['left'].shape[0]
+        self.cnn = torch.nn.Sequential(
+            torch.nn.Conv2d(n_input_channels, 32, kernel_size=5, stride=3, padding=0),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=0),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(64, 128, kernel_size=4, stride=1, padding=0),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(128, 64, kernel_size=3, stride=1, padding=0),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(64, 64, kernel_size=2, stride=1, padding=0),
+            torch.nn.ReLU(),
+            torch.nn.Flatten(),
+        )   
+
+        inp = np.concatenate((
+            observation_space['front'].sample(),
+            observation_space['back'].sample(),
+            observation_space['left'].sample(),
+            observation_space['right'].sample()
+        ), 0)
+        # Compute shape by doing one forward pass
+        with torch.no_grad():
+            n_flatten = self.cnn(torch.as_tensor(inp)[None].float()).shape[1]
+
+        self.linear = torch.nn.Sequential(torch.nn.Linear(n_flatten, features_dim), torch.nn.ReLU())
+
+    def forward(self, observations: Tuple[torch.Tensor]) -> torch.Tensor:
+        observations = torch.cat(observations, 1)
         return self.linear(self.cnn(observations))
 
 class MotorCortex(torch.nn.Module):

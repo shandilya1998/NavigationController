@@ -12,7 +12,7 @@ import torch
 import copy
 import warnings
 from constants import params
-from bg.models import VisualCortexV2
+from bg.models import VisualCortexV3
 
 TensorDict = Dict[Union[str, int], torch.Tensor]
 
@@ -438,8 +438,8 @@ class Actor(torch.nn.Module):
         squash_output = False 
     ):
         super(Actor, self).__init__()
-        self.vc = VisualCortexV2(
-            observation_space['observation'],
+        self.vc = VisualCortexV3(
+            observation_space,
             features_dim
         )
         self. fc_sensors = torch.nn.Sequential(
@@ -449,8 +449,8 @@ class Actor(torch.nn.Module):
         self.mu = LSTM(2 * features_dim, output_dim, net_arch, squash_output)
 
     def forward(self, observation, hidden_state):
-        visual, sensors = observation
-        visual = self.vc(visual)
+        front, back, left, right, sensors = observation
+        visual = self.vc((front, back, left, right))
         sensors = self.fc_sensors(sensors)
         x = torch.cat([visual, sensors], -1)
         x, hidden_state = self.mu(x, hidden_state)
@@ -467,8 +467,8 @@ class Critic(torch.nn.Module):
         squash_output = False
     ):
         super(Critic, self).__init__()
-        self.vc = VisualCortexV2(
-            observation_space['observation'],
+        self.vc = VisualCortexV3(
+            observation_space,
             features_dim
         )
         self.fc_sensors_actions = torch.nn.Sequential(
@@ -481,8 +481,8 @@ class Critic(torch.nn.Module):
         self.mu = LSTM(2 * features_dim, 1, net_arch, squash_output)
 
     def forward(self, observation, hidden_state, action):
-        visual, sensors = observation
-        visual = self.vc(visual)
+        front, back, left, right, sensors = observation
+        visual = self.vc((front, back, left, right))
         y = torch.cat([sensors, action], -1)
         y = self.fc_sensors_actions(y)
         x = torch.cat([visual, y], -1)

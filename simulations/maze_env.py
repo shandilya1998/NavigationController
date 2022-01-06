@@ -246,6 +246,8 @@ class MazeEnv(gym.Env):
         self.last_wrapped_obs = self.wrapped_env._get_obs().copy()
         action = self.action_space.sample()
         self.actions = [np.zeros_like(action) for i in range(self.n_steps)]
+        goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
+        self.goals = [goal.copy() for i in range(self.n_steps)]
         self.__create_maze_graph()
         self.sampled_path = self.__sample_path()
         self._current_cell = copy.deepcopy(self.sampled_path[0])
@@ -279,10 +281,11 @@ class MazeEnv(gym.Env):
         return self._action_space
 
     def __setup_vel_control(self):
-        self.target_speed = np.random.uniform(
-            low = self.wrapped_env.VELOCITY_LIMITS * 0.5,
-            high = self.wrapped_env.VELOCITY_LIMITS * 1.4
-        )
+        self.target_speed = self.wrapped_env.VELOCITY_LIMITS * 1.4
+        #np.random.uniform(
+        #    low = self.wrapped_env.VELOCITY_LIMITS * 0.5,
+        #    high = self.wrapped_env.VELOCITY_LIMITS * 1.4
+        #)
         self.state = State(
             x = self.wrapped_env.sim.data.qpos[0],
             y = self.wrapped_env.sim.data.qpos[1],
@@ -434,7 +437,8 @@ class MazeEnv(gym.Env):
         return angle
     
     def _get_obs(self) -> np.ndarray:
-        img = self.wrapped_env._get_obs()
+        obs = self.wrapped_env._get_obs()
+        img = obs['front']
         inframe, reversemask = self._task.goals[self._task.goal_index].inframe(img[:, :, :3])
         high = self.action_space.high
         sampled_action = self.get_action().astype(np.float32)
@@ -458,9 +462,12 @@ class MazeEnv(gym.Env):
         gray = cv2.cvtColor(img[:, :, :3], cv2.COLOR_RGB2GRAY)
         aux = np.stack([img[:, :, 3], reversemask, gray], -1).copy()
         obs = {
-            'observation' : img[:, :, :3].copy(),
-            'sensors' : sensors,
-            'aux' : aux,
+            'front' : img.copy(),
+            'back' : obs['back'].copy(),
+            'left' : obs['left'].copy(),
+            'right' : obs['right'].copy(),
+            'sensors' : sensors.copy(),
+            'aux' : aux.copy(),
             'sampled_action' : sampled_action.copy()
         }
         return obs, inframe
@@ -478,6 +485,8 @@ class MazeEnv(gym.Env):
             self.wrapped_env.set_xy(xy)
         action = self.actions[0]
         self.actions = [np.zeros_like(action) for i in range(self.n_steps)]
+        goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
+        self.goals = [goal.copy() for i in range(self.n_steps)]
         self.sampled_path = self.__sample_path()
         self._current_cell = copy.deepcopy(self.sampled_path[0])
         self.__find_all_waypoints()
@@ -555,20 +564,21 @@ class MazeEnv(gym.Env):
 
     def check_position(self, pos):
         (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(pos[0], pos[1])
-        blind = False
+        blind = [False, False, False, False]
         collision = False
         outbound = False
         neighbors = [
-            (row + 1, col),
             (row, col + 1),
+            (row, col - 1),
+            (row + 1, col),
             (row - 1, col),
-            (row, col - 1)
         ]
+        order = ['front', 'back', 'left', 'right']
         row_frac -= 0.5
         col_frac -= 0.5
         rpos = np.array([row_frac, col_frac], dtype = np.float32)
         if row > 0 and col > 0 and row < len(self._maze_structure) - 1 and col < len(self._maze_structure[0]) - 1:
-            for nrow, ncol in neighbors:
+            for i, (nrow, ncol) in enumerate(neighbors):
                 if not self._maze_structure[nrow][ncol].is_empty():
                     rdir = (nrow - row)
                     cdir = (ncol - col)
@@ -577,11 +587,175 @@ class MazeEnv(gym.Env):
                     if distance > 0.325:
                         collision = True
                     if distance > 0.375:
-                        blind = True
+                        blind[i] = True
         else:
             outbound = True
         #print('almost collision: {}, blind: {}'.format(collision, blind))
         return collision, blind, outbound
+
+    def conditional_blind(self, obs, yaw, b):
+        penalty = 0.0
+        if b[0]:
+            #print('front')
+            if 0 > yaw >= -np.pi / 2:
+                if 0 > yaw >= -np.pi / 8:
+                    obs['front'] = np.zeros_like(obs['front'])
+                elif -np.pi / 8 > yaw > -3 * np.pi / 8:
+                    obs['front'] = np.zeros_like(obs['front'])
+                    obs['left'] = np.zeros_like(obs['left'])
+                else:
+                    obs['left'] = np.zeros_like(obs['left'])
+                penalty += -1.0 * self._inner_reward_scaling
+            elif -np.pi / 2 > yaw >= -np.pi:
+                if -np.pi / 2 > yaw >= -5 * np.pi / 8:
+                    obs['left'] = np.zeros_like(obs['left'])
+                elif -5 * np.pi / 8 > yaw >= -7 * np.pi / 8:
+                    obs['left'] = np.zeros_like(obs['left'])
+                    obs['back'] = np.zeros_like(obs['back'])
+                else:
+                    obs['back'] = np.zeros_like(obs['back'])
+                penalty += -1.0 * self._inner_reward_scaling
+            elif np.pi / 2 > yaw >= 0:
+                if np.pi / 8 > yaw >= 0:
+                    obs['front'] = np.zeros_like(obs['front'])
+                elif 3 * np.pi / 8 >= yaw > np.pi / 8:
+                    obs['front'] = np.zeros_like(obs['front'])
+                    obs['right'] = np.zeros_like(obs['right'])
+                else:
+                    obs['right'] = np.zeros_like(obs['right'])
+                penalty += -1.0 * self._inner_reward_scaling
+            elif np.pi > yaw >= np.pi / 2:
+                if 5 * np.pi / 8 > yaw >= np.pi / 2:
+                    obs['right'] = np.zeros_like(obs['right'])
+                elif 7 * np.pi / 8 > yaw >= 5 * np.pi / 8:
+                    obs['right'] = np.zeros_like(obs['right'])
+                    obs['back'] = np.zeros_like(obs['back'])
+                else:
+                    obs['back'] = np.zeros_like(obs['back'])
+                penalty += -1.0 * self._inner_reward_scaling
+            else:
+                raise ValueError
+        if b[1]:
+            #print('back')
+            if 0 > yaw >= -np.pi / 2:
+                if 0 > yaw >= -np.pi / 8:
+                    obs['back'] = np.zeros_like(obs['back'])
+                elif -np.pi / 8 > yaw > -3 * np.pi / 8:
+                    obs['back'] = np.zeros_like(obs['back'])
+                    obs['right'] = np.zeros_like(obs['right'])
+                else:
+                    obs['right'] = np.zeros_like(obs['right'])
+                penalty += -1.0 * self._inner_reward_scaling
+            elif -np.pi / 2 > yaw >= -np.pi:
+                if -np.pi / 2 > yaw >= -5 * np.pi / 8:
+                    obs['right'] = np.zeros_like(obs['right'])
+                elif -5 * np.pi / 8 > yaw >= -7 * np.pi / 8:
+                    obs['right'] = np.zeros_like(obs['right'])
+                    obs['front'] = np.zeros_like(obs['front'])
+                else:
+                    obs['front'] = np.zeros_like(obs['front'])
+                penalty += -1.0 * self._inner_reward_scaling
+            elif np.pi / 2 > yaw >= 0:
+                if np.pi / 8 > yaw >= 0:
+                    obs['back'] = np.zeros_like(obs['back'])
+                elif 3 * np.pi / 8 >= yaw > np.pi / 8:
+                    obs['back'] = np.zeros_like(obs['back'])
+                    obs['left'] = np.zeros_like(obs['left'])
+                else:
+                    obs['left'] = np.zeros_like(obs['left'])
+                penalty += -1.0 * self._inner_reward_scaling
+            elif np.pi > yaw >= np.pi / 2:
+                if 5 * np.pi / 8 > yaw >= np.pi / 2:
+                    obs['left'] = np.zeros_like(obs['left'])
+                elif 7 * np.pi / 8 > yaw >= 5 * np.pi / 8:
+                    obs['left'] = np.zeros_like(obs['left'])
+                    obs['front'] = np.zeros_like(obs['front'])
+                else:
+                    obs['front'] = np.zeros_like(obs['front'])
+                penalty += -1.0 * self._inner_reward_scaling
+            else:
+                raise ValueError
+        if b[2]:
+            #print('left')
+            if 0 > yaw >= -np.pi / 2:
+                if 0 > yaw >= -np.pi / 8:
+                    obs['left'] = np.zeros_like(obs['left'])
+                elif -np.pi / 8 > yaw > -3 * np.pi / 8:
+                    obs['back'] = np.zeros_like(obs['back'])
+                    obs['left'] = np.zeros_like(obs['left'])
+                else:
+                    obs['back'] = np.zeros_like(obs['back'])
+                penalty += -1.0 * self._inner_reward_scaling
+            elif -np.pi / 2 > yaw >= -np.pi:
+                if -np.pi / 2 > yaw >= -5 * np.pi / 8:
+                    obs['back'] = np.zeros_like(obs['back'])
+                elif -5 * np.pi / 8 > yaw >= -7 * np.pi / 8:
+                    obs['right'] = np.zeros_like(obs['right'])
+                    obs['back'] = np.zeros_like(obs['back'])
+                else:
+                    obs['right'] = np.zeros_like(obs['right'])
+                penalty += -1.0 * self._inner_reward_scaling
+            elif np.pi / 2 > yaw >= 0:
+                if np.pi / 8 > yaw >= 0:
+                    obs['left'] = np.zeros_like(obs['left'])
+                elif 3 * np.pi / 8 >= yaw > np.pi / 8:
+                    obs['front'] = np.zeros_like(obs['front'])
+                    obs['left'] = np.zeros_like(obs['left'])
+                else:
+                    obs['front'] = np.zeros_like(obs['front'])
+                penalty += -1.0 * self._inner_reward_scaling
+            elif np.pi > yaw >= np.pi / 2:
+                if 5 * np.pi / 8 > yaw >= np.pi / 2:
+                    obs['front'] = np.zeros_like(obs['front'])
+                elif 7 * np.pi / 8 > yaw >= 5 * np.pi / 8:
+                    obs['right'] = np.zeros_like(obs['right'])
+                    obs['front'] = np.zeros_like(obs['front'])
+                else:
+                    obs['right'] = np.zeros_like(obs['right'])
+                penalty += -1.0 * self._inner_reward_scaling
+            else:
+                raise ValueError
+        if b[3]:
+            #print('right')
+            if 0 > yaw >= -np.pi / 2:
+                if 0 > yaw >= -np.pi / 8:
+                    obs['right'] = np.zeros_like(obs['right'])
+                elif -np.pi / 8 > yaw > -3 * np.pi / 8:
+                    obs['front'] = np.zeros_like(obs['front'])
+                    obs['right'] = np.zeros_like(obs['right'])
+                else:
+                    obs['front'] = np.zeros_like(obs['front'])
+                penalty += -1.0 * self._inner_reward_scaling
+            elif -np.pi / 2 > yaw >= -np.pi:
+                if -np.pi / 2 > yaw >= -5 * np.pi / 8:
+                    obs['front'] = np.zeros_like(obs['front'])
+                elif -5 * np.pi / 8 > yaw >= -7 * np.pi / 8:
+                    obs['left'] = np.zeros_like(obs['left'])
+                    obs['front'] = np.zeros_like(obs['front'])
+                else:
+                    obs['left'] = np.zeros_like(obs['left'])
+                penalty += -1.0 * self._inner_reward_scaling
+            elif np.pi / 2 > yaw >= 0:
+                if np.pi / 8 > yaw >= 0:
+                    obs['right'] = np.zeros_like(obs['right'])
+                elif 3 * np.pi / 8 >= yaw > np.pi / 8:
+                    obs['back'] = np.zeros_like(obs['back'])
+                    obs['right'] = np.zeros_like(obs['right'])
+                else:
+                    obs['back'] = np.zeros_like(obs['back'])
+                penalty += -1.0 * self._inner_reward_scaling
+            elif np.pi > yaw >= np.pi / 2:
+                if 5 * np.pi / 8 > yaw >= np.pi / 2:
+                    obs['back'] = np.zeros_like(obs['back'])
+                elif 7 * np.pi / 8 > yaw >= 5 * np.pi / 8:
+                    obs['left'] = np.zeros_like(obs['left'])
+                    obs['back'] = np.zeros_like(obs['back'])
+                else:
+                    obs['left'] = np.zeros_like(obs['left'])
+                penalty += -1.0 * self._inner_reward_scaling
+            else:
+                raise ValueError
+        return obs, penalty
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         action = np.clip(action, a_min = self.action_space.low, a_max = self.action_space.high)
@@ -599,15 +773,18 @@ class MazeEnv(gym.Env):
         collision_penalty = 0.0
         next_obs, inframe = self._get_obs()
         # Computing the reward in "https://ieeexplore.ieee.org/document/8398461"
-        goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy() 
-        rho = np.linalg.norm(goal) / np.linalg.norm(self._task.goals[self._task.goal_index].pos)
+        goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
+        rho = np.linalg.norm(self.goals[-1] - goal)
+        self.goals.pop(0)
+        self.goals.append(goal)
         theta_t = self.check_angle(np.arctan2(goal[1], goal[0]) - self.get_ori())
         qvel = self.wrapped_env.data.qvel.copy()
         vyaw = qvel[self.wrapped_env.ORI_IND]
         vmax = self.wrapped_env.VELOCITY_LIMITS * 1.4
         inner_reward = -1 + (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / self.action_space.high[1]))
         #inner_reward = self._inner_reward_scaling * inner_reward
-        outer_reward = self._task.reward(next_pos, inframe) - rho
+        #print(rho * 15)
+        outer_reward = self._task.reward(next_pos, inframe) + rho * 12.5
         done = self._task.termination(self.wrapped_env.get_xy(), inframe)
         info["position"] = self.wrapped_env.get_xy()
         index = self.__get_current_cell()
@@ -615,19 +792,21 @@ class MazeEnv(gym.Env):
         almost_collision, blind, outbound = self.check_position(next_pos)
         if almost_collision:
             collision_penalty += -1.0 * self._inner_reward_scaling
-        if blind:
-            collision_penalty += -2.0 * self._inner_reward_scaling
-            next_obs['observation'] = np.zeros_like(next_obs['observation'])
+        next_obs, penalty = self.conditional_blind(next_obs, yaw, blind)
+        collision_penalty += penalty
         if outbound:
             collision_penalty += -100.0 * self._inner_reward_scaling
-            next_obs['observation'] = np.zeros_like(next_obs['observation'])
+            next_obs['front'] = np.zeros_like(next_obs['front'])
+            next_obs['back'] = np.zeros_like(next_obs['back'])
+            next_obs['left'] = np.zeros_like(next_obs['left'])
+            next_obs['right'] = np.zeros_like(next_obs['right'])
+            done = True
         if done:
             outer_reward += 400.0
         if self.t > self.max_episode_size:
             done = True
         if self._is_in_collision() and not done:
             collision_penalty += -50.0 * self._inner_reward_scaling
-            next_obs['observation'] = np.zeros_like(next_obs['observation'])
             self.collision_count += 1
             if self.collision_count > params['collision_threshold']:
                 done = True

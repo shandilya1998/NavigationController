@@ -268,8 +268,7 @@ ax.set_ylabel('reward')
 total_reward = 0.0
 ac = env.get_action()
 while not done:
-    ob, reward, done, info = env.step(ob['sampled_action'])#env.action_space.sample())
-    print(env.get_ori(), -np.pi, np.pi)
+    ob, reward, done, info = env.step(ob['sampled_action']) #env.action_space.sample())
     ac = env.get_action()
     if reward != 0.0:
         count += 1
@@ -283,9 +282,15 @@ while not done:
     depth = ob['aux'][:, :, 0]
     mask = ob['aux'][:, :, 1]
     gray = ob['aux'][:, :, 2]
-    img = ob['observation']
+    front = ob['front'][:, :, :3]
+    back = ob['back'][:, :, :3]
+    left = ob['left'][:, :, :3]
+    right = ob['right'][:, :, :3]
     top = env.render('rgb_array')
-    cv2.imshow('stream', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
+    cv2.imshow('stream front', cv2.cvtColor(front, cv2.COLOR_RGB2BGR))
+    cv2.imshow('stream back', cv2.cvtColor(back, cv2.COLOR_RGB2BGR))
+    cv2.imshow('stream left', cv2.cvtColor(left, cv2.COLOR_RGB2BGR))
+    cv2.imshow('stream right', cv2.cvtColor(right, cv2.COLOR_RGB2BGR))
     cv2.imshow('depth stream', depth)
     cv2.imshow('position stream', top)
     cv2.imshow('mask', mask)

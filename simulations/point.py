@@ -67,16 +67,16 @@ class PointEnv(AgentModel):
         self.rs1 = RunningStats()
         self.rs2 = RunningStats()
         super().__init__(file_path, 1)
-        img = self._get_obs()
-        dtype = img.dtype
-        high = np.ones_like(img, dtype = dtype) * 255
-        low = np.zeros_like(img, dtype = dtype)
-        self.observation_space = gym.spaces.Box(
-            low,
-            high,
-            shape = img.shape,
-            dtype = dtype
-        )
+        obs = self._get_obs()
+        spaces = {}
+        for key, item in obs.items():
+            dtype = item.dtype
+            high = np.ones_like(item, dtype = dtype) * 255
+            low = np.zeros_like(item, dtype = dtype)
+            spaces[key] = gym.spaces.Box(
+                low, high, shape = item.shape, dtype = dtype
+            )
+        self.observation_space = gym.spaces.Dict(spaces)
 
     def _set_action_space(self):
         low = np.array([0.0, -1.5], dtype = np.float32)
@@ -119,19 +119,57 @@ class PointEnv(AgentModel):
         return np.exp(-0.5 * ((x - mean) / std) ** 2)
 
     def _get_obs(self):
-        rgb, depth = self.sim.render(
+        rgb1, depth1 = self.sim.render(
             width = 100,
             height = 75,
-            camera_name = 'mtdcam',
+            camera_name = 'mtdcam1',
             depth = True
         )
-        depth = 255 * (depth - 0.965) / 0.035
-        depth = depth.astype(np.uint8)
-        #cv2.imshow('depth', np.flipud(depth / 255.0))
-        img = np.flipud(np.concatenate([
-            rgb, np.expand_dims(depth, -1)
+        rgb2, depth2 = self.sim.render(
+            width = 100,
+            height = 75,
+            camera_name = 'mtdcam2',
+            depth = True
+        )
+        rgb3, depth3 = self.sim.render(
+            width = 100,
+            height = 75, 
+            camera_name = 'mtdcam3',
+            depth = True
+        )
+        rgb4, depth4 = self.sim.render(
+            width = 100,
+            height = 75, 
+            camera_name = 'mtdcam4',
+            depth = True
+        )
+        depth1 = 255 * (depth1 - 0.965) / 0.035
+        depth1 = depth1.astype(np.uint8)
+        depth2 = 255 * (depth1 - 0.965) / 0.035
+        depth2 = depth1.astype(np.uint8)
+        depth3 = 255 * (depth1 - 0.965) / 0.035
+        depth3 = depth1.astype(np.uint8)
+        depth4 = 255 * (depth1 - 0.965) / 0.035
+        depth4 = depth1.astype(np.uint8)
+        img1 = np.flipud(np.concatenate([
+            rgb1, np.expand_dims(depth1, -1)
         ], -1))
-        return img
+        img2 = np.flipud(np.concatenate([
+            rgb2, np.expand_dims(depth2, -1)
+        ], -1))
+        img3 = np.flipud(np.concatenate([
+            rgb3, np.expand_dims(depth3, -1)
+        ], -1))
+        img4 = np.flipud(np.concatenate([
+            rgb4, np.expand_dims(depth4, -1)
+        ], -1))
+        obs = {
+            'front' : img1,
+            'back' : img2,
+            'right' : img3,
+            'left' : img4
+        }
+        return obs
 
     def reset_model(self):
         qpos = self.init_qpos + self.np_random.uniform(

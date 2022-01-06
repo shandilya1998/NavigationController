@@ -14,7 +14,7 @@ import warnings
 from constants import params
 from bg.models import VisualCortexV3
 
-TensorDict = Dict[Union[str, int], torch.Tensor]
+TensorDict = Dict[Union[str, int], List[np.ndarray]]
 
 class ReplayBufferSamples(NamedTuple):
     observations: List[torch.Tensor]
@@ -26,10 +26,10 @@ class ReplayBufferSamples(NamedTuple):
 
 class DictReplayBufferSamples(ReplayBufferSamples):
     observations: List[TensorDict]
-    actions: List[torch.Tensor]
-    next_observations: List[torch.Tensor]
-    dones: List[torch.Tensor]
-    rewards: List[torch.Tensor]
+    actions: List[np.ndarray]
+    next_observations: List[np.ndarray]
+    dones: List[np.ndarray]
+    rewards: List[np.ndarray]
 
 class EpisodicReplayBuffer(sb3.common.buffers.BaseBuffer):
     """
@@ -327,30 +327,22 @@ class EpisodicDictReplayBuffer(sb3.common.buffers.BaseBuffer):
 
     def _get_samples(self, batch_inds: np.ndarray, env: Optional[sb3.common.vec_env.vec_normalize.VecNormalize] = None) -> DictReplayBufferSamples:
         size = int(self.episode_lengths[batch_inds].mean())
-        obs = [
+        observations = [
             self._normalize_obs({key: obs[batch_inds, i, 0, :] for key, obs in self.observations.items()}) \
                 for i in range(size)
         ]
-        next_obs = [
+        next_observations = [
             self._normalize_obs({key: obs[batch_inds, i, 0, :] for key, obs in self.next_observations.items()}) \
                 for i in range(size)
         ]
-        observations = [{key: self.to_torch(ob) for key, ob in obs_.items()} for obs_ in obs]
-        next_observations = [{key: self.to_torch(ob) for key, ob in obs_.items()} for obs_ in next_obs]
         actions = [
-            self.to_torch(
-                self.actions[batch_inds, i, 0, :]
-            ) for i in range(size)
+            self.actions[batch_inds, i, 0, :] for i in range(size)
         ]
         dones = [
-            self.to_torch(
-                self.dones[batch_inds, i] * (1 - self.timeouts[batch_inds, i])
-            ) for i in range(size)
+            self.dones[batch_inds, i] * (1 - self.timeouts[batch_inds, i])  for i in range(size)
         ]
         rewards = [
-            self.to_torch(
-                self._normalize_reward(self.rewards[batch_inds, i], env)
-            ) for i in range(size)
+            self._normalize_reward(self.rewards[batch_inds, i], env) for i in range(size)
         ]
         return DictReplayBufferSamples(
             observations=observations,
@@ -1161,25 +1153,31 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 for i in range(self.n_critics)
         ]
         hidden_state_loss = (torch.zeros((batch_size, size)).to(self.device), torch.zeros((batch_size, size)).to(self.device))
+        observations = {key: self.replay_buffer.to_torch(item) for key, item in replay_data.observations[0].items()}
         with torch.no_grad():
-            next_ac, next_hidden_state = self.actor_target(replay_data.observations[0], hidden_state)
-            _, next_hidden_state_critic = self.critic_target(replay_data.observations[0], hidden_state_critic, next_ac)
+            next_ac, next_hidden_state = self.actor_target(observations, hidden_state)
+            _, next_hidden_state_critic = self.critic_target(observations, hidden_state_critic, next_ac)
         num_updates = math.ceil(gradient_steps / self.n_steps)
         for i in range(gradient_steps):
+            observations = {key: self.replay_buffer.to_torch(item) for key, item in replay_data.observations[i].items()}
+            actions = self.replay_buffer.to_torch(replay_data.actions[i])
+            next_observations = {key: self.replay_buffer.to_torch(item) for key, item in replay_data.next_observations[i].items()}
+            dones = self.replay_buffer.to_torch(replay_data.dones[i])
+            rewards = self.replay_buffer.to_torch(replay_data.rewards[i])
             with torch.no_grad():
                 # Select action according to policy and add clipped noise
-                noise = replay_data.actions[i].clone().data.normal_(0, self.target_policy_noise)
+                noise = actions.clone().data.normal_(0, self.target_policy_noise)
                 noise = noise.clamp(-self.target_noise_clip, self.target_noise_clip)
-                next_actions, next_hidden_state = self.actor_target(replay_data.next_observations[i], next_hidden_state)
+                next_actions, next_hidden_state = self.actor_target(next_observations, next_hidden_state)
                 next_actions = (next_actions + noise).clamp(-1, 1)
                 # Compute the next Q-values: min over all critics targets
-                next_q_values, next_hidden_state_critic = self.critic_target(replay_data.next_observations[i], next_hidden_state_critic, next_actions)
+                next_q_values, next_hidden_state_critic = self.critic_target(next_observations, next_hidden_state_critic, next_actions)
                 next_q_values = torch.cat(next_q_values, dim=1)
                 next_q_values, _ = torch.min(next_q_values, dim=1, keepdim=True)
-                target_q_values = replay_data.rewards[i] + (1 - replay_data.dones[i]) * self.gamma * next_q_values
+                target_q_values = rewards + (1 - dones) * self.gamma * next_q_values
 
             # Get current Q-values estimates for each critic network
-            current_q_values, hidden_state_critic = self.critic(replay_data.observations[i], hidden_state_critic, replay_data.actions[i])
+            current_q_values, hidden_state_critic = self.critic(observations, hidden_state_critic, actions)
 
             # Compute critic loss
             critic_loss = sum([torch.nn.functional.mse_loss(current_q, target_q_values) for current_q in current_q_values])
@@ -1200,15 +1198,15 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             hidden_state_critic = lst_1
             self._n_updates += 1 
             with torch.no_grad():
-                actions, _ = self.actor(replay_data.observations[i], hidden_state)
+                actions, _ = self.actor(observations, hidden_state)
             actions.requires_grad = True
-            q_val, hidden_state_loss = self.critic.q1_forward(replay_data.observations[i], hidden_state_loss, actions)
+            q_val, hidden_state_loss = self.critic.q1_forward(observations, hidden_state_loss, actions)
             # Compute actor loss
             self.critic.zero_grad()
             q_val = q_val.mean()
             q_val.backward()
             delta_a = copy.deepcopy(actions.grad.data)
-            actions, hidden_state = self.actor(replay_data.observations[i], hidden_state)
+            actions, hidden_state = self.actor(observations, hidden_state)
             delta_a[:] = self._invert_gradients(delta_a.cpu(), actions.cpu())
             out = -torch.mul(delta_a, actions)
             actor_losses.append(-torch.mean(q_val).item())

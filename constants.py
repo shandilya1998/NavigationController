@@ -1,4 +1,5 @@
-params = {
+
+arams = {
     'input_size_low_level_control': 6,
     'track_list'                  : [ 
                                         'joint_pos',
@@ -41,7 +42,7 @@ params = {
     'OU_MEAN'                     : 0.00,
     'OU_SIGMA'                    : 0.15,
     'top_view_size'               : 50.,
-    'batch_size'                  : 75,
+    'batch_size'                  : 128,
     'lr'                          : 1e-4,
     'final_lr'                    : 1e-5,
     'n_steps'                     : 2000,

@@ -166,10 +166,10 @@ class PointEnv(AgentModel):
         ], -1))
         """
         obs = {
-            'front' : rgb1,
-            'back' : rgb2,
-            'right' : rgb3,
-            'left' : rgb4
+            'front' : np.flipud(rgb1),
+            'back' : np.flipud(rgb2),
+            'right' : np.flipud(rgb3),
+            'left' : np.flipud(rgb4)
         }
         return obs
 

@@ -439,7 +439,7 @@ class MazeEnv(gym.Env):
     def _get_obs(self) -> np.ndarray:
         obs = self.wrapped_env._get_obs()
         img = obs['front']
-        inframe, reversemask = self._task.goals[self._task.goal_index].inframe(img[:, :, :3])
+        inframe, reversemask = self._task.goals[self._task.goal_index].inframe(img)
         high = self.action_space.high
         sampled_action = self.get_action().astype(np.float32)
         goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
@@ -459,15 +459,12 @@ class MazeEnv(gym.Env):
             np.array([(self.get_ori() + np.pi) / (2 * np.pi)], dtype = np.float32),
             goal.copy(),
         ], -1)
-        gray = cv2.cvtColor(img[:, :, :3], cv2.COLOR_RGB2GRAY)
-        aux = np.stack([img[:, :, 3], reversemask, gray], -1).copy()
         obs = {
             'front' : img.copy(),
             'back' : obs['back'].copy(),
             'left' : obs['left'].copy(),
             'right' : obs['right'].copy(),
             'sensors' : sensors.copy(),
-            'aux' : aux.copy(),
             'sampled_action' : sampled_action.copy()
         }
         return obs, inframe

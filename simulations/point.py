@@ -119,30 +119,31 @@ class PointEnv(AgentModel):
         return np.exp(-0.5 * ((x - mean) / std) ** 2)
 
     def _get_obs(self):
-        rgb1, depth1 = self.sim.render(
+        rgb1 = self.sim.render(
             width = 100,
             height = 75,
             camera_name = 'mtdcam1',
-            depth = True
+            depth = False
         )
-        rgb2, depth2 = self.sim.render(
+        rgb2 = self.sim.render(
             width = 100,
             height = 75,
             camera_name = 'mtdcam2',
-            depth = True
+            depth = False
         )
-        rgb3, depth3 = self.sim.render(
+        rgb3 = self.sim.render(
             width = 100,
             height = 75, 
             camera_name = 'mtdcam3',
-            depth = True
+            depth = False
         )
-        rgb4, depth4 = self.sim.render(
+        rgb4 = self.sim.render(
             width = 100,
             height = 75, 
             camera_name = 'mtdcam4',
-            depth = True
+            depth = False
         )
+        """
         depth1 = 255 * (depth1 - 0.965) / 0.035
         depth1 = depth1.astype(np.uint8)
         depth2 = 255 * (depth1 - 0.965) / 0.035
@@ -163,11 +164,12 @@ class PointEnv(AgentModel):
         img4 = np.flipud(np.concatenate([
             rgb4, np.expand_dims(depth4, -1)
         ], -1))
+        """
         obs = {
-            'front' : img1,
-            'back' : img2,
-            'right' : img3,
-            'left' : img4
+            'front' : rgb1,
+            'back' : rgb2,
+            'right' : rgb3,
+            'left' : rgb4
         }
         return obs
 

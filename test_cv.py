@@ -279,9 +279,9 @@ while not done:
     pbar.update(1)
     steps += 1
     pos = env.wrapped_env.sim.data.qpos.copy()    
-    depth = ob['aux'][:, :, 0]
-    mask = ob['aux'][:, :, 1]
-    gray = ob['aux'][:, :, 2]
+    #depth = ob['aux'][:, :, 0]
+    #mask = ob['aux'][:, :, 1]
+    #gray = ob['aux'][:, :, 2]
     front = ob['front'][:, :, :3]
     back = ob['back'][:, :, :3]
     left = ob['left'][:, :, :3]
@@ -291,10 +291,10 @@ while not done:
     cv2.imshow('stream back', cv2.cvtColor(back, cv2.COLOR_RGB2BGR))
     cv2.imshow('stream left', cv2.cvtColor(left, cv2.COLOR_RGB2BGR))
     cv2.imshow('stream right', cv2.cvtColor(right, cv2.COLOR_RGB2BGR))
-    cv2.imshow('depth stream', depth)
+    #cv2.imshow('depth stream', depth)
     cv2.imshow('position stream', top)
-    cv2.imshow('mask', mask)
-    cv2.imshow('gray', gray)
+    #cv2.imshow('mask', mask)
+    #cv2.imshow('gray', gray)
     if cv2.waitKey(100) & 0xFF == ord('q'):
         break
     POS.append(pos.copy())

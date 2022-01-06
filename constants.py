@@ -1,5 +1,5 @@
 
-arams = {
+params = {
     'input_size_low_level_control': 6,
     'track_list'                  : [ 
                                         'joint_pos',

@@ -52,10 +52,10 @@ if __name__ == '__main__':
     )
     model_path = os.path.join(args.logdir, args.model_file)
     top = env.render(mode="rgb_array").shape
-    obs = env.observation_space['observation'].shape
+    obs = env.observation_space['front'].shape
     video1 = cv2.VideoWriter(
         '{}_evaluation_camera_view.avi'.format(model_path),
-        cv2.VideoWriter_fourcc(*"MJPG"), 10, (obs[2], obs[1]), isColor = True
+        cv2.VideoWriter_fourcc(*"MJPG"), 10, (2 * obs[2], 2 * obs[1]), isColor = True
     )
     video2 = cv2.VideoWriter(
         '{}_evaluation_top_view.avi'.format(model_path),
@@ -76,7 +76,15 @@ if __name__ == '__main__':
         """
         screen = env.render(mode="rgb_array")
         # PyTorch uses CxHxW vs HxWxC gym (and tensorflow) image convention
-        observation = _locals['observations']['observation'][0, :3].transpose(1, 2, 0)
+        front = _locals['observations']['front'][0, :3].transpose(1, 2, 0)
+        back = _locals['observations']['back'][0, :3].transpose(1, 2, 0)
+        left = _locals['observations']['left'][0, :3].transpose(1, 2, 0)
+        right = _locals['observations']['right'][0, :3].transpose(1, 2, 0)
+        #print(front.shape)
+        observation = np.concatenate([
+            np.concatenate([front, back], 0),
+            np.concatenate([left, right], 0)
+        ], 1)
         observation = cv2.cvtColor(observation, cv2.COLOR_RGB2BGR)
         video1.write(observation)
         video2.write(screen)

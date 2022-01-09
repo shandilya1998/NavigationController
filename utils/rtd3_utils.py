@@ -1051,7 +1051,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             scaled_action = self.policy.scale_action(unscaled_action)
 
             # Add noise to the action (improve exploration)
-            if action_noise is not None:
+            if action_noise is not None and self.num_timesteps >= learning_starts:
                 scaled_action = np.clip(scaled_action + action_noise(), -1, 1)
 
             # We store the scaled action in the buffer

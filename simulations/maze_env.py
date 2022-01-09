@@ -281,11 +281,10 @@ class MazeEnv(gym.Env):
         return self._action_space
 
     def __setup_vel_control(self):
-        self.target_speed = self.wrapped_env.VELOCITY_LIMITS * 1.4
-        #np.random.uniform(
-        #    low = self.wrapped_env.VELOCITY_LIMITS * 0.5,
-        #    high = self.wrapped_env.VELOCITY_LIMITS * 1.4
-        #)
+        self.target_speed = np.random.uniform(
+            low = self.wrapped_env.VELOCITY_LIMITS * 0.15,
+            high = self.wrapped_env.VELOCITY_LIMITS * 1.4
+        )
         self.state = State(
             x = self.wrapped_env.sim.data.qpos[0],
             y = self.wrapped_env.sim.data.qpos[1],
@@ -459,6 +458,18 @@ class MazeEnv(gym.Env):
             np.array([(self.get_ori() + np.pi) / (2 * np.pi)], dtype = np.float32),
             goal.copy(),
         ], -1)
+        if params['debug']:
+            cv2.imshow('stream front', cv2.cvtColor(obs['front'], cv2.COLOR_RGB2BGR))
+            cv2.imshow('stream back', cv2.cvtColor(obs['back'], cv2.COLOR_RGB2BGR))
+            cv2.imshow('stream left', cv2.cvtColor(obs['left'], cv2.COLOR_RGB2BGR))
+            cv2.imshow('stream right', cv2.cvtColor(obs['right'], cv2.COLOR_RGB2BGR))
+            #cv2.imshow('depth stream', depth)
+            top = self.render('rgb_array')
+            cv2.imshow('position stream', top)
+            #cv2.imshow('mask', mask)
+            #cv2.imshow('gray', gray)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                pass
         obs = {
             'front' : img.copy(),
             'back' : obs['back'].copy(),
@@ -583,7 +594,7 @@ class MazeEnv(gym.Env):
                     distance = np.dot(rpos, direction)
                     if distance > 0.325:
                         collision = True
-                    if distance > 0.375:
+                    if distance > 0.35:
                         blind[i] = True
         else:
             outbound = True
@@ -752,6 +763,10 @@ class MazeEnv(gym.Env):
                 penalty += -1.0 * self._inner_reward_scaling
             else:
                 raise ValueError
+        if self._is_in_collision():
+            #print('collision')
+            penalty += -50.0 * self._inner_reward_scaling
+            self.collision_count += 1
         return obs, penalty
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
@@ -802,11 +817,6 @@ class MazeEnv(gym.Env):
             outer_reward += 400.0
         if self.t > self.max_episode_size:
             done = True
-        if self._is_in_collision() and not done:
-            collision_penalty += -50.0 * self._inner_reward_scaling
-            self.collision_count += 1
-            if self.collision_count > params['collision_threshold']:
-                done = True
         reward = inner_reward + outer_reward + collision_penalty
         info['inner_reward'] = inner_reward
         info['outer_reward'] = outer_reward

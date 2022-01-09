@@ -296,7 +296,7 @@ while not done:
     cv2.imshow('position stream', top)
     #cv2.imshow('mask', mask)
     #cv2.imshow('gray', gray)
-    if cv2.waitKey(100) & 0xFF == ord('q'):
+    if cv2.waitKey(1) & 0xFF == ord('q'):
         break
     """
     POS.append(pos.copy())

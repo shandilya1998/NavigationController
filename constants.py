@@ -54,4 +54,5 @@ params = {
     'critic_lr'                   : 1e-3,
     'critic_weight_decay'         : 1e-2,
     'collision_threshold'         : 30,
-}
+    'debug'                       : False,
+    }

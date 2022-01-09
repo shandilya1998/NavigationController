@@ -326,7 +326,7 @@ class EpisodicDictReplayBuffer(sb3.common.buffers.BaseBuffer):
         return self._get_samples(batch_inds, env=env)
 
     def _get_samples(self, batch_inds: np.ndarray, env: Optional[sb3.common.vec_env.vec_normalize.VecNormalize] = None) -> DictReplayBufferSamples:
-        size = int(self.episode_lengths[batch_inds].mean())
+        size = int(self.episode_lengths[batch_inds].max())
         for i in range(size):
             obs = self._normalize_obs({key: obs[batch_inds, i, 0, :] for key, obs in self.observations.items()})
             observations = {key : self.to_torch(item) for key, item in obs.items()}

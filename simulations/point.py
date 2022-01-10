@@ -78,10 +78,17 @@ class PointEnv(AgentModel):
             )
         self.observation_space = gym.spaces.Dict(spaces)
 
+    """
     def _set_action_space(self):
         low = np.array([0.0, -1.5], dtype = np.float32)
         high = np.array([self.VELOCITY_LIMITS * 1.41, 1.5], dtype = np.float32)
         self.action_dim = 2
+        self.action_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
+        return self.action_space
+    """
+    def _set_action_space(self):
+        bounds = self.model.actuator_ctrlrange.copy().astype(np.float32)
+        low, high = bounds.T
         self.action_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
         return self.action_space
 
@@ -91,6 +98,7 @@ class PointEnv(AgentModel):
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         # _vx and _vy are parallel and perpendicular to direction of motion respectively
+        """
         v = action[0]
         yaw = self.get_ori() 
         vyaw = action[1]
@@ -99,6 +107,7 @@ class PointEnv(AgentModel):
         vx = v * np.cos(yaw)
         vy = v * np.sin(yaw)
         action = np.array([vx, vy, vyaw], dtype = np.float32)
+        """
         self.sim.data.ctrl[:] = action
         """
         qpos = self.data.qpos.copy()

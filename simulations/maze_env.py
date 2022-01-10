@@ -323,8 +323,12 @@ class MazeEnv(gym.Env):
         #v = self.state.v
         #yaw = self.state.yaw
         # Refer to simulations/point PointEnv: def step() for more information
+        yaw = self.check_angle(self.state.yaw + vyaw * self.dt)
+        vx = v * np.cos(yaw)
+        vy = v * np.sin(yaw)
         self.sampled_action = np.array([
-            v,
+            vx,
+            vy,
             vyaw,
         ], dtype = np.float32)
         return self.sampled_action
@@ -786,7 +790,7 @@ class MazeEnv(gym.Env):
         next_obs, inframe = self._get_obs()
         # Computing the reward in "https://ieeexplore.ieee.org/document/8398461"
         goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
-        rho = 1 - np.linalg.norm(goal) / np.linalg.norm(self._task.goals[self._task.goal_index].pos)
+        rho = (1 - np.linalg.norm(goal) / np.linalg.norm(self._task.goals[self._task.goal_index].pos)) * 0.5
         self.goals.pop(0)
         self.goals.append(goal)
         theta_t = self.check_angle(np.arctan2(goal[1], goal[0]) - self.get_ori())

@@ -1040,7 +1040,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             # Warmup phase
             #unscaled_action = np.array([self.action_space.sample()])
             unscaled_action = self._last_obs['sampled_action']
-        elif self.num_timsteps < params['imitation_steps']:
+        elif self.num_timesteps < params['imitation_steps']:
             unscaled_action = self._last_obs['sampled_action']
         else:
             # Note: when using continuous actions,

@@ -55,5 +55,5 @@ params = {
     'critic_weight_decay'         : 1e-2,
     'collision_threshold'         : 100,
     'debug'                       : False,
-    'imitation_steps'             : 1e5,    
+    'imitation_steps'             : 4e4,    
 }

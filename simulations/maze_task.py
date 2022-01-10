@@ -389,7 +389,7 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
         self.set()
 
     def set(self):
-        self.goal_index = np.random.randint(low = 0, high = 3)
+        self.goal_index = 2 #np.random.randint(low = 0, high = 3)
         self.colors = []
         self.scales = []
         self.goals = []

@@ -815,7 +815,7 @@ class MazeEnv(gym.Env):
             done = True
         if done:
             outer_reward += 400.0
-        if self.t > self.max_episode_size:
+        if self.t > self.max_episode_size or self.collision_count > params['collision_threshold']:
             done = True
         reward = inner_reward + outer_reward + collision_penalty
         info['inner_reward'] = inner_reward

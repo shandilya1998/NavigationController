@@ -1040,8 +1040,6 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             # Warmup phase
             #unscaled_action = np.array([self.action_space.sample()])
             unscaled_action = self._last_obs['sampled_action']
-        elif self.num_timesteps < params['imitation_steps']:
-            unscaled_action = self._last_obs['sampled_action']
         else:
             # Note: when using continuous actions,
             # we assume that the policy uses tanh to scale the action
@@ -1053,7 +1051,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             scaled_action = self.policy.scale_action(unscaled_action)
 
             # Add noise to the action (improve exploration)
-            if action_noise is not None and self.num_timesteps >= params['imitation_steps']:
+            if action_noise is not None and self.num_timesteps >= learning_starts:
                 scaled_action = np.clip(scaled_action + action_noise(), -1, 1)
 
             # We store the scaled action in the buffer

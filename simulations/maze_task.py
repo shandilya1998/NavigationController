@@ -294,15 +294,15 @@ class GoalReward4Rooms(MazeTask):
     def create_maze() -> List[List[MazeCell]]:
         E, B, R = MazeCell.EMPTY, MazeCell.BLOCK, MazeCell.ROBOT
         return [
+            [B, B, B, B, B, B, B, B, B],
+            [B, E, E, E, E, E, E, E, B],
+            [B, E, E, E, E, E, E, E, B],
             [B, E, E, E, B, E, E, E, B],
-            [E, E, E, E, E, E, E, E, E],
-            [E, E, E, E, E, E, E, E, E],
-            [E, E, E, E, B, E, E, E, E],
             [B, E, E, B, B, B, E, E, B],
-            [E, E, E, E, B, E, E, E, E],
-            [E, E, E, E, E, E, E, E, E],
-            [E, R, E, E, E, E, E, E, E],
             [B, E, E, E, B, E, E, E, B],
+            [B, E, E, E, E, E, E, E, B],
+            [B, R, E, E, E, E, E, E, B],
+            [B, B, B, B, B, B, B, B, B],
         ]
 
 class DistReward4Rooms(GoalReward4Rooms, DistRewardMixIn):
@@ -389,7 +389,7 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
         self.set()
 
     def set(self):
-        self.goal_index = 2 #np.random.randint(low = 0, high = 3)
+        self.goal_index = np.random.randint(low = 0, high = 3)
         self.colors = []
         self.scales = []
         self.goals = []

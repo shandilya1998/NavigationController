@@ -295,13 +295,13 @@ class GoalReward4Rooms(MazeTask):
         E, B, R = MazeCell.EMPTY, MazeCell.BLOCK, MazeCell.ROBOT
         return [
             [B, B, B, B, B, B, B, B, B],
-            [B, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, B],
-            [B, E, E, E, B, E, E, E, B],
-            [B, E, E, B, B, B, E, E, B],
             [B, E, E, E, B, E, E, E, B],
             [B, E, E, E, E, E, E, E, B],
-            [B, R, E, E, E, E, E, E, B],
+            [B, E, E, E, E, E, E, E, B],
+            [B, B, E, E, E, E, E, B, B],
+            [B, E, E, E, E, E, E, E, B],
+            [B, E, E, E, E, E, E, E, B],
+            [B, R, E, E, B, E, E, E, B],
             [B, B, B, B, B, B, B, B, B],
         ]
 

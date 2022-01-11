@@ -790,7 +790,7 @@ class MazeEnv(gym.Env):
         next_obs, inframe = self._get_obs()
         # Computing the reward in "https://ieeexplore.ieee.org/document/8398461"
         goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
-        rho = (1 - np.linalg.norm(goal) / np.linalg.norm(self._task.goals[self._task.goal_index].pos)) * 0.5
+        rho = (1 - np.linalg.norm(goal) / np.linalg.norm(self._task.goals[self._task.goal_index].pos)) * 0.1
         self.goals.pop(0)
         self.goals.append(goal)
         theta_t = self.check_angle(np.arctan2(goal[1], goal[0]) - self.get_ori())
@@ -800,7 +800,7 @@ class MazeEnv(gym.Env):
         inner_reward = -1 + (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / self.action_space.high[1]))
         #inner_reward = self._inner_reward_scaling * inner_reward
         #print(rho * 15)
-        outer_reward = self._task.reward(next_pos, inframe) + rho * 12.5
+        outer_reward = self._task.reward(next_pos, inframe) + rho
         done = self._task.termination(self.wrapped_env.get_xy(), inframe)
         info["position"] = self.wrapped_env.get_xy()
         index = self.__get_current_cell()
@@ -813,7 +813,7 @@ class MazeEnv(gym.Env):
         if done:
             outer_reward += 400.0
         if outbound:
-            collision_penalty += -100.0 * self._inner_reward_scaling
+            collision_penalty += -50.0 * self._inner_reward_scaling
             next_obs['front'] = np.zeros_like(next_obs['front'])
             next_obs['back'] = np.zeros_like(next_obs['back'])
             next_obs['left'] = np.zeros_like(next_obs['left'])

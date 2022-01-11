@@ -43,7 +43,7 @@ params = {
     'OU_SIGMA'                    : 0.15,
     'top_view_size'               : 50.,
     'batch_size'                  : 50,
-    'lr'                          : 1e-3,
+    'lr'                          : 1e-2,
     'final_lr'                    : 5e-5,
     'n_steps'                     : 2000,
     'gamma'                       : 0.99,
@@ -52,7 +52,7 @@ params = {
     'num_ctx'                     : 1000,
     'actor_lr'                    : 1e-3,
     'critic_lr'                   : 1e-2,
-    'critic_weight_decay'         : 1e-2,
+    'weight_decay'                : 1e-2,
     'collision_threshold'         : 100,
     'debug'                       : False,
 }

@@ -53,6 +53,6 @@ params = {
     'actor_lr'                    : 1e-3,
     'critic_lr'                   : 1e-2,
     'weight_decay'                : 1e-2,
-    'collision_threshold'         : 100,
+    'collision_threshold'         : 20,
     'debug'                       : False,
 }

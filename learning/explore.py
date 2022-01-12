@@ -112,7 +112,7 @@ class Explore:
         policy_class = 'MlpPolicy'
         policy_kwargs = { 
             'features_extractor_class' : MultiModalFeaturesExtractorV2,
-            'net_arch' : [150, 300, 450, 300, 150],
+            'net_arch' : [150, 300, 150],
             'n_critics' : 3 
         }
         if model_type == 'standard':

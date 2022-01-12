@@ -1198,6 +1198,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 )
                 self.actor.optimizer.zero_grad()
                 loss.backward()
+                actor_losses.append(loss)
                 self.actor.optimizer.step()
             else:
                 with torch.no_grad():

@@ -1188,6 +1188,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     )    
                 )    
             hidden_state_critic = lst_1
+            self._n_updates += 1
             if self.num_timesteps < params['imitation_steps']:
                 self.critic.zero_grad()
                 actions, hidden_state = self.actor(data.observations, hidden_state)
@@ -1199,7 +1200,6 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 loss.backward()
                 self.actor.optimizer.step()
             else:
-                self._n_updates += 1 
                 with torch.no_grad():
                     actions, _ = self.actor(data.observations, hidden_state)
                 actions.requires_grad = True

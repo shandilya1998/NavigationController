@@ -797,7 +797,7 @@ class MazeEnv(gym.Env):
         qvel = self.wrapped_env.data.qvel.copy()
         vyaw = qvel[self.wrapped_env.ORI_IND]
         vmax = self.wrapped_env.VELOCITY_LIMITS * 1.4
-        inner_reward = -1 + (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / self.action_space.high[1]))
+        inner_reward = -1 + (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / self.action_space.high[2]))
         #inner_reward = self._inner_reward_scaling * inner_reward
         #print(rho * 15)
         outer_reward = self._task.reward(next_pos, inframe) + rho
@@ -811,9 +811,9 @@ class MazeEnv(gym.Env):
         next_obs, penalty = self.conditional_blind(next_obs, yaw, blind)
         collision_penalty += penalty
         if done:
-            outer_reward += 400.0
+            outer_reward += 100.0
         if outbound:
-            collision_penalty += -50.0 * self._inner_reward_scaling
+            collision_penalty += -10.0 * self._inner_reward_scaling
             next_obs['front'] = np.zeros_like(next_obs['front'])
             next_obs['back'] = np.zeros_like(next_obs['back'])
             next_obs['left'] = np.zeros_like(next_obs['left'])
@@ -821,7 +821,7 @@ class MazeEnv(gym.Env):
             done = True
         if self.t > self.max_episode_size or self.collision_count > params['collision_threshold']:
             done = True
-        reward = inner_reward + outer_reward + collision_penalty
+        reward = (inner_reward + outer_reward + collision_penalty) / 100
         info['inner_reward'] = inner_reward
         info['outer_reward'] = outer_reward
         info['collision_penalty'] = collision_penalty

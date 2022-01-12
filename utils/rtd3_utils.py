@@ -350,7 +350,6 @@ class LSTM(torch.nn.Module):
         input_size = copy.deepcopy(input_dim)
         for idx in range(len(net_arch) - 1):
             self.layers.append(torch.nn.Linear(input_size, net_arch[idx]))
-            self.layers.append(torch.nn.LayerNorm(net_arch[idx]))
             self.layers.append(torch.nn.ReLU())
             input_size = copy.deepcopy(net_arch[idx])
         self.layers.append(torch.nn.LSTMCell(input_size, net_arch[-1]))
@@ -428,7 +427,6 @@ class Actor(torch.nn.Module):
         )
         self. fc_sensors = torch.nn.Sequential(
             torch.nn.Linear(observation_space['sensors'].shape[-1], features_dim),
-            torch.nn.LayerNorm(features_dim),
             torch.nn.ReLU()
         )
         self.mu = LSTM(2 * features_dim, output_dim, net_arch, squash_output)
@@ -461,7 +459,6 @@ class Critic(torch.nn.Module):
                 observation_space['sensors'].shape[-1] + action_dim,
                 features_dim
             ),
-            torch.nn.LayerNorm(features_dim),
             torch.nn.ReLU()
         )
         self.mu = LSTM(2 * features_dim, 1, net_arch, squash_output)

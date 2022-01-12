@@ -195,19 +195,14 @@ class VisualCortexV3(torch.nn.Module):
             observation_space['right'].shape[0] + observation_space['left'].shape[0]
         self.cnn = torch.nn.Sequential(
             torch.nn.Conv2d(n_input_channels, 32, kernel_size=5, stride=3, padding=0),
-            torch.nn.BatchNorm2d(32),
             torch.nn.ReLU(),
             torch.nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=0),
-            torch.nn.BatchNorm2d(64),
             torch.nn.ReLU(),
             torch.nn.Conv2d(64, 128, kernel_size=4, stride=1, padding=0),
-            torch.nn.BatchNorm2d(128),
             torch.nn.ReLU(),
             torch.nn.Conv2d(128, 64, kernel_size=3, stride=1, padding=0),
-            torch.nn.BatchNorm2d(64),
             torch.nn.ReLU(),
             torch.nn.Conv2d(64, 64, kernel_size=2, stride=1, padding=0),
-            torch.nn.BatchNorm2d(64),
             torch.nn.ReLU(),
             torch.nn.Flatten(),
         )   

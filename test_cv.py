@@ -154,7 +154,7 @@ def blob_detect(image,                  #-- The frame (cv standard)
                 blur=0,                 #-- blur value (default 0)
                 blob_params=None,       #-- blob parameters (default None)
                 search_window=None,     #-- window where to search as [x_min, y_min, x_max, y_max] adimensional (0.0 to 1.0) starting from top left corner
-                imshow=True
+                imshow=False
                ):
 
 
@@ -261,10 +261,10 @@ count_collisions = 0
 count_ball = 0
 ob = env.reset()
 
-fig, ax = plt.subplots(1,1,figsize= (5,5))
-line, = ax.plot(REWARDS, color = 'r', linestyle = '--')
-ax.set_xlabel('steps')
-ax.set_ylabel('reward')
+#fig, ax = plt.subplots(1,1,figsize= (5,5))
+#line, = ax.plot(REWARDS, color = 'r', linestyle = '--')
+#ax.set_xlabel('steps')
+#ax.set_ylabel('reward')
 total_reward = 0.0
 ac = env.get_action()
 while not done:
@@ -287,24 +287,24 @@ while not done:
     left = ob['left'][:, :, :3]
     right = ob['right'][:, :, :3]
     top = env.render('rgb_array')
-    cv2.imshow('stream front', cv2.cvtColor(front, cv2.COLOR_RGB2BGR))
-    cv2.imshow('stream back', cv2.cvtColor(back, cv2.COLOR_RGB2BGR))
-    cv2.imshow('stream left', cv2.cvtColor(left, cv2.COLOR_RGB2BGR))
-    cv2.imshow('stream right', cv2.cvtColor(right, cv2.COLOR_RGB2BGR))
+    #cv2.imshow('stream front', cv2.cvtColor(front, cv2.COLOR_RGB2BGR))
+    #cv2.imshow('stream back', cv2.cvtColor(back, cv2.COLOR_RGB2BGR))
+    #cv2.imshow('stream left', cv2.cvtColor(left, cv2.COLOR_RGB2BGR))
+    #cv2.imshow('stream right', cv2.cvtColor(right, cv2.COLOR_RGB2BGR))
     #cv2.imshow('depth stream', depth)
-    cv2.imshow('position stream', top)
+    #cv2.imshow('position stream', top)
     #cv2.imshow('mask', mask)
     #cv2.imshow('gray', gray)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+    #if cv2.waitKey(1) & 0xFF == ord('q'):
+    #    break
     POS.append(pos.copy())
     OBS.append(ob.copy())
     REWARDS.append(reward)
     total_reward += reward
     INFO.append(info)
-    ax.clear()
-    ax.plot(REWARDS, color = 'r', linestyle = '--')
-    plt.pause(0.01)
+    #ax.clear()
+    #ax.plot(REWARDS, color = 'r', linestyle = '--')
+    #plt.pause(0.01)
 pbar.close()
 print('Ideal Path:')
 print('total count:      {}'.format(count))

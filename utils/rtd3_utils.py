@@ -1040,6 +1040,8 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             # Warmup phase
             #unscaled_action = np.array([self.action_space.sample()])
             unscaled_action = self._last_obs['sampled_action']
+        elif self.num_timesteps < params['imitation_steps']:
+            unscaled_action = self._last_obs['sampled_action']
         else:
             # Note: when using continuous actions,
             # we assume that the policy uses tanh to scale the action
@@ -1051,7 +1053,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             scaled_action = self.policy.scale_action(unscaled_action)
 
             # Add noise to the action (improve exploration)
-            if action_noise is not None and self.num_timesteps >= learning_starts:
+            if action_noise is not None and self.num_timesteps >= params['imitation_steps']:
                 scaled_action = np.clip(scaled_action + action_noise(), -1, 1)
 
             # We store the scaled action in the buffer
@@ -1177,33 +1179,44 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             self.critic.optimizer.zero_grad()
             critic_loss.backward()
             self.critic.optimizer.step()
-            lst_1 = []
+            lst_1 = [] 
             for k in range(self.n_critics):
                 lst_1.append(
-                    (
+                    (    
                         hidden_state_critic[k][0].detach(),
                         hidden_state_critic[k][1].detach()
-                    )
-                )
+                    )    
+                )    
             hidden_state_critic = lst_1
-            self._n_updates += 1 
-            with torch.no_grad():
-                actions, _ = self.actor(data.observations, hidden_state)
-            actions.requires_grad = True
-            q_val, hidden_state_loss = self.critic.q1_forward(data.observations, hidden_state_loss, actions)
-            # Compute actor loss
-            self.critic.zero_grad()
-            q_val = q_val.mean()
-            q_val.backward()
-            delta_a = copy.deepcopy(actions.grad.data)
-            actions, hidden_state = self.actor(data.observations, hidden_state)
-            delta_a[:] = self._invert_gradients(delta_a.cpu(), actions.cpu())
-            out = -torch.mul(delta_a, actions)
-            actor_losses.append(-torch.mean(q_val).item())
-            # Optimize the actor
-            self.actor.optimizer.zero_grad()
-            out.backward(torch.ones(out.shape).to(self.device))
-            self.actor.optimizer.step()
+            if self.num_timesteps < params['imitation_steps']:
+                self.critic.zero_grad()
+                actions, hidden_state = self.actor(data.observations, hidden_state)
+                loss = torch.nn.functional.mse_loss(
+                    actions,
+                    data.actions
+                )
+                self.actor.optimizer.zero_grad()
+                loss.backward()
+                self.actor.optimizer.step()
+            else:
+                self._n_updates += 1 
+                with torch.no_grad():
+                    actions, _ = self.actor(data.observations, hidden_state)
+                actions.requires_grad = True
+                q_val, hidden_state_loss = self.critic.q1_forward(data.observations, hidden_state_loss, actions)
+                # Compute actor loss
+                self.critic.zero_grad()
+                q_val = q_val.mean()
+                q_val.backward()
+                delta_a = copy.deepcopy(actions.grad.data)
+                actions, hidden_state = self.actor(data.observations, hidden_state)
+                delta_a[:] = self._invert_gradients(delta_a.cpu(), actions.cpu())
+                out = -torch.mul(delta_a, actions)
+                actor_losses.append(-torch.mean(q_val).item())
+                # Optimize the actor
+                self.actor.optimizer.zero_grad()
+                out.backward(torch.ones(out.shape).to(self.device))
+                self.actor.optimizer.step()
             sb3.common.utils.polyak_update(self.critic.parameters(), self.critic_target.parameters(), self.tau)
             sb3.common.utils.polyak_update(self.actor.parameters(), self.actor_target.parameters(), self.tau)
             hidden_state =(

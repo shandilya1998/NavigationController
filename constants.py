@@ -29,6 +29,7 @@ params = {
     'show_animation'              : False,
     'dt'                          : 0.02,
     'learning_starts'             : 16008,
+    'imitation_steps'             : 1e5,
     'render_freq'                 : 8004,
     'save_freq'                   : 16008,
     'eval_freq'                   : 8004,

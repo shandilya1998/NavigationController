@@ -403,16 +403,16 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
 
         self.goals = [ 
             MazeVisualGoal(np.array([
-                np.random.uniform(4.0, 6.0) * self.scale,
-                np.random.uniform(-6.0, -4.0) * self.scale
+                np.random.uniform(4.8, 5.2) * self.scale,
+                -np.random.uniform(4.8, 5.2) * self.scale
             ]), self.scales[0], self.colors[0], 2.25),
             MazeVisualGoal(np.array([
-                np.random.uniform(0.0, 2.0) * self.scale,
-                np.random.uniform(-6.0, -4.0) * self.scale
+                np.random.uniform(0.8, 1.2) * self.scale,
+                -np.random.uniform(4.8, 5.2) * self.scale
             ]), self.scales[1], self.colors[1], 2.25),
             MazeVisualGoal(np.array([
-                np.random.uniform(4.0, 6.0) * self.scale,
-                np.random.uniform(-2.0, 0.0) * self.scale
+                np.random.uniform(4.8, 5.2) * self.scale,
+                -np.random.uniform(0.8, 1.2) * self.scale 
             ]), self.scales[2], self.colors[2], 2.25),
         ]
 

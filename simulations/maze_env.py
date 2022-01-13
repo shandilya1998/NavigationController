@@ -281,7 +281,7 @@ class MazeEnv(gym.Env):
         return self._action_space
 
     def __setup_vel_control(self):
-        self.target_speed = np.random.choice(np.arange(self.wrapped_env.VELOCITY_LIMITS) * (1.4 - 0.25) + 0.25)
+        self.target_speed = np.random.choice(np.arange(self.wrapped_env.VELOCITY_LIMITS) * (1.4 - 0.75) + 0.75)
         #np.random.uniform(
         #    low = self.wrapped_env.VELOCITY_LIMITS * 0.15,
         #    high = self.wrapped_env.VELOCITY_LIMITS * 1.4
@@ -310,7 +310,7 @@ class MazeEnv(gym.Env):
             source,
             target
         ))
-        return random.choice(paths)
+        return paths[0]
 
     def get_action(self):
         ai = proportional_control(self.target_speed, self.state.v)
@@ -360,6 +360,10 @@ class MazeEnv(gym.Env):
             (node['row'], node['col'] - 1),
             (node['row'] + 1, node['col']),
             (node['row'], node['col'] + 1),
+            (node['row'] + 1, node['col'] + 1),
+            (node['row'] + 1, node['col'] - 1),
+            (node['row'] - 1, node['col'] + 1),
+            (node['row'] - 1, node['col'] - 1)
         ]
         for neighbor in neighbors:
             if self.__check_structure_index_validity(

@@ -816,7 +816,7 @@ class MazeEnv(gym.Env):
         next_obs, penalty = self.conditional_blind(next_obs, yaw, blind)
         collision_penalty += penalty
         if done:
-            outer_reward += 100.0
+            outer_reward += 50.0
         if outbound:
             collision_penalty += -10.0 * self._inner_reward_scaling
             next_obs['front'] = np.zeros_like(next_obs['front'])
@@ -826,7 +826,7 @@ class MazeEnv(gym.Env):
             done = True
         if self.t > self.max_episode_size or self.collision_count > params['collision_threshold']:
             done = True
-        reward = (inner_reward + outer_reward + collision_penalty) / 100
+        reward = (inner_reward + outer_reward + collision_penalty) / 50
         info['inner_reward'] = inner_reward
         info['outer_reward'] = outer_reward
         info['collision_penalty'] = collision_penalty

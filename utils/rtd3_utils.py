@@ -1202,11 +1202,13 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             actor_losses.append(-torch.mean(q_val).item())
             # Optimize the actor
             self.actor.optimizer.zero_grad()
+            """
             loss = torch.nn.functional.mse_loss(
                 actions,
                 data.observations['sampled_action']
             )
             out = out + loss
+            """
             out.backward(torch.ones(out.shape).to(self.device))
             self.actor.optimizer.step()
             sb3.common.utils.polyak_update(self.critic.parameters(), self.critic_target.parameters(), self.tau)

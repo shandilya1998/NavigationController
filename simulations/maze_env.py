@@ -281,7 +281,7 @@ class MazeEnv(gym.Env):
         return self._action_space
 
     def __setup_vel_control(self):
-        self.target_speed = np.random.choice(np.arange(self.wrapped_env.VELOCITY_LIMITS) * (1.4 - 0.75) + 0.75)
+        self.target_speed = 8.0 #np.random.choice(np.arange(self.wrapped_env.VELOCITY_LIMITS) * (1.4 - 0.75) + 0.75)
         #np.random.uniform(
         #    low = self.wrapped_env.VELOCITY_LIMITS * 0.15,
         #    high = self.wrapped_env.VELOCITY_LIMITS * 1.4

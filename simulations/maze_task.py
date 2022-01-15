@@ -444,7 +444,7 @@ class GoalRewardNoObstacle(GoalReward4Rooms):
         self.goal_index = 0
         self.goals = [
             MazeVisualGoal(np.array([
-                np.random.choice([-2, -1, 1, 2]), np.random.choice([-2, -1, 1, 2])
+                np.random.choice([-2, 2]), np.random.choice([-2, 2])
             ]) * self.scale, 1.0, RED, 2.0),
         ]
 

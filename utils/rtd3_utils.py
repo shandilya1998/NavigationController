@@ -323,11 +323,11 @@ class EpisodicDictReplayBuffer(sb3.common.buffers.BaseBuffer):
         if not self.full:
             batch_inds = np.random.randint(0, self.ep, size=batch_size)
         else:
-            batch_inds = np.random.randint(0, self.n_ep, size=batch_size)    
-        return self._get_samples(batch_inds, env=env)
-
-    def _get_samples(self, batch_inds: np.ndarray, env: Optional[sb3.common.vec_env.vec_normalize.VecNormalize] = None) -> DictReplayBufferSamples:
+            batch_inds = np.random.randint(0, self.n_ep, size=batch_size)
         size = int(self.episode_lengths[batch_inds].mean())
+        return self._get_samples(batch_inds, size, env=env), size
+
+    def _get_samples(self, batch_inds: np.ndarray, size: int, env: Optional[sb3.common.vec_env.vec_normalize.VecNormalize] = None) -> DictReplayBufferSamples:
         for i in range(size):
             obs = self._normalize_obs({key: obs[batch_inds, i, 0, :] for key, obs in self.observations.items()})
             observations = {key : self.to_torch(item) for key, item in obs.items()}
@@ -1234,9 +1234,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         self._update_learning_rate([self.actor.optimizer, self.critic.optimizer])
         remaining = gradient_steps
         while remaining > 0:
-            replay_data = self.replay_buffer.sample(batch_size, env=self._vec_normalize_env)
-            data = next(replay_data)
-            steps = data.size
+            replay_data, steps = self.replay_buffer.sample(batch_size, env=self._vec_normalize_env)
             if remaining > steps:
                 remaining -= steps
             else:

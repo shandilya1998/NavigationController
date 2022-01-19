@@ -22,7 +22,7 @@ class ReplayBufferSamples(NamedTuple):
     next_observations: torch.Tensor
     dones: torch.Tensor
     rewards: torch.Tensor
-
+    size: int
 
 class DictReplayBufferSamples(ReplayBufferSamples):
     observations: TensorDict
@@ -30,6 +30,7 @@ class DictReplayBufferSamples(ReplayBufferSamples):
     next_observations: np.ndarray
     dones: np.ndarray
     rewards: np.ndarray
+    size: int
 
 class EpisodicReplayBuffer(sb3.common.buffers.BaseBuffer):
     """
@@ -340,7 +341,8 @@ class EpisodicDictReplayBuffer(sb3.common.buffers.BaseBuffer):
                 actions=self.to_torch(actions),
                 next_observations=next_observations,
                 dones = self.to_torch(dones),
-                rewards = self.to_torch(rewards)
+                rewards = self.to_torch(rewards),
+                size = size
             )
 
 class LSTM(torch.nn.Module):
@@ -1234,7 +1236,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         while remaining > 0:
             replay_data = self.replay_buffer.sample(batch_size, env=self._vec_normalize_env)
             data = next(replay_data)
-            steps = len(data.dones)
+            steps = data.size
             if remaining > steps:
                 remaining -= steps
             else:

@@ -434,8 +434,8 @@ class Actor(torch.nn.Module):
         self.mu = LSTM(2 * features_dim, output_dim, net_arch, squash_output)
 
     def forward(self, observation, hidden_state):
-        front, back, left, right, sensors = observation
-        visual = self.vc((front, back, left, right))
+        sensors, front = observation
+        visual = self.vc(front)
         sensors = self.fc_sensors(sensors)
         x = torch.cat([visual, sensors], -1)
         x, hidden_state = self.mu(x, hidden_state)
@@ -466,8 +466,8 @@ class Critic(torch.nn.Module):
         self.mu = LSTM(2 * features_dim, 1, net_arch, squash_output)
 
     def forward(self, observation, hidden_state, action):
-        front, back, left, right, sensors = observation
-        visual = self.vc((front, back, left, right))
+        sensors, front = observation
+        visual = self.vc(front)
         y = torch.cat([sensors, action], -1)
         y = self.fc_sensors_actions(y)
         x = torch.cat([visual, y], -1)
@@ -1040,8 +1040,8 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         # Select action randomly or according to policy
         if self.num_timesteps < learning_starts and not (self.use_sde and self.use_sde_at_warmup):
             # Warmup phase
-            #unscaled_action = np.array([self.action_space.sample()])
-            unscaled_action = self._last_obs['sampled_action']
+            unscaled_action = np.array([self.action_space.sample()])
+            #unscaled_action = self._last_obs['sampled_action']
         else:
             # Note: when using continuous actions,
             # we assume that the policy uses tanh to scale the action

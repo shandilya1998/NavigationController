@@ -191,8 +191,8 @@ class VisualCortexV3(torch.nn.Module):
         super(VisualCortexV3, self).__init__()
         # We assume CxHxW images (channels first)
         # Re-ordering will be done by pre-preprocessing or wrapper
-        n_input_channels = observation_space['front'].shape[0] + observation_space['back'].shape[0] + \
-            observation_space['right'].shape[0] + observation_space['left'].shape[0]
+        n_input_channels = observation_space['front'].shape[0]# + observation_space['back'].shape[0] + \
+            #observation_space['right'].shape[0] + observation_space['left'].shape[0]
         self.cnn = torch.nn.Sequential(
             torch.nn.Conv2d(n_input_channels, 32, kernel_size=5, stride=3, padding=0),
             torch.nn.ReLU(),
@@ -207,12 +207,13 @@ class VisualCortexV3(torch.nn.Module):
             torch.nn.Flatten(),
         )   
 
-        inp = np.concatenate((
-            observation_space['front'].sample(),
-            observation_space['back'].sample(),
-            observation_space['left'].sample(),
-            observation_space['right'].sample()
-        ), 0)
+        #inp = np.concatenate((
+        #    observation_space['front'].sample(),
+        #    observation_space['back'].sample(),
+        #    observation_space['left'].sample(),
+        #    observation_space['right'].sample()
+        #), 0)
+        inp = observation_space['front'].sample()
         # Compute shape by doing one forward pass
         with torch.no_grad():
             n_flatten = self.cnn(torch.as_tensor(inp)[None].float()).shape[1]
@@ -220,7 +221,7 @@ class VisualCortexV3(torch.nn.Module):
         self.linear = torch.nn.Sequential(torch.nn.Linear(n_flatten, features_dim), torch.nn.ReLU())
 
     def forward(self, observations: Tuple[torch.Tensor]) -> torch.Tensor:
-        observations = torch.cat(observations, 1)
+        #observations = torch.cat(observations, 1)
         return self.linear(self.cnn(observations))
 
 class MotorCortex(torch.nn.Module):

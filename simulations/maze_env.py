@@ -468,9 +468,9 @@ class MazeEnv(gym.Env):
         ], -1)
         if params['debug']:
             cv2.imshow('stream front', cv2.cvtColor(obs['front'], cv2.COLOR_RGB2BGR))
-            cv2.imshow('stream back', cv2.cvtColor(obs['back'], cv2.COLOR_RGB2BGR))
-            cv2.imshow('stream left', cv2.cvtColor(obs['left'], cv2.COLOR_RGB2BGR))
-            cv2.imshow('stream right', cv2.cvtColor(obs['right'], cv2.COLOR_RGB2BGR))
+            #cv2.imshow('stream back', cv2.cvtColor(obs['back'], cv2.COLOR_RGB2BGR))
+            #cv2.imshow('stream left', cv2.cvtColor(obs['left'], cv2.COLOR_RGB2BGR))
+            #cv2.imshow('stream right', cv2.cvtColor(obs['right'], cv2.COLOR_RGB2BGR))
             #cv2.imshow('depth stream', depth)
             top = self.render('rgb_array')
             cv2.imshow('position stream', top)
@@ -480,9 +480,6 @@ class MazeEnv(gym.Env):
                 pass
         obs = {
             'front' : img.copy(),
-            'back' : obs['back'].copy(),
-            'left' : obs['left'].copy(),
-            'right' : obs['right'].copy(),
             'sensors' : sensors.copy(),
             'sampled_action' : sampled_action.copy()
         }
@@ -618,36 +615,44 @@ class MazeEnv(gym.Env):
                     obs['front'] = np.zeros_like(obs['front'])
                 elif -np.pi / 8 > yaw > -3 * np.pi / 8:
                     obs['front'] = np.zeros_like(obs['front'])
-                    obs['left'] = np.zeros_like(obs['left'])
+                    #obs['left'] = np.zeros_like(obs['left'])
                 else:
-                    obs['left'] = np.zeros_like(obs['left'])
+                    pass
+                    #obs['left'] = np.zeros_like(obs['left'])
                 penalty += -1.0 * self._inner_reward_scaling
             elif -np.pi / 2 > yaw >= -np.pi:
                 if -np.pi / 2 > yaw >= -5 * np.pi / 8:
-                    obs['left'] = np.zeros_like(obs['left'])
+                    pass
+                    #obs['left'] = np.zeros_like(obs['left'])
                 elif -5 * np.pi / 8 > yaw >= -7 * np.pi / 8:
-                    obs['left'] = np.zeros_like(obs['left'])
-                    obs['back'] = np.zeros_like(obs['back'])
+                    pass
+                    #obs['left'] = np.zeros_like(obs['left'])
+                    #obs['back'] = np.zeros_like(obs['back'])
                 else:
-                    obs['back'] = np.zeros_like(obs['back'])
+                    #obs['back'] = np.zeros_like(obs['back'])
+                    pass
                 penalty += -1.0 * self._inner_reward_scaling
             elif np.pi / 2 > yaw >= 0:
                 if np.pi / 8 > yaw >= 0:
                     obs['front'] = np.zeros_like(obs['front'])
                 elif 3 * np.pi / 8 >= yaw > np.pi / 8:
                     obs['front'] = np.zeros_like(obs['front'])
-                    obs['right'] = np.zeros_like(obs['right'])
+                    #obs['right'] = np.zeros_like(obs['right'])
                 else:
-                    obs['right'] = np.zeros_like(obs['right'])
+                    pass
+                    #obs['right'] = np.zeros_like(obs['right'])
                 penalty += -1.0 * self._inner_reward_scaling
             elif np.pi > yaw >= np.pi / 2:
                 if 5 * np.pi / 8 > yaw >= np.pi / 2:
-                    obs['right'] = np.zeros_like(obs['right'])
+                    #obs['right'] = np.zeros_like(obs['right'])
+                    pass
                 elif 7 * np.pi / 8 > yaw >= 5 * np.pi / 8:
-                    obs['right'] = np.zeros_like(obs['right'])
-                    obs['back'] = np.zeros_like(obs['back'])
+                    #obs['right'] = np.zeros_like(obs['right'])
+                    #obs['back'] = np.zeros_like(obs['back'])
+                    pass
                 else:
-                    obs['back'] = np.zeros_like(obs['back'])
+                    pass
+                    #obs['back'] = np.zeros_like(obs['back'])
                 penalty += -1.0 * self._inner_reward_scaling
             else:
                 raise ValueError
@@ -655,36 +660,45 @@ class MazeEnv(gym.Env):
             #print('back')
             if 0 > yaw >= -np.pi / 2:
                 if 0 > yaw >= -np.pi / 8:
-                    obs['back'] = np.zeros_like(obs['back'])
+                    #obs['back'] = np.zeros_like(obs['back'])
+                    pass
                 elif -np.pi / 8 > yaw > -3 * np.pi / 8:
-                    obs['back'] = np.zeros_like(obs['back'])
-                    obs['right'] = np.zeros_like(obs['right'])
+                    #obs['back'] = np.zeros_like(obs['back'])
+                    #obs['right'] = np.zeros_like(obs['right'])
+                    pass
                 else:
-                    obs['right'] = np.zeros_like(obs['right'])
+                    pass
+                    #obs['right'] = np.zeros_like(obs['right'])
                 penalty += -1.0 * self._inner_reward_scaling
             elif -np.pi / 2 > yaw >= -np.pi:
                 if -np.pi / 2 > yaw >= -5 * np.pi / 8:
-                    obs['right'] = np.zeros_like(obs['right'])
+                    pass
+                    #obs['right'] = np.zeros_like(obs['right'])
                 elif -5 * np.pi / 8 > yaw >= -7 * np.pi / 8:
-                    obs['right'] = np.zeros_like(obs['right'])
+                    pass
+                    #obs['right'] = np.zeros_like(obs['right'])
                     obs['front'] = np.zeros_like(obs['front'])
                 else:
                     obs['front'] = np.zeros_like(obs['front'])
                 penalty += -1.0 * self._inner_reward_scaling
             elif np.pi / 2 > yaw >= 0:
                 if np.pi / 8 > yaw >= 0:
-                    obs['back'] = np.zeros_like(obs['back'])
+                    pass
+                    #obs['back'] = np.zeros_like(obs['back'])
                 elif 3 * np.pi / 8 >= yaw > np.pi / 8:
-                    obs['back'] = np.zeros_like(obs['back'])
-                    obs['left'] = np.zeros_like(obs['left'])
+                    pass
+                    #obs['back'] = np.zeros_like(obs['back'])
+                    #obs['left'] = np.zeros_like(obs['left'])
                 else:
-                    obs['left'] = np.zeros_like(obs['left'])
+                    pass
+                    #obs['left'] = np.zeros_like(obs['left'])
                 penalty += -1.0 * self._inner_reward_scaling
             elif np.pi > yaw >= np.pi / 2:
                 if 5 * np.pi / 8 > yaw >= np.pi / 2:
-                    obs['left'] = np.zeros_like(obs['left'])
+                    pass
+                    #obs['left'] = np.zeros_like(obs['left'])
                 elif 7 * np.pi / 8 > yaw >= 5 * np.pi / 8:
-                    obs['left'] = np.zeros_like(obs['left'])
+                    #obs['left'] = np.zeros_like(obs['left'])
                     obs['front'] = np.zeros_like(obs['front'])
                 else:
                     obs['front'] = np.zeros_like(obs['front'])
@@ -695,28 +709,35 @@ class MazeEnv(gym.Env):
             #print('left')
             if 0 > yaw >= -np.pi / 2:
                 if 0 > yaw >= -np.pi / 8:
-                    obs['left'] = np.zeros_like(obs['left'])
+                    pass
+                    #obs['left'] = np.zeros_like(obs['left'])
                 elif -np.pi / 8 > yaw > -3 * np.pi / 8:
-                    obs['back'] = np.zeros_like(obs['back'])
-                    obs['left'] = np.zeros_like(obs['left'])
+                    pass
+                    #obs['back'] = np.zeros_like(obs['back'])
+                    #obs['left'] = np.zeros_like(obs['left'])
                 else:
-                    obs['back'] = np.zeros_like(obs['back'])
+                    pass
+                    #obs['back'] = np.zeros_like(obs['back'])
                 penalty += -1.0 * self._inner_reward_scaling
             elif -np.pi / 2 > yaw >= -np.pi:
                 if -np.pi / 2 > yaw >= -5 * np.pi / 8:
-                    obs['back'] = np.zeros_like(obs['back'])
+                    pass
+                    #obs['back'] = np.zeros_like(obs['back'])
                 elif -5 * np.pi / 8 > yaw >= -7 * np.pi / 8:
-                    obs['right'] = np.zeros_like(obs['right'])
-                    obs['back'] = np.zeros_like(obs['back'])
+                    pass
+                    #obs['right'] = np.zeros_like(obs['right'])
+                    #obs['back'] = np.zeros_like(obs['back'])
                 else:
-                    obs['right'] = np.zeros_like(obs['right'])
+                    pass
+                    #obs['right'] = np.zeros_like(obs['right'])
                 penalty += -1.0 * self._inner_reward_scaling
             elif np.pi / 2 > yaw >= 0:
                 if np.pi / 8 > yaw >= 0:
-                    obs['left'] = np.zeros_like(obs['left'])
+                    pass
+                    #obs['left'] = np.zeros_like(obs['left'])
                 elif 3 * np.pi / 8 >= yaw > np.pi / 8:
                     obs['front'] = np.zeros_like(obs['front'])
-                    obs['left'] = np.zeros_like(obs['left'])
+                    #obs['left'] = np.zeros_like(obs['left'])
                 else:
                     obs['front'] = np.zeros_like(obs['front'])
                 penalty += -1.0 * self._inner_reward_scaling
@@ -724,10 +745,11 @@ class MazeEnv(gym.Env):
                 if 5 * np.pi / 8 > yaw >= np.pi / 2:
                     obs['front'] = np.zeros_like(obs['front'])
                 elif 7 * np.pi / 8 > yaw >= 5 * np.pi / 8:
-                    obs['right'] = np.zeros_like(obs['right'])
+                    #obs['right'] = np.zeros_like(obs['right'])
                     obs['front'] = np.zeros_like(obs['front'])
                 else:
-                    obs['right'] = np.zeros_like(obs['right'])
+                    pass
+                    #obs['right'] = np.zeros_like(obs['right'])
                 penalty += -1.0 * self._inner_reward_scaling
             else:
                 raise ValueError
@@ -735,10 +757,11 @@ class MazeEnv(gym.Env):
             #print('right')
             if 0 > yaw >= -np.pi / 2:
                 if 0 > yaw >= -np.pi / 8:
-                    obs['right'] = np.zeros_like(obs['right'])
+                    pass
+                    #obs['right'] = np.zeros_like(obs['right'])
                 elif -np.pi / 8 > yaw > -3 * np.pi / 8:
                     obs['front'] = np.zeros_like(obs['front'])
-                    obs['right'] = np.zeros_like(obs['right'])
+                    #obs['right'] = np.zeros_like(obs['right'])
                 else:
                     obs['front'] = np.zeros_like(obs['front'])
                 penalty += -1.0 * self._inner_reward_scaling
@@ -746,28 +769,35 @@ class MazeEnv(gym.Env):
                 if -np.pi / 2 > yaw >= -5 * np.pi / 8:
                     obs['front'] = np.zeros_like(obs['front'])
                 elif -5 * np.pi / 8 > yaw >= -7 * np.pi / 8:
-                    obs['left'] = np.zeros_like(obs['left'])
+                    #obs['left'] = np.zeros_like(obs['left'])
                     obs['front'] = np.zeros_like(obs['front'])
                 else:
-                    obs['left'] = np.zeros_like(obs['left'])
+                    pass
+                    #obs['left'] = np.zeros_like(obs['left'])
                 penalty += -1.0 * self._inner_reward_scaling
             elif np.pi / 2 > yaw >= 0:
                 if np.pi / 8 > yaw >= 0:
-                    obs['right'] = np.zeros_like(obs['right'])
+                    pass
+                    #obs['right'] = np.zeros_like(obs['right'])
                 elif 3 * np.pi / 8 >= yaw > np.pi / 8:
-                    obs['back'] = np.zeros_like(obs['back'])
-                    obs['right'] = np.zeros_like(obs['right'])
+                    pass
+                    #obs['back'] = np.zeros_like(obs['back'])
+                    #obs['right'] = np.zeros_like(obs['right'])
                 else:
-                    obs['back'] = np.zeros_like(obs['back'])
+                    pass
+                    #obs['back'] = np.zeros_like(obs['back'])
                 penalty += -1.0 * self._inner_reward_scaling
             elif np.pi > yaw >= np.pi / 2:
                 if 5 * np.pi / 8 > yaw >= np.pi / 2:
-                    obs['back'] = np.zeros_like(obs['back'])
+                    pass
+                    #obs['back'] = np.zeros_like(obs['back'])
                 elif 7 * np.pi / 8 > yaw >= 5 * np.pi / 8:
-                    obs['left'] = np.zeros_like(obs['left'])
-                    obs['back'] = np.zeros_like(obs['back'])
+                    pass
+                    #obs['left'] = np.zeros_like(obs['left'])
+                    #obs['back'] = np.zeros_like(obs['back'])
                 else:
-                    obs['left'] = np.zeros_like(obs['left'])
+                    pass
+                    #obs['left'] = np.zeros_like(obs['left'])
                 penalty += -1.0 * self._inner_reward_scaling
             else:
                 raise ValueError
@@ -819,9 +849,9 @@ class MazeEnv(gym.Env):
         if outbound:
             collision_penalty += -10.0 * self._inner_reward_scaling
             next_obs['front'] = np.zeros_like(next_obs['front'])
-            next_obs['back'] = np.zeros_like(next_obs['back'])
-            next_obs['left'] = np.zeros_like(next_obs['left'])
-            next_obs['right'] = np.zeros_like(next_obs['right'])
+            #next_obs['back'] = np.zeros_like(next_obs['back'])
+            #next_obs['left'] = np.zeros_like(next_obs['left'])
+            #next_obs['right'] = np.zeros_like(next_obs['right'])
             done = True
         if self.t > self.max_episode_size:
             done = True

@@ -132,6 +132,7 @@ class PointEnv(AgentModel):
             camera_name = 'mtdcam1',
             depth = False
         )
+        """
         rgb2 = self.sim.render(
             width = 100,
             height = 75,
@@ -150,7 +151,6 @@ class PointEnv(AgentModel):
             camera_name = 'mtdcam4',
             depth = False
         )
-        """
         depth1 = 255 * (depth1 - 0.965) / 0.035
         depth1 = depth1.astype(np.uint8)
         depth2 = 255 * (depth1 - 0.965) / 0.035
@@ -174,9 +174,6 @@ class PointEnv(AgentModel):
         """
         obs = {
             'front' : np.flipud(rgb1),
-            'back' : np.flipud(rgb2),
-            'right' : np.flipud(rgb3),
-            'left' : np.flipud(rgb4)
         }
         return obs
 

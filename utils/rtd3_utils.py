@@ -12,7 +12,7 @@ import torch
 import copy
 import warnings
 from constants import params
-from bg.models import VisualCortexV3
+from bg.models import VisualCortexV2
 
 TensorDict = Dict[Union[str, int], List[np.ndarray]]
 
@@ -423,8 +423,8 @@ class Actor(torch.nn.Module):
         squash_output = False 
     ):
         super(Actor, self).__init__()
-        self.vc = VisualCortexV3(
-            observation_space,
+        self.vc = VisualCortexV2(
+            observation_space['front'],
             features_dim
         )
         self. fc_sensors = torch.nn.Sequential(
@@ -452,8 +452,8 @@ class Critic(torch.nn.Module):
         squash_output = False
     ):
         super(Critic, self).__init__()
-        self.vc = VisualCortexV3(
-            observation_space,
+        self.vc = VisualCortexV2(
+            observation_space['front'],
             features_dim
         )
         self.fc_sensors_actions = torch.nn.Sequential(

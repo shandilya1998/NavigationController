@@ -1,8 +1,8 @@
 #!/bin/sh
 
 LOGDIR="assets/out/models/exp22"
-MODEL_FILE="rl_model_144072_steps"
-MAX_EPISODE_SIZE=2000
+MODEL_FILE="rl_model_96048_steps"
+MAX_EPISODE_SIZE=750
 HISTORY_STEPS=15
 
 python3 evaluate.py \

@@ -125,6 +125,10 @@ class PointEnv(AgentModel):
     def gaussian(self, x, mean, std):
         return np.exp(-0.5 * ((x - mean) / std) ** 2)
 
+    def get_z(self, zbuffer):
+        znorm = 2 * zbuffer - 1
+        return -2 * self.model.vis.map.znear * self.model.vis.map.zfar / ((self.model.vis.map.zfar - self.model.vis.map.znear) * znorm - self.model.vis.map.znear - self.model.vis.map.zfar)
+
     def _get_obs(self):
         rgb1 = self.sim.render(
             width = 100,
@@ -132,6 +136,11 @@ class PointEnv(AgentModel):
             camera_name = 'mtdcam1',
             depth = False
         )
+        #depth1 = 255 * (depth - 0.68) / 0.32
+        #depth1 = 255 * depth
+        #depth1 = np.flipud(depth1.astype(np.uint8))
+        #cv2.imshow('depth', depth1)
+        #print(depth.max(), depth.min())
         """
         rgb2 = self.sim.render(
             width = 100,

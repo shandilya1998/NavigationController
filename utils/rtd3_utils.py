@@ -959,7 +959,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         replay_buffer_class: Optional[sb3.common.buffers.ReplayBuffer] = None,
         replay_buffer_kwargs: Optional[Dict[str, Any]] = None,
         optimize_memory_usage: bool = False,
-        policy_delay: int = 1,
+        policy_delay: int = 2,
         target_policy_noise: float = 0.2,
         target_noise_clip: float = 0.5,
         tensorboard_log: Optional[str] = None,
@@ -1199,22 +1199,23 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             q_val.backward()
             delta_a = copy.deepcopy(actions.grad.data)
             actions, hidden_state = self.actor(data.observations, hidden_state)
-            delta_a[:] = self._invert_gradients(delta_a.cpu(), actions.cpu())
-            out = -torch.mul(delta_a, actions)
-            actor_losses.append(-torch.mean(q_val).item())
-            # Optimize the actor
-            self.actor.optimizer.zero_grad()
-            """
-            loss = torch.nn.functional.mse_loss(
-                actions,
-                data.observations['sampled_action']
-            )
-            out = out + loss
-            """
-            out.backward(torch.ones(out.shape).to(self.device))
-            self.actor.optimizer.step()
-            sb3.common.utils.polyak_update(self.critic.parameters(), self.critic_target.parameters(), self.tau)
-            sb3.common.utils.polyak_update(self.actor.parameters(), self.actor_target.parameters(), self.tau)
+            if self._n_updates % self.policy_delay == 0:
+                delta_a[:] = self._invert_gradients(delta_a.cpu(), actions.cpu())
+                out = -torch.mul(delta_a, actions)
+                actor_losses.append(-torch.mean(q_val).item())
+                # Optimize the actor
+                self.actor.optimizer.zero_grad()
+                """
+                loss = torch.nn.functional.mse_loss(
+                    actions,
+                    data.observations['sampled_action']
+                )
+                out = out + loss
+                """
+                out.backward(torch.ones(out.shape).to(self.device))
+                self.actor.optimizer.step()
+                sb3.common.utils.polyak_update(self.critic.parameters(), self.critic_target.parameters(), self.tau)
+                sb3.common.utils.polyak_update(self.actor.parameters(), self.actor_target.parameters(), self.tau)
             hidden_state =(
                 hidden_state[0].detach(),
                 hidden_state[1].detach()

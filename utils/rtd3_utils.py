@@ -352,7 +352,7 @@ class LSTM(torch.nn.Module):
         input_size = copy.deepcopy(input_dim)
         for idx in range(len(net_arch) - 1):
             self.layers.append(torch.nn.Linear(input_size, net_arch[idx]))
-            self.layers.append(torch.nn.ReLU())
+            self.layers.append(torch.nn.Tanh())
             input_size = copy.deepcopy(net_arch[idx])
         self.layers.append(torch.nn.LSTMCell(input_size, net_arch[-1]))
 
@@ -429,7 +429,7 @@ class Actor(torch.nn.Module):
         )
         self. fc_sensors = torch.nn.Sequential(
             torch.nn.Linear(observation_space['sensors'].shape[-1], features_dim),
-            torch.nn.ReLU()
+            torch.nn.Tanh()
         )
         self.mu = LSTM(2 * features_dim, output_dim, net_arch, squash_output)
 
@@ -461,7 +461,7 @@ class Critic(torch.nn.Module):
                 observation_space['sensors'].shape[-1] + action_dim,
                 features_dim
             ),
-            torch.nn.ReLU()
+            torch.nn.Tanh()
         )
         self.mu = LSTM(2 * features_dim, 1, net_arch, squash_output)
 
@@ -637,7 +637,7 @@ class RecurrentContinuousCritic(sb3.common.policies.BaseModel):
         net_arch: List[int],
         features_extractor: torch.nn.Module,
         features_dim: int,
-        activation_fn: Type[torch.nn.Module] = torch.nn.ReLU,
+        activation_fn: Type[torch.nn.Module] = torch.nn.Tanh,
         normalize_images: bool = True,
         n_critics: int = 2,
         share_features_extractor: bool = True,
@@ -711,7 +711,7 @@ class RecurrentTD3Policy(sb3.common.policies.BasePolicy):
         action_space: gym.spaces.Space,
         lr_schedule: sb3.common.type_aliases.Schedule,
         net_arch: Optional[Union[List[int], Dict[str, List[int]]]] = None,
-        activation_fn: Type[torch.nn.Module] = torch.nn.ReLU,
+        activation_fn: Type[torch.nn.Module] = torch.nn.Tanh,
         features_extractor_class: Type[sb3.common.torch_layers.BaseFeaturesExtractor] = sb3.common.torch_layers.BaseFeaturesExtractor,
         features_extractor_kwargs: Optional[Dict[str, Any]] = None,
         normalize_images: bool = True,

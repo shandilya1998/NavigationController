@@ -43,7 +43,7 @@ class BasalGanglia(torch.nn.Module):
         for units in params['snc']:
             layers.append(torch.nn.Linear(input_size, units))
             if units != 1:
-                layers.append(torch.nn.ReLU())
+                layers.append(torch.nn.Tanh())
             input_size = units
 
         self.vf = torch.nn.Sequential(
@@ -167,11 +167,11 @@ class VisualCortexV2(torch.nn.Module):
         n_input_channels = observation_space.shape[0]
         self.cnn = torch.nn.Sequential(
             torch.nn.Conv2d(n_input_channels, 32, kernel_size=8, stride=4, padding=0),
-            torch.nn.ReLU(),
+            torch.nn.Tanh(),
             torch.nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=0),
-            torch.nn.ReLU(),
+            torch.nn.Tanh(),
             torch.nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=0),
-            torch.nn.ReLU(),
+            torch.nn.Tanh(),
             torch.nn.Flatten(),
         )
 
@@ -179,7 +179,7 @@ class VisualCortexV2(torch.nn.Module):
         with torch.no_grad():
             n_flatten = self.cnn(torch.as_tensor(observation_space.sample()[None]).float()).shape[1]
 
-        self.linear = torch.nn.Sequential(torch.nn.Linear(n_flatten, features_dim), torch.nn.ReLU())
+        self.linear = torch.nn.Sequential(torch.nn.Linear(n_flatten, features_dim), torch.nn.Tanh())
 
     def forward(self, observations: torch.Tensor) -> torch.Tensor:
         return self.linear(self.cnn(observations))
@@ -195,15 +195,15 @@ class VisualCortexV3(torch.nn.Module):
             #observation_space['right'].shape[0] + observation_space['left'].shape[0]
         self.cnn = torch.nn.Sequential(
             torch.nn.Conv2d(n_input_channels, 32, kernel_size=5, stride=3, padding=0),
-            torch.nn.ReLU(),
+            torch.nn.Tanh(),
             torch.nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=0),
-            torch.nn.ReLU(),
+            torch.nn.Tanh(),
             torch.nn.Conv2d(64, 128, kernel_size=4, stride=1, padding=0),
-            torch.nn.ReLU(),
+            torch.nn.Tanh(),
             torch.nn.Conv2d(128, 64, kernel_size=3, stride=1, padding=0),
-            torch.nn.ReLU(),
+            torch.nn.Tanh(),
             torch.nn.Conv2d(64, 64, kernel_size=2, stride=1, padding=0),
-            torch.nn.ReLU(),
+            torch.nn.Tanh(),
             torch.nn.Flatten(),
         )   
 
@@ -218,7 +218,7 @@ class VisualCortexV3(torch.nn.Module):
         with torch.no_grad():
             n_flatten = self.cnn(torch.as_tensor(inp)[None].float()).shape[1]
 
-        self.linear = torch.nn.Sequential(torch.nn.Linear(n_flatten, features_dim), torch.nn.ReLU())
+        self.linear = torch.nn.Sequential(torch.nn.Linear(n_flatten, features_dim), torch.nn.Tanh())
 
     def forward(self, observations: Tuple[torch.Tensor]) -> torch.Tensor:
         #observations = torch.cat(observations, 1)
@@ -231,7 +231,7 @@ class MotorCortex(torch.nn.Module):
         input_size = num_ctx
         for units in params['motor_cortex']:
             layers.append(torch.nn.Linear(input_size, units))
-            layers.append(torch.nn.ReLU())
+            layers.append(torch.nn.Tanh())
             input_size = units
         layers.append(torch.nn.Linear(input_size, action_dim))
         self.squash_fn = torch.nn.Tanh()
@@ -289,7 +289,7 @@ class MotorCortexV2(torch.nn.Module):
         input_size = num_ctx
         for units in params['motor_cortex']:
             layers.append(torch.nn.Linear(input_size, units))
-            layers.append(torch.nn.ReLU())
+            layers.append(torch.nn.Tanh())
             input_size = units
         layers.append(torch.nn.Linear(input_size, action_dim))
         self.squash_fn = torch.nn.Tanh()
@@ -313,7 +313,7 @@ class ControlNetworkV2(torch.nn.Module):
         for units in params['snc']:
             layers.append(torch.nn.Linear(input_size, units))
             if units != 1:
-                layers.append(torch.nn.ReLU())
+                layers.append(torch.nn.Tanh())
             input_size = units
 
         self.vf = torch.nn.Sequential(

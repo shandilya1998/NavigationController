@@ -159,6 +159,7 @@ class Explore:
         print('Model: {}'.format(model))
         print('Policy: {}'.format(policy_class))
         print('Replay Buffer: {}'.format(replay_buffer_class))
+        kwargs['policy_delay'] = params['policy_delay']
         self.rl_model = model(
             policy_class,
             self.env,

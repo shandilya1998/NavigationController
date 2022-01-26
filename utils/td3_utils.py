@@ -115,8 +115,7 @@ class PassAsIsFeaturesExtractorV2(sb3.common.torch_layers.BaseFeaturesExtractor)
         self.vc = VisualCortex(
             observation_space,
             params['num_ctx']
-        )    
-
+        )
 
     def forward(self, observations):
         ob_t = self.vc(observations['observation'])

@@ -43,7 +43,7 @@ params = {
     'OU_MEAN'                     : 0.00,
     'OU_SIGMA'                    : 0.11,
     'top_view_size'               : 50.,
-    'batch_size'                  : 512,
+    'batch_size'                  : 256,
     'lr'                          : 1e-3,
     'final_lr'                    : 1e-5,
     'n_steps'                     : 2000,
@@ -57,4 +57,5 @@ params = {
     'collision_threshold'         : 20,
     'debug'                       : False,
     'max_vyaw'                    : 1.5,
+    'policy_delay'                : 2,
 }

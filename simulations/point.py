@@ -130,18 +130,19 @@ class PointEnv(AgentModel):
         return -2 * self.model.vis.map.znear * self.model.vis.map.zfar / ((self.model.vis.map.zfar - self.model.vis.map.znear) * znorm - self.model.vis.map.znear - self.model.vis.map.zfar)
 
     def _get_obs(self):
-        rgb1 = self.sim.render(
-            width = 100,
-            height = 75,
+        rgb1, depth1 = self.sim.render(
+            width = 500,
+            height = 375,
             camera_name = 'mtdcam1',
-            depth = False
+            depth = True
         )
+        depth1 = (depth1 - 0.92) / 0.08
+        """
         #depth1 = 255 * (depth - 0.68) / 0.32
         #depth1 = 255 * depth
         #depth1 = np.flipud(depth1.astype(np.uint8))
         #cv2.imshow('depth', depth1)
         #print(depth.max(), depth.min())
-        """
         rgb2 = self.sim.render(
             width = 100,
             height = 75,
@@ -183,6 +184,7 @@ class PointEnv(AgentModel):
         """
         obs = {
             'front' : np.flipud(rgb1),
+            'front_depth' : np.flipud(depth1)    
         }
         return obs
 

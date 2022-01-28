@@ -58,4 +58,7 @@ params = {
     'debug'                       : False,
     'max_vyaw'                    : 1.5,
     'policy_delay'                : 2,
+    'seed'                        : 10,
+    'target_speed'                : 8.0
 }
+

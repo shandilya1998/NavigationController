@@ -21,6 +21,7 @@ from utils.callbacks import CustomCallback, CheckpointCallback, EvalCallback
 import os
 import shutil
 import gym
+from utils import set_seeds
 
 torch.autograd.set_detect_anomaly(True)
 
@@ -54,6 +55,7 @@ class Explore:
         lmbda = 0.9,
         model_type = 'standard'
     ):
+        set_seeds(params['seed'])
         if env_type == 'maze':
             env_class = MazeEnv
             print('Env Type: maze')

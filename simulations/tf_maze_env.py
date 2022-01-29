@@ -522,56 +522,64 @@ class MazeEnv(tfa.environments.py_environment.PyEnvironment):
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 pass
         
-        obs = {
-            'visual' : img.copy(),
-            'sensors' : sensors.copy(),
-            'sampled_action' : sampled_action.copy(),
-            'inframe' : np.array(inframe, dtype = np.bool)
-        }
+        """
+            obs = [
+                `visual`,
+                `sensors`,
+                `sampled_action`,
+                `inframe`
+            ]
+        """
+        obs = [
+            img.copy(),
+            sensors.copy(),
+            sampled_action.copy(),
+            np.array(inframe, dtype = np.bool)
+        ]
         return obs
 
     def _set_observation_space(self, observation):
-        self.observation_space = gym.spaces.Dict({
-            'visual' : gym.spaces.Box(
-                low = np.zeros_like(observation['visual']),
-                high = np.ones_like(observation['visual']),
-                shape = observation['visual'].shape,
-                dtype = observation['visual'].dtype
+        self.observation_space = gym.spaces.Tuple([
+            gym.spaces.Box(
+                low = np.zeros_like(observation[0]),
+                high = np.ones_like(observation[0]),
+                shape = observation[0].shape,
+                dtype = observation[0].dtype
             ),
-            'sensors' : gym.spaces.Box(
-                low = -np.ones_like(observation['sensors']),
-                high = np.ones_like(observation['sensors']),
-                shape = observation['sensors'].shape,
-                dtype = observation['sensors'].dtype
+            gym.spaces.Box(
+                low = -np.ones_like(observation[1]),
+                high = np.ones_like(observation[1]),
+                shape = observation[1].shape,
+                dtype = observation[1].dtype
             ),
-            'sampled_action' : copy.deepcopy(self.wrapped_env.action_space),
-            'inframe' : gym.spaces.Space(shape = (), dtype = np.bool)
-        })
+            copy.deepcopy(self.wrapped_env.action_space),
+            gym.spaces.Space(shape = (), dtype = np.bool)
+        ])
 
-        self._observation_spec = {
-            'visual' : tfa.specs.BoundedArraySpec(
-                shape = self.observation_space['visual'].shape,
-                dtype = self.observation_space['visual'].dtype,
-                minimum = self.observation_space['visual'].low,
-                maximum = self.observation_space['visual'].high
+        self._observation_spec = [
+            tfa.specs.BoundedArraySpec(
+                shape = self.observation_space[0].shape,
+                dtype = self.observation_space[0].dtype,
+                minimum = self.observation_space[0].low,
+                maximum = self.observation_space[0].high
             ),
-            'sensors' : tfa.specs.BoundedArraySpec(
-                shape = self.observation_space['sensors'].shape,
-                dtype = self.observation_space['sensors'].dtype,
-                minimum = self.observation_space['sensors'].low,
-                maximum = self.observation_space['sensors'].high
+            tfa.specs.BoundedArraySpec(
+                shape = self.observation_space[1].shape,
+                dtype = self.observation_space[1].dtype,
+                minimum = self.observation_space[1].low,
+                maximum = self.observation_space[1].high
             ),
-            'sampled_action' : tfa.specs.BoundedArraySpec(
-                shape = self.observation_space['sampled_action'].shape,
-                dtype = self.observation_space['sampled_action'].dtype,
-                minimum = self.observation_space['sampled_action'].low,
-                maximum = self.observation_space['sampled_action'].high
+            tfa.specs.BoundedArraySpec(
+                shape = self.observation_space[-2].shape,
+                dtype = self.observation_space[-2].dtype,
+                minimum = self.observation_space[-2].low,
+                maximum = self.observation_space[-2].high
             ),
-            'inframe' : tfa.specs.ArraySpec(
-                shape = self.observation_space['inframe'].shape,
-                dtype = self.observation_space['inframe'].dtype
+            tfa.specs.ArraySpec(
+                shape = self.observation_space[-1].shape,
+                dtype = self.observation_space[-1].dtype
             )
-        }    
+        ] 
         return self.observation_space
 
     def _reset(self) -> np.ndarray:
@@ -643,8 +651,8 @@ class MazeEnv(tfa.environments.py_environment.PyEnvironment):
 
         # Reward Computation
         inner_reward += -1 + (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / params['max_vyaw']))
-        outer_reward = self._task.reward(next_pos, next_obs['inframe']) + rho
-        done = self._task.termination(next_pos, next_obs['inframe'])
+        outer_reward = self._task.reward(next_pos, next_obs[-1]) + rho
+        done = self._task.termination(next_pos, next_obs[-1])
         index = self.__get_current_cell(next_pos)
         self._current_cell = index
         almost_collision, blind, outbound = self.check_position(next_pos)
@@ -656,7 +664,7 @@ class MazeEnv(tfa.environments.py_environment.PyEnvironment):
             outer_reward += 200.0
         if outbound:
             collision_penalty += -10.0 * self._inner_reward_scaling
-            next_obs['visual'] = np.zeros_like(next_obs['visual'])
+            next_obs[0] = np.zeros_like(next_obs[0])
             done = True
         if self.t > self.max_episode_size:
             done = True
@@ -681,17 +689,17 @@ class MazeEnv(tfa.environments.py_environment.PyEnvironment):
         if b[0]:
             if 0 > yaw >= -np.pi / 2:
                 if 0 > yaw >= -np.pi / 8:
-                    obs['visual'] = np.zeros_like(obs['visual'])
+                    obs[0] = np.zeros_like(obs[0])
                 elif -np.pi / 8 > yaw > -3 * np.pi / 8:
-                    obs['visual'] = np.zeros_like(obs['visual'])
+                    obs[0] = np.zeros_like(obs[0])
                 penalty += -1.0 * self._inner_reward_scaling
             elif -np.pi / 2 > yaw >= -np.pi:
                 penalty += -1.0 * self._inner_reward_scaling
             elif np.pi / 2 > yaw >= 0:
                 if np.pi / 8 > yaw >= 0:
-                    obs['visual'] = np.zeros_like(obs['visual'])
+                    obs[0] = np.zeros_like(obs[0])
                 elif 3 * np.pi / 8 >= yaw > np.pi / 8:
-                    obs['visual'] = np.zeros_like(obs['visual'])
+                    obs[0] = np.zeros_like(obs[0])
                 penalty += -1.0 * self._inner_reward_scaling
             elif np.pi > yaw >= np.pi / 2:
                 penalty += -1.0 * self._inner_reward_scaling
@@ -704,9 +712,9 @@ class MazeEnv(tfa.environments.py_environment.PyEnvironment):
                 if -np.pi / 2 > yaw >= -5 * np.pi / 8:
                     pass
                 elif -5 * np.pi / 8 > yaw >= -7 * np.pi / 8:
-                    obs['visual'] = np.zeros_like(obs['visual'])
+                    obs[0] = np.zeros_like(obs[0])
                 else:
-                    obs['visual'] = np.zeros_like(obs['visual'])
+                    obs[0] = np.zeros_like(obs[0])
                 penalty += -1.0 * self._inner_reward_scaling
             elif np.pi / 2 > yaw >= 0:
                 penalty += -1.0 * self._inner_reward_scaling
@@ -714,9 +722,9 @@ class MazeEnv(tfa.environments.py_environment.PyEnvironment):
                 if 5 * np.pi / 8 > yaw >= np.pi / 2:
                     pass
                 elif 7 * np.pi / 8 > yaw >= 5 * np.pi / 8:
-                    obs['visual'] = np.zeros_like(obs['visual'])
+                    obs[0] = np.zeros_like(obs[0])
                 else:
-                    obs['visual'] = np.zeros_like(obs['visual'])
+                    obs[0] = np.zeros_like(obs[0])
                 penalty += -1.0 * self._inner_reward_scaling
             else:
                 raise ValueError
@@ -729,15 +737,15 @@ class MazeEnv(tfa.environments.py_environment.PyEnvironment):
                 if np.pi / 8 > yaw >= 0:
                     pass
                 elif 3 * np.pi / 8 >= yaw > np.pi / 8:
-                    obs['visual'] = np.zeros_like(obs['visual'])
+                    obs[0] = np.zeros_like(obs[0])
                 else:
-                    obs['visual'] = np.zeros_like(obs['visual'])
+                    obs[0] = np.zeros_like(obs[0])
                 penalty += -1.0 * self._inner_reward_scaling
             elif np.pi > yaw >= np.pi / 2:
                 if 5 * np.pi / 8 > yaw >= np.pi / 2:
-                    obs['visual'] = np.zeros_like(obs['visual'])
+                    obs[0] = np.zeros_like(obs[0])
                 elif 7 * np.pi / 8 > yaw >= 5 * np.pi / 8:
-                    obs['visual'] = np.zeros_like(obs['visual'])
+                    obs[0] = np.zeros_like(obs[0])
                 penalty += -1.0 * self._inner_reward_scaling
             else:
                 raise ValueError
@@ -746,15 +754,15 @@ class MazeEnv(tfa.environments.py_environment.PyEnvironment):
                 if 0 > yaw >= -np.pi / 8:
                     pass
                 elif -np.pi / 8 > yaw > -3 * np.pi / 8:
-                    obs['visual'] = np.zeros_like(obs['visual'])
+                    obs[0] = np.zeros_like(obs[0])
                 else:
-                    obs['visual'] = np.zeros_like(obs['visual'])
+                    obs[0] = np.zeros_like(obs[0])
                 penalty += -1.0 * self._inner_reward_scaling
             elif -np.pi / 2 > yaw >= -np.pi:
                 if -np.pi / 2 > yaw >= -5 * np.pi / 8:
-                    obs['visual'] = np.zeros_like(obs['visual'])
+                    obs[0] = np.zeros_like(obs[0])
                 elif -5 * np.pi / 8 > yaw >= -7 * np.pi / 8:
-                    obs['visual'] = np.zeros_like(obs['visual'])
+                    obs[0] = np.zeros_like(obs[0])
                 penalty += -1.0 * self._inner_reward_scaling
             elif np.pi / 2 > yaw >= 0:
                 penalty += -1.0 * self._inner_reward_scaling

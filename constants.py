@@ -62,3 +62,233 @@ params = {
     'target_speed'                : 8.0
 }
 
+
+import tensorflow as tf
+import tf_agents as tfa
+
+image_height = 150
+image_width = 200
+image_channels = 4
+n_history_steps = 5
+activation_fn_actor = tf.keras.activations.relu
+activation_fn_critic = tf.keras.activations.relu
+action_dim = 2
+tf_params = {
+    'image_height'                : image_height,
+    'image_width'                 : image_width,
+    'image_channels'              : image_channels,
+    'action_dim'                  : action_dim,
+    'preprocessing_layers_actor'  : [
+                                        [
+                                            tf.keras.layers.Conv2D(
+                                                128, 
+                                                kernel_size = 8,
+                                                strides = 4,
+                                                activation = activation_fn_actor, 
+                                                input_shape = (image_height, image_width, image_channels)
+                                            ),
+                                            tf.keras.layers.Conv2D(
+                                                256,
+                                                kernel_size = 4,
+                                                strides = 2,
+                                                activation = activation_fn_actor,
+                                            ),
+                                            tf.keras.layers.Conv2D(
+                                                144,
+                                                kernel_size = 4,
+                                                strides = 2,
+                                                activation = activation_fn_actor,
+                                            ),
+                                            tf.keras.layers.Conv2D(
+                                                32,
+                                                kernel_size = 3,
+                                                strides = 1,
+                                                activation = activation_fn_actor
+                                            ),
+                                            tf.keras.layers.Flatten(),
+                                            tf.keras.layers.Dense(
+                                                512,
+                                                activation = activation_fn_actor,
+                                                kernel_initializer = 'glorot_uniform',
+                                                bias_initializer = 'glorot_uniform'
+                                            )
+                                        ],
+                                        [
+                                            tf.keras.layers.Dense(
+                                                (4 + 4 * n_history_steps) * 4,
+                                                activation = activation_fn_actor,
+                                                kernel_initializer = 'glorot_uniform',
+                                                bias_initializer = 'glorot_uniform'
+                                            ),
+                                            tf.keras.layers.Dense(
+                                                (4 + 4 * n_history_steps) * 3,
+                                                activation = activation_fn_actor,
+                                                kernel_initializer = 'glorot_uniform',
+                                                bias_initializer = 'glorot_uniform'
+                                            ),
+                                        ]
+                                    ],
+    'input_fc_params_actor'       : [1024, 768, 512],
+    'lstm_size_actor'             : [256, 128],
+    'output_fc_layer_params_actor': [64, 32],
+    'activation_fn_actor'         : activation_fn_actor,
+    'activation_fn_critic'        : activation_fn_critic,
+    'preprocessing_layers_critic' : [
+                                        [
+                                            tf.keras.layers.Dense(
+                                                4 * action_dim,
+                                                activation = activation_fn_critic,
+                                                kernel_initializer = 'glorot_uniform',
+                                                bias_initializer = 'glorot_uniform'
+                                            ),
+                                            tf.keras.layers.Dense(
+                                                3 * action_dim,
+                                                activation = activation_fn_critic,
+                                                kernel_initializer = 'glorot_uniform',
+                                                bias_initializer = 'glorot_uniform'
+                                            ),
+                                        ],
+                                        [   
+                                            tf.keras.layers.Conv2D(
+                                                128, 
+                                                kernel_size = 8,
+                                                strides = 4, 
+                                                activation = activation_fn_critic, 
+                                                input_shape = (image_height, image_width, image_channels)
+                                            ),  
+                                            tf.keras.layers.Conv2D(
+                                                256,
+                                                kernel_size = 4,
+                                                strides = 2,
+                                                activation = activation_fn_critic,
+                                            ),  
+                                            tf.keras.layers.Conv2D(
+                                                144,
+                                                kernel_size = 4,
+                                                strides = 2,
+                                                activation = activation_fn_critic,
+                                            ),  
+                                            tf.keras.layers.Conv2D(
+                                                32, 
+                                                kernel_size = 3,
+                                                strides = 1,
+                                                activation = activation_fn_critic
+                                            ),   
+                                            tf.keras.layers.Flatten(),
+                                            tf.keras.layers.Dense(
+                                                512,
+                                                activation = activation_fn_critic,
+                                                kernel_initializer = 'glorot_uniform',
+                                                bias_initializer = 'glorot_uniform'
+                                            )   
+                                        ],  
+                                        [   
+                                            tf.keras.layers.Dense(
+                                                (4 + 4 * n_history_steps) * 4,
+                                                activation = activation_fn_critic,
+                                                kernel_initializer = 'glorot_uniform',
+                                                bias_initializer = 'glorot_uniform'
+                                            ),  
+                                            tf.keras.layers.Dense(
+                                                (4 + 4 * n_history_steps) * 3,
+                                                activation = activation_fn_critic,
+                                                kernel_initializer = 'glorot_uniform',
+                                                bias_initializer = 'glorot_uniform'
+                                            ),  
+                                        ],
+                                    ],
+    'input_fc_params_critic'       : [1024, 768, 512],
+    'lstm_size_critic'             : [256, 128],
+    'output_fc_layer_params_critic': [64, 32],
+
+    'optimizer_class_actor'        : tf.keras.optimizers.Adam,
+    'optimizer_kwargs_actor'       : {
+                                        'learning_rate' : 1e-3,
+                                        'beta_1'        : 0.9,
+                                        'beta_2'        : 0.999,
+                                        'epsilon'       : 1e-7,
+                                        'amsgrad'       : False,
+                                        'name'          : 'adam_actor'
+                                    },
+    'optimizer_class_critic'        : tf.keras.optimizers.Adam,
+    'optimizer_kwargs_critic'       : { 
+                                        'learning_rate' : 1e-3,
+                                        'beta_1'        : 0.9,
+                                        'beta_2'        : 0.999,
+                                        'epsilon'       : 1e-7,
+                                        'amsgrad'       : False,
+                                        'name'          : 'adam_critic'
+                                    },
+    'exploration_noise_std'         : 0.1,
+    'target_update_tau'             : 0.01,
+    'target_update_period'          : 4,
+    'actor_update_period'           : 2,
+    'gamma'                         : 0.98,
+    'reward_scale_factor'           : 1.0,
+    'target_policy_noise'           : 0.2,
+    'target_policy_noise_clip'      : 0.5,
+    'gradient_clipping'             : None,
+    'debug'                         : False,
+
+    'buffer_capacity'               : 1e5,
+    'train_metrics'                 : [
+                                        (   
+                                            tfa.metrics.tf_metrics.NumberOfEpisodes(),
+                                            {}  
+                                        ),
+                                        (
+                                            tfa.metrics.tf_metrics.EnvironmentSteps(),
+                                            {}
+                                        ),
+                                        (
+                                            tfa.metrics.tf_metrics.AverageEpisodeLengthMetric,
+                                            {}
+                                        ),
+                                        (
+                                            tfa.metrics.tf_metrics.AverageReturnMetric,
+                                            {}
+                                        ),
+                                        (
+                                            tfa.metrics.tf_metrics.MaxReturnMetric(),
+                                            {}
+                                        ),
+                                    ],
+    'eval_metrics'                 : [ 
+                                        (   
+                                            tfa.metrics.tf_metrics.AverageEpisodeLengthMetric,
+                                            {}  
+                                        ),  
+                                        (   
+                                            tfa.metrics.tf_metrics.AverageReturnMetric,
+                                            {}  
+                                        ),  
+                                        (   
+                                            tfa.metrics.tf_metrics.NumberOfEpisodes(),
+                                            {}  
+                                        ),  
+                                        (   
+                                            tfa.metrics.tf_metrics.EnvironmentSteps(),
+                                            {}  
+                                        ),  
+                                        (   
+                                            tfa.metrics.tf_metrics.MaxReturnMetric(),
+                                            {}  
+                                        ),  
+                                    ],
+    'initial_collect_episodes'      : 3,
+    'collect_episodes_per_iteration': 5,
+    'use_tf_functions'              : True,
+    'num_parallel_calls'            : 2,
+    'batch_size'                    : 128,
+    'train_sequence_length'         : 10,
+    'num_prefetch'                  : 3,
+
+    'summaries_flush_secs'          : 10,
+    
+    'max_episode_size'              : 750,
+    'obs_history_steps'             : 5,
+
+    'num_eval_episodes'             : 5,
+    'num_iterations'                : int(1e5),
+    'train_steps_per_iteration'     : 200,
+}

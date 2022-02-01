@@ -10,6 +10,7 @@ from simulations.point import PointEnv
 from simulations.maze_task import CustomGoalReward4Rooms
 import absl
 import time
+from models.preprocessing_layers import VisualCortex, ProprioreceptiveCortex, ActionPreprocessing
 
 class MultiInputActorRnnNetwork(tfa.networks.lstm_encoding_network.LSTMEncodingNetwork):
     def __init__(
@@ -28,7 +29,7 @@ class MultiInputActorRnnNetwork(tfa.networks.lstm_encoding_network.LSTMEncodingN
         dtype=tf.float32,
         name='MultiInputActorRnnNetwork',
     ):
-        flat_action_spec = tf.nest.flatten(output_tensor_spec)
+        flat_action_spec = tf.nest.flatten(action_spec)
         action_layers = [
             tf.keras.layers.Dense(
                 single_action_spec.shape.num_elements(),
@@ -39,6 +40,7 @@ class MultiInputActorRnnNetwork(tfa.networks.lstm_encoding_network.LSTMEncodingN
         ]
         self._flat_action_spec = flat_action_spec
         self._action_layers = action_layers
+        self._output_tensor_spec = action_spec
         super(MultiInputActorRnnNetwork, self).__init__(
             input_tensor_spec = input_tensor_spec,
             preprocessing_layers = preprocessing_layers,
@@ -67,7 +69,8 @@ class MultiInputActorRnnNetwork(tfa.networks.lstm_encoding_network.LSTMEncodingN
             step_type = tf.nest.map_structure(lambda t: tf.expand_dims(t, 1), step_type)
 
         state, _ = self._input_encoder(
-            observation, step_type=step_type, network_state=(), training=training)
+            observation, step_type=step_type, network_state=(), training=training
+        )
 
         network_kwargs = {}
         if isinstance(self._lstm_network, tfa.keras_layers.dynamic_unroll_layer.DynamicUnroll):
@@ -91,14 +94,16 @@ class MultiInputActorRnnNetwork(tfa.networks.lstm_encoding_network.LSTMEncodingN
 
         for layer in self._output_encoder:
             state = layer(state, training=training)
- 
+       
+        if not has_time_dim:
+            # Remove time dimension from the state.
+            state = tf.squeeze(state, [1])
+
         actions = []
         for layer, spec in zip(self._action_layers, self._flat_action_spec):
             action = layer(state, training=training)
             action = tfa.utils.common.scale_to_spec(action, spec)
-            action = batch_squash.unflatten(action)  # [B x T, ...] -> [B, T, ...]
-            if not has_time_dim:
-                action = tf.squeeze(action, axis=1)
+            #action = batch_squash.unflatten(action)  # [B x T, ...] -> [B, T, ...]
             actions.append(action)
 
         output_actions = tf.nest.pack_sequence_as(self._output_tensor_spec, actions)
@@ -120,16 +125,15 @@ class MultiInputCriticRnnNetwork(tfa.networks.lstm_encoding_network.LSTMEncoding
         dtype=tf.float32,
         name='MultiInputActorRnnNetwork',
     ):
-        self._flatten_input = tfa.networks.NestFlatten()
+        #self._flatten_inputs = tfa.networks.NestFlatten()
         q_layer = tf.keras.layers.Dense(
                 1,
                 activation = None,
                 kernel_initializer = tf.keras.initializers.RandomUniform(
                     minval=-0.003, maxval=0.003),
                 name='value') 
-        self._q_layer = q_layer
         # Need to provide a separate preprocessing_combiner that takes into account input structure 
-        super(MultiInputActorRnnNetwork, self).__init__(
+        super(MultiInputCriticRnnNetwork, self).__init__(
             input_tensor_spec = input_tensor_spec,
             preprocessing_layers = preprocessing_layers,
             preprocessing_combiner = preprocessing_combiner,
@@ -143,12 +147,12 @@ class MultiInputCriticRnnNetwork(tfa.networks.lstm_encoding_network.LSTMEncoding
             dtype = dtype,
             name = name
         )
+        self._output_encoder.append(q_layer)
 
+    """
     def call(self, inputs, step_type, network_state=(), training=False):
         # `inputs` must be `(observation, action)`
-        observation, action = inputs
-        inputs = [action, observation]
-        inputs = self._flatten_inputs(inputs)
+        #inputs = self._flatten_inputs(inputs)
         num_outer_dims = tfa.utils.nest_utils.get_outer_rank(inputs,
                                                self.input_tensor_spec)
         if num_outer_dims not in (1, 2):
@@ -189,16 +193,19 @@ class MultiInputCriticRnnNetwork(tfa.networks.lstm_encoding_network.LSTMEncoding
         q_value = tf.reshape(output, [-1])
         q_value = batch_squash.unflatten(q_value)  # [B x T, ...] -> [B, T, ...]
         if not has_time_dim:
-              q_value = tf.squeeze(q_value, axis=1)
+            q_value = tf.squeeze(q_value, axis=1)
 
         return q_value, network_state
-
+    """
 
 def create_actor_network(
     params,
     env
 ):
-    preprocessing_layers_actor = [tf.keras.Sequential(*layers) for layers in params['preprocessing_layers_actor']]
+    preprocessing_layers_actor = tuple([
+        VisualCortex(),
+        ProprioreceptiveCortex()
+    ])
     preprocessing_combiner_actor = tf.keras.layers.Concatenate(axis=-1)
     actor = MultiInputActorRnnNetwork(
         input_tensor_spec = env.time_step_spec().observation,
@@ -206,7 +213,7 @@ def create_actor_network(
         preprocessing_layers = preprocessing_layers_actor,
         preprocessing_combiner = preprocessing_combiner_actor,
         conv_layer_params = None,
-        input_fc_layer_params = params['input_fc_params_actor'],
+        input_fc_layer_params = params['input_fc_layer_params_actor'],
         lstm_size = params['lstm_size_actor'],
         output_fc_layer_params = params['output_fc_layer_params_actor'],
         activation_fn = params['activation_fn_actor'],
@@ -227,13 +234,20 @@ def create_critic_network(
         for dim, spec in zip(params['action_dim'], env.action_spec()):
             # Support only for vector action currently
             assert dim == spec.shape[-1]
-    preprocessing_layers_critic = [[tf.keras.Sequential(*layers) for layers in params['preprocessing_layers_critic']]]
+    preprocessing_layers_critic = tuple([
+        tuple([
+            VisualCortex(),
+            ProprioreceptiveCortex()
+        ]),
+        ActionPreprocessing()
+    ])
+    preprocessing_layers_critic = tuple(preprocessing_layers_critic)
     preprocessing_combiner_critic = tf.keras.layers.Concatenate(axis=-1)
     input_tensor_spec = (
         env.time_step_spec().observation,
         env.action_spec()
     )
-    critic = MultiInputRnnNetwork(
+    critic = MultiInputCriticRnnNetwork(
         input_tensor_spec = input_tensor_spec,
         preprocessing_layers = preprocessing_layers_critic,
         preprocessing_combiner = preprocessing_combiner_critic,
@@ -252,8 +266,8 @@ def create_rtd3_agent(
     params,
     env,
 ):
-    actor = create_actor_network(params)
-    critic = create_critic_network(params)
+    actor = create_actor_network(params, env)
+    critic = create_critic_network(params, env)
     agent = tfa.agents.Td3Agent(
         time_step_spec = env.time_step_spec(),
         action_spec = env.action_spec(),
@@ -278,7 +292,7 @@ def create_rtd3_agent(
         name = 'RTd3Agent'
     )
     if params['use_tf_functions']:
-      agent.train = tfa.utils.common.function(tf_agent.train)
+        agent.train = tfa.utils.common.function(agent.train)
     return agent
 
 def create_replay_buffer(
@@ -288,7 +302,7 @@ def create_replay_buffer(
 ):
     replay_buffer = tfa.replay_buffers.tf_uniform_replay_buffer.TFUniformReplayBuffer(
         data_spec = agent.collect_data_spec,
-        batch_size = agent.batch_size,
+        batch_size = env.batch_size,
         max_length = params['buffer_capacity'],
     )
     return replay_buffer
@@ -299,7 +313,7 @@ def create_train_metrics(
     metrics = [
         metric(**kwargs) for metric, kwargs in params['train_metrics']
     ]
-    return matrics
+    return metrics
 
 def create_eval_metrics(
     params
@@ -307,7 +321,7 @@ def create_eval_metrics(
     metrics = [
         metric(**kwargs) for metric, kwargs in params['eval_metrics']
     ]
-    return matrics
+    return metrics
 
 def create_drivers(
     params,
@@ -315,7 +329,7 @@ def create_drivers(
     agent,
     replay_buffer
 ):
-    train_metrics = create_train_metric(params)
+    train_metrics = create_train_metrics(params)
     initial_collect_driver = tfa.drivers.dynamic_episode_driver.DynamicEpisodeDriver(
         env = env,
         policy = agent.collect_policy,
@@ -376,7 +390,7 @@ def train_rtd3(
     env = tfa.environments.tf_py_environment.TFPyEnvironment(
         MazeEnv(
             model_cls = PointEnv,
-            maze_task = CustomGoalRewards4Rooms,
+            maze_task = CustomGoalReward4Rooms,
             max_episode_size = params['max_episode_size'],
             n_steps = params['obs_history_steps']
         )
@@ -384,7 +398,7 @@ def train_rtd3(
     eval_env = tfa.environments.tf_py_environment.TFPyEnvironment(
         MazeEnv(
             model_cls = PointEnv,
-            maze_task = CustomGoalRewards4Rooms,
+            maze_task = CustomGoalReward4Rooms,
             max_episode_size = params['max_episode_size'],
             n_steps = params['obs_history_steps']
         )   

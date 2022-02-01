@@ -29,7 +29,7 @@ params = {
     'show_animation'              : False,
     'dt'                          : 0.02,
     'learning_starts'             : 751,
-    'imitation_steps'             : 1e5,
+    'imitation_steps'             : int(1e5),
     'render_freq'                 : 8004,
     'save_freq'                   : 16008,
     'eval_freq'                   : 8004,
@@ -78,126 +78,104 @@ tf_params = {
     'image_width'                 : image_width,
     'image_channels'              : image_channels,
     'action_dim'                  : action_dim,
-    'preprocessing_layers_actor'  : [
-                                        [
-                                            tf.keras.layers.Conv2D(
-                                                128, 
-                                                kernel_size = 8,
-                                                strides = 4,
-                                                activation = activation_fn_actor, 
-                                                input_shape = (image_height, image_width, image_channels)
-                                            ),
-                                            tf.keras.layers.Conv2D(
-                                                256,
-                                                kernel_size = 4,
-                                                strides = 2,
-                                                activation = activation_fn_actor,
-                                            ),
-                                            tf.keras.layers.Conv2D(
-                                                144,
-                                                kernel_size = 4,
-                                                strides = 2,
-                                                activation = activation_fn_actor,
-                                            ),
-                                            tf.keras.layers.Conv2D(
-                                                32,
-                                                kernel_size = 3,
-                                                strides = 1,
-                                                activation = activation_fn_actor
-                                            ),
-                                            tf.keras.layers.Flatten(),
-                                            tf.keras.layers.Dense(
-                                                512,
-                                                activation = activation_fn_actor,
-                                                kernel_initializer = 'glorot_uniform',
-                                                bias_initializer = 'glorot_uniform'
-                                            )
-                                        ],
-                                        [
-                                            tf.keras.layers.Dense(
-                                                (4 + 4 * n_history_steps) * 4,
-                                                activation = activation_fn_actor,
-                                                kernel_initializer = 'glorot_uniform',
-                                                bias_initializer = 'glorot_uniform'
-                                            ),
-                                            tf.keras.layers.Dense(
-                                                (4 + 4 * n_history_steps) * 3,
-                                                activation = activation_fn_actor,
-                                                kernel_initializer = 'glorot_uniform',
-                                                bias_initializer = 'glorot_uniform'
-                                            ),
-                                        ]
+    'visual_cortex'               : [
+                                        {
+                                            'class' : tf.keras.layers.Conv2D,
+                                            'kwargs' : {
+                                                'filters' : 128,
+                                                'kernel_size' : 8,
+                                                'strides' : 4,
+                                                'activation' : activation_fn_actor,
+                                                'input_shape' : (image_height, image_width, image_channels)
+                                            }
+                                        },
+                                        {
+                                            'class' : tf.keras.layers.Conv2D,
+                                            'kwargs' : {
+                                                'filters' : 256,
+                                                'kernel_size' : 4,
+                                                'strides' : 2,
+                                                'activation' : activation_fn_actor
+                                            }
+                                        },
+                                        {
+                                            'class' : tf.keras.layers.Conv2D,
+                                            'kwargs' : {
+                                                'filters' : 144,
+                                                'kernel_size' : 4,
+                                                'strides' : 2,
+                                                'activation' : activation_fn_actor
+                                            }
+                                        },
+                                        {
+                                            'class' : tf.keras.layers.Conv2D,
+                                            'kwargs' : {
+                                                'filters' : 32,
+                                                'kernel_size' : 3,
+                                                'strides' : 1,
+                                                'activation' : activation_fn_actor
+                                            }
+                                        },
+                                        {
+                                            'class' : tf.keras.layers.Flatten,
+                                            'kwargs' : {}
+                                        },
+                                        {
+                                            'class' : tf.keras.layers.Dense,
+                                            'kwargs' : {
+                                                'units' : 512,
+                                                'activation' : activation_fn_actor,
+                                                'kernel_initializer' : 'glorot_uniform',
+                                                'bias_initializer' : 'glorot_uniform'
+                                            }
+                                        }
                                     ],
-    'input_fc_params_actor'       : [1024, 768, 512],
+    'proprioreceptive_cortex'     : [
+                                        {
+                                            'class' : tf.keras.layers.Dense,
+                                            'kwargs' : {
+                                                'units' : (4 + 4 * n_history_steps) * 4,
+                                                'activation' : activation_fn_actor,
+                                                'kernel_initializer' : 'glorot_uniform',
+                                                'bias_initializer' : 'glorot_uniform'
+                                            }
+                                        },
+                                        {
+                                            'class' : tf.keras.layers.Dense,
+                                            'kwargs' : {
+                                                'units' : (4 + 4 * n_history_steps) * 3,
+                                                'activation' : activation_fn_actor,
+                                                'kernel_initializer' : 'glorot_uniform',
+                                                'bias_initializer' : 'glorot_uniform'
+                                            }
+                                        }
+                                    ],
+    'action_preprocessing_layers' : [ 
+                                        {   
+                                            'class' : tf.keras.layers.Dense,
+                                            'kwargs' : { 
+                                                'units' : (4 + 4 * n_history_steps) * 4,
+                                                'activation' : activation_fn_actor,
+                                                'kernel_initializer' : 'glorot_uniform',
+                                                'bias_initializer' : 'glorot_uniform'
+                                            }   
+                                        },  
+                                        {   
+                                            'class' : tf.keras.layers.Dense,
+                                            'kwargs' : { 
+                                                'units' : (4 + 4 * n_history_steps) * 3,
+                                                'activation' : activation_fn_actor,
+                                                'kernel_initializer' : 'glorot_uniform',
+                                                'bias_initializer' : 'glorot_uniform'
+                                            }   
+                                        }   
+                                    ],
+    'input_fc_layer_params_actor'       : [1024, 768, 512],
     'lstm_size_actor'             : [256, 128],
     'output_fc_layer_params_actor': [64, 32],
     'activation_fn_actor'         : activation_fn_actor,
     'activation_fn_critic'        : activation_fn_critic,
-    'preprocessing_layers_critic' : [
-                                        [
-                                            tf.keras.layers.Dense(
-                                                4 * action_dim,
-                                                activation = activation_fn_critic,
-                                                kernel_initializer = 'glorot_uniform',
-                                                bias_initializer = 'glorot_uniform'
-                                            ),
-                                            tf.keras.layers.Dense(
-                                                3 * action_dim,
-                                                activation = activation_fn_critic,
-                                                kernel_initializer = 'glorot_uniform',
-                                                bias_initializer = 'glorot_uniform'
-                                            ),
-                                        ],
-                                        [   
-                                            tf.keras.layers.Conv2D(
-                                                128, 
-                                                kernel_size = 8,
-                                                strides = 4, 
-                                                activation = activation_fn_critic, 
-                                                input_shape = (image_height, image_width, image_channels)
-                                            ),  
-                                            tf.keras.layers.Conv2D(
-                                                256,
-                                                kernel_size = 4,
-                                                strides = 2,
-                                                activation = activation_fn_critic,
-                                            ),  
-                                            tf.keras.layers.Conv2D(
-                                                144,
-                                                kernel_size = 4,
-                                                strides = 2,
-                                                activation = activation_fn_critic,
-                                            ),  
-                                            tf.keras.layers.Conv2D(
-                                                32, 
-                                                kernel_size = 3,
-                                                strides = 1,
-                                                activation = activation_fn_critic
-                                            ),   
-                                            tf.keras.layers.Flatten(),
-                                            tf.keras.layers.Dense(
-                                                512,
-                                                activation = activation_fn_critic,
-                                                kernel_initializer = 'glorot_uniform',
-                                                bias_initializer = 'glorot_uniform'
-                                            )   
-                                        ],  
-                                        [   
-                                            tf.keras.layers.Dense(
-                                                (4 + 4 * n_history_steps) * 4,
-                                                activation = activation_fn_critic,
-                                                kernel_initializer = 'glorot_uniform',
-                                                bias_initializer = 'glorot_uniform'
-                                            ),  
-                                            tf.keras.layers.Dense(
-                                                (4 + 4 * n_history_steps) * 3,
-                                                activation = activation_fn_critic,
-                                                kernel_initializer = 'glorot_uniform',
-                                                bias_initializer = 'glorot_uniform'
-                                            ),  
-                                        ],
-                                    ],
-    'input_fc_params_critic'       : [1024, 768, 512],
+    'input_fc_layer_params_critic'       : [1024, 768, 512],
     'lstm_size_critic'             : [256, 128],
     'output_fc_layer_params_critic': [64, 32],
 
@@ -230,14 +208,14 @@ tf_params = {
     'gradient_clipping'             : None,
     'debug'                         : False,
 
-    'buffer_capacity'               : 1e5,
+    'buffer_capacity'               : int(1e4),
     'train_metrics'                 : [
                                         (   
-                                            tfa.metrics.tf_metrics.NumberOfEpisodes(),
+                                            tfa.metrics.tf_metrics.NumberOfEpisodes,
                                             {}  
                                         ),
                                         (
-                                            tfa.metrics.tf_metrics.EnvironmentSteps(),
+                                            tfa.metrics.tf_metrics.EnvironmentSteps,
                                             {}
                                         ),
                                         (
@@ -249,7 +227,7 @@ tf_params = {
                                             {}
                                         ),
                                         (
-                                            tfa.metrics.tf_metrics.MaxReturnMetric(),
+                                            tfa.metrics.tf_metrics.MaxReturnMetric,
                                             {}
                                         ),
                                     ],
@@ -263,15 +241,15 @@ tf_params = {
                                             {}  
                                         ),  
                                         (   
-                                            tfa.metrics.tf_metrics.NumberOfEpisodes(),
+                                            tfa.metrics.tf_metrics.NumberOfEpisodes,
                                             {}  
                                         ),  
                                         (   
-                                            tfa.metrics.tf_metrics.EnvironmentSteps(),
+                                            tfa.metrics.tf_metrics.EnvironmentSteps,
                                             {}  
                                         ),  
                                         (   
-                                            tfa.metrics.tf_metrics.MaxReturnMetric(),
+                                            tfa.metrics.tf_metrics.MaxReturnMetric,
                                             {}  
                                         ),  
                                     ],

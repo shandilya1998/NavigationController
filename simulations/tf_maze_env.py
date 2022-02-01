@@ -486,7 +486,6 @@ class MazeEnv(tfa.environments.py_environment.PyEnvironment):
     def _get_obs(self):
         obs = self.last_wrapped_obs
         img = obs['front'].copy()
-        inframe, reversemask = self._task.goals[self._task.goal_index].inframe(img)
         img = img.astype(np.float32) / 255
         img = np.concatenate([
             img.astype(np.float32) / 255.0, np.expand_dims(obs['front_depth'], -1)
@@ -526,16 +525,12 @@ class MazeEnv(tfa.environments.py_environment.PyEnvironment):
             obs = [
                 `visual`,
                 `sensors`,
-                `sampled_action`,
-                `inframe`
             ]
         """
-        obs = [
+        obs = (
             img.copy(),
             sensors.copy(),
-            sampled_action.copy(),
-            np.array(inframe, dtype = np.bool)
-        ]
+        )
         return obs
 
     def _set_observation_space(self, observation):
@@ -552,11 +547,9 @@ class MazeEnv(tfa.environments.py_environment.PyEnvironment):
                 shape = observation[1].shape,
                 dtype = observation[1].dtype
             ),
-            copy.deepcopy(self.wrapped_env.action_space),
-            gym.spaces.Space(shape = (), dtype = np.bool)
         ])
 
-        self._observation_spec = [
+        self._observation_spec = (
             tfa.specs.BoundedArraySpec(
                 shape = self.observation_space[0].shape,
                 dtype = self.observation_space[0].dtype,
@@ -569,17 +562,7 @@ class MazeEnv(tfa.environments.py_environment.PyEnvironment):
                 minimum = self.observation_space[1].low,
                 maximum = self.observation_space[1].high
             ),
-            tfa.specs.BoundedArraySpec(
-                shape = self.observation_space[-2].shape,
-                dtype = self.observation_space[-2].dtype,
-                minimum = self.observation_space[-2].low,
-                maximum = self.observation_space[-2].high
-            ),
-            tfa.specs.ArraySpec(
-                shape = self.observation_space[-1].shape,
-                dtype = self.observation_space[-1].dtype
-            )
-        ] 
+        )
         return self.observation_space
 
     def _reset(self) -> np.ndarray:
@@ -625,6 +608,7 @@ class MazeEnv(tfa.environments.py_environment.PyEnvironment):
         self.actions.pop(0)
         self.actions.append(action.copy())
         self.last_wrapped_obs, inner_reward, _, info = self.wrapped_env.step(action)
+        inframe, reversemask = self._task.goals[self._task.goal_index].inframe(self.last_wrapped_obs['front'])
         next_pos = self.get_xy()
         x, y = next_pos
         (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(next_pos[0], next_pos[1])
@@ -651,8 +635,8 @@ class MazeEnv(tfa.environments.py_environment.PyEnvironment):
 
         # Reward Computation
         inner_reward += -1 + (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / params['max_vyaw']))
-        outer_reward = self._task.reward(next_pos, next_obs[-1]) + rho
-        done = self._task.termination(next_pos, next_obs[-1])
+        outer_reward = self._task.reward(next_pos, inframe) + rho
+        done = self._task.termination(next_pos, inframe)
         index = self.__get_current_cell(next_pos)
         self._current_cell = index
         almost_collision, blind, outbound = self.check_position(next_pos)
@@ -686,6 +670,7 @@ class MazeEnv(tfa.environments.py_environment.PyEnvironment):
     def conditional_blind(self, obs, yaw, b):
         # Blinds the visual observation if agent is too close to the wall or collides
         penalty = 0.0
+        obs = list(obs)
         if b[0]:
             if 0 > yaw >= -np.pi / 2:
                 if 0 > yaw >= -np.pi / 8:
@@ -773,7 +758,7 @@ class MazeEnv(tfa.environments.py_environment.PyEnvironment):
         if self._is_in_collision():
             penalty += -50.0 * self._inner_reward_scaling
             self.collision_count += 1
-        return obs, penalty
+        return tuple(obs), penalty
 
     def _is_in_collision(self):
         # Checks if the last action caused collision

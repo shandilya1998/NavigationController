@@ -419,7 +419,27 @@ class MazeEnv(gym.Env):
         self._action_space = self.wrapped_env.action_space
 
     def _set_observation_space(self, observation):
-        self.observation_space = convert_observation_to_space(observation)
+        self.observation_space = gym.spaces.Dict({
+            'front' : gym.spaces.Box(
+                low = np.zeros_like(observation['front'], dtype = np.uint8),
+                high = 255 * np.ones_like(observation['front'], dtype = np.uint8),
+                shape = observation['front'].shape,
+                dtype = observation['front'].dtype
+            ),
+            'sensors' : gym.spaces.Box(
+                low = -np.ones_like(observation['sensors']),
+                high = np.ones_like(observation['sensors']),
+                shape = observation['sensors'].shape,
+                dtype = observation['sensors'].dtype
+            ),
+            'sampled_action' : copy.deepcopy(self._action_space),
+            'inframe' : gym.spaces.Box(
+                low = np.zeros_like(observation['inframe']),
+                high = np.ones_like(observation['inframe']),
+                shape = observation['inframe'].shape,
+                dtype = observation['inframe'].dtype
+            )
+        })
         return self.observation_space
 
     def _xy_limits(self) -> Tuple[float, float, float, float]:
@@ -484,7 +504,7 @@ class MazeEnv(gym.Env):
             'sampled_action' : sampled_action.copy(),
             'inframe' : np.array([inframe], dtype = np.float32)
         }
-        return obs, inframe
+        return obs
 
     def reset(self) -> np.ndarray:
         self.collision_count = 0

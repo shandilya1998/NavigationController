@@ -12,6 +12,9 @@ import os
 #from stable_baselines3.common.evaluation import evaluate_policy
 import warnings
 
+"""
+		Modifying def evaluate_policy(**kwargs)
+"""
 def evaluate_policy(
     model: "base_class.BaseAlgorithm",
     env: Union[gym.Env, sb3.common.vec_env.base_vec_env.VecEnv],
@@ -85,7 +88,7 @@ def evaluate_policy(
     size = model.policy.net_arch[-1]
     states = (torch.zeros((1, size)).to(model.device), torch.zeros((1, size)).to(model.device))
     while (episode_counts < episode_count_targets).any():
-        actions, states = model.predict(observations, state=states, deterministic=deterministic)
+        [actions, features, probab, gen_image], states = model.predict(observations, state=states, deterministic=deterministic)
         observations, rewards, dones, infos = env.step(actions)
         current_rewards += rewards
         current_lengths += 1

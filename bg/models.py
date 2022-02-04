@@ -200,6 +200,7 @@ class VisualCortexV2(torch.nn.Module):
         )
 
         # Compute shape by doing one forward pass
+        #print(observation_space.sample()[None].shape)
         with torch.no_grad():
             n_flatten = self.cnn(
                 torch.as_tensor(
@@ -334,17 +335,14 @@ class VisualCortexV4(torch.nn.Module):
 
         with torch.no_grad():
             inp = observation_space.sample().transpose(2, 0, 1)
-            print(inp.shape)
             feature_maps = self.resnet18fpn(
                 torch.as_tensor(
-                    observation_space.sample().transpose(
-                        2, 0, 1)[None]).float())
+                    observation_space.sample()[None]).float())
             out_0 = self.conv1(feature_maps['0']).shape[-1]
             out_1 = self.conv2(feature_maps['1']).shape[-1]
             out_2 = self.conv3(feature_maps['2']).shape[-1]
             out_3 = self.conv4(feature_maps['pool']).shape[-1]
         n_flatten = out_0 + out_1 + out_2 + out_3
-        print(n_flatten)
         self.fc_out = torch.nn.Sequential(
             torch.nn.Linear(
                 n_flatten,

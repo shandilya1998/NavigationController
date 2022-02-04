@@ -12,9 +12,10 @@ import torch
 import copy
 import warnings
 from constants import params
-from bg.models import VisualCortexV2
+from bg.models import VisualCortexV2, Autoencoder
 
 TensorDict = Dict[Union[str, int], List[np.ndarray]]
+
 
 class ReplayBufferSamples(NamedTuple):
     observations: torch.Tensor
@@ -24,6 +25,7 @@ class ReplayBufferSamples(NamedTuple):
     rewards: torch.Tensor
     size: int
 
+
 class DictReplayBufferSamples(ReplayBufferSamples):
     observations: TensorDict
     actions: np.ndarray
@@ -31,6 +33,7 @@ class DictReplayBufferSamples(ReplayBufferSamples):
     dones: np.ndarray
     rewards: np.ndarray
     size: int
+
 
 class EpisodicReplayBuffer(sb3.common.buffers.BaseBuffer):
     """
@@ -63,7 +66,14 @@ class EpisodicReplayBuffer(sb3.common.buffers.BaseBuffer):
     ):
         self.n_ep = int(buffer_size / max_episode_size)
         self.max_ep_size = max_episode_size
-        super(EpisodicReplayBuffer, self).__init__(buffer_size, observation_space, action_space, device, n_envs=n_envs)
+        super(
+            EpisodicReplayBuffer,
+            self).__init__(
+            buffer_size,
+            observation_space,
+            action_space,
+            device,
+            n_envs=n_envs)
 
         assert n_envs == 1, "Replay buffer only support single environment for now"
 
@@ -75,26 +85,51 @@ class EpisodicReplayBuffer(sb3.common.buffers.BaseBuffer):
 
         if optimize_memory_usage:
             # `observations` contains also the next observation
-            self.observations = np.zeros((self.n_ep, self.max_ep_size + 1, self.n_envs) + self.obs_shape, dtype=observation_space.dtype)
+            self.observations = np.zeros(
+                (self.n_ep,
+                 self.max_ep_size + 1,
+                 self.n_envs) + self.obs_shape,
+                dtype=observation_space.dtype)
             self.next_observations = None
         else:
-            self.observations = np.zeros((self.n_ep, self.max_ep_size, self.n_envs) + self.obs_shape, dtype=observation_space.dtype)
-            self.next_observations = np.zeros((self.n_ep, self.max_ep_size, self.n_envs) + self.obs_shape, dtype=observation_space.dtype)
+            self.observations = np.zeros(
+                (self.n_ep,
+                 self.max_ep_size,
+                 self.n_envs) + self.obs_shape,
+                dtype=observation_space.dtype)
+            self.next_observations = np.zeros(
+                (self.n_ep,
+                 self.max_ep_size,
+                 self.n_envs) + self.obs_shape,
+                dtype=observation_space.dtype)
 
-        self.actions = np.zeros((self.n_ep, self.max_ep_size, self.n_envs, self.action_dim), dtype=action_space.dtype)
+        self.actions = np.zeros(
+            (self.n_ep,
+             self.max_ep_size,
+             self.n_envs,
+             self.action_dim),
+            dtype=action_space.dtype)
 
-        self.rewards = np.zeros((self.n_ep, self.max_ep_size, self.n_envs), dtype=np.float32)
-        self.dones = np.zeros((self.n_ep, self.max_ep_size, self.n_envs), dtype=np.float32)
+        self.rewards = np.zeros(
+            (self.n_ep, self.max_ep_size, self.n_envs), dtype=np.float32)
+        self.dones = np.zeros(
+            (self.n_ep,
+             self.max_ep_size,
+             self.n_envs),
+            dtype=np.float32)
         # Handle timeouts termination properly if needed
         # see https://github.com/DLR-RM/stable-baselines3/issues/284
         self.handle_timeout_termination = handle_timeout_termination
-        self.timeouts = np.zeros((self.n_ep, self.max_ep_size, self.n_envs), dtype=np.float32)
-        self.episode_lengths = np.zeros((self.n_ep, self.n_envs), dtype=np.int32) 
+        self.timeouts = np.zeros(
+            (self.n_ep, self.max_ep_size, self.n_envs), dtype=np.float32)
+        self.episode_lengths = np.zeros(
+            (self.n_ep, self.n_envs), dtype=np.int32)
         self.ep = 0
-        self.pos = np.zeros((self.n_envs), dtype = np.int32)
+        self.pos = np.zeros((self.n_envs), dtype=np.int32)
 
         if psutil is not None:
-            total_memory_usage = self.observations.nbytes + self.actions.nbytes + self.rewards.nbytes + self.dones.nbytes + self.episode_lengths.nbytes
+            total_memory_usage = self.observations.nbytes + self.actions.nbytes + \
+                self.rewards.nbytes + self.dones.nbytes + self.episode_lengths.nbytes
 
             if self.next_observations is not None:
                 total_memory_usage += self.next_observations.nbytes
@@ -105,8 +140,7 @@ class EpisodicReplayBuffer(sb3.common.buffers.BaseBuffer):
                 mem_available /= 1e9
                 warnings.warn(
                     "This system does not have apparently enough memory to store the complete "
-                    f"replay buffer {total_memory_usage:.2f}GB > {mem_available:.2f}GB"
-                )
+                    f"replay buffer {total_memory_usage:.2f}GB > {mem_available:.2f}GB")
 
     def add(
         self,
@@ -121,16 +155,19 @@ class EpisodicReplayBuffer(sb3.common.buffers.BaseBuffer):
         self.observations[self.ep, self.pos] = np.array(obs).copy()
 
         if self.optimize_memory_usage:
-            self.observations[self.ep, self.pos + 1] = np.array(next_obs).copy()
+            self.observations[self.ep, self.pos +
+                              1] = np.array(next_obs).copy()
         else:
-            self.next_observations[self.ep, self.pos] = np.array(next_obs).copy()
+            self.next_observations[self.ep,
+                                   self.pos] = np.array(next_obs).copy()
 
         self.actions[self.ep, self.pos] = np.array(action).copy()
         self.rewards[self.ep, self.pos] = np.array(reward).copy()
         self.dones[self.ep, self.pos] = np.array(done).copy()
 
         if self.handle_timeout_termination:
-            self.timeouts[self.ep, self.pos] = np.array([info.get("TimeLimit.truncated", False) for info in infos])
+            self.timeouts[self.ep, self.pos] = np.array(
+                [info.get("TimeLimit.truncated", False) for info in infos])
 
         for i, d in enumerate(done):
             if d:
@@ -140,12 +177,14 @@ class EpisodicReplayBuffer(sb3.common.buffers.BaseBuffer):
             else:
                 self.pos[i] += 1
             if i >= 1:
-                raise ValueError("Replay buffer only support single environment for now")
+                raise ValueError(
+                    "Replay buffer only support single environment for now")
         if self.ep == self.n_ep:
             self.full = True
             self.ep = 0
 
-    def sample(self, batch_size: int, env: Optional[sb3.common.vec_env.vec_normalize.VecNormalize] = None) -> sb3.common.type_aliases.ReplayBufferSamples:
+    def sample(self, batch_size: int, env: Optional[sb3.common.vec_env.vec_normalize.VecNormalize]
+               = None) -> sb3.common.type_aliases.ReplayBufferSamples:
         """
         Sample elements from the replay buffer.
         Custom sampling when using memory efficient variant,
@@ -159,7 +198,8 @@ class EpisodicReplayBuffer(sb3.common.buffers.BaseBuffer):
         batch_inds = np.random.randint(0, self.pos, size=batch_size)
         return self._get_samples(batch_inds, env=env)
 
-    def _get_samples(self, batch_inds: np.ndarray, env: Optional[sb3.common.vec_env.vec_normalize.VecNormalize] = None) -> sb3.common.type_aliases.ReplayBufferSamples:
+    def _get_samples(self, batch_inds: np.ndarray,
+                     env: Optional[sb3.common.vec_env.vec_normalize.VecNormalize] = None) -> sb3.common.type_aliases.ReplayBufferSamples:
         """
             Need to update this.
             Refer to EpisodicDictReplayBuffer
@@ -167,15 +207,20 @@ class EpisodicReplayBuffer(sb3.common.buffers.BaseBuffer):
         raise NotImplementedError
         size = self.episode_lengths[batch_inds].mean()
         if self.optimize_memory_usage:
-            obs = self._normalize_obs(self.observations[batch_inds, :-1, 0, :], env)
-            next_obs = self._normalize_obs(self.observations[batch_inds, 1: 0, :], env)
+            obs = self._normalize_obs(
+                self.observations[batch_inds, :-1, 0, :], env)
+            next_obs = self._normalize_obs(
+                self.observations[batch_inds, 1: 0, :], env)
         else:
-            obs = self._normalize_obs(self.observations[batch_inds, :, 0, :], env)
-            next_obs = self._normalize_obs(self.next_observations[batch_inds, :, 0, :], env)
+            obs = self._normalize_obs(
+                self.observations[batch_inds, :, 0, :], env)
+            next_obs = self._normalize_obs(
+                self.next_observations[batch_inds, :, 0, :], env)
         obs = obs[:, :size]
         next_obs = next_obs[:, :size]
         actions = self.actions[batch_inds, :size, 0, :]
-        dones = self.dones[batch_inds, :size] * (1 - self.timeouts[batch_inds, :size])
+        dones = self.dones[batch_inds, :size] * \
+            (1 - self.timeouts[batch_inds, :size])
         rewards = self._normalize_reward(self.rewards[batch_inds, :size], env)
 
         data = (
@@ -185,10 +230,12 @@ class EpisodicReplayBuffer(sb3.common.buffers.BaseBuffer):
             dones,
             rewards,
         )
-        return sb3.common.type_aliases.ReplayBufferSamples(*tuple(map(self.to_torch, data)))
+        return sb3.common.type_aliases.ReplayBufferSamples(
+            *tuple(map(self.to_torch, data)))
+
 
 class EpisodicDictReplayBuffer(sb3.common.buffers.BaseBuffer):
-    """ 
+    """
     Replay buffer used in off-policy algorithms like SAC/TD3.
     :param buffer_size: Max number of element in the buffer
     :param observation_space: Observation space
@@ -219,8 +266,16 @@ class EpisodicDictReplayBuffer(sb3.common.buffers.BaseBuffer):
 
         self.n_ep = int(buffer_size / max_episode_size)
         self.max_ep_size = max_episode_size
-        super(EpisodicDictReplayBuffer, self).__init__(buffer_size, observation_space, action_space, device, n_envs=n_envs)
-        assert isinstance(self.obs_shape, dict), "DictReplayBuffer must be used with Dict obs space only"
+        super(
+            EpisodicDictReplayBuffer,
+            self).__init__(
+            buffer_size,
+            observation_space,
+            action_space,
+            device,
+            n_envs=n_envs)
+        assert isinstance(
+            self.obs_shape, dict), "DictReplayBuffer must be used with Dict obs space only"
         assert n_envs == 1, "Replay buffer only support single environment for now"
         if psutil is not None:
             mem_available = psutil.virtual_memory().available
@@ -231,33 +286,52 @@ class EpisodicDictReplayBuffer(sb3.common.buffers.BaseBuffer):
         self.optimize_memory_usage = optimize_memory_usage
 
         self.observations = {
-            key: np.zeros((self.n_ep, self.max_ep_size, self.n_envs) + _obs_shape, dtype=observation_space[key].dtype)
-            for key, _obs_shape in self.obs_shape.items()
-        }
+            key: np.zeros(
+                (self.n_ep,
+                 self.max_ep_size,
+                 self.n_envs) + _obs_shape,
+                dtype=observation_space[key].dtype) for key,
+            _obs_shape in self.obs_shape.items()}
         self.next_observations = {
-            key: np.zeros((self.n_ep, self.max_ep_size, self.n_envs) + _obs_shape, dtype=observation_space[key].dtype)
-            for key, _obs_shape in self.obs_shape.items()
-        }
+            key: np.zeros(
+                (self.n_ep,
+                 self.max_ep_size,
+                 self.n_envs) + _obs_shape,
+                dtype=observation_space[key].dtype) for key,
+            _obs_shape in self.obs_shape.items()}
 
         # only 1 env is supported
-        self.actions = np.zeros((self.n_ep, self.max_ep_size, self.n_envs, self.action_dim), dtype=action_space.dtype)
-        self.rewards = np.zeros((self.n_ep, self.max_ep_size, self.n_envs), dtype=np.float32)
-        self.dones = np.zeros((self.n_ep, self.max_ep_size, self.n_envs), dtype=np.float32)
+        self.actions = np.zeros(
+            (self.n_ep,
+             self.max_ep_size,
+             self.n_envs,
+             self.action_dim),
+            dtype=action_space.dtype)
+        self.rewards = np.zeros(
+            (self.n_ep, self.max_ep_size, self.n_envs), dtype=np.float32)
+        self.dones = np.zeros(
+            (self.n_ep,
+             self.max_ep_size,
+             self.n_envs),
+            dtype=np.float32)
 
         # Handle timeouts termination properly if needed
         # see https://github.com/DLR-RM/stable-baselines3/issues/284
         self.handle_timeout_termination = handle_timeout_termination
-        self.timeouts = np.zeros((self.n_ep, self.max_ep_size, self.n_envs), dtype=np.float32)
-        self.episode_lengths = np.zeros((self.n_ep, self.n_envs), dtype=np.int32)
+        self.timeouts = np.zeros(
+            (self.n_ep, self.max_ep_size, self.n_envs), dtype=np.float32)
+        self.episode_lengths = np.zeros(
+            (self.n_ep, self.n_envs), dtype=np.int32)
         self.ep = 0
-        self.pos = np.zeros((self.n_envs), dtype = np.int32)
+        self.pos = np.zeros((self.n_envs), dtype=np.int32)
 
         if psutil is not None:
             obs_nbytes = 0
             for _, obs in self.observations.items():
                 obs_nbytes += obs.nbytes
 
-            total_memory_usage = obs_nbytes + self.actions.nbytes + self.rewards.nbytes + self.dones.nbytes + self.episode_lengths.nbytes
+            total_memory_usage = obs_nbytes + self.actions.nbytes + \
+                self.rewards.nbytes + self.dones.nbytes + self.episode_lengths.nbytes
             if self.next_observations is not None:
                 next_obs_nbytes = 0
                 for _, obs in self.observations.items():
@@ -270,8 +344,7 @@ class EpisodicDictReplayBuffer(sb3.common.buffers.BaseBuffer):
                 mem_available /= 1e9
                 warnings.warn(
                     "This system does not have apparently enough memory to store the complete "
-                    f"replay buffer {total_memory_usage:.2f}GB > {mem_available:.2f}GB"
-                )
+                    f"replay buffer {total_memory_usage:.2f}GB > {mem_available:.2f}GB")
 
     def add(
         self,
@@ -284,17 +357,20 @@ class EpisodicDictReplayBuffer(sb3.common.buffers.BaseBuffer):
     ) -> None:
         # Copy to avoid modification by reference
         for key in self.observations.keys():
-            self.observations[key][self.ep, self.pos] = np.array(obs[key]).copy()
+            self.observations[key][self.ep,
+                                   self.pos] = np.array(obs[key]).copy()
 
         for key in self.next_observations.keys():
-            self.next_observations[key][self.ep, self.pos] = np.array(next_obs[key]).copy()
+            self.next_observations[key][self.ep,
+                                        self.pos] = np.array(next_obs[key]).copy()
 
         self.actions[self.ep, self.pos] = np.array(action).copy()
         self.rewards[self.ep, self.pos] = np.array(reward).copy()
         self.dones[self.ep, self.pos] = np.array(done).copy()
 
         if self.handle_timeout_termination:
-            self.timeouts[self.ep, self.pos] = np.array([info.get("TimeLimit.truncated", False) for info in infos])
+            self.timeouts[self.ep, self.pos] = np.array(
+                [info.get("TimeLimit.truncated", False) for info in infos])
 
         for i, d in enumerate(done):
             if d or self.pos[i] >= self.max_ep_size - 1:
@@ -304,13 +380,15 @@ class EpisodicDictReplayBuffer(sb3.common.buffers.BaseBuffer):
             else:
                 self.pos[i] += 1
             if i >= 1:
-                raise ValueError("Replay buffer only support single environment for now")
+                raise ValueError(
+                    "Replay buffer only support single environment for now")
         if self.ep == self.n_ep:
             self.full = True
             self.ep = 0
             self.pos[:] = 0
 
-    def sample(self, batch_size: int, env: Optional[sb3.common.vec_env.vec_normalize.VecNormalize] = None) -> DictReplayBufferSamples:
+    def sample(self, batch_size: int,
+               env: Optional[sb3.common.vec_env.vec_normalize.VecNormalize] = None) -> DictReplayBufferSamples:
         """
         Sample elements from the replay buffer.
         Custom sampling when using memory efficient variant,
@@ -328,26 +406,35 @@ class EpisodicDictReplayBuffer(sb3.common.buffers.BaseBuffer):
         size = int(self.episode_lengths[batch_inds].mean())
         return self._get_samples(batch_inds, size, env=env), size
 
-    def _get_samples(self, batch_inds: np.ndarray, size: int, env: Optional[sb3.common.vec_env.vec_normalize.VecNormalize] = None) -> DictReplayBufferSamples:
+    def _get_samples(self, batch_inds: np.ndarray, size: int,
+                     env: Optional[sb3.common.vec_env.vec_normalize.VecNormalize] = None) -> DictReplayBufferSamples:
         for i in range(size):
-            obs = self._normalize_obs({key: obs[batch_inds, i, 0, :] for key, obs in self.observations.items()})
-            observations = {key : self.to_torch(item) for key, item in obs.items()}
-            next_obs = self._normalize_obs({key: obs[batch_inds, i, 0, :] for key, obs in self.next_observations.items()})
-            next_observations = {key : self.to_torch(item) for key, item in next_obs.items()}
+            obs = self._normalize_obs(
+                {key: obs[batch_inds, i, 0, :] for key, obs in self.observations.items()})
+            observations = {
+                key: self.to_torch(item) for key,
+                item in obs.items()}
+            next_obs = self._normalize_obs(
+                {key: obs[batch_inds, i, 0, :] for key, obs in self.next_observations.items()})
+            next_observations = {
+                key: self.to_torch(item) for key,
+                item in next_obs.items()}
             actions = self.actions[batch_inds, i, 0, :]
-            dones = self.dones[batch_inds, i] * (1 - self.timeouts[batch_inds, i])
+            dones = self.dones[batch_inds, i] * \
+                (1 - self.timeouts[batch_inds, i])
             rewards = self._normalize_reward(self.rewards[batch_inds, i], env)
             yield DictReplayBufferSamples(
                 observations=observations,
                 actions=self.to_torch(actions),
                 next_observations=next_observations,
-                dones = self.to_torch(dones),
-                rewards = self.to_torch(rewards),
-                size = size
+                dones=self.to_torch(dones),
+                rewards=self.to_torch(rewards),
+                size=size
             )
 
+
 class LSTM(torch.nn.Module):
-    def __init__(self, input_dim, output_dim, net_arch, squash_output = False):
+    def __init__(self, input_dim, output_dim, net_arch, squash_output=False):
         super(LSTM, self).__init__()
         self.layers = []
         input_size = copy.deepcopy(input_dim)
@@ -357,7 +444,7 @@ class LSTM(torch.nn.Module):
             input_size = copy.deepcopy(net_arch[idx])
         self.layers.append(torch.nn.LSTMCell(input_size, net_arch[-1]))
 
-        if output_dim > 0: 
+        if output_dim > 0:
             last_layer_dim = net_arch[-1] if len(net_arch) > 0 else input_dim
             self.layers.append(torch.nn.Linear(last_layer_dim, output_dim))
         torch.nn.init.uniform_(self.layers[-1].weight, -3e-3, 3e-3)
@@ -377,6 +464,7 @@ class LSTM(torch.nn.Module):
         for i in range(self.offset):
             x = self.layers[-self.offset + i](x)
         return x, next_states
+
 
 def create_lstm(
     input_dim: int,
@@ -414,6 +502,7 @@ def create_lstm(
         modules.append(torch.nn.Tanh())
     return modules
 
+
 class Actor(torch.nn.Module):
     def __init__(
         self,
@@ -421,10 +510,10 @@ class Actor(torch.nn.Module):
         features_dim,
         output_dim,
         net_arch,
-        squash_output = False 
+        squash_output=False
     ):
         super(Actor, self).__init__()
-        self.vc = VisualCortexV2(
+        self.vc = Autoencoder(
             observation_space['front'],
             features_dim
         )
@@ -436,11 +525,12 @@ class Actor(torch.nn.Module):
 
     def forward(self, observation, hidden_state):
         sensors, front = observation
-        visual = self.vc(front)
+        visual, probab, gen_image = self.vc(front)
         sensors = self.fc_sensors(sensors)
         x = torch.cat([visual, sensors], -1)
         x, hidden_state = self.mu(x, hidden_state)
-        return x, hidden_state
+        return [x, visual, probab, gen_image], hidden_state
+
 
 class Critic(torch.nn.Module):
     def __init__(
@@ -450,7 +540,7 @@ class Critic(torch.nn.Module):
         features_dim,
         output_dim,
         net_arch,
-        squash_output = False
+        squash_output=False
     ):
         super(Critic, self).__init__()
         self.vc = VisualCortexV2(
@@ -474,6 +564,7 @@ class Critic(torch.nn.Module):
         x = torch.cat([visual, y], -1)
         x, hidden_state = self.mu(x, hidden_state)
         return x, hidden_state
+
 
 class RecurrentActor(sb3.common.policies.BasePolicy):
     """
@@ -509,7 +600,12 @@ class RecurrentActor(sb3.common.policies.BasePolicy):
         self.features_dim = features_dim
 
         action_dim = sb3.common.preprocessing.get_action_dim(self.action_space)
-        self.mu = Actor(observation_space, features_dim, action_dim, net_arch, squash_output = False)
+        self.mu = Actor(
+            observation_space,
+            features_dim,
+            action_dim,
+            net_arch,
+            squash_output=False)
 
     def _get_constructor_parameters(self) -> Dict[str, Any]:
         data = super()._get_constructor_parameters()
@@ -522,16 +618,23 @@ class RecurrentActor(sb3.common.policies.BasePolicy):
         )
         return data
 
-    def forward(self, obs: torch.Tensor, state: Tuple[torch.Tensor]) -> Tuple[torch.Tensor, Tuple[torch.Tensor]]:
+    def forward(self,
+                obs: torch.Tensor,
+                state: Tuple[torch.Tensor]) -> Tuple[torch.Tensor,
+                                                     Tuple[torch.Tensor]]:
         # assert deterministic, 'The TD3 actor only outputs deterministic actions'
         features = self.extract_features(obs)
         return self.mu(features, state)
 
-    def _predict(self, observation: torch.Tensor, state: Tuple[torch.Tensor], deterministic: bool = False) -> Tuple[torch.Tensor, Tuple[torch.Tensor]]:
+    def _predict(self,
+                 observation: torch.Tensor,
+                 state: Tuple[torch.Tensor],
+                 deterministic: bool = False) -> Tuple[torch.Tensor,
+                                                       Tuple[torch.Tensor]]:
         # Note: the deterministic deterministic parameter is ignored in the case of TD3.
         #   Predictions are always deterministic.
         return self.forward(observation, state)
-    
+
     def predict(
         self,
         observation: Union[np.ndarray, Dict[str, np.ndarray]],
@@ -539,7 +642,7 @@ class RecurrentActor(sb3.common.policies.BasePolicy):
         mask: Optional[np.ndarray] = None,
         deterministic: bool = False,
     ) -> Tuple[np.ndarray, Tuple[torch.Tensor]]:
-        """ 
+        """
         Get the policy action and state from an observation (and optional state).
         Includes sugar-coating to handle different observations (e.g. normalizing images).
         :param observation: the input observation
@@ -557,38 +660,50 @@ class RecurrentActor(sb3.common.policies.BasePolicy):
 
         vectorized_env = False
         if isinstance(observation, dict):
-            # need to copy the dict as the dict in VecFrameStack will become a torch tensor
+            # need to copy the dict as the dict in VecFrameStack will become a
+            # torch tensor
             observation = copy.deepcopy(observation)
             for key, obs in observation.items():
                 obs_space = self.observation_space.spaces[key]
                 if sb3.common.preprocessing.is_image_space(obs_space):
-                    obs_ = sb3.common.preprocessing.maybe_transpose(obs, obs_space)
+                    obs_ = sb3.common.preprocessing.maybe_transpose(
+                        obs, obs_space)
                 else:
                     obs_ = np.array(obs)
-                vectorized_env = vectorized_env or sb3.common.utils.is_vectorized_observation(obs_, obs_space)
+                vectorized_env = vectorized_env or sb3.common.utils.is_vectorized_observation(
+                    obs_, obs_space)
                 # Add batch dimension if needed
-                observation[key] = obs_.reshape((-1,) + self.observation_space[key].shape)
+                observation[key] = obs_.reshape(
+                    (-1,) + self.observation_space[key].shape)
 
         elif sb3.common.preprocessing.is_image_space(self.observation_space):
             # Handle the different cases for images
             # as PyTorch use channel first format
-            observation = sb3.common.preprocessing.maybe_transpose(observation, self.observation_space)
+            observation = sb3.common.preprocessing.maybe_transpose(
+                observation, self.observation_space)
 
         else:
             observation = np.array(observation)
 
         if not isinstance(observation, dict):
             # Dict obs need to be handled separately
-            vectorized_env = sb3.common.utils.is_vectorized_observation(observation, self.observation_space)
+            vectorized_env = sb3.common.utils.is_vectorized_observation(
+                observation, self.observation_space)
             # Add batch dimension if needed
-            observation = observation.reshape((-1,) + self.observation_space.shape)
+            observation = observation.reshape(
+                (-1,) + self.observation_space.shape)
 
         observation = sb3.common.utils.obs_as_tensor(observation, self.device)
 
         with torch.no_grad():
-            actions, state = self._predict(observation, state, deterministic=deterministic)
+            # Actor output consists of al output pipelines' outputs
+            [actions, features, probab, gen_image], state = self._predict(
+                observation, state, deterministic=deterministic)
         # Convert to numpy
         actions = actions.cpu().numpy()
+        features = features.cpu().numpy()
+        probab = probab.cpu().numpy()
+        gen_image = gen_image.cpu().numpy()
 
         if isinstance(self.action_space, gym.spaces.Box):
             if self.squash_output:
@@ -596,15 +711,24 @@ class RecurrentActor(sb3.common.policies.BasePolicy):
                 actions = self.unscale_action(actions)
             else:
                 # Actions could be on arbitrary scale, so clip the actions to avoid
-                # out of bound error (e.g. if sampling from a Gaussian distribution)
-                actions = np.clip(actions, self.action_space.low, self.action_space.high)
+                # out of bound error (e.g. if sampling from a Gaussian
+                # distribution)
+                actions = np.clip(
+                    actions,
+                    self.action_space.low,
+                    self.action_space.high)
 
         if not vectorized_env:
             if state is not None:
-                raise ValueError("Error: The environment must be vectorized when using recurrent policies.")
+                raise ValueError(
+                    "Error: The environment must be vectorized when using recurrent policies.")
             actions = actions[0]
+            features = features[0]
+            probab = features[0]
+            gen_image = gen_image[0]
 
-        return actions, state
+        return [actions, features, probab, gen_image], state
+
 
 class RecurrentContinuousCritic(sb3.common.policies.BaseModel):
     """
@@ -656,12 +780,22 @@ class RecurrentContinuousCritic(sb3.common.policies.BaseModel):
         self.n_critics = n_critics
         self.q_networks = []
         for idx in range(n_critics):
-            q_net = Critic(observation_space, action_dim, features_dim, 1, net_arch, squash_output = False)
+            q_net = Critic(
+                observation_space,
+                action_dim,
+                features_dim,
+                1,
+                net_arch,
+                squash_output=False)
             #q_net = nn.Sequential(*q_net)
             self.add_module(f"qf{idx}", q_net)
             self.q_networks.append(q_net)
 
-    def forward(self, obs: torch.Tensor, states: List[Tuple[torch.Tensor]], actions: torch.Tensor) -> Tuple[Tuple[torch.Tensor], List[Tuple[torch.Tensor]]]:
+    def forward(self,
+                obs: torch.Tensor,
+                states: List[Tuple[torch.Tensor]],
+                actions: torch.Tensor) -> Tuple[Tuple[torch.Tensor],
+                                                List[Tuple[torch.Tensor]]]:
         # Learn the features extractor using the policy loss only
         # when the features_extractor is shared with the actor
         with torch.set_grad_enabled(not self.share_features_extractor):
@@ -674,7 +808,11 @@ class RecurrentContinuousCritic(sb3.common.policies.BaseModel):
             _states.append(state)
         return tuple(outputs), _states
 
-    def q1_forward(self, obs: torch.Tensor, states: Tuple[torch.Tensor], actions: torch.Tensor) -> Tuple[torch.Tensor, Tuple[torch.Tensor]]:
+    def q1_forward(self,
+                   obs: torch.Tensor,
+                   states: Tuple[torch.Tensor],
+                   actions: torch.Tensor) -> Tuple[torch.Tensor,
+                                                   Tuple[torch.Tensor]]:
         """
         Only predict the Q-value using the first network.
         This allows to reduce computation when all the estimates are not needed
@@ -683,6 +821,7 @@ class RecurrentContinuousCritic(sb3.common.policies.BaseModel):
         with torch.no_grad():
             features = self.extract_features(obs)
         return self.q_networks[0](features, states, actions)
+
 
 class RecurrentTD3Policy(sb3.common.policies.BasePolicy):
     """
@@ -738,7 +877,8 @@ class RecurrentTD3Policy(sb3.common.policies.BasePolicy):
             else:
                 net_arch = [400, 300]
 
-        actor_arch, critic_arch = sb3.common.torch_layers.get_actor_critic_arch(net_arch)
+        actor_arch, critic_arch = sb3.common.torch_layers.get_actor_critic_arch(
+            net_arch)
 
         self.net_arch = net_arch
         self.activation_fn = activation_fn
@@ -773,23 +913,31 @@ class RecurrentTD3Policy(sb3.common.policies.BasePolicy):
         # Initialize the target to have the same weights as the actor
         self.actor_target.load_state_dict(self.actor.state_dict())
 
-        self.actor.optimizer = self.optimizer_class(self.actor.parameters(), lr=lr_schedule(1), **self.optimizer_kwargs)
+        self.actor.optimizer = self.optimizer_class(
+            self.actor.parameters(), lr=lr_schedule(1), **self.optimizer_kwargs)
 
         if self.share_features_extractor:
-            self.critic = self.make_critic(features_extractor=self.actor.features_extractor)
+            self.critic = self.make_critic(
+                features_extractor=self.actor.features_extractor)
             # Critic target should not share the features extactor with critic
             # but it can share it with the actor target as actor and critic are sharing
             # the same features_extractor too
             # NOTE: as a result the effective poliak (soft-copy) coefficient for the features extractor
-            # will be 2 * tau instead of tau (updated one time with the actor, a second time with the critic)
-            self.critic_target = self.make_critic(features_extractor=self.actor_target.features_extractor)
+            # will be 2 * tau instead of tau (updated one time with the actor,
+            # a second time with the critic)
+            self.critic_target = self.make_critic(
+                features_extractor=self.actor_target.features_extractor)
         else:
             # Create new features extractor for each network
             self.critic = self.make_critic(features_extractor=None)
             self.critic_target = self.make_critic(features_extractor=None)
 
         self.critic_target.load_state_dict(self.critic.state_dict())
-        self.critic.optimizer = self.optimizer_class(self.critic.parameters(), lr=lr_schedule(1), weight_decay = params['weight_decay'], **self.optimizer_kwargs)
+        self.critic.optimizer = self.optimizer_class(
+            self.critic.parameters(),
+            lr=lr_schedule(1),
+            weight_decay=params['weight_decay'],
+            **self.optimizer_kwargs)
 
     def _get_constructor_parameters(self) -> Dict[str, Any]:
         data = super()._get_constructor_parameters()
@@ -799,7 +947,8 @@ class RecurrentTD3Policy(sb3.common.policies.BasePolicy):
                 net_arch=self.net_arch,
                 activation_fn=self.net_args["activation_fn"],
                 n_critics=self.critic_kwargs["n_critics"],
-                lr_schedule=self._dummy_schedule,  # dummy lr schedule, not needed for loading policy alone
+                lr_schedule=self._dummy_schedule,
+                # dummy lr schedule, not needed for loading policy alone
                 optimizer_class=self.optimizer_class,
                 optimizer_kwargs=self.optimizer_kwargs,
                 features_extractor_class=self.features_extractor_class,
@@ -809,18 +958,30 @@ class RecurrentTD3Policy(sb3.common.policies.BasePolicy):
         )
         return data
 
-    def make_actor(self, features_extractor: Optional[sb3.common.torch_layers.BaseFeaturesExtractor] = None) -> RecurrentActor:
-        actor_kwargs = self._update_features_extractor(self.actor_kwargs, features_extractor)
+    def make_actor(
+            self, features_extractor: Optional[sb3.common.torch_layers.BaseFeaturesExtractor] = None) -> RecurrentActor:
+        actor_kwargs = self._update_features_extractor(
+            self.actor_kwargs, features_extractor)
         return RecurrentActor(**actor_kwargs).to(self.device)
 
-    def make_critic(self, features_extractor: Optional[sb3.common.torch_layers.BaseFeaturesExtractor] = None) -> sb3.common.policies.ContinuousCritic:
-        critic_kwargs = self._update_features_extractor(self.critic_kwargs, features_extractor)
+    def make_critic(
+            self, features_extractor: Optional[sb3.common.torch_layers.BaseFeaturesExtractor] = None) -> sb3.common.policies.ContinuousCritic:
+        critic_kwargs = self._update_features_extractor(
+            self.critic_kwargs, features_extractor)
         return RecurrentContinuousCritic(**critic_kwargs).to(self.device)
 
-    def forward(self, observation: torch.Tensor, state: Tuple[torch.Tensor], deterministic: bool = False) -> Tuple[torch.Tensor, Tuple[torch.Tensor]]:
+    def forward(self,
+                observation: torch.Tensor,
+                state: Tuple[torch.Tensor],
+                deterministic: bool = False) -> Tuple[torch.Tensor,
+                                                      Tuple[torch.Tensor]]:
         return self._predict(observation, deterministic=deterministic)
 
-    def _predict(self, observation: torch.Tensor, state: Tuple[torch.Tensor], deterministic: bool = False) -> Tuple[torch.Tensor, Tuple[torch.Tensor]]:
+    def _predict(self,
+                 observation: torch.Tensor,
+                 state: Tuple[torch.Tensor],
+                 deterministic: bool = False) -> Tuple[torch.Tensor,
+                                                       Tuple[torch.Tensor]]:
         # Note: the deterministic deterministic parameter is ignored in the case of TD3.
         #   Predictions are always deterministic.
         return self.actor(observation, state)
@@ -879,9 +1040,13 @@ class RecurrentTD3Policy(sb3.common.policies.BasePolicy):
         observation = sb3.common.utils.obs_as_tensor(observation, self.device)
 
         with torch.no_grad():
-            actions, state = self._predict(observation, state, deterministic=deterministic)
+                                    # Actor output consists of al output pipelines' outputs
+            [actions, features, probab, gen_image], state = self._predict(observation, state, deterministic=deterministic)
         # Convert to numpy
         actions = actions.cpu().numpy()
+        features = features.cpu().numpy()
+        probab = probab.cpu().numpy() 
+        gen_image = gen_image.cpu().numpy()
 
         if isinstance(self.action_space, gym.spaces.Box):
             if self.squash_output:
@@ -896,8 +1061,11 @@ class RecurrentTD3Policy(sb3.common.policies.BasePolicy):
             if state is not None:
                 raise ValueError("Error: The environment must be vectorized when using recurrent policies.")
             actions = actions[0]
+            features = features[0]
+            probab = features[0]
+            gen_image = gen_image[0]
 
-        return actions, state
+        return [actions, features, probab, gen_image] , state
 
 class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
     """
@@ -1012,7 +1180,12 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         self.max_p = torch.from_numpy(np.ones_like(self.action_space.high))
         self.min_p = torch.from_numpy(-np.ones_like(self.action_space.low))
         self.rnge = (self.max_p - self.min_p).detach()
-        self.hidden_state = (torch.zeros((1, size)).to(self.device), torch.zeros((1, size)).to(self.device))
+        self.hidden_state = (
+            torch.zeros(
+                (1, size)).to(
+                self.device), torch.zeros(
+                (1, size)).to(
+                    self.device))
         self._create_aliases()
 
     def _create_aliases(self) -> None:
@@ -1039,7 +1212,8 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             The two differs when the action space is not normalized (bounds are not [-1, 1]).
         """
         # Select action randomly or according to policy
-        if self.num_timesteps < learning_starts and not (self.use_sde and self.use_sde_at_warmup):
+        if self.num_timesteps < learning_starts and not (
+                self.use_sde and self.use_sde_at_warmup):
             # Warmup phase
             unscaled_action = np.array([self.action_space.sample()])
             #unscaled_action = self._last_obs['sampled_action']
@@ -1047,7 +1221,9 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             # Note: when using continuous actions,
             # we assume that the policy uses tanh to scale the action
             # We use non-deterministic action in the case of SAC, for TD3, it does not matter
-            unscaled_action, self.hidden_state = self.predict(self._last_obs, self.hidden_state, deterministic=False)
+            # Additional variables for maintaining equivalent structure
+            [unscaled_action, features, probab, gen_image], self.hidden_state = self.predict(
+                self._last_obs, self.hidden_state, deterministic=False)
 
         # Rescale the action from [low, high] to [-1, 1]
         if isinstance(self.action_space, gym.spaces.Box):
@@ -1108,7 +1284,12 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
 
         if done:
             size = self.policy.net_arch[-1]
-            self.hidden_state = (torch.zeros((1, size)).to(self.device), torch.zeros((1, size)).to(self.device))
+            self.hidden_state = (
+                torch.zeros(
+                    (1, size)).to(
+                    self.device), torch.zeros(
+                    (1, size)).to(
+                    self.device))
 
         replay_buffer.add(
             self._last_original_obs,
@@ -1124,35 +1305,56 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         if self._vec_normalize_env is not None:
             self._last_original_obs = new_obs_
 
-    def _invert_gradients(self, grad, vals):  
+    def _invert_gradients(self, grad, vals):
         with torch.no_grad():
             for n in range(grad.shape[0]):
-                # index = grad < 0  # actually > but Adam minimises, so reversed (could also double negate the grad)
+                # index = grad < 0  # actually > but Adam minimises, so
+                # reversed (could also double negate the grad)
                 index = grad[n] > 0
-                grad[n][index] *= (index.float() * (self.max_p - vals[n]) / self.rnge)[index]
-                grad[n][~index] *= ((~index).float() * (vals[n] - self.min_p) / self.rnge)[~index]
+                grad[n][index] *= (index.float() *
+                                   (self.max_p - vals[n]) / self.rnge)[index]
+                grad[n][~index] *= ((~index).float() *
+                                    (vals[n] - self.min_p) / self.rnge)[~index]
         return grad
 
     def update_policy(self,
-        gradient_steps: int,
-        batch_size: int,
-        replay_data: sb3.common.type_aliases.ReplayBufferSamples
-    ):
+                      gradient_steps: int,
+                      batch_size: int,
+                      replay_data: sb3.common.type_aliases.ReplayBufferSamples
+                      ):
         # Need to modify
         actor_losses, critic_losses = [], []
         size = self.policy.net_arch[-1]
         data = next(replay_data)
-        hidden_state = (torch.zeros((batch_size, size)).to(self.device), torch.zeros((batch_size, size)).to(self.device))
+        hidden_state = (
+            torch.zeros(
+                (batch_size, size)).to(
+                self.device), torch.zeros(
+                (batch_size, size)).to(
+                    self.device))
         hidden_state_critic = [
-            (torch.zeros((batch_size, size)).to(self.device), torch.zeros((batch_size, size)).to(self.device)) \
-                for i in range(self.n_critics)
-        ]
-        hidden_state_loss = (torch.zeros((batch_size, size)).to(self.device), torch.zeros((batch_size, size)).to(self.device))
+            (torch.zeros(
+                (batch_size, size)).to(
+                self.device), torch.zeros(
+                (batch_size, size)).to(
+                    self.device)) for i in range(
+                        self.n_critics)]
+        hidden_state_loss = (
+            torch.zeros(
+                (batch_size, size)).to(
+                self.device), torch.zeros(
+                (batch_size, size)).to(
+                    self.device))
         with torch.no_grad():
-            next_ac, next_hidden_state = self.actor_target(data.observations, hidden_state)
-            _, next_hidden_state_critic = self.critic_target(data.observations, hidden_state_critic, next_ac)
+            next_ac, next_hidden_state = self.actor_target(
+                data.observations, hidden_state)
+            _, next_hidden_state_critic = self.critic_target(
+                data.observations, hidden_state_critic, next_ac)
         num_updates = math.ceil(gradient_steps / self.n_steps)
         i = 0
+        BCE = []
+        L1 = []
+        MS_SSIM = []
         for data in replay_data:
             i += 1
             if i > gradient_steps:
@@ -1160,64 +1362,94 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             with torch.no_grad():
                 # Select action according to policy and add clipped noise
                 noise = data.actions.clone().data.normal_(0, self.target_policy_noise)
-                noise = noise.clamp(-self.target_noise_clip, self.target_noise_clip)
-                next_actions, next_hidden_state = self.actor_target(data.next_observations, next_hidden_state)
+                noise = noise.clamp(-self.target_noise_clip,
+                                    self.target_noise_clip)
+                next_actions, next_hidden_state = self.actor_target(
+                    data.next_observations, next_hidden_state)
                 next_actions = (next_actions + noise).clamp(-1, 1)
                 # Compute the next Q-values: min over all critics targets
-                next_q_values, next_hidden_state_critic = self.critic_target(data.next_observations, next_hidden_state_critic, next_actions)
+                next_q_values, next_hidden_state_critic = self.critic_target(
+                    data.next_observations, next_hidden_state_critic, next_actions)
                 next_q_values = torch.cat(next_q_values, dim=1)
-                next_q_values, _ = torch.min(next_q_values, dim=1, keepdim=True)
-                target_q_values = data.rewards + (1 - data.dones) * self.gamma * next_q_values
+                next_q_values, _ = torch.min(
+                    next_q_values, dim=1, keepdim=True)
+                target_q_values = data.rewards + \
+                    (1 - data.dones) * self.gamma * next_q_values
 
             # Get current Q-values estimates for each critic network
-            current_q_values, hidden_state_critic = self.critic(data.observations, hidden_state_critic, data.actions)
+            current_q_values, hidden_state_critic = self.critic(
+                data.observations, hidden_state_critic, data.actions)
 
             # Compute critic loss
-            critic_loss = sum([torch.nn.functional.mse_loss(current_q, target_q_values) for current_q in current_q_values])
+            critic_loss = sum([torch.nn.functional.mse_loss(
+                current_q, target_q_values) for current_q in current_q_values])
             critic_losses.append(critic_loss.item())
 
             # Optimize the critics
             self.critic.optimizer.zero_grad()
             critic_loss.backward()
             self.critic.optimizer.step()
-            lst_1 = [] 
+            lst_1 = []
             for k in range(self.n_critics):
                 lst_1.append(
-                    (    
+                    (
                         hidden_state_critic[k][0].detach(),
                         hidden_state_critic[k][1].detach()
-                    )    
-                )    
+                    )
+                )
             hidden_state_critic = lst_1
             self._n_updates += 1
             with torch.no_grad():
-                actions, _ = self.actor(data.observations, hidden_state)
+                [actions, features, probab, gen_image], _ = self.actor(
+                    data.observations, hidden_state)
             actions.requires_grad = True
-            q_val, hidden_state_loss = self.critic.q1_forward(data.observations, hidden_state_loss, actions)
+            q_val, hidden_state_loss = self.critic.q1_forward(
+                data.observations, hidden_state_loss, actions)
             # Compute actor loss
             self.critic.zero_grad()
             q_val = q_val.mean()
             q_val.backward()
             delta_a = copy.deepcopy(actions.grad.data)
-            actions, hidden_state = self.actor(data.observations, hidden_state)
-            if self._n_updates % self.policy_delay == 0:
-                delta_a[:] = self._invert_gradients(delta_a.cpu(), actions.cpu())
+            [actions, features, probab, gen_image], hidden_state = self.actor(
+                data.observations, hidden_state)
+            # Supplementary loss computed every step
+            bce = torch.nn.functional.binary_cross_entropy(
+                probab, data.observations['inframe'].double()
+            )
+            l1 = torch.nn.functional.l1_loss(
+                gen_image, data.observations['front']
+            )
+            ms_ssim = ms_ssim_loss = 1 - ms_ssim(
+                data.observations['front'], gen_image,
+                data_range=1.0, size_average=True
+            )
+            loss = bce + l1 + ms_sim
+            BCE.append(bce.item())
+            L1.append(l1.item())
+            MS_SSIM.append(ms_ssim.item())
+            self.logger.record("train/step_bce", BCE[-1])
+            self.logger.record("train/step_l1", L1[-1])
+            self.logger.record("train/step_ms_ssim", MS_SSIM[-1])
+            if self._n_updates % self.c == 0:
+                delta_a[:] = self._invert_gradients(
+                    delta_a.cpu(), actions.cpu())
                 out = -torch.mul(delta_a, actions)
+                loss += out
                 actor_losses.append(-torch.mean(q_val).item())
-                # Optimize the actor
-                self.actor.optimizer.zero_grad()
-                """
-                loss = torch.nn.functional.mse_loss(
-                    actions,
-                    data.observations['sampled_action']
-                )
-                out = out + loss
-                """
-                out.backward(torch.ones(out.shape).to(self.device))
-                self.actor.optimizer.step()
-                sb3.common.utils.polyak_update(self.critic.parameters(), self.critic_target.parameters(), self.tau)
-                sb3.common.utils.polyak_update(self.actor.parameters(), self.actor_target.parameters(), self.tau)
-            hidden_state =(
+            # Optimize the actor
+                # Reinforcement Learning optimisation only every policy_delay
+                # steps
+            self.actor.optimizer.zero_grad()
+            loss.backward(torch.ones(out.shape).to(self.device))
+            self.actor.optimizer.step()
+            if self._n_updates % self.policy_delay == 0:
+                sb3.common.utils.polyak_update(
+                    self.critic.parameters(),
+                    self.critic_target.parameters(),
+                    self.tau)
+                sb3.common.utils.polyak_update(
+                    self.actor.parameters(), self.actor_target.parameters(), self.tau)
+            hidden_state = (
                 hidden_state[0].detach(),
                 hidden_state[1].detach()
             )
@@ -1225,18 +1457,25 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 hidden_state_loss[0].detach(),
                 hidden_state_loss[1].detach()
             )
-
-        self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
-        if len(actor_losses) > 0: 
+        self.logger.record("train/bce", np.mean(BCE))
+        self.logger.record("train/l1", np.mean(L1))
+        self.logger.record("train/ms_ssim", np.mean(MS_SSIM))
+        self.logger.record(
+            "train/n_updates",
+            self._n_updates,
+            exclude="tensorboard")
+        if len(actor_losses) > 0:
             self.logger.record("train/actor_loss", np.mean(actor_losses))
         self.logger.record("train/critic_loss", np.mean(critic_losses))
 
     def train(self, gradient_steps: int, batch_size: int = 100) -> None:
         # Update learning rate according to lr schedule
-        self._update_learning_rate([self.actor.optimizer, self.critic.optimizer])
+        self._update_learning_rate(
+            [self.actor.optimizer, self.critic.optimizer])
         remaining = gradient_steps
         while remaining > 0:
-            replay_data, steps = self.replay_buffer.sample(batch_size, env=self._vec_normalize_env)
+            replay_data, steps = self.replay_buffer.sample(
+                batch_size, env=self._vec_normalize_env)
             if remaining > steps:
                 remaining -= steps
             else:
@@ -1270,7 +1509,8 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         )
 
     def _excluded_save_params(self) -> List[str]:
-        return super(RTD3, self)._excluded_save_params() + ["actor", "critic", "actor_target", "critic_target"]
+        return super(RTD3, self)._excluded_save_params() + \
+            ["actor", "critic", "actor_target", "critic_target"]
 
     def _get_torch_save_params(self) -> Tuple[List[str], List[str]]:
         state_dicts = ["policy", "actor.optimizer", "critic.optimizer"]

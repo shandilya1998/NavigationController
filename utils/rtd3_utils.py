@@ -13,6 +13,7 @@ import copy
 import warnings
 from constants import params
 from bg.models import VisualCortexV2, Autoencoder
+from pytorch_msssim import ssim, ms_ssim
 
 TensorDict = Dict[Union[str, int], List[np.ndarray]]
 

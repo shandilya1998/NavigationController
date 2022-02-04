@@ -1415,7 +1415,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 x, gen_image,
                 data_range=1.0, size_average=True
             )
-            loss = bce + l1 + sim_loss
+            loss = bce + l1 + ssim_loss
             BCE.append(bce.item())
             L1.append(l1.item())
             SSIM.append(ssim_loss.item())

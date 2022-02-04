@@ -1345,7 +1345,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 (batch_size, size)).to(
                     self.device))
         with torch.no_grad():
-            next_ac, next_hidden_state = self.actor_target(
+            [next_ac, _, _, _], next_hidden_state = self.actor_target(
                 data.observations, hidden_state)
             _, next_hidden_state_critic = self.critic_target(
                 data.observations, hidden_state_critic, next_ac)
@@ -1363,7 +1363,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 noise = data.actions.clone().data.normal_(0, self.target_policy_noise)
                 noise = noise.clamp(-self.target_noise_clip,
                                     self.target_noise_clip)
-                next_actions, next_hidden_state = self.actor_target(
+                [next_actions, _, _, _], next_hidden_state = self.actor_target(
                     data.next_observations, next_hidden_state)
                 next_actions = (next_actions + noise).clamp(-1, 1)
                 # Compute the next Q-values: min over all critics targets

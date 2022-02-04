@@ -1432,7 +1432,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             # Reinforcement Learning optimisation only every policy_delay
             # steps
             self.actor.optimizer.zero_grad()
-            loss.backward(torch.ones(out.shape).to(self.device))
+            loss.backward()
             self.actor.optimizer.step()
             if self._n_updates % self.policy_delay == 0:
                 sb3.common.utils.polyak_update(

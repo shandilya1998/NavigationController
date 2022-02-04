@@ -1418,14 +1418,14 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             l1 = torch.nn.functional.l1_loss(
                 gen_image, data.observations['front']
             )
-            ms_ssim = ms_ssim_loss = 1 - ms_ssim(
+            ms_ssim_loss = 1 - ms_ssim(
                 data.observations['front'], gen_image,
                 data_range=1.0, size_average=True
             )
             loss = bce + l1 + ms_sim
             BCE.append(bce.item())
             L1.append(l1.item())
-            MS_SSIM.append(ms_ssim.item())
+            MS_SSIM.append(ms_ssim_loss.item())
             self.logger.record("train/step_bce", BCE[-1])
             self.logger.record("train/step_l1", L1[-1])
             self.logger.record("train/step_ms_ssim", MS_SSIM[-1])

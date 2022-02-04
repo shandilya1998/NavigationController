@@ -5,6 +5,7 @@
 *logs
 *.pyc
 *__pycache__*
+*swp
 key.json
 assets/plots/tests/
 Python*

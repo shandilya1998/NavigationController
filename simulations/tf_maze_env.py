@@ -505,7 +505,7 @@ class MazeEnv(tfa.environments.py_environment.PyEnvironment):
         sensors = np.concatenate([
             2 * (self.data.qvel.copy() - min_vel) / (max_vel - min_vel) - 1,
             np.array([self.get_ori() / np.pi], dtype = np.float32),
-        ] + actions + goals, -1)
+        ] + actions + goals, -1).astype(np.float32)
 
         if params['debug']:
             cv2.imshow('stream front', cv2.cvtColor(obs['front'], cv2.COLOR_RGB2BGR))
@@ -569,9 +569,16 @@ class MazeEnv(tfa.environments.py_environment.PyEnvironment):
         # Need to modify this method
         self.collision_count = 0
         self.t = 0
-        self.close()
         self._task.set()
-        self.set_env()
+        #self.set_env()
+        for i, goal in enumerate(self._task.goals):
+            self.model.site_pos[i, :2] = goal.pos
+            rgb = np.array([
+                goal.rgb.red,
+                goal.rgb.green,
+                goal.rgb.blue
+            ], dtype = np.float32)
+            self.model.site_rgba[i, :3] = rgb
         self.wrapped_env.reset()
         # Samples a new start position
         if len(self._init_positions) > 1:
@@ -655,6 +662,10 @@ class MazeEnv(tfa.environments.py_environment.PyEnvironment):
         reward = inner_reward + outer_reward + collision_penalty
         if done:
             self._episode_ended = True
+            return tfa.trajectories.time_step.termination(
+                observation = next_obs,
+                reward = reward,
+            )
         return tfa.trajectories.time_step.transition(
             observation = next_obs,
             reward = reward,

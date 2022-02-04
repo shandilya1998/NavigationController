@@ -6,24 +6,26 @@ import stable_baselines3 as sb3
 import gym
 from typing import NamedTuple, Any, Dict, List, Optional, Tuple, Type, Union
 
+
 def check_for_nan(inp, name):
     if torch.isnan(inp).any():
         print('nan in {}'.format(name))
 
+
 class BasalGanglia(torch.nn.Module):
     def __init__(self,
-        num_out = 2, 
-        num_ctx = 300,
-        num_gpe = 40, 
-        num_stn = 40,
-        num_gpi = 20,
-        FF_Dim_in = 20, 
-        FF_steps = 2, 
-        stn_gpe_iter = 2, 
-        eta_gpe = 0.01,
-        eta_gpi = 0.01,
-        eta_th = 0.01,
-    ):  
+                 num_out=2,
+                 num_ctx=300,
+                 num_gpe=40,
+                 num_stn=40,
+                 num_gpi=20,
+                 FF_Dim_in=20,
+                 FF_steps=2,
+                 stn_gpe_iter=2,
+                 eta_gpe=0.01,
+                 eta_gpi=0.01,
+                 eta_th=0.01,
+                 ):
         super(BasalGanglia, self).__init__()
         self.num_out = num_out
         self.num_ctx = num_ctx
@@ -35,7 +37,7 @@ class BasalGanglia(torch.nn.Module):
         self.stn_gpe_iter = stn_gpe_iter
         self.eta_gpe = eta_gpe
         self.eta_gpi = eta_gpi
-        self.eta_stn = eta_gpe / 3 
+        self.eta_stn = eta_gpe / 3
         self.eta_th = eta_th
 
         input_size = num_ctx
@@ -63,14 +65,16 @@ class BasalGanglia(torch.nn.Module):
         self.epsilon_slat = torch.nn.Parameter(torch.Tensor(np.array([[.05]])))
         self.weights_slat = torch.ones(
             (self.num_stn, self.num_stn)
-        ) - torch.eye(self.num_stn) 
-        self.fc_d1gpi = torch.nn.Linear(self.FF_Dim_in, self.num_gpi, bias = False)
-        self.fc_stngpi = torch.nn.Linear(self.num_stn, self.num_gpi, bias = False)
+        ) - torch.eye(self.num_stn)
+        self.fc_d1gpi = torch.nn.Linear(
+            self.FF_Dim_in, self.num_gpi, bias=False)
+        self.fc_stngpi = torch.nn.Linear(
+            self.num_stn, self.num_gpi, bias=False)
         self.fc_stngpi.weight.requires_grad = False
-        self.fc_jd1 = torch.nn.Linear(self.num_ctx, self.FF_Dim_in, bias = False)
-        self.fc_jd2 = torch.nn.Linear(self.num_ctx, self.FF_Dim_in, bias = False)
-        self.fc_kd1 = torch.nn.Linear(self.num_ctx, self.FF_Dim_in, bias = False)
-        self.fc_kd2 = torch.nn.Linear(self.num_ctx, self.FF_Dim_in, bias = False)
+        self.fc_jd1 = torch.nn.Linear(self.num_ctx, self.FF_Dim_in, bias=False)
+        self.fc_jd2 = torch.nn.Linear(self.num_ctx, self.FF_Dim_in, bias=False)
+        self.fc_kd1 = torch.nn.Linear(self.num_ctx, self.FF_Dim_in, bias=False)
+        self.fc_kd2 = torch.nn.Linear(self.num_ctx, self.FF_Dim_in, bias=False)
 
         self.thalamus = torch.nn.RNNCell(
             self.num_gpi, self.num_gpi
@@ -85,8 +89,10 @@ class BasalGanglia(torch.nn.Module):
         deltavf = v_t - v_t_1
         V_D1 = torch.zeros((batch_size, self.FF_Dim_in)).to(stimulus_t.device)
         V_D2 = torch.zeros((batch_size, self.FF_Dim_in)).to(stimulus_t.device)
-        lamd1 = 1 / (1 + torch.exp(-self.log_a1.exp() * (deltavf - self.thetad1)))
-        lamd2 = 1 / (1 + torch.exp(self.log_a2.exp() * (deltavf - self.thetad2)))
+        lamd1 = 1 / (1 + torch.exp(-self.log_a1.exp()
+                     * (deltavf - self.thetad1)))
+        lamd2 = 1 / (1 + torch.exp(self.log_a2.exp()
+                     * (deltavf - self.thetad2)))
 
         J_D1 = self.fc_jd1(stimulus_t)
         J_D2 = self.fc_jd2(stimulus_t)
@@ -106,22 +112,22 @@ class BasalGanglia(torch.nn.Module):
         hx = torch.rand((batch_size, self.num_gpi)).to(stimulus_t.device)
         for it in range(self.stn_gpe_iter):
             dxgpe = self.eta_gpe * (
-                -xgpe + self.wsg * vstn + \
-                    torch.nn.functional.linear(
-                        xgpe,
-                        self.epsilon_glat * self.weights_glat.to(stimulus_t.device) + \
-                            torch.ones((
-                                self.num_gpe, self.num_gpe
-                            )).to(stimulus_t.device)
-                    ) - V_D2
-                )
+                -xgpe + self.wsg * vstn +
+                torch.nn.functional.linear(
+                    xgpe,
+                    self.epsilon_glat * self.weights_glat.to(stimulus_t.device) +
+                    torch.ones((
+                        self.num_gpe, self.num_gpe
+                    )).to(stimulus_t.device)
+                ) - V_D2
+            )
             xgpe = xgpe + dxgpe
             dxstn = self.eta_stn * (
-                -xstn + self.wgs * xgpe + \
-                    torch.nn.functional.linear(
-                        vstn,
-                        self.epsilon_slat * self.weights_slat.to(stimulus_t.device)
-                    )
+                -xstn + self.wgs * xgpe +
+                torch.nn.functional.linear(
+                    vstn,
+                    self.epsilon_slat * self.weights_slat.to(stimulus_t.device)
+                )
             )
             xstn = xstn + dxstn
             vstn = torch.tanh(lamd2 * xstn)
@@ -133,66 +139,91 @@ class BasalGanglia(torch.nn.Module):
             out = self.linear(hx)
         return out, v_t
 
+
 def set_parameter_requires_grad(model, feature_extracting):
     if feature_extracting:
         for param in model.parameters():
             param.requires_grad = False
 
+
 class VisualCortex(torch.nn.Module):
-    def __init__(self, 
-        observation_space,
-        num_ctx = 300,
-    ):
+    def __init__(self,
+                 observation_space,
+                 num_ctx=300,
+                 ):
         super(VisualCortex, self).__init__()
         img_obs = observation_space['observation']
         if len(img_obs.shape) == 4:
             img_obs = gym.spaces.Box(
-                low = img_obs.low[0],
-                high = img_obs.high[0] * 255.0,
-                dtype = np.uint8,
-                shape = img_obs.shape[1:]
+                low=img_obs.low[0],
+                high=img_obs.high[0] * 255.0,
+                dtype=np.uint8,
+                shape=img_obs.shape[1:]
             )
         self.model = sb3.common.torch_layers.NatureCNN(img_obs, num_ctx)
-    
+
     def forward(self, img):
         return self.model(img)
 
+
 class VisualCortexV2(torch.nn.Module):
     def __init__(self,
-        observation_space: gym.spaces.Box,
-        features_dim: int = 512):
+                 observation_space: gym.spaces.Box,
+                 features_dim: int = 512):
         super(VisualCortexV2, self).__init__()
         # We assume CxHxW images (channels first)
         # Re-ordering will be done by pre-preprocessing or wrapper
         n_input_channels = observation_space.shape[0]
         self.cnn = torch.nn.Sequential(
-            torch.nn.Conv2d(n_input_channels, 32, kernel_size=8, stride=4, padding=0),
+            torch.nn.Conv2d(
+                n_input_channels,
+                32,
+                kernel_size=8,
+                stride=4,
+                padding=0),
             torch.nn.Tanh(),
-            torch.nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=0),
+            torch.nn.Conv2d(
+                32,
+                64,
+                kernel_size=4,
+                stride=2,
+                padding=0),
             torch.nn.Tanh(),
-            torch.nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=0),
+            torch.nn.Conv2d(
+                64,
+                64,
+                kernel_size=3,
+                stride=1,
+                padding=0),
             torch.nn.Tanh(),
             torch.nn.Flatten(),
         )
 
         # Compute shape by doing one forward pass
         with torch.no_grad():
-            n_flatten = self.cnn(torch.as_tensor(observation_space.sample()[None]).float()).shape[1]
+            n_flatten = self.cnn(
+                torch.as_tensor(
+                    observation_space.sample()[None]).float()).shape[1]
 
-        self.linear = torch.nn.Sequential(torch.nn.Linear(n_flatten, features_dim), torch.nn.Tanh())
+        self.linear = torch.nn.Sequential(
+            torch.nn.Linear(
+                n_flatten,
+                features_dim),
+            torch.nn.Tanh())
 
     def forward(self, observations: torch.Tensor) -> torch.Tensor:
         return self.linear(self.cnn(observations))
 
+
 class VisualCortexV3(torch.nn.Module):
     def __init__(self,
-        observation_space: gym.spaces.Box,
-        features_dim: int = 512):
+                 observation_space: gym.spaces.Box,
+                 features_dim: int = 512):
         super(VisualCortexV3, self).__init__()
         # We assume CxHxW images (channels first)
         # Re-ordering will be done by pre-preprocessing or wrapper
-        n_input_channels = observation_space['front'].shape[0]# + observation_space['back'].shape[0] + \
-            #observation_space['right'].shape[0] + observation_space['left'].shape[0]
+        n_input_channels = observation_space['front'].shape[0]  # + observation_space['back'].shape[0] + \
+        #observation_space['right'].shape[0] + observation_space['left'].shape[0]
         self.cnn = torch.nn.Sequential(
             torch.nn.Conv2d(n_input_channels, 32, kernel_size=5, stride=3, padding=0),
             torch.nn.Tanh(),
@@ -205,27 +236,245 @@ class VisualCortexV3(torch.nn.Module):
             torch.nn.Conv2d(64, 64, kernel_size=2, stride=1, padding=0),
             torch.nn.Tanh(),
             torch.nn.Flatten(),
-        )   
+        )
 
-        #inp = np.concatenate((
+        # inp = np.concatenate((
         #    observation_space['front'].sample(),
         #    observation_space['back'].sample(),
         #    observation_space['left'].sample(),
         #    observation_space['right'].sample()
-        #), 0)
+        # ), 0)
         inp = observation_space['front'].sample()
         # Compute shape by doing one forward pass
         with torch.no_grad():
             n_flatten = self.cnn(torch.as_tensor(inp)[None].float()).shape[1]
 
-        self.linear = torch.nn.Sequential(torch.nn.Linear(n_flatten, features_dim), torch.nn.Tanh())
+        self.linear = torch.nn.Sequential(
+            torch.nn.Linear(
+                n_flatten,
+                features_dim),
+            torch.nn.Tanh())
 
     def forward(self, observations: Tuple[torch.Tensor]) -> torch.Tensor:
         #observations = torch.cat(observations, 1)
         return self.linear(self.cnn(observations))
 
+
+# Feature Extracting Backbone with an attached FPN
+class Resnet18WithFPN(torch.nn.Module):
+    def __init__(self):
+        super(Resnet18WithFPN, self).__init__()
+        # Get a resnet18 backbone
+        m = tv.models.resnet18()
+        self.body = tv.models.feature_extraction.create_feature_extractor(
+            m, return_nodes={f'layer{k}': str(v)
+                             for v, k in enumerate([2, 3, 4])})
+        # Dry run to get number of channels for FPN
+        inp = torch.randn(1, 3, 75, 100)
+        with torch.no_grad():
+            out = self.body(inp)
+        in_channels_list = [o.shape[1] for o in out.values()]
+        # Build FPN
+        self.out_channels = 256
+        self.fpn = tv.ops.feature_pyramid_network.FeaturePyramidNetwork(
+            in_channels_list, out_channels=self.out_channels,
+            extra_blocks=tv.models.detection.backbone_utils.LastLevelMaxPool())
+
+    def forward(self, x):
+        x = self.body(x)
+        x = self.fpn(x)
+        return x
+
+
+class VisualCortexV4(torch.nn.Module):
+    def __init__(self,
+                 observation_space: gym.spaces.Box,
+                 features_dim: int = 512):
+        super(VisualCortexV4, self).__init__()
+        self.resnet18fpn = Resnet18WithFPN()
+        self.output_channels = self.resnet18fpn.out_channels
+        self.conv1 = torch.nn.Sequential(
+            torch.nn.Conv2d(
+                self.resnet18fpn.out_channels, 64, kernel_size=5, stride=1), torch.nn.Conv2d(
+                64, 128, kernel_size=4, stride=1), torch.nn.Conv2d(
+                128, 256, kernel_size=3, stride=1), torch.nn.Flatten())
+        self.conv2 = torch.nn.Sequential(
+            torch.nn.Conv2d(
+                self.resnet18fpn.out_channels,
+                64,
+                kernel_size=4,
+                stride=1),
+            torch.nn.Conv2d(
+                64,
+                128,
+                kernel_size=2,
+                stride=1),
+            torch.nn.Flatten())
+        self.conv3 = torch.nn.Sequential(
+            torch.nn.Conv2d(
+                self.resnet18fpn.out_channels,
+                64,
+                kernel_size=2,
+                stride=1),
+            torch.nn.Conv2d(
+                64,
+                128,
+                kernel_size=2,
+                stride=1),
+            torch.nn.Flatten())
+
+        self.conv4 = torch.nn.Sequential(
+            torch.nn.Conv2d(
+                self.resnet18fpn.out_channels,
+                128,
+                kernel_size=2,
+                stride=1),
+            torch.nn.Tanh(),
+            torch.nn.Flatten())
+
+        with torch.no_grad():
+            inp = observation_space.sample().transpose(2, 0, 1)
+            print(inp.shape)
+            feature_maps = self.resnet18fpn(
+                torch.as_tensor(
+                    observation_space.sample().transpose(
+                        2, 0, 1)[None]).float())
+            out_0 = self.conv1(feature_maps['0']).shape[-1]
+            out_1 = self.conv2(feature_maps['1']).shape[-1]
+            out_2 = self.conv3(feature_maps['2']).shape[-1]
+            out_3 = self.conv4(feature_maps['pool']).shape[-1]
+        n_flatten = out_0 + out_1 + out_2 + out_3
+        print(n_flatten)
+        self.fc_out = torch.nn.Sequential(
+            torch.nn.Linear(
+                n_flatten,
+                features_dim
+            ),
+            torch.nn.Tanh()
+        )
+
+    def forward(self, observations):
+        feature_maps = self.resnet18fpn(observations)
+        conv1 = self.conv1(feature_maps['0'])
+        conv2 = self.conv2(feature_maps['1'])
+        conv3 = self.conv3(feature_maps['2'])
+        conv4 = self.conv4(feature_maps['pool'])
+        features = self.fc_out(torch.cat([
+            conv1, conv2, conv3, conv4
+        ], -1))
+        return features, feature_maps
+
+
+class Autoencoder(torch.nn.Module):
+    def __init__(self,
+                 observation_space,
+                 features_dim,
+                 ):
+        super(Autoencoder, self).__init__()
+        self.encoder = VisualCortexV4(
+            observation_space,
+            features_dim
+        )
+
+        assert features_dim >= 512
+
+        # Additional Classification Task to learn how to identify target
+        self.target_classifier = torch.nn.Sequential(
+            torch.nn.Linear(features_dim, features_dim // 2),
+            torch.nn.Tanh(),
+            torch.nn.Linear(features_dim // 2, features_dim // 3),
+            torch.nn.Tanh(),
+            torch.nn.Linear(features_dim // 3, 1),
+            torch.nn.Sigmoid()
+        )
+
+        self.tconv_pool = torch.nn.ConvTranspose2d(
+            self.encoder.output_channels, self.encoder.output_channels,
+            kernel_size=(2, 3), stride=1
+        )
+
+        self.tconv_2 = torch.nn.ConvTranspose2d(
+            2 * self.encoder.output_channels, self.encoder.output_channels,
+            kernel_size=(3, 4), stride=1
+        )
+
+        self.tconv_1 = torch.nn.Sequential(
+            torch.nn.ConvTranspose2d(
+                2 * self.encoder.output_channels, self.encoder.output_channels,
+                kernel_size=(3, 4), stride=1,
+            ),
+            torch.nn.Tanh(),
+            torch.nn.ConvTranspose2d(
+                self.encoder.output_channels, self.encoder.output_channels,
+                kernel_size=3, stride=1,
+            ),
+            torch.nn.Tanh(),
+            torch.nn.ConvTranspose2d(
+                self.encoder.output_channels, self.encoder.output_channels,
+                kernel_size=2, stride=1,
+            )
+        )
+
+        self.tconv_0 = torch.nn.ConvTranspose2d(
+            2 * self.encoder.output_channels, self.encoder.output_channels,
+            kernel_size=1, stride=1
+        )
+
+        # Decoder Designed for Image size (3, 75, 100). Re-configuration needed
+        # for other sizes
+        self.image_generator = torch.nn.Sequential(
+            torch.nn.ConvTranspose2d(
+                self.encoder.output_channels, self.encoder.output_channels,
+                kernel_size=(3, 4), stride=2
+            ),
+            torch.nn.ConvTranspose2d(
+                self.encoder.output_channels, self.encoder.output_channels,
+                kernel_size=(4, 6), stride=2
+            ),
+            torch.nn.ConvTranspose2d(
+                self.encoder.output_channels, self.encoder.output_channels,
+                kernel_size=(5, 8), stride=1
+            ),
+            torch.nn.ConvTranspose2d(
+                self.encoder.output_channels, self.encoder.output_channels,
+                kernel_size=(6, 9), stride=1
+            ),
+            torch.nn.ConvTranspose2d(
+                self.encoder.output_channels, self.encoder.output_channels,
+                kernel_size=(7, 10), stride=1
+            ),
+            torch.nn.ConvTranspose2d(
+                self.encoder.output_channels, self.encoder.output_channels,
+                kernel_size=(8, 12), stride=1
+            ),
+            torch.nn.ConvTranspose2d(
+                self.encoder.output_channels, 3,
+                kernel_size=(10, 6), stride=1
+            ),
+            torch.nn.Sigmoid()
+        )
+
+    def forward(self, observation):
+        features, feature_map = self.encoder(observation)
+        probab = self.target_classifier(features)
+        map_pool = feature_map['pool']
+        map_2 = feature_map['2']
+        map_1 = feature_map['1']
+        map_2 = self.tconv_2(torch.cat([
+            map_2, self.tconv_pool(map_pool)
+        ], 1))
+        map_1 = self.tconv_1(torch.cat([
+            map_1, map_2
+        ], 1))
+        map_0 = self.tconv_0(torch.cat([
+            feature_map['0'], map_1
+        ], 1))
+
+        gen_image = self.image_generator(map_0)
+        return features, probab, gen_image
+
 class MotorCortex(torch.nn.Module):
-    def __init__(self, num_ctx = 300, action_dim = 2):
+    def __init__(self, num_ctx=300, action_dim=2):
         super(MotorCortex, self).__init__()
         layers = []
         input_size = num_ctx
@@ -244,30 +493,31 @@ class MotorCortex(torch.nn.Module):
         action = self.squash_fn(self.fc_2(stimulus) + bg_out)
         return action
 
+
 class ControlNetwork(torch.nn.Module):
     def __init__(self,
-        action_dim = 2,
-        num_gpe = 40, 
-        num_stn = 40,
-        num_gpi = 20,
-        FF_Dim_in = 40, 
-        FF_steps = 20, 
-        stn_gpe_iter = 50, 
-        eta_gpe = 0.01,
-        eta_gpi = 0.01,
-        eta_th = 0.01,
-    ):
+                 action_dim=2,
+                 num_gpe=40,
+                 num_stn=40,
+                 num_gpi=20,
+                 FF_Dim_in=40,
+                 FF_steps=20,
+                 stn_gpe_iter=50,
+                 eta_gpe=0.01,
+                 eta_gpi=0.01,
+                 eta_th=0.01,
+                 ):
         super(ControlNetwork, self).__init__()
         num_ctx = params['num_ctx']
         self.bg = BasalGanglia(
             action_dim,
             num_ctx,
-            num_gpe, 
+            num_gpe,
             num_stn,
             num_gpi,
-            FF_Dim_in, 
-            FF_steps, 
-            stn_gpe_iter, 
+            FF_Dim_in,
+            FF_steps,
+            stn_gpe_iter,
             eta_gpe,
             eta_gpi,
             eta_th,
@@ -276,14 +526,15 @@ class ControlNetwork(torch.nn.Module):
             num_ctx, action_dim
         )
 
-    def forward(self, inputs): 
+    def forward(self, inputs):
         stimulus_t, stimulus_t_1 = inputs
-        bg_out, vt  = self.bg([stimulus_t, stimulus_t_1])
+        bg_out, vt = self.bg([stimulus_t, stimulus_t_1])
         action = self.mc([stimulus_t, bg_out])
         return action, vt, bg_out
 
+
 class MotorCortexV2(torch.nn.Module):
-    def __init__(self, num_ctx = 300, action_dim = 2): 
+    def __init__(self, num_ctx=300, action_dim=2):
         super(MotorCortexV2, self).__init__()
         layers = []
         input_size = num_ctx
@@ -295,17 +546,18 @@ class MotorCortexV2(torch.nn.Module):
         self.squash_fn = torch.nn.Tanh()
         self.fc_2 = torch.nn.Sequential(
             *layers
-        )   
+        )
 
     def forward(self, inputs):
         stimulus = inputs
         action = self.squash_fn(self.fc_2(stimulus))
         return action
 
+
 class ControlNetworkV2(torch.nn.Module):
     def __init__(self,
-        action_dim = 2,
-    ):  
+                 action_dim=2,
+                 ):
         super(ControlNetworkV2, self).__init__()
         num_ctx = params['num_ctx']
         input_size = num_ctx
@@ -321,11 +573,11 @@ class ControlNetworkV2(torch.nn.Module):
         )
         self.mc = MotorCortexV2(
             num_ctx, action_dim
-        )   
+        )
 
-    def forward(self, inputs): 
+    def forward(self, inputs):
         stimulus_t = inputs
-        vt  = self.vf(stimulus_t)
+        vt = self.vf(stimulus_t)
         action = self.mc(stimulus_t)
         bg_out = torch.zeros_like(action).to(action.device)
         return action, vt, bg_out

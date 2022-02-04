@@ -258,7 +258,7 @@ class MazeEnv(gym.Env):
             self.data.qvel,
             self.data.qacc
         ], -1)
-        ob, inframe = self._get_obs()
+        ob = self._get_obs()
         self._set_observation_space(ob)
 
     def __find_all_waypoints(self):
@@ -482,6 +482,7 @@ class MazeEnv(gym.Env):
             'front' : img.copy(),
             'sensors' : sensors.copy(),
             'sampled_action' : sampled_action.copy(),
+            'inframe' : np.array([inframe], dtype = np.float32)
         }
         return obs, inframe
 
@@ -505,7 +506,7 @@ class MazeEnv(gym.Env):
         self.__find_all_waypoints()
         self.__find_cubic_spline_path()
         self.__setup_vel_control()
-        obs, inframe =  self._get_obs()
+        obs = self._get_obs()
         return obs
 
     @property
@@ -837,7 +838,7 @@ class MazeEnv(gym.Env):
         self.state.set(x, y, v, yaw)
         next_pos = self.wrapped_env.get_xy()
         collision_penalty = 0.0
-        next_obs, inframe = self._get_obs()
+        next_obs = self._get_obs()
         # Computing the reward in "https://ieeexplore.ieee.org/document/8398461"
         goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
         rho = (1 - np.linalg.norm(goal) / np.linalg.norm(self._task.goals[self._task.goal_index].pos)) * 0.1
@@ -850,8 +851,8 @@ class MazeEnv(gym.Env):
         inner_reward = -1 + (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / params['max_vyaw']))
         #inner_reward = self._inner_reward_scaling * inner_reward
         #print(rho * 15)
-        outer_reward = self._task.reward(next_pos, inframe) + rho
-        done = self._task.termination(self.wrapped_env.get_xy(), inframe)
+        outer_reward = self._task.reward(next_pos, bool(next_obs['inframe'][0])) + rho
+        done = self._task.termination(self.wrapped_env.get_xy(),  bool(next_obs['inframe'][0]))
         info["position"] = self.wrapped_env.get_xy()
         index = self.__get_current_cell()
         self._current_cell = index

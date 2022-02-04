@@ -1,3 +1,4 @@
+import torch
 
 params = {
     'input_size_low_level_control': 6,
@@ -59,15 +60,38 @@ params = {
     'max_vyaw'                    : 1.5,
     'policy_delay'                : 2,
     'seed'                        : 10,
-    'target_speed'                : 8.0
+    'target_speed'                : 8.0,
+    'lr_schedule_preprocesing'    : [ 
+                                        {   
+                                            'name' : 'ExponentialLRSchedule',
+                                            'class' : torch.optim.lr_scheduler.ExponentialLR,
+                                            'kwargs' : { 
+                                                'gamma' : 0.99,
+                                                'last_epoch' : - 1,
+                                                'verbose' : False
+                                            }   
+                                        }, {
+                                            'name' : 'ReduceLROnPlateauSchedule',
+                                            'class' : torch.optim.lr_scheduler.ReduceLROnPlateau,
+                                            'kwargs' : { 
+                                                'mode' : 'min',
+                                                'factor' : 0.5,
+                                                'patience' : 10, 
+                                                'threshold' : 1e-5,
+                                            }   
+                                        }   
+                                    ],
+    'preprocessing'               : {
+                                        'num_epochs'      : 1000
+                                    }
 }
 
 
 import tensorflow as tf
 import tf_agents as tfa
 
-image_height = 150
-image_width = 200
+image_height = 75
+image_width = 100
 image_channels = 4
 n_history_steps = 5
 activation_fn_actor = tf.keras.activations.relu

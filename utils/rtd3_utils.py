@@ -308,6 +308,7 @@ class EpisodicDictReplayBuffer(sb3.common.buffers.BaseBuffer):
         if self.ep == self.n_ep:
             self.full = True
             self.ep = 0
+            self.pos[:] = 0
 
     def sample(self, batch_size: int, env: Optional[sb3.common.vec_env.vec_normalize.VecNormalize] = None) -> DictReplayBufferSamples:
         """

@@ -38,9 +38,26 @@ class MultiInputActorRnnNetwork(tfa.networks.lstm_encoding_network.LSTMEncodingN
                     minval=-0.003, maxval=0.003),
                 name='action') for single_action_spec in flat_action_spec
         ]
-        self._flat_action_spec = flat_action_spec
-        self._action_layers = action_layers
         self._output_tensor_spec = action_spec
+
+        num_actions = len(flat_action_spec)
+
+        def repeat_input(inp):
+            return {'action{}'.format(i) : inp for i in range(num_actions)}
+
+        def ensure_correct_output(inp):
+            return tf.nest.pack_sequence_as(self._output_tensor_spec, inp)
+
+        action_gen = tfa.networks.sequential.Sequential([
+            tfa.networks.NestFlatten(),
+            tf.keras.layers.Lambda(repeat_input),
+            tfa.networks.nest_map.NestMap(
+                {'action{}'.format(i) : action_layers[i] for i in range(num_actions)}
+            ),
+            tfa.networks.nest_map.NestFlatten(),
+            tf.keras.layers.Lambda(ensure_correct_output)
+        ])
+
         super(MultiInputActorRnnNetwork, self).__init__(
             input_tensor_spec = input_tensor_spec,
             preprocessing_layers = preprocessing_layers,
@@ -55,7 +72,10 @@ class MultiInputActorRnnNetwork(tfa.networks.lstm_encoding_network.LSTMEncodingN
             dtype = dtype,
             name = name
         )
-    
+
+        self._output_encoder.append(action_gen)
+
+    """    
     def call(self, observation, step_type, network_state=(), training=False):
         num_outer_dims = tfa.utils.nest_utils.get_outer_rank(observation,
                                                self.input_tensor_spec)
@@ -95,9 +115,11 @@ class MultiInputActorRnnNetwork(tfa.networks.lstm_encoding_network.LSTMEncodingN
         for layer in self._output_encoder:
             state = layer(state, training=training)
        
+        print('state', state.shape)
         if not has_time_dim:
             # Remove time dimension from the state.
             state = tf.squeeze(state, [1])
+        print('state', state.shape)
 
         actions = []
         for layer, spec in zip(self._action_layers, self._flat_action_spec):
@@ -108,6 +130,7 @@ class MultiInputActorRnnNetwork(tfa.networks.lstm_encoding_network.LSTMEncodingN
 
         output_actions = tf.nest.pack_sequence_as(self._output_tensor_spec, actions)
         return output_actions, network_state
+    """
 
 class MultiInputCriticRnnNetwork(tfa.networks.lstm_encoding_network.LSTMEncodingNetwork):
     def __init__(
@@ -357,7 +380,7 @@ def create_train_step(
         sample_batch_size = params['batch_size'],
         num_steps = params['train_sequence_length'] + 1
     ).prefetch(params['num_prefetch'])
-    iterator = iter(dataaset)
+    iterator = iter(dataset)
     def train_step():
         experience, _ = next(iterator)
         return agent.train(experience)
@@ -395,6 +418,15 @@ def train_rtd3(
             n_steps = params['obs_history_steps']
         )
     )
+
+    """
+    step = 0
+    while step < 100:
+        print('step {}'.format(step))
+        ob = env.step(np.expand_dims(env._envs[0].get_action(), 0))
+        step += 1
+    """
+
     eval_env = tfa.environments.tf_py_environment.TFPyEnvironment(
         MazeEnv(
             model_cls = PointEnv,
@@ -403,6 +435,8 @@ def train_rtd3(
             n_steps = params['obs_history_steps']
         )   
     )
+
+    
 
     # Create and Initialize Agent
     agent = create_rtd3_agent(params, env)
@@ -414,13 +448,39 @@ def train_rtd3(
         params, env, agent, replay_buffer
     )
 
+
+    # Debug Code
+    num_episodes = 4
+    maximum_iterations = 100
+    time_step = env.reset()
+    policy_state = collect_driver.policy.get_initial_state(collect_driver.env.batch_size)
+    batch_dims = tfa.utils.nest_utils.get_outer_shape(
+        time_step,
+        env.time_step_spec())
+    counter = tf.zeros(batch_dims, tf.int32)
+    #print('here')
+    [_, time_step, policy_state] = tf.nest.map_structure(
+        tf.stop_gradient,
+        tf.while_loop(
+            cond=collect_driver._loop_condition_fn(num_episodes),
+            body=collect_driver._loop_body_fn(),
+            loop_vars=[counter, time_step, policy_state],
+            parallel_iterations=1,
+            maximum_iterations=maximum_iterations,
+            name='driver_loop'
+        )
+    )
+    #print('here 2')
+
     # Populating Replay Buffer with data from random policy
     absl.logging.info(
         'Initializing replay buffer by collecting experience for %d episodes '
         'with a random policy.', params['initial_collect_episodes'])
+    print('here 3')
     initial_collect_driver.run()
     
     # Evaluation Step
+    print('here')
     results = tfa.eval.metric_utils.eager_compute(
         metrics = eval_metrics,
         environment = eval_env,
@@ -430,6 +490,7 @@ def train_rtd3(
         summary_writer = eval_summary_writer,
         summary_prefix = 'Metrics'
     )
+    print('here 2')
     tfa.eval.metric_utils.log_metrics(eval_metrics)
 
     time_step = None

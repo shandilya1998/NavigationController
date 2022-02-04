@@ -434,7 +434,7 @@ class EpisodicDictReplayBuffer(sb3.common.buffers.BaseBuffer):
 
 
 class LSTM(torch.nn.Module):
-    def __init__(self, input_dim, output_dim, net_arch, squash_output=False):
+    def __init__(self, input_dim, output_dim, net_arch, squash_output=True):
         super(LSTM, self).__init__()
         self.layers = []
         input_size = copy.deepcopy(input_dim)
@@ -470,7 +470,7 @@ def create_lstm(
     input_dim: int,
     output_dim: int,
     net_arch: List[int],
-    squash_output: bool = False,
+    squash_output: bool = True,
 ) -> List[torch.nn.Module]:
     """
     Create a multi layer perceptron (MLP), which is
@@ -510,7 +510,7 @@ class Actor(torch.nn.Module):
         features_dim,
         output_dim,
         net_arch,
-        squash_output=False
+        squash_output=True
     ):
         super(Actor, self).__init__()
         self.vc = Autoencoder(
@@ -605,7 +605,7 @@ class RecurrentActor(sb3.common.policies.BasePolicy):
             features_dim,
             action_dim,
             net_arch,
-            squash_output=False)
+            squash_output=True)
 
     def _get_constructor_parameters(self) -> Dict[str, Any]:
         data = super()._get_constructor_parameters()
@@ -1354,7 +1354,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         i = 0
         BCE = []
         L1 = []
-        MS_SSIM = []
+        SSIM = []
         for data in replay_data:
             i += 1
             if i > gradient_steps:
@@ -1399,17 +1399,8 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 )
             hidden_state_critic = lst_1
             self._n_updates += 1
-            with torch.no_grad():
-                [actions, features, probab, gen_image], _ = self.actor(
-                    data.observations, hidden_state)
-            actions.requires_grad = True
-            q_val, hidden_state_loss = self.critic.q1_forward(
-                data.observations, hidden_state_loss, actions)
-            # Compute actor loss
-            self.critic.zero_grad()
-            q_val = q_val.mean()
-            q_val.backward()
-            delta_a = copy.deepcopy(actions.grad.data)
+            
+            # Ator Network Update
             [actions, features, probab, gen_image], hidden_state = self.actor(
                 data.observations, hidden_state)
             # Supplementary loss computed every step
@@ -1419,26 +1410,27 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             l1 = torch.nn.functional.l1_loss(
                 gen_image, data.observations['front']
             )
-            ms_ssim_loss = 1 - ms_ssim(
-                data.observations['front'], gen_image,
+            x = data.observations['front'].float() / 255
+            ssim_loss = 1 - ssim(
+                x, gen_image,
                 data_range=1.0, size_average=True
             )
-            loss = bce + l1 + ms_sim
+            loss = bce + l1 + sim_loss
             BCE.append(bce.item())
             L1.append(l1.item())
-            MS_SSIM.append(ms_ssim_loss.item())
+            SSIM.append(ssim_loss.item())
             self.logger.record("train/step_bce", BCE[-1])
             self.logger.record("train/step_l1", L1[-1])
-            self.logger.record("train/step_ms_ssim", MS_SSIM[-1])
-            if self._n_updates % self.c == 0:
-                delta_a[:] = self._invert_gradients(
-                    delta_a.cpu(), actions.cpu())
-                out = -torch.mul(delta_a, actions)
-                loss += out
-                actor_losses.append(-torch.mean(q_val).item())
+            self.logger.record("train/step_ssim", SSIM[-1])
+            if self._n_updates % self.policy_delay == 0:
+                q_val, hidden_state_loss = self.critic.q1_forward(
+                    data.observations, hidden_state_loss, actions)
+                actor_loss = -q_val.mean()
+                loss += actor_loss
+                actor_losses.append(actor_loss.item())
             # Optimize the actor
-                # Reinforcement Learning optimisation only every policy_delay
-                # steps
+            # Reinforcement Learning optimisation only every policy_delay
+            # steps
             self.actor.optimizer.zero_grad()
             loss.backward(torch.ones(out.shape).to(self.device))
             self.actor.optimizer.step()
@@ -1459,7 +1451,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             )
         self.logger.record("train/bce", np.mean(BCE))
         self.logger.record("train/l1", np.mean(L1))
-        self.logger.record("train/ms_ssim", np.mean(MS_SSIM))
+        self.logger.record("train/ssim", np.mean(SSIM))
         self.logger.record(
             "train/n_updates",
             self._n_updates,

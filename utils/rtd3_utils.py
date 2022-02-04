@@ -1413,7 +1413,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 data.observations, hidden_state)
             # Supplementary loss computed every step
             bce = torch.nn.functional.binary_cross_entropy(
-                probab, data.observations['inframe'].double()
+                probab, data.observations['inframe'].float()
             )
             l1 = torch.nn.functional.l1_loss(
                 gen_image, data.observations['front']

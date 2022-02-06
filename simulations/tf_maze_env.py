@@ -659,7 +659,10 @@ class MazeEnv(tfa.environments.py_environment.PyEnvironment):
             done = True
         if self.t > self.max_episode_size:
             done = True
-        reward = inner_reward + outer_reward + collision_penalty
+        reward = np.array(
+            inner_reward + outer_reward + collision_penalty, 
+            dtype = np.float32
+        )
         if done:
             self._episode_ended = True
             return tfa.trajectories.time_step.termination(

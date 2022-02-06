@@ -7,7 +7,8 @@ import absl
 
 tf.compat.v1.enable_v2_behavior()
 absl.logging.set_verbosity(absl.logging.INFO)
-log_dir = 'assets/out/models/exp23'
+log_dir = '/content/drive/MyDrive/CNS/exp22'
+#log_dir = 'assets/out/models/exp23'
 done = train_rtd3(params, log_dir)
 if done:
     absl.logging.info('Done')

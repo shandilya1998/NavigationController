@@ -30,33 +30,13 @@ class MultiInputActorRnnNetwork(tfa.networks.lstm_encoding_network.LSTMEncodingN
         name='MultiInputActorRnnNetwork',
     ):
         flat_action_spec = tf.nest.flatten(action_spec)
-        action_layers = [
-            tf.keras.layers.Dense(
-                single_action_spec.shape.num_elements(),
+        action_layer = tf.keras.layers.Dense(
+                action_spec.shape[-1],
                 activation=tf.keras.activations.tanh,
                 kernel_initializer=tf.keras.initializers.RandomUniform(
                     minval=-0.003, maxval=0.003),
-                name='action') for single_action_spec in flat_action_spec
-        ]
+                name='action')
         self._output_tensor_spec = action_spec
-
-        num_actions = len(flat_action_spec)
-
-        def repeat_input(inp):
-            return {'action{}'.format(i) : inp for i in range(num_actions)}
-
-        def ensure_correct_output(inp):
-            return tf.nest.pack_sequence_as(self._output_tensor_spec, inp)
-
-        action_gen = tfa.networks.sequential.Sequential([
-            tfa.networks.NestFlatten(),
-            tf.keras.layers.Lambda(repeat_input),
-            tfa.networks.nest_map.NestMap(
-                {'action{}'.format(i) : action_layers[i] for i in range(num_actions)}
-            ),
-            tfa.networks.nest_map.NestFlatten(),
-            tf.keras.layers.Lambda(ensure_correct_output)
-        ])
 
         super(MultiInputActorRnnNetwork, self).__init__(
             input_tensor_spec = input_tensor_spec,
@@ -73,7 +53,7 @@ class MultiInputActorRnnNetwork(tfa.networks.lstm_encoding_network.LSTMEncodingN
             name = name
         )
 
-        self._output_encoder.append(action_gen)
+        self._output_encoder.append(action_layer)
 
     """    
     def call(self, observation, step_type, network_state=(), training=False):
@@ -171,6 +151,15 @@ class MultiInputCriticRnnNetwork(tfa.networks.lstm_encoding_network.LSTMEncoding
             name = name
         )
         self._output_encoder.append(q_layer)
+
+    def call(self, inputs, step_type, network_state = (), training = False):
+        q_val, network_state = super(
+            MultiInputCriticRnnNetwork, self
+        ).call(
+            inputs, step_type, network_state, training
+        )
+        q_val = tf.squeeze(q_val, -1)
+        return q_val, network_state
 
     """
     def call(self, inputs, step_type, network_state=(), training=False):

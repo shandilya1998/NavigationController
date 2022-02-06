@@ -80,6 +80,7 @@ class PointEnv(AgentModel):
         self.observation_space = gym.spaces.Dict(spaces)
 
     def _set_action_space(self):
+        # Modify def _setup_model(**kwargs) in class RTD3 if action space is modified
         low = np.array([0.0, -params['max_vyaw']], dtype = np.float32)
         high = np.array([self.VELOCITY_LIMITS * 1.41, params['max_vyaw']], dtype = np.float32)
         self.action_dim = 2

@@ -434,7 +434,7 @@ class EpisodicDictReplayBuffer(sb3.common.buffers.BaseBuffer):
 
 
 class LSTM(torch.nn.Module):
-    def __init__(self, input_dim, output_dim, net_arch, squash_output=True):
+    def __init__(self, input_dim, output_dim, net_arch, squash_output=False):
         super(LSTM, self).__init__()
         self.layers = []
         input_size = copy.deepcopy(input_dim)
@@ -470,7 +470,7 @@ def create_lstm(
     input_dim: int,
     output_dim: int,
     net_arch: List[int],
-    squash_output: bool = True,
+    squash_output: bool = False,
 ) -> List[torch.nn.Module]:
     """
     Create a multi layer perceptron (MLP), which is
@@ -510,7 +510,7 @@ class Actor(torch.nn.Module):
         features_dim,
         output_dim,
         net_arch,
-        squash_output=True
+        squash_output=False
     ):
         super(Actor, self).__init__()
         self.vc = Autoencoder(
@@ -605,7 +605,7 @@ class RecurrentActor(sb3.common.policies.BasePolicy):
             features_dim,
             action_dim,
             net_arch,
-            squash_output=True)
+            squash_output=False)
 
     def _get_constructor_parameters(self) -> Dict[str, Any]:
         data = super()._get_constructor_parameters()
@@ -1177,8 +1177,9 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
     def _setup_model(self) -> None:
         super(RTD3, self)._setup_model()
         size = self.policy.net_arch[-1]
-        self.max_p = torch.from_numpy(np.ones_like(self.action_space.high))
-        self.min_p = torch.from_numpy(-np.ones_like(self.action_space.low))
+        # To be modified if action space is changed
+        self.max_p = torch.from_numpy(np.array([1, 1], dtype = np.float32))
+        self.min_p = torch.from_numpy(np.array([0, -1], dtype = np.float32))
         self.rnge = (self.max_p - self.min_p).detach()
         self.hidden_state = (
             torch.zeros(
@@ -1400,41 +1401,48 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             hidden_state_critic = lst_1
             self._n_updates += 1
             
-            # Ator Network Update
-            [actions, features, probab, gen_image], hidden_state = self.actor(
+            # Actor Network Update
+            with torch.no_grad():
+                [actions, features, probab, gen_image], _ = self.actor(data.observations, hidden_state)
+            actions.requires_grad = True
+            q_val, hidden_state_loss = self.critic.q1_forward(data.observations, hidden_state_loss, actions)
+            if self._n_updates % self.policy_delay == 0:
+                self.critic.zero_grad()
+                q_val = q_val.mean()
+                q_val.backward()
+                delta_a = copy.deepcopy(actions.grad.data)
+                [actions, features, probab, gen_image], hidden_state = self.actor(
                 data.observations, hidden_state)
-            # Supplementary loss computed every step
-            bce = torch.nn.functional.binary_cross_entropy(
-                probab, data.observations['inframe'].float()
-            )
-            l1 = torch.nn.functional.l1_loss(
-                gen_image, data.observations['front']
-            )
-            x = data.observations['front'].float() / 255
-            ssim_loss = 1 - ssim(
-                x, gen_image,
-                data_range=1.0, size_average=True
-            )
-            loss = bce + l1 + ssim_loss
-            BCE.append(bce.item())
-            L1.append(l1.item())
-            SSIM.append(ssim_loss.item())
-            self.logger.record("train/step_bce", BCE[-1])
-            self.logger.record("train/step_l1", L1[-1])
-            self.logger.record("train/step_ssim", SSIM[-1])
-            if self._n_updates % self.policy_delay == 0:
-                q_val, hidden_state_loss = self.critic.q1_forward(
-                    data.observations, hidden_state_loss, actions)
+                delta_a[:] = self._invert_gradients(delta_a.cpu(), actions.cpu())
+                out = -torch.mul(delta_a, actions)
                 actor_loss = -q_val.mean()
-                loss += actor_loss
+                loss = out
                 actor_losses.append(actor_loss.item())
-            # Optimize the actor
-            # Reinforcement Learning optimisation only every policy_delay
-            # steps
-            self.actor.optimizer.zero_grad()
-            loss.backward()
-            self.actor.optimizer.step()
-            if self._n_updates % self.policy_delay == 0:
+                # Supplementary loss computed every step
+                bce = torch.nn.functional.binary_cross_entropy(
+                    probab, data.observations['inframe'].float()
+                )    
+                l1 = torch.nn.functional.l1_loss(
+                    gen_image, data.observations['front']
+                )    
+                x = data.observations['front'].float() / 255
+                ssim_loss = 1 - ssim(
+                    x, gen_image,
+                    data_range=1.0, size_average=True
+                )    
+                loss += bce + l1 + ssim_loss
+                BCE.append(bce.item())
+                L1.append(l1.item())
+                SSIM.append(ssim_loss.item())
+                self.logger.record("train/step_bce", BCE[-1])
+                self.logger.record("train/step_l1", L1[-1])
+                self.logger.record("train/step_ssim", SSIM[-1])
+                # Optimize the actor
+                # Reinforcement Learning optimisation only every policy_delay
+                # steps
+                self.actor.optimizer.zero_grad()
+                loss.backward(torch.ones(out.shape).to(self.device))
+                self.actor.optimizer.step()
                 sb3.common.utils.polyak_update(
                     self.critic.parameters(),
                     self.critic_target.parameters(),

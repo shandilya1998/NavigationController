@@ -1197,9 +1197,9 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         self.critic_target = self.policy.critic_target
 
     def _sample_action(
-        self, learning_starts: int, action_noise: Optional[sb3.common.noise.ActionNoise] = None
+        self, learning_starts: int, action_noise: Optional[sb3.common.noise.ActionNoise] = None 
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """
+        """  
         Sample an action according to the exploration policy.
         This is either done by sampling the probability distribution of the policy,
         or sampling a random action (from a uniform distribution over the action space)
@@ -1213,11 +1213,11 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             The two differs when the action space is not normalized (bounds are not [-1, 1]).
         """
         # Select action randomly or according to policy
-        if self.num_timesteps < params['imitation_steps'] and not (
+        if self.num_timesteps < learning_starts and not (
                 self.use_sde and self.use_sde_at_warmup
-            ):
+            ):   
             # Warmup phase
-            #unscaled_action = np.array([self.action_space.sample()])
+            # unscaled_action = np.array([self.action_space.sample()])
             unscaled_action = self._last_obs['sampled_action']
         else:
             # Note: when using continuous actions,
@@ -1234,6 +1234,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             # Add noise to the action (improve exploration)
             if action_noise is not None and self.num_timesteps >= params['imitation_steps']:
                 scaled_action = np.clip(scaled_action + action_noise(), -1, 1)
+
 
             # We store the scaled action in the buffer
             buffer_action = scaled_action
@@ -1448,7 +1449,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     loss.backward(torch.ones(out.shape).to(self.device))
                     self.actor.optimizer.step()
                 else:
-                    loss_ = torch.nn.functional.l1_loss(actions, data.actions)
+                    loss_ = torch.nn.functional.l1_loss(actions, data.observations['sampled_action'])
                     actor_losses.append(loss_.item())
                     loss += loss_
                     self.actor.optimizer.zero_grad()

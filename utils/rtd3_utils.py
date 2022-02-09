@@ -1040,7 +1040,7 @@ class RecurrentTD3Policy(sb3.common.policies.BasePolicy):
         observation = sb3.common.utils.obs_as_tensor(observation, self.device)
 
         with torch.no_grad():
-                                    # Actor output consists of al output pipelines' outputs
+            # Actor output consists of al output pipelines' outputs
             [actions, features, probab, gen_image], state = self._predict(observation, state, deterministic=deterministic)
         # Convert to numpy
         actions = actions.cpu().numpy()
@@ -1324,7 +1324,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                       batch_size: int,
                       replay_data: sb3.common.type_aliases.ReplayBufferSamples
                       ):
-        # Need to modify
+        # Need to modify with every experiment
         actor_losses, critic_losses = [], []
         size = self.policy.net_arch[-1]
         data = next(replay_data)

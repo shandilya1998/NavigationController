@@ -845,12 +845,15 @@ class MazeEnv(gym.Env):
         return obs, penalty
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
+        # Proprocessing and Environment Update
         action = np.clip(action, a_min = self.action_space.low, a_max = self.action_space.high)
         self.t += 1
         info = {}
         self.actions.pop(0)
         self.actions.append(action.copy())
         inner_next_obs, inner_reward, _, info = self.wrapped_env.step(action)
+
+        # Observation and Parameter Gathering
         x, y = self.wrapped_env.get_xy()
         (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(x, y)
         yaw = self.get_ori()
@@ -859,6 +862,7 @@ class MazeEnv(gym.Env):
         next_pos = self.wrapped_env.get_xy()
         collision_penalty = 0.0
         next_obs = self._get_obs()
+
         # Computing the reward in "https://ieeexplore.ieee.org/document/8398461"
         goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
         rho = (1 - np.linalg.norm(goal) / np.linalg.norm(self._task.goals[self._task.goal_index].pos)) * 0.1
@@ -871,9 +875,13 @@ class MazeEnv(gym.Env):
         inner_reward = -1 + (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / params['max_vyaw']))
         #inner_reward = self._inner_reward_scaling * inner_reward
         #print(rho * 15)
+
+        # Task Reward Computation
         outer_reward = self._task.reward(next_pos, bool(next_obs['inframe'][0])) + rho
         done = self._task.termination(self.wrapped_env.get_xy(),  bool(next_obs['inframe'][0]))
         info["position"] = self.wrapped_env.get_xy()
+
+        # Collision Penalty Computation
         index = self.__get_current_cell()
         self._current_cell = index
         almost_collision, blind, outbound = self.check_position(next_pos)
@@ -881,6 +889,8 @@ class MazeEnv(gym.Env):
             collision_penalty += -1.0 * self._inner_reward_scaling
         next_obs, penalty = self.conditional_blind(next_obs, yaw, blind)
         collision_penalty += penalty
+
+        # Reward and Info Declaration
         if done:
             outer_reward += 200.0
         if outbound:

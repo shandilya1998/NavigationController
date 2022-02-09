@@ -1448,7 +1448,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     loss.backward(torch.ones(out.shape).to(self.device))
                     self.actor.optimizer.step()
                 else:
-                    loss_ = torch.nn.functional.mse_loss(actions, data.actions)
+                    loss_ = torch.nn.functional.l1_loss(actions, data.actions)
                     actor_losses.append(loss_.item())
                     loss += loss_
                     self.actor.optimizer.zero_grad()

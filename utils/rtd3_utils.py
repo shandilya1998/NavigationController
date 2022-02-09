@@ -1214,10 +1214,11 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         """
         # Select action randomly or according to policy
         if self.num_timesteps < learning_starts and not (
-                self.use_sde and self.use_sde_at_warmup):
+                self.use_sde and self.use_sde_at_warmup) and \
+                    self.num_timesteps < params['imitation_steps']:
             # Warmup phase
-            unscaled_action = np.array([self.action_space.sample()])
-            #unscaled_action = self._last_obs['sampled_action']
+            #unscaled_action = np.array([self.action_space.sample()])
+            unscaled_action = self._last_obs['sampled_action']
         else:
             # Note: when using continuous actions,
             # we assume that the policy uses tanh to scale the action
@@ -1231,7 +1232,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             scaled_action = self.policy.scale_action(unscaled_action)
 
             # Add noise to the action (improve exploration)
-            if action_noise is not None and self.num_timesteps >= learning_starts:
+            if action_noise is not None and self.num_timesteps >= learning_starts and self.num_timesteps >= params['imitation_steps']:
                 scaled_action = np.clip(scaled_action + action_noise(), -1, 1)
 
             # We store the scaled action in the buffer
@@ -1412,12 +1413,9 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 q_val.backward()
                 delta_a = copy.deepcopy(actions.grad.data)
                 [actions, features, probab, gen_image], hidden_state = self.actor(
-                data.observations, hidden_state)
-                delta_a[:] = self._invert_gradients(delta_a.cpu(), actions.cpu())
-                out = -torch.mul(delta_a, actions)
-                actor_loss = -q_val.mean()
-                loss = out
-                actor_losses.append(actor_loss.item())
+                    data.observations,
+                    hidden_state
+                )
                 # Supplementary loss computed every step
                 bce = torch.nn.functional.binary_cross_entropy(
                     probab, data.observations['inframe'].float()
@@ -1430,7 +1428,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     x, gen_image,
                     data_range=1.0, size_average=True
                 )    
-                loss += bce + l1 + ssim_loss
+                loss = bce + l1 + ssim_loss
                 BCE.append(bce.item())
                 L1.append(l1.item())
                 SSIM.append(ssim_loss.item())
@@ -1439,10 +1437,24 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 self.logger.record("train/step_ssim", SSIM[-1])
                 # Optimize the actor
                 # Reinforcement Learning optimisation only every policy_delay
-                # steps
-                self.actor.optimizer.zero_grad()
-                loss.backward(torch.ones(out.shape).to(self.device))
-                self.actor.optimizer.step()
+                # steps 
+                if self.num_timesteps >= params['imitation_steps']:
+                    delta_a[:] = self._invert_gradients(delta_a.cpu(), actions.cpu())
+                    out = -torch.mul(delta_a, actions)
+                    actor_loss = -q_val.mean()
+                    loss += out
+                    actor_losses.append(actor_loss.item())
+                    self.actor.optimizer.zero_grad()
+                    loss.backward(torch.ones(out.shape).to(self.device))
+                    self.actor.optimizer.step()
+                else:
+                    loss_ = torch.nn.functional.mse_loss(actions, data.actions)
+                    actor_losses.append(loss_.item())
+                    loss += loss_
+                    self.actor.optimizer.zero_grad()
+                    loss.backward()
+                    self.actor.optimizer.step()
+
                 sb3.common.utils.polyak_update(
                     self.critic.parameters(),
                     self.critic_target.parameters(),

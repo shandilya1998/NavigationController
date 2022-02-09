@@ -30,11 +30,11 @@ params = {
     'show_animation'              : False,
     'dt'                          : 0.02,
     'learning_starts'             : 1,
-    'imitation_steps'             : int(1e5),
+    'imitation_steps'             : int(3e5),
     'render_freq'                 : 8004,
     'save_freq'                   : 16008,
     'eval_freq'                   : 8004,
-    'buffer_size'                 : int(6e5),
+    'buffer_size'                 : int(2e5),
     'total_timesteps'             : int(1.1e6),
     'ds'                          : 0.01,
     'motor_cortex'                : [256, 128],
@@ -90,8 +90,8 @@ params = {
 import tensorflow as tf
 import tf_agents as tfa
 
-image_height = 150
-image_width = 200
+image_height = 75
+image_width = 100
 image_channels = 4
 n_history_steps = 5
 activation_fn_actor = tf.keras.activations.relu

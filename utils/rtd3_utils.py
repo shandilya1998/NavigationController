@@ -1213,7 +1213,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             The two differs when the action space is not normalized (bounds are not [-1, 1]).
         """
         # Select action randomly or according to policy
-        if self.num_timesteps < learning_starts and not (
+        if self.num_timesteps < params['staging_steps'] and not (
                 self.use_sde and self.use_sde_at_warmup
             ):   
             # Warmup phase
@@ -1232,7 +1232,8 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             scaled_action = self.policy.scale_action(unscaled_action)
 
             # Add noise to the action (improve exploration)
-            if action_noise is not None and self.num_timesteps >= params['imitation_steps']:
+            if action_noise is not None \
+                and self.num_timesteps >= params['imitation_steps'] + params['staging_steps']:
                 scaled_action = np.clip(scaled_action + action_noise(), -1, 1)
 
 
@@ -1362,128 +1363,135 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             i += 1
             if i > gradient_steps:
                 break
-            with torch.no_grad():
-                # Select action according to policy and add clipped noise
-                noise = data.actions.clone().data.normal_(0, self.target_policy_noise)
-                noise = noise.clamp(-self.target_noise_clip,
-                                    self.target_noise_clip)
-                [next_actions, _, _, _], next_hidden_state = self.actor_target(
-                    data.next_observations, next_hidden_state)
-                next_actions = (next_actions + noise).clamp(-1, 1)
-                # Compute the next Q-values: min over all critics targets
-                next_q_values, next_hidden_state_critic = self.critic_target(
-                    data.next_observations, next_hidden_state_critic, next_actions)
-                next_q_values = torch.cat(next_q_values, dim=1)
-                next_q_values, _ = torch.min(
-                    next_q_values, dim=1, keepdim=True)
-                target_q_values = data.rewards + \
-                    (1 - data.dones) * self.gamma * next_q_values
-
-            # Get current Q-values estimates for each critic network
-            current_q_values, hidden_state_critic = self.critic(
-                data.observations, hidden_state_critic, data.actions)
-
-            # Compute critic loss
-            critic_loss = sum([torch.nn.functional.mse_loss(
-                current_q, target_q_values) for current_q in current_q_values])
-            critic_losses.append(critic_loss.item())
-
-            # Optimize the critics
-            self.critic.optimizer.zero_grad()
-            critic_loss.backward()
-            self.critic.optimizer.step()
-            lst_1 = []
-            for k in range(self.n_critics):
-                lst_1.append(
-                    (
-                        hidden_state_critic[k][0].detach(),
-                        hidden_state_critic[k][1].detach()
-                    )
-                )
-            hidden_state_critic = lst_1
-            self._n_updates += 1
-            
-            # Actor Network Update
-            with torch.no_grad():
-                [actions, features, probab, gen_image], _ = self.actor(data.observations, hidden_state)
-            actions.requires_grad = True
-            q_val, hidden_state_loss = self.critic.q1_forward(data.observations, hidden_state_loss, actions)
-            if self._n_updates % self.policy_delay == 0:
-                self.critic.zero_grad()
-                q_val = q_val.mean()
-                q_val.backward()
-                delta_a = copy.deepcopy(actions.grad.data)
+            if self.num_timesteps < params['staging_steps']:
                 [actions, features, probab, gen_image], hidden_state = self.actor(
                     data.observations,
                     hidden_state
                 )
-                # Optimize the actor
-                # Reinforcement Learning optimisation only every policy_delay
-                # steps 
-                if self.num_timesteps >= params['imitation_steps']:
-                    delta_a[:] = self._invert_gradients(delta_a.cpu(), actions.cpu())
-                    out = -torch.mul(delta_a, actions)
-                    actor_loss = -q_val.mean()
-                    loss = out
-                    actor_losses.append(actor_loss.item())
-                else:
-                    loss_ = torch.nn.functional.l1_loss(actions, data.observations['sampled_action'])
-                    actor_losses.append(loss_.item())
-                    loss = loss_
-
                 # Supplementary loss computed every step
                 bce = torch.nn.functional.binary_cross_entropy(
                     probab, data.observations['inframe'].float()
-                )    
+                )
                 l1 = torch.nn.functional.l1_loss(
                     gen_image, data.observations['front']
-                )    
+                )
                 x = data.observations['front'].float() / 255
                 ssim_loss = 1 - ssim(
                     x, gen_image,
                     data_range=1.0, size_average=True
-                )    
-                loss += bce + l1 + ssim_loss
+                )
+                loss = bce + l1 + ssim_loss
                 BCE.append(bce.item())
                 L1.append(l1.item())
                 SSIM.append(ssim_loss.item())
                 self.logger.record("train/step_bce", BCE[-1])
                 self.logger.record("train/step_l1", L1[-1])
                 self.logger.record("train/step_ssim", SSIM[-1])
+                self.actor.optimizer.zero_grad()
+                loss.backward()
+                self.actor.optimizer.step()
+            else:
+                with torch.no_grad():
+                    # Select action according to policy and add clipped noise
+                    noise = data.actions.clone().data.normal_(0, self.target_policy_noise)
+                    noise = noise.clamp(-self.target_noise_clip,
+                                        self.target_noise_clip)
+                    [next_actions, _, _, _], next_hidden_state = self.actor_target(
+                        data.next_observations, next_hidden_state)
+                    next_actions = (next_actions + noise).clamp(-1, 1)
+                    # Compute the next Q-values: min over all critics targets
+                    next_q_values, next_hidden_state_critic = self.critic_target(
+                        data.next_observations, next_hidden_state_critic, next_actions)
+                    next_q_values = torch.cat(next_q_values, dim=1)
+                    next_q_values, _ = torch.min(
+                        next_q_values, dim=1, keepdim=True)
+                    target_q_values = data.rewards + \
+                        (1 - data.dones) * self.gamma * next_q_values
 
-                if self.num_timesteps >= params['imitation_steps']:
-                    self.actor.optimizer.zero_grad()
-                    loss.backward(torch.ones(out.shape).to(self.device))
-                    self.actor.optimizer.step()
-                else:
-                    self.actor.optimizer.zero_grad()
-                    loss.backward()
-                    self.actor.optimizer.step()
+                # Get current Q-values estimates for each critic network
+                current_q_values, hidden_state_critic = self.critic(
+                    data.observations, hidden_state_critic, data.actions)
 
+                # Compute critic loss
+                critic_loss = sum([torch.nn.functional.mse_loss(
+                    current_q, target_q_values) for current_q in current_q_values])
+                critic_losses.append(critic_loss.item())
+
+                # Optimize the critics
+                self.critic.optimizer.zero_grad()
+                critic_loss.backward()
+                self.critic.optimizer.step()
+                lst_1 = []
+                for k in range(self.n_critics):
+                    lst_1.append(
+                        (
+                            hidden_state_critic[k][0].detach(),
+                            hidden_state_critic[k][1].detach()
+                        )
+                    )
+                hidden_state_critic = lst_1
+                self._n_updates += 1
+                
+                # Actor Network Update
+                with torch.no_grad():
+                    [actions, features, probab, gen_image], _ = self.actor(data.observations, hidden_state)
+                actions.requires_grad = True
+                q_val, hidden_state_loss = self.critic.q1_forward(data.observations, hidden_state_loss, actions)
+                if self._n_updates % self.policy_delay == 0:
+                    self.critic.zero_grad()
+                    q_val = q_val.mean()
+                    q_val.backward()
+                    delta_a = copy.deepcopy(actions.grad.data)
+                    [actions, features, probab, gen_image], hidden_state = self.actor(
+                        data.observations,
+                        hidden_state
+                    )
+                    # Optimize the actor
+                    # Reinforcement Learning optimisation only every policy_delay
+                    # steps 
+                    if self.num_timesteps >= params['imitation_steps']:
+                        delta_a[:] = self._invert_gradients(delta_a.cpu(), actions.cpu())
+                        out = -torch.mul(delta_a, actions)
+                        actor_loss = -q_val.mean()
+                        loss = out
+                        actor_losses.append(actor_loss.item())
+                        self.actor.optimizer.zero_grad()
+                        loss.backward(torch.ones(out.shape).to(self.device))
+                        self.actor.optimizer.step()
+                    else:
+                        loss_ = torch.nn.functional.l1_loss(actions, data.observations['sampled_action'])
+                        actor_losses.append(loss_.item())
+                        loss = loss_
+                        self.actor.optimizer.zero_grad()
+                        loss.backward()
+                        self.actor.optimizer.step()
+
+                hidden_state = (
+                    hidden_state[0].detach(),
+                    hidden_state[1].detach()
+                )
+                hidden_state_loss = (
+                    hidden_state_loss[0].detach(),
+                    hidden_state_loss[1].detach()
+                )
+                self.logger.record("train/bce", np.mean(BCE))
+                self.logger.record("train/l1", np.mean(L1))
+                self.logger.record("train/ssim", np.mean(SSIM))
+                self.logger.record(
+                    "train/n_updates",
+                    self._n_updates,
+                    exclude="tensorboard")
+                if len(actor_losses) > 0:
+                    self.logger.record("train/actor_loss", np.mean(actor_losses))
+                self.logger.record("train/critic_loss", np.mean(critic_losses))
+
+            if self._n_updates % self.policy_delay == 0:
                 sb3.common.utils.polyak_update(
                     self.critic.parameters(),
                     self.critic_target.parameters(),
                     self.tau)
                 sb3.common.utils.polyak_update(
                     self.actor.parameters(), self.actor_target.parameters(), self.tau)
-            hidden_state = (
-                hidden_state[0].detach(),
-                hidden_state[1].detach()
-            )
-            hidden_state_loss = (
-                hidden_state_loss[0].detach(),
-                hidden_state_loss[1].detach()
-            )
-        self.logger.record("train/bce", np.mean(BCE))
-        self.logger.record("train/l1", np.mean(L1))
-        self.logger.record("train/ssim", np.mean(SSIM))
-        self.logger.record(
-            "train/n_updates",
-            self._n_updates,
-            exclude="tensorboard")
-        if len(actor_losses) > 0:
-            self.logger.record("train/actor_loss", np.mean(actor_losses))
-        self.logger.record("train/critic_loss", np.mean(critic_losses))
 
     def train(self, gradient_steps: int, batch_size: int = 100) -> None:
         # Update learning rate according to lr schedule

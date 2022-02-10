@@ -30,12 +30,13 @@ params = {
     'show_animation'              : False,
     'dt'                          : 0.02,
     'learning_starts'             : 751,
+    'staging_steps'               : int(3e5),
     'imitation_steps'             : int(3e5),
     'render_freq'                 : 8004,
     'save_freq'                   : 16008,
     'eval_freq'                   : 8004,
     'buffer_size'                 : int(7.5e5),
-    'total_timesteps'             : int(1.3e6),
+    'total_timesteps'             : int(1.6e6),
     'ds'                          : 0.01,
     'motor_cortex'                : [256, 128],
     'snc'                         : [256, 1],
@@ -61,7 +62,7 @@ params = {
     'policy_delay'                : 2,
     'seed'                        : 117,
     'target_speed'                : 8.0,
-    'lr_schedule_preprocesing'    : [ 
+    'lr_schedule_preprocesing'    : [
                                         {   
                                             'name' : 'ExponentialLRSchedule',
                                             'class' : torch.optim.lr_scheduler.ExponentialLR,

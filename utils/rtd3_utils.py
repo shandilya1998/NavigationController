@@ -1417,6 +1417,20 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     data.observations,
                     hidden_state
                 )
+                # Optimize the actor
+                # Reinforcement Learning optimisation only every policy_delay
+                # steps 
+                if self.num_timesteps >= params['imitation_steps']:
+                    delta_a[:] = self._invert_gradients(delta_a.cpu(), actions.cpu())
+                    out = -torch.mul(delta_a, actions)
+                    actor_loss = -q_val.mean()
+                    loss = out
+                    actor_losses.append(actor_loss.item())
+                else:
+                    loss_ = torch.nn.functional.l1_loss(actions, data.observations['sampled_action'])
+                    actor_losses.append(loss_.item())
+                    loss = loss_
+
                 # Supplementary loss computed every step
                 bce = torch.nn.functional.binary_cross_entropy(
                     probab, data.observations['inframe'].float()
@@ -1429,29 +1443,19 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     x, gen_image,
                     data_range=1.0, size_average=True
                 )    
-                loss = bce + l1 + ssim_loss
+                loss += bce + l1 + ssim_loss
                 BCE.append(bce.item())
                 L1.append(l1.item())
                 SSIM.append(ssim_loss.item())
                 self.logger.record("train/step_bce", BCE[-1])
                 self.logger.record("train/step_l1", L1[-1])
                 self.logger.record("train/step_ssim", SSIM[-1])
-                # Optimize the actor
-                # Reinforcement Learning optimisation only every policy_delay
-                # steps 
+
                 if self.num_timesteps >= params['imitation_steps']:
-                    delta_a[:] = self._invert_gradients(delta_a.cpu(), actions.cpu())
-                    out = -torch.mul(delta_a, actions)
-                    actor_loss = -q_val.mean()
-                    loss += out
-                    actor_losses.append(actor_loss.item())
                     self.actor.optimizer.zero_grad()
                     loss.backward(torch.ones(out.shape).to(self.device))
                     self.actor.optimizer.step()
                 else:
-                    loss_ = torch.nn.functional.l1_loss(actions, data.observations['sampled_action'])
-                    actor_losses.append(loss_.item())
-                    loss += loss_
                     self.actor.optimizer.zero_grad()
                     loss.backward()
                     self.actor.optimizer.step()

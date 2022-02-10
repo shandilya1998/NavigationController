@@ -29,7 +29,7 @@ params = {
     'min_simulation_time'         : 1.0,
     'show_animation'              : False,
     'dt'                          : 0.02,
-    'learning_starts'             : 1,
+    'learning_starts'             : 751,
     'imitation_steps'             : int(3e5),
     'render_freq'                 : 8004,
     'save_freq'                   : 16008,
@@ -59,7 +59,7 @@ params = {
     'debug'                       : False,
     'max_vyaw'                    : 1.5,
     'policy_delay'                : 2,
-    'seed'                        : 10,
+    'seed'                        : 117,
     'target_speed'                : 8.0,
     'lr_schedule_preprocesing'    : [ 
                                         {   

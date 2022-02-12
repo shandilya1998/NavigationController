@@ -162,9 +162,12 @@ class MazeEnv(gym.Env):
                         material="MatObj",
                         contype="1",
                         conaffinity="1",
-                        rgba="0.9 0.9 0.9 1",
+                        rgba="0.0 {} {} 1".format(
+                            np.random.random(),
+                            np.random.random()
+                        ),
                     )
-                    self.obstacles.append(self._xy_to_rowcol(x, y))
+                    self.obstacles.append(f"elevated_{i}_{j}")
                 if struct.is_block():
                     # Unmovable block.
                     # Offset all coordinates so that robot starts at the origin.
@@ -178,9 +181,12 @@ class MazeEnv(gym.Env):
                         material="MatObj",
                         contype="1",
                         conaffinity="1",
-                        rgba="0.4 0.4 0.4 1",
+                        rgba="0.0 {} {} 1".format(
+                            np.random.random(),
+                            np.random.random()
+                        ),
                     )
-                    self.obstacles.append(self._xy_to_rowcol(x, y))
+                    self.obstacles.append(f"block_{i}_{j}")
                 elif struct.can_move():
                     # Movable block.
                     self.movable_blocks.append(f"movable_{i}_{j}")
@@ -195,12 +201,12 @@ class MazeEnv(gym.Env):
                         h,
                         height_offset,
                     )
-                    self.obstacles.append(self._xy_to_rowcol(x, y))
+                    self.obstacles.append(f"movable_{i}_{j}")
                 elif struct.is_object_ball():
                     # Movable Ball
                     self.object_balls.append(f"objball_{i}_{j}")
                     _add_object_ball(worldbody, i, j, x, y, self._task.OBJECT_BALL_SIZE)
-                    self.obstacles.append(self._xy_to_rowcol(x, y))
+                    self.obstacles.append(f"objball_{i}_{j}")
 
         torso = tree.find(".//body[@name='torso']")
         geoms = torso.findall(".//geom")
@@ -512,7 +518,7 @@ class MazeEnv(gym.Env):
         self.close()
         self._task.set()
         self.set_env()
-        self.wrapped_env.reset() 
+        self.wrapped_env.reset()
         # Samples a new start position
         if len(self._init_positions) > 1:
             xy = np.random.choice(self._init_positions)

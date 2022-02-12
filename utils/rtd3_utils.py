@@ -532,7 +532,6 @@ class Actor(torch.nn.Module):
         x, hidden_state = self.mu(x, hidden_state)
         return [x, visual, gen_image], hidden_state
 
-
 class Critic(torch.nn.Module):
     def __init__(
         self,
@@ -565,7 +564,6 @@ class Critic(torch.nn.Module):
         x = torch.cat([visual, y], -1)
         x, hidden_state = self.mu(x, hidden_state)
         return x, hidden_state
-
 
 class RecurrentActor(sb3.common.policies.BasePolicy):
     """

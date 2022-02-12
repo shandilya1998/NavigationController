@@ -88,7 +88,7 @@ def evaluate_policy(
     size = model.policy.net_arch[-1]
     states = (torch.zeros((1, size)).to(model.device), torch.zeros((1, size)).to(model.device))
     while (episode_counts < episode_count_targets).any():
-        [actions, features, probab, gen_image], states = model.predict(observations, state=states, deterministic=deterministic)
+        [actions, features, gen_image], states = model.predict(observations, state=states, deterministic=deterministic)
         observations, rewards, dones, infos = env.step(actions)
         current_rewards += rewards
         current_lengths += 1

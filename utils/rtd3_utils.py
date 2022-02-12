@@ -1366,10 +1366,9 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 l1 = torch.nn.functional.l1_loss(
                     gen_image, data.observations['front']
                 )
-                x = data.observations['front'].float() / 255
                 ssim_loss = 1 - ssim(
-                    x, gen_image,
-                    data_range=1.0, size_average=True
+                    data.observations['front'].float(), gen_image,
+                    data_range=255, size_average=True
                 )
                 loss = l1 + ssim_loss
                 L1.append(l1.item())

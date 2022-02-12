@@ -493,7 +493,7 @@ class Autoencoder(torch.nn.Module):
                 self.encoder.output_channels, 3,
                 kernel_size=(5, 10), stride=2
             ),
-            torch.nn.Sigmoid()
+            torch.nn.ReLU()
         )
 
     def forward(self, observation):

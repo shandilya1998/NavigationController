@@ -405,7 +405,7 @@ class VisualCortexV4(torch.nn.Module):
                 n_flatten,
                 features_dim
             ),
-            torch.nn.Tanh()
+            torch.nn.ELU()
         )
 
     def forward(self, observations):
@@ -433,15 +433,6 @@ class Autoencoder(torch.nn.Module):
         assert features_dim >= 512
 
         # Additional Classification Task to learn how to identify target
-        self.target_classifier = torch.nn.Sequential(
-            torch.nn.Linear(features_dim, features_dim // 2),
-            torch.nn.ELU(),
-            torch.nn.Linear(features_dim // 2, features_dim // 3),
-            torch.nn.ELU(),
-            torch.nn.Linear(features_dim // 3, 1),
-            torch.nn.Sigmoid()
-        )
-
         self.tconv_pool = torch.nn.Sequential(
             torch.nn.ConvTranspose2d(
                 self.encoder.output_channels, self.encoder.output_channels,
@@ -507,7 +498,6 @@ class Autoencoder(torch.nn.Module):
 
     def forward(self, observation):
         features, feature_map = self.encoder(observation)
-        probab = self.target_classifier(features)
         map_pool = feature_map['pool']
         map_2 = feature_map['3']
         map_1 = feature_map['2']
@@ -522,7 +512,7 @@ class Autoencoder(torch.nn.Module):
         ], 1))
 
         gen_image = self.image_generator(map_0)
-        return features, probab, gen_image
+        return features, gen_image
 
 class MotorCortex(torch.nn.Module):
     def __init__(self, num_ctx=300, action_dim=2):

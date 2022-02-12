@@ -296,11 +296,11 @@ class GoalReward4Rooms(MazeTask):
         return [
             [B, B, B, B, B, B, B, B, B],
             [B, E, E, E, E, E, E, E, B],
+            [B, E, E, E, B, E, E, E, B],
             [B, E, E, E, E, E, E, E, B],
+            [B, E, B, E, E, E, B, E, B],
             [B, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, B],
+            [B, E, E, E, B, E, E, E, B],
             [B, R, E, E, E, E, E, E, B],
             [B, B, B, B, B, B, B, B, B],
         ]

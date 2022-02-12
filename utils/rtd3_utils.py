@@ -14,6 +14,7 @@ import warnings
 from constants import params
 from bg.models import VisualCortexV2, Autoencoder
 from pytorch_msssim import ssim, ms_ssim
+import cv2
 
 TensorDict = Dict[Union[str, int], List[np.ndarray]]
 
@@ -440,7 +441,7 @@ class LSTM(torch.nn.Module):
         input_size = copy.deepcopy(input_dim)
         for idx in range(len(net_arch) - 1):
             self.layers.append(torch.nn.Linear(input_size, net_arch[idx]))
-            self.layers.append(torch.nn.Tanh())
+            self.layers.append(torch.nn.ELU())
             input_size = copy.deepcopy(net_arch[idx])
         self.layers.append(torch.nn.LSTMCell(input_size, net_arch[-1]))
 
@@ -519,17 +520,17 @@ class Actor(torch.nn.Module):
         )
         self. fc_sensors = torch.nn.Sequential(
             torch.nn.Linear(observation_space['sensors'].shape[-1], features_dim),
-            torch.nn.Tanh()
+            torch.nn.ELU()
         )
         self.mu = LSTM(2 * features_dim, output_dim, net_arch, squash_output)
 
     def forward(self, observation, hidden_state):
         sensors, front = observation
-        visual, probab, gen_image = self.vc(front)
+        visual, gen_image = self.vc(front)
         sensors = self.fc_sensors(sensors)
         x = torch.cat([visual, sensors], -1)
         x, hidden_state = self.mu(x, hidden_state)
-        return [x, visual, probab, gen_image], hidden_state
+        return [x, visual, gen_image], hidden_state
 
 
 class Critic(torch.nn.Module):
@@ -552,7 +553,7 @@ class Critic(torch.nn.Module):
                 observation_space['sensors'].shape[-1] + action_dim,
                 features_dim
             ),
-            torch.nn.Tanh()
+            torch.nn.ELU()
         )
         self.mu = LSTM(2 * features_dim, 1, net_arch, squash_output)
 
@@ -697,12 +698,11 @@ class RecurrentActor(sb3.common.policies.BasePolicy):
 
         with torch.no_grad():
             # Actor output consists of al output pipelines' outputs
-            [actions, features, probab, gen_image], state = self._predict(
+            [actions, features, gen_image], state = self._predict(
                 observation, state, deterministic=deterministic)
         # Convert to numpy
         actions = actions.cpu().numpy()
         features = features.cpu().numpy()
-        probab = probab.cpu().numpy()
         gen_image = gen_image.cpu().numpy()
 
         if isinstance(self.action_space, gym.spaces.Box):
@@ -724,10 +724,9 @@ class RecurrentActor(sb3.common.policies.BasePolicy):
                     "Error: The environment must be vectorized when using recurrent policies.")
             actions = actions[0]
             features = features[0]
-            probab = features[0]
             gen_image = gen_image[0]
 
-        return [actions, features, probab, gen_image], state
+        return [actions, features, gen_image], state
 
 
 class RecurrentContinuousCritic(sb3.common.policies.BaseModel):
@@ -762,7 +761,7 @@ class RecurrentContinuousCritic(sb3.common.policies.BaseModel):
         net_arch: List[int],
         features_extractor: torch.nn.Module,
         features_dim: int,
-        activation_fn: Type[torch.nn.Module] = torch.nn.Tanh,
+        activation_fn: Type[torch.nn.Module] = torch.nn.ELU,
         normalize_images: bool = True,
         n_critics: int = 2,
         share_features_extractor: bool = True,
@@ -851,7 +850,7 @@ class RecurrentTD3Policy(sb3.common.policies.BasePolicy):
         action_space: gym.spaces.Space,
         lr_schedule: sb3.common.type_aliases.Schedule,
         net_arch: Optional[Union[List[int], Dict[str, List[int]]]] = None,
-        activation_fn: Type[torch.nn.Module] = torch.nn.Tanh,
+        activation_fn: Type[torch.nn.Module] = torch.nn.ELU,
         features_extractor_class: Type[sb3.common.torch_layers.BaseFeaturesExtractor] = sb3.common.torch_layers.BaseFeaturesExtractor,
         features_extractor_kwargs: Optional[Dict[str, Any]] = None,
         normalize_images: bool = True,
@@ -1041,11 +1040,10 @@ class RecurrentTD3Policy(sb3.common.policies.BasePolicy):
 
         with torch.no_grad():
             # Actor output consists of al output pipelines' outputs
-            [actions, features, probab, gen_image], state = self._predict(observation, state, deterministic=deterministic)
+            [actions, features, gen_image], state = self._predict(observation, state, deterministic=deterministic)
         # Convert to numpy
         actions = actions.cpu().numpy()
         features = features.cpu().numpy()
-        probab = probab.cpu().numpy() 
         gen_image = gen_image.cpu().numpy()
 
         if isinstance(self.action_space, gym.spaces.Box):
@@ -1062,10 +1060,9 @@ class RecurrentTD3Policy(sb3.common.policies.BasePolicy):
                 raise ValueError("Error: The environment must be vectorized when using recurrent policies.")
             actions = actions[0]
             features = features[0]
-            probab = features[0]
             gen_image = gen_image[0]
 
-        return [actions, features, probab, gen_image] , state
+        return [actions, features, gen_image] , state
 
 class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
     """
@@ -1224,7 +1221,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             # we assume that the policy uses tanh to scale the action
             # We use non-deterministic action in the case of SAC, for TD3, it does not matter
             # Additional variables for maintaining equivalent structure
-            [unscaled_action, features, probab, gen_image], self.hidden_state = self.predict(
+            [unscaled_action, features, gen_image], self.hidden_state = self.predict(
                 self._last_obs, self.hidden_state, deterministic=False)
 
         # Rescale the action from [low, high] to [-1, 1]
@@ -1350,13 +1347,12 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 (batch_size, size)).to(
                     self.device))
         with torch.no_grad():
-            [next_ac, _, _, _], next_hidden_state = self.actor_target(
+            [next_ac, _, _], next_hidden_state = self.actor_target(
                 data.observations, hidden_state)
             _, next_hidden_state_critic = self.critic_target(
                 data.observations, hidden_state_critic, next_ac)
         num_updates = math.ceil(gradient_steps / self.n_steps)
         i = 0
-        BCE = []
         L1 = []
         SSIM = []
         for data in replay_data:
@@ -1364,14 +1360,11 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             if i > gradient_steps:
                 break
             if self.num_timesteps < params['staging_steps']:
-                [actions, features, probab, gen_image], hidden_state = self.actor(
+                [actions, features, gen_image], hidden_state = self.actor(
                     data.observations,
                     hidden_state
                 )
                 # Supplementary loss computed every step
-                bce = torch.nn.functional.binary_cross_entropy(
-                    probab, data.observations['inframe'].float()
-                )
                 l1 = torch.nn.functional.l1_loss(
                     gen_image, data.observations['front']
                 )
@@ -1380,11 +1373,9 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     x, gen_image,
                     data_range=1.0, size_average=True
                 )
-                loss = bce + l1 + ssim_loss
-                BCE.append(bce.item())
+                loss = l1 + ssim_loss
                 L1.append(l1.item())
                 SSIM.append(ssim_loss.item())
-                self.logger.record("train/step_bce", BCE[-1])
                 self.logger.record("train/step_l1", L1[-1])
                 self.logger.record("train/step_ssim", SSIM[-1])
                 self.actor.optimizer.zero_grad()
@@ -1396,7 +1387,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     noise = data.actions.clone().data.normal_(0, self.target_policy_noise)
                     noise = noise.clamp(-self.target_noise_clip,
                                         self.target_noise_clip)
-                    [next_actions, _, _, _], next_hidden_state = self.actor_target(
+                    [next_actions, _, _], next_hidden_state = self.actor_target(
                         data.next_observations, next_hidden_state)
                     next_actions = (next_actions + noise).clamp(-1, 1)
                     # Compute the next Q-values: min over all critics targets
@@ -1434,7 +1425,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 
                 # Actor Network Update
                 with torch.no_grad():
-                    [actions, features, probab, gen_image], _ = self.actor(data.observations, hidden_state)
+                    [actions, features, gen_image], _ = self.actor(data.observations, hidden_state)
                 actions.requires_grad = True
                 q_val, hidden_state_loss = self.critic.q1_forward(data.observations, hidden_state_loss, actions)
                 if self._n_updates % self.policy_delay == 0:
@@ -1442,7 +1433,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     q_val = q_val.mean()
                     q_val.backward()
                     delta_a = copy.deepcopy(actions.grad.data)
-                    [actions, features, probab, gen_image], hidden_state = self.actor(
+                    [actions, features, gen_image], hidden_state = self.actor(
                         data.observations,
                         hidden_state
                     )
@@ -1474,7 +1465,6 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     hidden_state_loss[0].detach(),
                     hidden_state_loss[1].detach()
                 )
-                self.logger.record("train/bce", np.mean(BCE))
                 self.logger.record("train/l1", np.mean(L1))
                 self.logger.record("train/ssim", np.mean(SSIM))
                 self.logger.record(

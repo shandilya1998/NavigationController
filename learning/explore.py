@@ -126,7 +126,7 @@ class Explore:
         elif model_type == 'recurrent':
             model = RTD3
             policy_class = RecurrentTD3Policy
-            kwargs['n_steps'] = history_steps
+            kwargs['n_steps'] = params['lstm_steps']
             replay_buffer_class = EpisodicReplayBuffer
             replay_buffer_kwargs = {
                 'max_episode_size' : max_episode_size,

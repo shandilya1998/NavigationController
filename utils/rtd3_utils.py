@@ -1393,7 +1393,6 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         # Need to modify with every experiment
         actor_losses, critic_losses = [], []
         size = self.policy.net_arch[-1]
-        data = next(replay_data)
         hidden_state = (
             torch.zeros(
                 (batch_size, size)).to(
@@ -1413,11 +1412,22 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 self.device), torch.zeros(
                 (batch_size, size)).to(
                     self.device))
-        with torch.no_grad():
-            [next_ac, _, _], next_hidden_state = self.actor_target(
-                data.observations, hidden_state)
-            _, next_hidden_state_critic = self.critic_target(
-                data.observations, hidden_state_critic, next_ac)
+        
+        next_hidden_state_critic = [
+            (torch.zeros(
+                (batch_size, size)).to(
+                self.device), torch.zeros(
+                (batch_size, size)).to(
+                    self.device)) for i in range(
+                        self.n_critics)]
+
+        next_hidden_state = (
+            torch.zeros(
+                (batch_size, size)).to(
+                self.device), torch.zeros(
+                (batch_size, size)).to(
+                    self.device))
+
         num_updates = math.ceil(gradient_steps / self.n_steps)
         i = 0
         L1_1 = []
@@ -1436,10 +1446,16 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             # Critic Update
             critic_loss = torch.zeros(()).to(self.device)
             print(self._n_updates)
-            for j in range(params['lstm_steps']):
+
+            steps = params['lstm_steps']
+            if i + params['lstm_steps'] >= gradient_steps:
+                steps = i + params['lstm_steps'] - gradient_steps - 1
+
+            if steps < 1:
+                break
+
+            for j in range(steps):
                 # data collection
-                if i > gradient_steps:
-                    break
                 data = next(replay_data)
                 observations.append({
                     key: ob.clone() for key, ob in data.observations.items()
@@ -1451,15 +1467,20 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 rewards.append(data.rewards.clone())
                 dones.append(data.dones.clone())
 
-                i += 1
-                self._n_updates += 1
                 with torch.no_grad():
+                    if i == 0:
+                        [next_ac, _, _], next_hidden_state = self.actor_target(
+                            observations[-1], hidden_state)
+                        _, next_hidden_state_critic = self.critic_target(
+                            observations[-1], hidden_state_critic, next_ac
+                        )
                     # Select action according to policy and add clipped noise
                     noise = actions[-1].data.normal_(0, self.target_policy_noise)
                     noise = noise.clamp(-self.target_noise_clip,
                                         self.target_noise_clip)
                     [next_actions, _, _], next_hidden_state = self.actor_target(
-                        observations[-1], next_hidden_state)
+                        next_observations[-1], next_hidden_state)
+                    
                     next_actions = (next_actions + noise).clamp(-1, 1)
                     # Compute the next Q-values: min over all critics targets
                     next_q_values, next_hidden_state_critic = self.critic_target(
@@ -1479,7 +1500,11 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     current_q, target_q_values) for current_q in current_q_values])
                 critic_losses.append(critic_loss_.item())
                 critic_loss += critic_loss_
-                # Optimize the critics
+            
+                i += 1
+                self._n_updates += 1
+
+            # Optimize the critics
             self.critic.optimizer.zero_grad()
             critic_loss.backward()
             self.critic.optimizer.step()
@@ -1496,7 +1521,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             # Actor Update
             self.critic.zero_grad()
             out = torch.zeros_like(actions[-1]).to(self.device)
-            for j in range(params['lstm_steps']):
+            for j in range(steps):
                 with torch.no_grad():
                     [_actions, _, _], _ = self.actor(observations[j], hidden_state)
                 _actions.requires_grad = True
@@ -1510,8 +1535,6 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     observations[j],
                     hidden_state
                 )
-
-                print(gen_image_1.shape, observations[-1]['scale_1'].shape)
 
                 # Supplementary loss computed every step
                 l1_1 = torch.nn.functional.l1_loss(
@@ -1536,7 +1559,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 SSIM_2.append(ssim_loss_2.item())
 
                 if self.num_timesteps < params['staging_steps'] + params['imitation_steps']:                    
-                    sampled_action = (observations[j]['sampled_action'] - self.min_p) / self.rnge
+                    sampled_action = (observations[j]['sampled_action'] - self.min_p_gpu) / self.rnge_gpu
                     loss_ = torch.nn.functional.l1_loss(_actions, sampled_action)
                     actor_losses.append(loss_.item())
                     loss += loss_
@@ -1554,6 +1577,14 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 self.actor.optimizer.zero_grad()
                 loss.backward()
                 self.actor.optimizer.step()
+                sb3.common.utils.polyak_update(
+                    self.critic.parameters(),
+                    self.critic_target.parameters(),
+                    self.tau)
+                sb3.common.utils.polyak_update(
+                    self.actor.parameters(),
+                    self.actor_target.parameters(),
+                    self.tau)
             else:
                 self.actor.optimizer.zero_grad()
                 loss.backward(torch.ones(out.shape).to(self.device))

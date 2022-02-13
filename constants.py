@@ -92,8 +92,8 @@ params = {
 import tensorflow as tf
 import tf_agents as tfa
 
-image_height = 192
-image_width = 192
+image_height = 128
+image_width = 128
 image_channels = 3
 n_history_steps = 5
 activation_fn_actor = tf.keras.activations.relu

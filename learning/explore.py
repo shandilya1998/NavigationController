@@ -115,7 +115,7 @@ class Explore:
         policy_kwargs = { 
             'features_extractor_class' : MultiModalFeaturesExtractorV2,
             'net_arch' : [150, 300, 150],
-            'n_critics' : 3 
+            'n_critics' : 2
         }
         if model_type == 'standard':
             model = sb3.TD3

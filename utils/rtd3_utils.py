@@ -12,7 +12,8 @@ import torch
 import copy
 import warnings
 from constants import params
-from bg.models import VisualCortexV2, Autoencoder
+from bg.models import VisualCortexV2
+from bg.autoencoder import Autoencoder, ResNet18Enc
 from pytorch_msssim import ssim, ms_ssim
 import cv2
 
@@ -515,9 +516,14 @@ class Actor(torch.nn.Module):
     ):
         super(Actor, self).__init__()
         self.vc = Autoencoder(
-            observation_space['front'],
             features_dim
         )
+
+        self.fc_combine_visual = torch.nn.Sequential(
+            torch.nn.Linear(3 * features_dim, features_dim),
+            torch.nn.ELU()
+        )
+
         self. fc_sensors = torch.nn.Sequential(
             torch.nn.Linear(observation_space['sensors'].shape[-1], features_dim),
             torch.nn.ELU()
@@ -525,12 +531,22 @@ class Actor(torch.nn.Module):
         self.mu = LSTM(2 * features_dim, output_dim, net_arch, squash_output)
 
     def forward(self, observation, hidden_state):
-        sensors, front = observation
-        visual, gen_image = self.vc(front)
+        sensors, scale_1, scale_2, scale_3 = observation
+        visual_1, gen_image_1 = self.vc(scale_1)
+        visual_2, gen_image_2 = self.vc(scale_2)
+        visual_3, gen_image_3 = self.vc(scale_3)
+        visual = self.fc_combine_visual(torch.cat([
+            visual_1, visual_2, visual_3
+        ], -1))
         sensors = self.fc_sensors(sensors)
         x = torch.cat([visual, sensors], -1)
         x, hidden_state = self.mu(x, hidden_state)
-        return [x, visual, gen_image], hidden_state
+        return [
+            x,
+            [visual_1, gen_image_1],
+            [visual_2, gen_image_2],
+            [visual_3, gen_image_3],
+        ], hidden_state
 
 class Critic(torch.nn.Module):
     def __init__(
@@ -543,10 +559,15 @@ class Critic(torch.nn.Module):
         squash_output=False
     ):
         super(Critic, self).__init__()
-        self.vc = VisualCortexV2(
-            observation_space['front'],
-            features_dim
+        self.vc = ResNet18Enc(
+            z_dim=features_dim
         )
+
+        self.fc_combine_visual = torch.nn.Sequential(
+            torch.nn.Linear(3 * features_dim, features_dim),
+            torch.nn.ELU()
+        )
+
         self.fc_sensors_actions = torch.nn.Sequential(
             torch.nn.Linear(
                 observation_space['sensors'].shape[-1] + action_dim,
@@ -557,8 +578,13 @@ class Critic(torch.nn.Module):
         self.mu = LSTM(2 * features_dim, 1, net_arch, squash_output)
 
     def forward(self, observation, hidden_state, action):
-        sensors, front = observation
-        visual = self.vc(front)
+        sensors, scale_1, scale_2, scale_3 = observation
+        visual_1 = self.vc(scale_1)
+        visual_2 = self.vc(scale_2)
+        visual_3 = self.vc(scale_3)
+        visual = self.fc_combine_visual(torch.cat([
+            visual_1, visual_2, visual_3
+        ], -1))
         y = torch.cat([sensors, action], -1)
         y = self.fc_sensors_actions(y)
         x = torch.cat([visual, y], -1)
@@ -696,12 +722,21 @@ class RecurrentActor(sb3.common.policies.BasePolicy):
 
         with torch.no_grad():
             # Actor output consists of al output pipelines' outputs
-            [actions, features, gen_image], state = self._predict(
+            [
+                actions, 
+                [visual_1, gen_image_1],
+                [visual_2, gen_image_2],
+                [visual_3, gen_image_3],
+            ], state = self._predict(
                 observation, state, deterministic=deterministic)
         # Convert to numpy
         actions = actions.cpu().numpy()
-        features = features.cpu().numpy()
-        gen_image = gen_image.cpu().numpy()
+        visual_1 = visual_1.cpu().numpy()
+        visual_2 = visual_2.cpu().numpy()
+        visual_3 = visual_3.cpu().numpy()
+        gen_image_1 = gen_image_1.cpu().numpy()
+        gen_image_2 = gen_image_2.cpu().numpy()
+        gen_image_3 = gen_image_3.cpu().numpy()
 
         if isinstance(self.action_space, gym.spaces.Box):
             if self.squash_output:
@@ -721,10 +756,19 @@ class RecurrentActor(sb3.common.policies.BasePolicy):
                 raise ValueError(
                     "Error: The environment must be vectorized when using recurrent policies.")
             actions = actions[0]
-            features = features[0]
-            gen_image = gen_image[0]
+            visual_1 = visual_1[0]
+            visual_2 = visual_2[0]
+            visual_3 = visual_3[0]
+            gen_image_1 = gen_image_1[0]
+            gen_image_2 = gen_image_2[0]
+            gen_image_3 = gen_image_3[0]
 
-        return [actions, features, gen_image], state
+        return [
+                actions,
+                [visual_1, gen_image_1],
+                [visual_2, gen_image_2],
+                [visual_3, gen_image_3],
+            ], state
 
 
 class RecurrentContinuousCritic(sb3.common.policies.BaseModel):
@@ -1038,11 +1082,21 @@ class RecurrentTD3Policy(sb3.common.policies.BasePolicy):
 
         with torch.no_grad():
             # Actor output consists of al output pipelines' outputs
-            [actions, features, gen_image], state = self._predict(observation, state, deterministic=deterministic)
+            [
+                actions, 
+                [visual_1, gen_image_1],
+                [visual_2, gen_image_2],
+                [visual_3, gen_image_3],
+            ], state = self._predict(
+                observation, state, deterministic=deterministic)
         # Convert to numpy
         actions = actions.cpu().numpy()
-        features = features.cpu().numpy()
-        gen_image = gen_image.cpu().numpy()
+        visual_1 = visual_1.cpu().numpy()
+        visual_2 = visual_2.cpu().numpy()
+        visual_3 = visual_3.cpu().numpy()
+        gen_image_1 = gen_image_1.cpu().numpy()
+        gen_image_2 = gen_image_2.cpu().numpy()
+        gen_image_3 = gen_image_3.cpu().numpy()
 
         if isinstance(self.action_space, gym.spaces.Box):
             if self.squash_output:
@@ -1050,17 +1104,31 @@ class RecurrentTD3Policy(sb3.common.policies.BasePolicy):
                 actions = self.unscale_action(actions)
             else:
                 # Actions could be on arbitrary scale, so clip the actions to avoid
-                # out of bound error (e.g. if sampling from a Gaussian distribution)
-                actions = np.clip(actions, self.action_space.low, self.action_space.high)
+                # out of bound error (e.g. if sampling from a Gaussian
+                # distribution)
+                actions = np.clip(
+                    actions,
+                    self.action_space.low,
+                    self.action_space.high)
 
         if not vectorized_env:
             if state is not None:
-                raise ValueError("Error: The environment must be vectorized when using recurrent policies.")
+                raise ValueError(
+                    "Error: The environment must be vectorized when using recurrent policies.")
             actions = actions[0]
-            features = features[0]
-            gen_image = gen_image[0]
+            visual_1 = visual_1[0]
+            visual_2 = visual_2[0]
+            visual_3 = visual_3[0]
+            gen_image_1 = gen_image_1[0]
+            gen_image_2 = gen_image_2[0]
+            gen_image_3 = gen_image_3[0]
 
-        return [actions, features, gen_image] , state
+        return [
+                actions,
+                [visual_1, gen_image_1],
+                [visual_2, gen_image_2],
+                [visual_3, gen_image_3],
+            ], state
 
 class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
     """
@@ -1219,7 +1287,12 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             # we assume that the policy uses tanh to scale the action
             # We use non-deterministic action in the case of SAC, for TD3, it does not matter
             # Additional variables for maintaining equivalent structure
-            [unscaled_action, features, gen_image], self.hidden_state = self.predict(
+            [
+                unscaled_actions,
+                [visual_1, gen_image_1],
+                [visual_2, gen_image_2],
+                [visual_3, gen_image_3],
+            ], self.hidden_state = self.predict(
                 self._last_obs, self.hidden_state, deterministic=False)
 
         # Rescale the action from [low, high] to [-1, 1]
@@ -1305,6 +1378,13 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             self._last_original_obs = new_obs_
 
     def _invert_gradients(self, grad, vals):
+        """
+            Refer to the following paper:
+            https://arxiv.org/abs/1511.04143
+            
+            Refer to the following post on PyTorch Discussion Forum:
+            https://discuss.pytorch.org/t/inverting-gradients-gradient-of-critic-network-output-wrt-action/37518
+        """
         with torch.no_grad():
             for n in range(grad.shape[0]):
                 # index = grad < 0  # actually > but Adam minimises, so
@@ -1345,140 +1425,185 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 (batch_size, size)).to(
                     self.device))
         with torch.no_grad():
-            [next_ac, _, _], next_hidden_state = self.actor_target(
+            [next_ac, _, _, _], next_hidden_state = self.actor_target(
                 data.observations, hidden_state)
             _, next_hidden_state_critic = self.critic_target(
                 data.observations, hidden_state_critic, next_ac)
         num_updates = math.ceil(gradient_steps / self.n_steps)
         i = 0
-        L1 = []
-        SSIM = []
-        for data in replay_data:
-            i += 1
-            if i > gradient_steps:
-                break
-            if self.num_timesteps < params['staging_steps']:
-                [actions, features, gen_image], hidden_state = self.actor(
-                    data.observations,
+        L1_1 = []
+        L1_2 = []
+        L1_3 = []
+        SSIM_1 = []
+        SSIM_2 = []
+        SSIM_3 = []
+
+        while i < gradient_steps:
+            # data collection
+            observations = []
+            next_observations = []
+            actions = []
+            rewards = []
+            dones = []
+
+            # Critic Update
+            critic_loss = torch.zeros(())
+            print(self._n_updates)
+            for j in range(params['lstm_steps']):
+
+                # data collection
+                data = next(replay_data)
+                observations.append({
+                    key: ob.clone() for key, ob in data.observations.items()
+                })
+                next_observations.append({
+                    key: ob.clone() for key, ob in data.next_observations.items()
+                })
+                actions.append(data.actions.clone())
+                rewards.append(data.rewards.clone())
+                dones.append(data.dones.clone())
+
+                i += 1
+                self._n_updates += 1
+                with torch.no_grad():
+                    # Select action according to policy and add clipped noise
+                    noise = actions[-1].data.normal_(0, self.target_policy_noise)
+                    noise = noise.clamp(-self.target_noise_clip,
+                                        self.target_noise_clip)
+                    [next_actions, _, _, _], next_hidden_state = self.actor_target(
+                        observations[-1], next_hidden_state)
+                    next_actions = (next_actions + noise).clamp(-1, 1)
+                    # Compute the next Q-values: min over all critics targets
+                    next_q_values, next_hidden_state_critic = self.critic_target(
+                        next_observations[-1], next_hidden_state_critic, next_actions)
+                    next_q_values = torch.cat(next_q_values, dim=1)
+                    next_q_values, _ = torch.min(
+                        next_q_values, dim=1, keepdim=True)
+                    target_q_values = rewards[-1] + \
+                        (1 - dones[-1]) * self.gamma * next_q_values
+
+                # Get current Q-values estimates for each critic network
+                current_q_values, hidden_state_critic = self.critic(
+                    observations[-1], hidden_state_critic, actions[-1])
+
+                # Compute critic loss
+                critic_loss_ = sum([torch.nn.functional.mse_loss(
+                    current_q, target_q_values) for current_q in current_q_values])
+                critic_losses.append(critic_loss_.item())
+                critic_loss += critic_loss_
+                # Optimize the critics
+            self.critic.optimizer.zero_grad()
+            critic_loss.backward()
+            self.critic.optimizer.step()
+            lst_1 = []
+            for k in range(self.n_critics):
+                lst_1.append(
+                    (
+                        hidden_state_critic[k][0].detach(),
+                        hidden_state_critic[k][1].detach()
+                    )
+                )
+            hidden_state_critic = lst_1
+
+            # Actor Update
+            self.critic.zero_grad()
+            out = torch.zeros_like(actions[-1])
+            for j in range(params['lstm_steps']):
+                with torch.no_grad():
+                    [_actions, features, gen_image], _ = self.actor(data.observations, hidden_state)
+                _actions.requires_grad = True
+                q_val, hidden_state_loss = self.critic.q1_forward(observations[j], hidden_state_loss, _actions)
+                [_actions, [
+                    [features_1, gen_image_1],
+                    [features_2, gen_image_2],
+                    [features_3, gen_image_3]
+                ]], hidden_state = self.actor(
+                    observations[j],
                     hidden_state
                 )
                 # Supplementary loss computed every step
-                l1 = torch.nn.functional.l1_loss(
-                    gen_image, data.observations['front']
+                l1_1 = torch.nn.functional.l1_loss(
+                    gen_image_1, data.observations['scale_1']
                 )
-                ssim_loss = 1 - ssim(
-                    data.observations['front'].float(), gen_image,
+                l1_2 = torch.nn.functional.l1_loss(
+                    gen_image_2, data.observations['scale_2']
+                )
+                l1_3 = torch.nn.functional.l1_loss(
+                    gen_image_3, data.observations['scale_3']
+                )
+                ssim_loss_1 = 1 - ssim(
+                    data.observations['scale_1'].float(), gen_image_1,
                     data_range=255, size_average=True
                 )
-                loss = l1 + ssim_loss
-                L1.append(l1.item())
-                SSIM.append(ssim_loss.item())
-                self.logger.record("train/step_l1", L1[-1])
-                self.logger.record("train/step_ssim", SSIM[-1])
+                ssim_loss_2 = 1 - ssim(
+                    data.observations['scale_2'].float(), gen_image_2,
+                    data_range=255, size_average=True
+                )
+                ssim_loss_3 = 1 - ssim(
+                    data.observations['scale_3'].float(), gen_image_3,
+                    data_range=255, size_average=True
+                )
+                loss = l1_1 + l1_2 + l1_3 + \
+                    ssim_loss_1 + ssim_loss_2 + ssim_loss_3
+                L1_1.append(l1_1.item())
+                L1_2.append(l1_2.item())
+                L1_3.append(l1_3.item())
+                SSIM_1.append(ssim_loss_1.item())
+                SSIM_2.append(ssim_loss_2.item())
+                SSIM_3.append(ssim_loss_3.item())
+
+                if self.num_timesteps < params['staging_steps'] + params['imitation_steps']:                    
+                    sampled_action = (observations[j]['sampled_action'] - self.min_p) / self.rnge
+                    loss_ = torch.nn.functional.l1_loss(_actions, sampled_actio)
+                    actor_losses.append(loss_.item())
+                    loss += loss_
+                elif self._n_updates % self.policy_delay == 0:
+                    q_val = q_val.mean()
+                    q_val.backward()
+                    delta_a = copy.deepcopy(actions.grad.data)
+                    delta_a[:] = self._invert_gradients(delta_a.cpu(), actions.cpu())
+                    out = -torch.mul(delta_a, actions)
+                    actor_loss = -q_val.mean()
+                    loss += out
+                    actor_losses.append(actor_loss.item())
+                    
+            if self.num_timesteps < params['staging_steps'] + params['imitation_steps']:
                 self.actor.optimizer.zero_grad()
                 loss.backward()
                 self.actor.optimizer.step()
             else:
-                with torch.no_grad():
-                    # Select action according to policy and add clipped noise
-                    noise = data.actions.clone().data.normal_(0, self.target_policy_noise)
-                    noise = noise.clamp(-self.target_noise_clip,
-                                        self.target_noise_clip)
-                    [next_actions, _, _], next_hidden_state = self.actor_target(
-                        data.next_observations, next_hidden_state)
-                    next_actions = (next_actions + noise).clamp(-1, 1)
-                    # Compute the next Q-values: min over all critics targets
-                    next_q_values, next_hidden_state_critic = self.critic_target(
-                        data.next_observations, next_hidden_state_critic, next_actions)
-                    next_q_values = torch.cat(next_q_values, dim=1)
-                    next_q_values, _ = torch.min(
-                        next_q_values, dim=1, keepdim=True)
-                    target_q_values = data.rewards + \
-                        (1 - data.dones) * self.gamma * next_q_values
-
-                # Get current Q-values estimates for each critic network
-                current_q_values, hidden_state_critic = self.critic(
-                    data.observations, hidden_state_critic, data.actions)
-
-                # Compute critic loss
-                critic_loss = sum([torch.nn.functional.mse_loss(
-                    current_q, target_q_values) for current_q in current_q_values])
-                critic_losses.append(critic_loss.item())
-
-                # Optimize the critics
-                self.critic.optimizer.zero_grad()
-                critic_loss.backward()
-                self.critic.optimizer.step()
-                lst_1 = []
-                for k in range(self.n_critics):
-                    lst_1.append(
-                        (
-                            hidden_state_critic[k][0].detach(),
-                            hidden_state_critic[k][1].detach()
-                        )
-                    )
-                hidden_state_critic = lst_1
-                self._n_updates += 1
-                
-                # Actor Network Update
-                with torch.no_grad():
-                    [actions, features, gen_image], _ = self.actor(data.observations, hidden_state)
-                actions.requires_grad = True
-                q_val, hidden_state_loss = self.critic.q1_forward(data.observations, hidden_state_loss, actions)
-                if self._n_updates % self.policy_delay == 0:
-                    self.critic.zero_grad()
-                    q_val = q_val.mean()
-                    q_val.backward()
-                    delta_a = copy.deepcopy(actions.grad.data)
-                    [actions, features, gen_image], hidden_state = self.actor(
-                        data.observations,
-                        hidden_state
-                    )
-                    # Optimize the actor
-                    # Reinforcement Learning optimisation only every policy_delay
-                    # steps 
-                    if self.num_timesteps >= params['imitation_steps']:
-                        delta_a[:] = self._invert_gradients(delta_a.cpu(), actions.cpu())
-                        out = -torch.mul(delta_a, actions)
-                        actor_loss = -q_val.mean()
-                        loss = out
-                        actor_losses.append(actor_loss.item())
-                        self.actor.optimizer.zero_grad()
-                        loss.backward(torch.ones(out.shape).to(self.device))
-                        self.actor.optimizer.step()
-                    else:
-                        loss_ = torch.nn.functional.l1_loss(actions, data.observations['sampled_action'])
-                        actor_losses.append(loss_.item())
-                        loss = loss_
-                        self.actor.optimizer.zero_grad()
-                        loss.backward()
-                        self.actor.optimizer.step()
-
-                hidden_state = (
-                    hidden_state[0].detach(),
-                    hidden_state[1].detach()
-                )
-                hidden_state_loss = (
-                    hidden_state_loss[0].detach(),
-                    hidden_state_loss[1].detach()
-                )
-                self.logger.record("train/l1", np.mean(L1))
-                self.logger.record("train/ssim", np.mean(SSIM))
-                self.logger.record(
-                    "train/n_updates",
-                    self._n_updates,
-                    exclude="tensorboard")
-                if len(actor_losses) > 0:
-                    self.logger.record("train/actor_loss", np.mean(actor_losses))
-                self.logger.record("train/critic_loss", np.mean(critic_losses))
-
-            if self._n_updates % self.policy_delay == 0:
+                self.actor.optimizer.zero_grad()
+                loss.backward(torch.ones(out.shape).to(self.device))
+                self.actor.optimizer.step()
                 sb3.common.utils.polyak_update(
                     self.critic.parameters(),
                     self.critic_target.parameters(),
                     self.tau)
                 sb3.common.utils.polyak_update(
-                    self.actor.parameters(), self.actor_target.parameters(), self.tau)
+                    self.actor.parameters(),
+                    self.actor_target.parameters(),
+                    self.tau)
+    
+            hidden_state = (
+                hidden_state[0].detach(),
+                hidden_state[1].detach()
+            )
+            hidden_state_loss = (
+                hidden_state_loss[0].detach(),
+                hidden_state_loss[1].detach()
+            )
+        self.logger.record(
+            "train/n_updates",
+            self._n_updates,
+            exclude="tensorboard")
+        self.logger.record("train/actor_loss", np.mean(actor_losses))
+        self.logger.record("train/critic_loss", np.mean(critic_losses))
+        self.logger.record("train/l1_1", np.mean(L1_1))
+        self.logger.record("train/l1_2", np.mean(L1_2))
+        self.logger.record("train/l1_3", np.mean(L1_3))
+        self.logger.record("train/ssim_1", np.mean(SSIM_1))
+        self.logger.record("train/ssim_2", np.mean(SSIM_2))
+        self.logger.record("train/ssim_3", np.mean(SSIM_3))
 
     def train(self, gradient_steps: int, batch_size: int = 100) -> None:
         # Update learning rate according to lr schedule

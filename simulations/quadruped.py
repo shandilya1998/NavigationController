@@ -1,6 +1,7 @@
 from simulations.agent_model import AgentModel
 from constants import params
 from typing import Any, List, Optional, Tuple, Type
+from reward import FitnessFunctionV2
 
 class Quadruped(AgentModel):
     
@@ -103,8 +104,7 @@ class Quadruped(AgentModel):
         self.current_supports = []
         self.t = 0
 
-        self.reward = FitnessFunctionV2(params) 
-        
+        self.reward = FitnessFunctionV2(params)  
         super().__init__(file_path, self._frame_skip)
 
     def _reset_track_lst(self):
@@ -143,6 +143,9 @@ class Quadruped(AgentModel):
         self._track_item['reward'].append(np.array([self._reward], dtype = np.float32))
 
     def _set_action_space(self):
+        """
+            Need to modify to be CPG parameter space and connection configuration
+        """
         low = np.array([0.0, -np.pi], dtype = np.float32)
         high = np.array([self.VELOCITY_LIMITS * 1.41, np.pi], dtype = np.float32)
         self.action_dim = 2 
@@ -243,7 +246,77 @@ class Quadruped(AgentModel):
             ang_vel = self.sim.data.qvel[3:6]
 
             self.d1, self.d2, self.d3, self.stability, upright = self.calculate_stability_reward(self.desired_goal)
-        raise NotImplementedError
+        
+            if self.policy_type == 'MultiInputPolicy':
+                """ 
+                    modify this according to observation space
+                """
+                if len(self._track_item['achieved_goal']) \
+                        > params['window_size']:
+                    self.achieved_goal = sum([np.concatenate([
+                        velocity,
+                        ang_vel
+                    ], -1)] + self._track_item[
+                        'achieved_goal'
+                        ][-params['window_size'] + 1:] 
+                    ) / params['window_size']
+                else:
+                    self.achieved_goal = sum([np.concatenate([
+                        velocity,
+                        ang_vel
+                    ], -1)] + [self._track_item[
+                        'achieved_goal'][0]] * (params['window_size'] - 1)
+                    ) / params['window_size']
+            if self._is_render:
+                pass
+                #self.render()
+            if self.policy_type == 'MultiInputPolicy':
+                reward_velocity += np.linalg.norm(
+                    self.achieved_goal - self.desired_goal
+                )   
+            else:
+                reward_velocity += np.abs(
+                    self.achieved_goal[0] - self.desired_goal[0]
+                )   
+            reward_energy += -np.linalg.norm(
+                self.sim.data.actuator_force * self.sim.data.qvel[-self._num_joints:]
+            ) - np.linalg.norm(np.clip(self.sim.data.cfrc_ext, -1, 1).flat)
+            if not upright:
+                done = True
+            counter += 1
+            phase += timer_omega * self.dt * counter
+            self._track_attr()
+            self._step += 1
+            if self._step % params['max_step_length'] == 0:
+                break
+
+        self._n_steps += 1
+        reward_distance = 1 - np.exp(-np.linalg.norm(self.sim.data.qpos[:2]))
+        reward_velocity = np.exp(params['reward_velocity_coef'] * reward_velocity)
+        reward_energy = np.exp(params['reward_energy_coef'] * reward_energy)
+        reward = reward_distance + reward_velocity + reward_energy + penalty
+        self.rewards = np.array([
+            reward_velocity,
+            reward_distance,
+            reward_energy,
+            penalty
+        ], dtype = np.float32)
+        info = { 
+            'reward_velocity' : reward_velocity,
+            'reward_distance' : reward_distance,
+            'reward_energy' : reward_energy,
+            'reward' : reward,
+            'penalty' : penalty
+        }
+
+        state = self.state_vector()
+        notdone = np.isfinite(state).all() \
+            and state[2] >= 0.02 and state[2] <= 0.5
+        done = not notdone
+        self._reward = reward
+        if self._step >= params['max_episode_size']:
+            done = True
+        return reward, done, info
 
     def get_body_com(self, body_name):
         return self.sim.data.get_body_xpos(body_name)
@@ -271,3 +344,202 @@ class Quadruped(AgentModel):
         self.d2 = 0.0
         self.d3 = 0.0
         self.stability = 0.0
+
+    def seed(self, seed=None):
+        if seed is None:
+            seed = params['seed']
+        self.np_random, seed = gym.utils.seeding.np_random(seed)
+        return [seed]
+
+    def get_feet_contacts(self):
+        """
+            Refer to the following link for flowchart for this method:
+            https://www.notion.so/shandilya1998/Omnidirectional-Controller-Reorganisation-bcbbda8cdf7b4423825e33d115eaa777#9d7e06886b4549a9b76192cac5d5b5a6
+        """
+        contact_points = []
+        contact_names = []
+        for c in range(self.sim.data.ncon):
+            if self.sim.data.contact[c].geom2 in self.end_eff and \
+                    self.sim.data.contact[c].geom2 not in contact_names:
+                contact_names.append(self.sim.data.contact[c].geom2)
+                contact_points.append(self.sim.data.contact[c].pos)
+        return list(zip(contact_names, contact_points))
+
+    def set_support_points(self):
+        """
+            Refer to the following link for flowchart for this method:
+            https://www.notion.so/shandilya1998/Omnidirectional-Controller-Reorganisation-bcbbda8cdf7b4423825e33d115eaa777#562a8e8f8be24051a12b1410668c66df
+        """
+        contacts = self.get_feet_contacts()
+        self.t += 1
+        upright = True
+        if len(contacts) > 0:
+            upright = True
+            if len(contacts) > 2:
+                contacts = contacts[:2]
+            for c in contacts:
+                if c[0] in self.current_supports:
+                    index = self.current_supports.index(c[0])
+                    if len(self.current_supports) > 1:
+                        self.support_points.pop(-2 + index)
+                        self.support_points.insert(-2 + index, copy.deepcopy(c[1]))
+                        self.times.pop(-2 + index)
+                        self.times.insert(-2 + index, copy.deepcopy(self.t))
+                        order = [len(self.current_supports) - 1 - index, index]
+                        self.current_supports = [self.current_supports[-2 + i] \
+                            for i in  order]
+                        order = list(range(len(self.support_points)))
+                        order[-2 + index] = -2 - index + 1
+                        order[-2 - index +1] = -2 + index
+                        self.support_points = [self.support_points[i] \
+                            for i in  order]
+                        self.times = [self.times[i] for i in order]
+                    else:
+                        if len(self.support_points) > 1:
+                            self.support_points.pop(-2 + index)
+                            self.support_points.insert(-2 + index, copy.deepcopy(c[1]))
+                            self.times.pop(-2 + index)
+                            self.times.insert(-2 + index, copy.deepcopy(self.t))
+                        else:
+                            self.support_points.append(copy.deepcopy(c[1]))
+                            self.times.append(copy.deepcopy(self.t))
+                else:
+                    self.current_supports.append(c[0])
+                    self.support_points.append(copy.deepcopy(c[1]))
+                    self.times.append(copy.deepcopy(self.t))
+                    if len(self.current_supports) > 2:
+                        self.current_supports.pop(0)
+                    if len(self.support_points) > 6:
+                        self.support_points.pop(0)
+                    if len(self.times) > 6:
+                        self.times.pop(0)
+
+        else:
+            upright = False
+        return upright
+
+    def calculate_stability_reward(self, d):
+        reward = 0.0
+        d1 = 0.0
+        d2 = 0.0
+        d3 = 0.0
+        upright = self.set_support_points()
+        if len(self.support_points) < 6:
+            pass
+        else:
+            if not upright:
+                reward += -2.0
+            else:
+                Tb = self.times[-1] - self.times[0]
+                t = self.times[3] - self.times[1]
+                self.reward.build(
+                    t, Tb,
+                    self.support_points[2],
+                    self.support_points[3],
+                    self.support_points[0],
+                    self.support_points[1],
+                    self.support_points[4],
+                    self.support_points[5]
+                )
+                eta = 0
+                vd = np.linalg.norm(d[:3])
+                if vd != 0:
+                    eta = (params['L'] + params['W'])/(2*vd)
+                d1, d2, d3, stability = \
+                    self.reward.stability_reward(
+                        self.sim.data.qpos[:3],
+                        self.sim.data.qacc[:3],
+                        self.sim.data.qvel[:3],
+                        d[3:],
+                        eta
+                    )
+                reward += stability
+        return d1, d2, d3, reward, upright
+
+    def _create_command_lst(self):
+        self.commands = []
+        xvel = np.zeros((50,))
+        yvel = np.zeros((50,))
+        zvel = np.zeros((50,))
+        roll_rate = np.zeros((50,))
+        pitch_rate = np.zeros((50,))
+        yaw_rate = np.zeros((50,))
+        if self.gait in [
+            'ds_crawl',
+            'ls_crawl',
+            'trot',
+            'pace',
+            'bound',
+            'transverse_gallop',
+            'rotary_gallop',
+        ]:
+            if self.task == 'rotate' or self.task == 'turn':
+                if self.direction == 'left':
+                    yaw_rate = np.random.uniform(
+                        low = -0.1, high = -0.001, size = (50,)
+                    )
+                elif self.direction == 'right':
+                    yaw_rate = np.random.uniform(
+                        low = 0.001, high = 0.1, size = (50,)
+                    )
+            elif self.task == 'straight':
+                if self.direction == 'left':
+                    yvel = np.random.uniform(
+                        low = -0.1, high = -0.001, size = (50,)
+                    )
+                elif self.direction == 'right':
+                    yvel = np.random.uniform(
+                        low = 0.001, high = 0.1, size = (50,)
+                    )
+                elif self.direction == 'forward':
+                    xvel = np.random.uniform(
+                        low = 0.001, high = 0.1, size = (50,)
+                    )
+                elif self.direction == 'backward':
+                    xvel = np.random.uniform(
+                        low = -0.1, high = -0.001, size = (50,)
+                    )
+            else:
+                raise ValueError
+
+        self.commands = np.stack(
+            [yvel, xvel, zvel, roll_rate, pitch_rate, yaw_rate], -1
+        )
+
+        return list(self.commands)
+
+    def _get_track_item(self, item):
+        return self._track_item[item].copy()
+
+    def _get_joint_pos(self, mu, omega):
+        """
+            CPG model driving locomotion
+        """
+        out = []
+        amp = []
+        omg = []
+        if self._action_dim == 2:
+            amp.extend([mu[0]] * 4)
+            omg.extend([omega[0]]* 4)
+        elif self._action_dim == 4:
+            amp.extend([mu[0], mu[1], mu[1], mu[0]])
+            omg.extend([omega[0], omega[1], omega[1], omega[0]])
+        time_omega = 0.0
+        self.mu = np.array(amp, dtype = np.float32)
+        self.omega = np.array(omg, dtype = np.float32) * self.heading_ctrl
+        self.z, w = hopf_mod_step(self.omega, self.mu, self.z, self.C,
+                params['degree'], self.dt)
+        self.w = w
+        out = []
+        for i in range(self._num_legs):
+            direction = 1.0
+            if i in [0, 3]:
+                direction = 1.0
+            if i in [1,2]:
+                direction = -1.0
+            out.append(self.z[i] * np.tanh(1e3 * self.omega[i]))
+            knee = -np.maximum(-self.z[self._num_legs + i], 0)
+            out.append(knee * direction)
+            out.append((-0.35 * knee  + 1.3089) * direction)
+        out = np.array(out, dtype = np.float32)
+        return out, w.max()

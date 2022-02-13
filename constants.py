@@ -30,12 +30,12 @@ params = {
     'show_animation'              : False,
     'dt'                          : 0.02,
     'learning_starts'             : 751,
-    'staging_steps'               : int(3e5),
-    'imitation_steps'             : int(3e5),
+    'staging_steps'               : int(1e4),
+    'imitation_steps'             : int(1e4),
     'render_freq'                 : 8004,
     'save_freq'                   : 16008,
     'eval_freq'                   : 8004,
-    'buffer_size'                 : int(7.5e5),
+    'buffer_size'                 : int(1e4),
     'total_timesteps'             : int(1.6e6),
     'ds'                          : 0.01,
     'motor_cortex'                : [256, 128],
@@ -45,7 +45,7 @@ params = {
     'OU_MEAN'                     : 0.00,
     'OU_SIGMA'                    : 0.12,
     'top_view_size'               : 50.,
-    'batch_size'                  : 64,
+    'batch_size'                  : 62,
     'lr'                          : 1e-3,
     'final_lr'                    : 1e-5,
     'n_steps'                     : 2000,
@@ -57,7 +57,7 @@ params = {
     'critic_lr'                   : 1e-2,
     'weight_decay'                : 1e-2,
     'collision_threshold'         : 20,
-    'debug'                       : False,
+    'debug'                       : True,
     'max_vyaw'                    : 1.5,
     'policy_delay'                : 2,
     'seed'                        : 117,
@@ -84,16 +84,17 @@ params = {
                                     ],
     'preprocessing'               : {
                                         'num_epochs'      : 1000
-                                    }
+                                    },
+    'lstm_steps'                  : 5,
 }
 
 
 import tensorflow as tf
 import tf_agents as tfa
 
-image_height = 75
-image_width = 100
-image_channels = 4
+image_height = 192
+image_width = 192
+image_channels = 3
 n_history_steps = 5
 activation_fn_actor = tf.keras.activations.relu
 activation_fn_critic = tf.keras.activations.relu

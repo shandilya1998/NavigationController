@@ -426,11 +426,23 @@ class MazeEnv(gym.Env):
 
     def _set_observation_space(self, observation):
         self.observation_space = gym.spaces.Dict({
-            'front' : gym.spaces.Box(
-                low = np.zeros_like(observation['front'], dtype = np.uint8),
-                high = 255 * np.ones_like(observation['front'], dtype = np.uint8),
-                shape = observation['front'].shape,
-                dtype = observation['front'].dtype
+            'scale_1' : gym.spaces.Box(
+                low = np.zeros_like(observation['scale_1'], dtype = np.uint8),
+                high = 255 * np.ones_like(observation['scale_1'], dtype = np.uint8),
+                shape = observation['scale_1'].shape,
+                dtype = observation['scale_1'].dtype
+            ),
+            'scale_2' : gym.spaces.Box(
+                low = np.zeros_like(observation['scale_2'], dtype = np.uint8),
+                high = 255 * np.ones_like(observation['scale_2'], dtype = np.uint8),
+                shape = observation['scale_2'].shape,
+                dtype = observation['scale_2'].dtype
+            ),
+            'scale_3' : gym.spaces.Box(
+                low = np.zeros_like(observation['scale_3'], dtype = np.uint8),
+                high = 255 * np.ones_like(observation['scale_3'], dtype = np.uint8),
+                shape = observation['scale_3'].shape,
+                dtype = observation['scale_3'].dtype
             ),
             'sensors' : gym.spaces.Box(
                 low = -np.ones_like(observation['sensors']),
@@ -472,6 +484,7 @@ class MazeEnv(gym.Env):
     def _get_obs(self) -> np.ndarray:
         obs = self.wrapped_env._get_obs()
         img = obs['front']
+        assert img.shape[0] == img.shape[1]
         inframe, reversemask = self._task.goals[self._task.goal_index].inframe(img)
         high = self.action_space.high
         sampled_action = self.get_action().astype(np.float32)
@@ -504,9 +517,34 @@ class MazeEnv(gym.Env):
             #cv2.imshow('gray', gray)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 pass
+        
+        mid = img.shape[0] // 2
+
+        size_1 = img.shape[0] // 3
+        size_2 = 2 * img.shape[0] // 3
+        size_3 = img.shape[0]
+
+        scale_1 = img[
+            mid - size_1: mid + size_1,
+            mid - size_1: mid + size_1
+        ] 
+        scale_2 = cv2.resize(img[
+            mid - size_2: mid + size_2,
+            mid - size_2: mid + size_2
+        ], (size_1, size_1))
+
+        scale_3 = cv2.resize(img[
+            mid - size_3: mid + size_3,
+            mid - size_3: mid + size_3
+        ], (size_1, size_1))
+
+        self.img = img
+
         obs = {
-            'front' : img.copy(),
-            'sensors' : sensors.copy(),
+            'scale_1' : scale_1.copy(),
+            'scale_2' : scale_2.copy(),
+            'scale_3' : scale_3.copy(),
+            'sensors' : sensors,
             'sampled_action' : sampled_action.copy(),
             'inframe' : np.array([inframe], dtype = np.float32)
         }

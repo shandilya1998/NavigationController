@@ -1526,42 +1526,11 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 _actions.requires_grad = True
                 q_val, hidden_state_loss = self.critic.q1_forward(observations[j], hidden_state_loss, _actions)
                 
-                [
-                    _actions,
-                    [features_1, gen_image_1],
-                    [features_2, gen_image_2],
-                ], hidden_state = self.actor(
-                    observations[j],
-                    hidden_state
-                )
-
-                # Supplementary loss computed every step
-                l1_1 = torch.nn.functional.l1_loss(
-                    gen_image_1, observations[-1]['scale_1']
-                )
-                l1_2 = torch.nn.functional.l1_loss(
-                    gen_image_2, observations[-1]['scale_2']
-                )
-                ssim_loss_1 = 1 - ssim(
-                    observations[j]['scale_1'].float(), gen_image_1,
-                    data_range=255, size_average=True
-                )
-                ssim_loss_2 = 1 - ssim(
-                    observations[j]['scale_2'].float(), gen_image_2,
-                    data_range=255, size_average=True
-                )
-                loss = l1_1 + l1_2 + \
-                    ssim_loss_1 + ssim_loss_2
-                L1_1.append(l1_1.item())
-                L1_2.append(l1_2.item())
-                SSIM_1.append(ssim_loss_1.item())
-                SSIM_2.append(ssim_loss_2.item())
-
                 if self.num_timesteps < params['staging_steps'] + params['imitation_steps']:                    
                     sampled_action = (observations[j]['sampled_action'] - self.min_p_gpu) / self.rnge_gpu
                     loss_ = torch.nn.functional.l1_loss(_actions, sampled_action)
                     actor_losses.append(loss_.item())
-                    loss += loss_
+                    loss = loss_
                 elif self._n_updates % self.policy_delay == 0:
                     q_val = q_val.mean()
                     q_val.backward()
@@ -1569,9 +1538,40 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     delta_a[:] = self._invert_gradients(delta_a.cpu(), _actions.cpu())
                     out = -torch.mul(delta_a, _actions)
                     actor_loss = -q_val.mean()
-                    loss += out
+                    loss = out
                     actor_losses.append(actor_loss.item())
-                    
+    
+                [    
+                    _actions,
+                    [features_1, gen_image_1],
+                    [features_2, gen_image_2],
+                ], hidden_state = self.actor(
+                    observations[j],
+                    hidden_state
+                )    
+
+                # Supplementary loss computed every step
+                l1_1 = torch.nn.functional.l1_loss(
+                    gen_image_1, observations[-1]['scale_1']
+                )    
+                l1_2 = torch.nn.functional.l1_loss(
+                    gen_image_2, observations[-1]['scale_2']
+                )    
+                ssim_loss_1 = 1 - ssim(
+                    observations[j]['scale_1'].float(), gen_image_1,
+                    data_range=255, size_average=True
+                )    
+                ssim_loss_2 = 1 - ssim(
+                    observations[j]['scale_2'].float(), gen_image_2,
+                    data_range=255, size_average=True
+                )    
+                loss = l1_1 + l1_2 + \
+                    ssim_loss_1 + ssim_loss_2
+                L1_1.append(l1_1.item())
+                L1_2.append(l1_2.item())
+                SSIM_1.append(ssim_loss_1.item())
+                SSIM_2.append(ssim_loss_2.item())
+
             if self.num_timesteps < params['staging_steps'] + params['imitation_steps']:
                 self.actor.optimizer.zero_grad()
                 loss.backward()
@@ -1597,6 +1597,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     self.actor_target.parameters(),
                     self.tau)
     
+
             hidden_state = (
                 hidden_state[0].detach(),
                 hidden_state[1].detach()

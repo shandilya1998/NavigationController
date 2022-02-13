@@ -52,7 +52,7 @@ params = {
     'gamma'                       : 0.98,
     'tau'                         : 0.002, 
     'n_updates'                   : 64,
-    'num_ctx'                     : 1000,
+    'num_ctx'                     : 512,
     'actor_lr'                    : 1e-3,
     'critic_lr'                   : 1e-2,
     'weight_decay'                : 1e-2,
@@ -85,7 +85,7 @@ params = {
     'preprocessing'               : {
                                         'num_epochs'      : 1000
                                     },
-    'lstm_steps'                  : 5,
+    'lstm_steps'                  : 3,
 }
 
 

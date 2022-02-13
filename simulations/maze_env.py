@@ -438,12 +438,6 @@ class MazeEnv(gym.Env):
                 shape = observation['scale_2'].shape,
                 dtype = observation['scale_2'].dtype
             ),
-            'scale_3' : gym.spaces.Box(
-                low = np.zeros_like(observation['scale_3'], dtype = np.uint8),
-                high = 255 * np.ones_like(observation['scale_3'], dtype = np.uint8),
-                shape = observation['scale_3'].shape,
-                dtype = observation['scale_3'].dtype
-            ),
             'sensors' : gym.spaces.Box(
                 low = -np.ones_like(observation['sensors']),
                 high = np.ones_like(observation['sensors']),
@@ -520,9 +514,8 @@ class MazeEnv(gym.Env):
         
         mid = img.shape[0] // 2
 
-        size_1 = img.shape[0] // 3
-        size_2 = 2 * img.shape[0] // 3
-        size_3 = img.shape[0]
+        size_1 = img.shape[0] // (2 * 2)
+        size_2 = img.shape[0] // 2
 
         scale_1 = img[
             mid - size_1: mid + size_1,
@@ -531,19 +524,13 @@ class MazeEnv(gym.Env):
         scale_2 = cv2.resize(img[
             mid - size_2: mid + size_2,
             mid - size_2: mid + size_2
-        ], (size_1, size_1))
-
-        scale_3 = cv2.resize(img[
-            mid - size_3: mid + size_3,
-            mid - size_3: mid + size_3
-        ], (size_1, size_1))
+        ], (2 * size_1, 2 * size_1))
 
         self.img = img
 
         obs = {
             'scale_1' : scale_1.copy(),
             'scale_2' : scale_2.copy(),
-            'scale_3' : scale_3.copy(),
             'sensors' : sensors,
             'sampled_action' : sampled_action.copy(),
             'inframe' : np.array([inframe], dtype = np.float32)

@@ -761,7 +761,6 @@ class RecurrentActor(sb3.common.policies.BasePolicy):
                 [visual_2, gen_image_2],
             ], state
 
-
 class RecurrentContinuousCritic(sb3.common.policies.BaseModel):
     """
     Critic network(s) for DDPG/SAC/TD3.
@@ -1278,7 +1277,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             # We use non-deterministic action in the case of SAC, for TD3, it does not matter
             # Additional variables for maintaining equivalent structure
             [
-                unscaled_actions,
+                unscaled_action,
                 [visual_1, gen_image_1],
                 [visual_2, gen_image_2],
             ], self.hidden_state = self.predict(

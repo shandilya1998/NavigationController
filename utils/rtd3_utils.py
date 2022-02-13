@@ -1510,6 +1510,9 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     observations[j],
                     hidden_state
                 )
+
+                print(gen_image_1.shape, observations[-1]['scale_1'].shape)
+
                 # Supplementary loss computed every step
                 l1_1 = torch.nn.functional.l1_loss(
                     gen_image_1, observations[-1]['scale_1']

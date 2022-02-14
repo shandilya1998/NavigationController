@@ -1520,6 +1520,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             # Actor Update
             self.critic.zero_grad()
             out = torch.zeros_like(actions[-1]).to(self.device)
+            loss = torch.zeros(()).to(self.device)
             for j in range(steps):
                 with torch.no_grad():
                     [_actions, _, _], _ = self.actor(observations[j], hidden_state)
@@ -1530,7 +1531,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     sampled_action = (observations[j]['sampled_action'] - self.min_p_gpu) / self.rnge_gpu
                     loss_ = torch.nn.functional.l1_loss(_actions, sampled_action)
                     actor_losses.append(loss_.item())
-                    loss = loss_
+                    loss += loss_
                 elif self._n_updates % self.policy_delay == 0:
                     q_val = q_val.mean()
                     q_val.backward(retain_graph = True)
@@ -1538,7 +1539,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     delta_a[:] = self._invert_gradients(delta_a.cpu(), _actions.cpu())
                     out = -torch.mul(delta_a, _actions)
                     actor_loss = -q_val.mean()
-                    loss = out
+                    loss = loss + out
                     actor_losses.append(actor_loss.item())
     
                 [    
@@ -1565,26 +1566,14 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     observations[j]['scale_2'].float(), gen_image_2,
                     data_range=255, size_average=True
                 )    
-                loss = l1_1 + l1_2 + \
+                loss+ = l1_1 + l1_2 + \
                     ssim_loss_1 + ssim_loss_2
                 L1_1.append(l1_1.item())
                 L1_2.append(l1_2.item())
                 SSIM_1.append(ssim_loss_1.item())
                 SSIM_2.append(ssim_loss_2.item())
 
-            if self.num_timesteps < params['staging_steps'] + params['imitation_steps']:
-                self.actor.optimizer.zero_grad()
-                loss.backward()
-                self.actor.optimizer.step()
-                sb3.common.utils.polyak_update(
-                    self.critic.parameters(),
-                    self.critic_target.parameters(),
-                    self.tau)
-                sb3.common.utils.polyak_update(
-                    self.actor.parameters(),
-                    self.actor_target.parameters(),
-                    self.tau)
-            else:
+            if self._n_updates % self.policy_delay == 0 and self.num_timesteps >= params['staging_steps'] + params['imitation_steps']:
                 self.actor.optimizer.zero_grad()
                 loss.backward(torch.ones(out.shape).to(self.device))
                 self.actor.optimizer.step()
@@ -1596,7 +1585,19 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     self.actor.parameters(),
                     self.actor_target.parameters(),
                     self.tau)
-    
+            else:
+                self.actor.optimizer.zero_grad()
+                loss.backward()
+                self.actor.optimizer.step()
+                sb3.common.utils.polyak_update(
+                    self.critic.parameters(),
+                    self.critic_target.parameters(),
+                    self.tau)
+                sb3.common.utils.polyak_update(
+                    self.actor.parameters(),
+                    self.actor_target.parameters(),
+                    self.tau)
+
 
             hidden_state = (
                 hidden_state[0].detach(),

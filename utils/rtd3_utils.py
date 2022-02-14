@@ -1444,7 +1444,6 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
 
             # Critic Update
             critic_loss = torch.zeros(()).to(self.device)
-            print(self._n_updates)
 
             steps = params['lstm_steps']
             if i + params['lstm_steps'] >= gradient_steps:
@@ -1474,7 +1473,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                             observations[-1], hidden_state_critic, next_ac
                         )
                     # Select action according to policy and add clipped noise
-                    noise = actions[-1].data.normal_(0, self.target_policy_noise)
+                    noise = actions[-1].clone().data.normal_(0, self.target_policy_noise)
                     noise = noise.clamp(-self.target_noise_clip,
                                         self.target_noise_clip)
                     [next_actions, _, _], next_hidden_state = self.actor_target(
@@ -1526,7 +1525,16 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     [_actions, _, _], _ = self.actor(observations[j], hidden_state)
                 _actions.requires_grad = True
                 q_val, hidden_state_loss = self.critic.q1_forward(observations[j], hidden_state_loss, _actions)
-                
+               
+                [    
+                    _actions,
+                    [features_1, gen_image_1],
+                    [features_2, gen_image_2],
+                ], hidden_state = self.actor(
+                    observations[j],
+                    hidden_state
+                )
+
                 if self.num_timesteps < params['staging_steps'] + params['imitation_steps']:                    
                     sampled_action = (observations[j]['sampled_action'] - self.min_p_gpu) / self.rnge_gpu
                     loss_ = torch.nn.functional.l1_loss(_actions, sampled_action)
@@ -1542,15 +1550,6 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     loss = loss + out
                     actor_losses.append(actor_loss.item())
     
-                [    
-                    _actions,
-                    [features_1, gen_image_1],
-                    [features_2, gen_image_2],
-                ], hidden_state = self.actor(
-                    observations[j],
-                    hidden_state
-                )    
-
                 # Supplementary loss computed every step
                 l1_1 = torch.nn.functional.l1_loss(
                     gen_image_1, observations[-1]['scale_1']
@@ -1607,16 +1606,17 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 hidden_state_loss[0].detach(),
                 hidden_state_loss[1].detach()
             )
-        self.logger.record(
-            "train/n_updates",
-            self._n_updates,
-            exclude="tensorboard")
-        self.logger.record("train/actor_loss", np.mean(actor_losses))
-        self.logger.record("train/critic_loss", np.mean(critic_losses))
-        self.logger.record("train/l1_1", np.mean(L1_1))
-        self.logger.record("train/l1_2", np.mean(L1_2))
-        self.logger.record("train/ssim_1", np.mean(SSIM_1))
-        self.logger.record("train/ssim_2", np.mean(SSIM_2))
+        if i > 0:
+            self.logger.record(
+                "train/n_updates",
+                self._n_updates,
+                exclude="tensorboard")
+            self.logger.record("train/actor_loss", np.mean(actor_losses))
+            self.logger.record("train/critic_loss", np.mean(critic_losses))
+            self.logger.record("train/l1_1", np.mean(L1_1))
+            self.logger.record("train/l1_2", np.mean(L1_2))
+            self.logger.record("train/ssim_1", np.mean(SSIM_1))
+            self.logger.record("train/ssim_2", np.mean(SSIM_2))
 
     def train(self, gradient_steps: int, batch_size: int = 100) -> None:
         # Update learning rate according to lr schedule

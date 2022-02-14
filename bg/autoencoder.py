@@ -72,7 +72,7 @@ class BasicBlockDec(torch.nn.Module):
 
 class ResNet18Enc(torch.nn.Module):
 
-    def __init__(self, num_Blocks=[2,2,2,2], z_dim=10, nc=3):
+    def __init__(self, num_Blocks=[1,1,1,1], z_dim=10, nc=3):
         super(ResNet18Enc, self).__init__()
         self.in_planes = 64
         self.z_dim = z_dim
@@ -93,19 +93,29 @@ class ResNet18Enc(torch.nn.Module):
         return torch.nn.Sequential(*layers)
 
     def forward(self, x):
+        #print('Encoder')
+        #print('input {}'.format(x.shape))
         x = torch.relu(self.bn1(self.conv1(x)))
+        #print('conv1 {}'.format(x.shape))
         x = self.layer1(x)
+        #print('layer1 {}'.format(x.shape))
         x = self.layer2(x)
+        #print('layer2 {}'.format(x.shape))
         x = self.layer3(x)
+        #print('layer3 {}'.format(x.shape))
         x = self.layer4(x)
+        #print('layer4 {}'.format(x.shape))
         x = torch.nn.functional.adaptive_avg_pool2d(x, 1)
+        #print('pool {}'.format(x.shape))
         x = x.view(x.size(0), -1)
+        #print('reshape {}'.format(x.shape))
         x = self.linear(x)
+        #print('output {}'.format(x.shape))
         return x
 
 class ResNet18Dec(torch.nn.Module):
 
-    def __init__(self, num_Blocks=[2,2,2,2], z_dim=10, nc=3):
+    def __init__(self, num_Blocks=[1,1,1,1], z_dim=10, nc=3):
         super(ResNet18Dec, self).__init__()
         self.in_planes = 512
 
@@ -126,15 +136,26 @@ class ResNet18Dec(torch.nn.Module):
         return torch.nn.Sequential(*layers)
 
     def forward(self, z):
+        #print('Decoder')
+        #print('input {}'.format(z.shape))
         x = self.linear(z)
+        #print('linear {}'.format(x.shape))
         x = x.view(z.size(0), 512, 1, 1)
+        #print('reshape {}'.format(x.shape))
         x = torch.nn.functional.interpolate(x, scale_factor=4)
+        #print('interpolate {}'.format(x.shape))
         x = self.layer4(x)
+        #print('layer4 {}'.format(x.shape))
         x = self.layer3(x)
+        #print('layer3 {}'.format(x.shape))
         x = self.layer2(x)
+        #print('layer2 {}'.format(x.shape))
         x = self.layer1(x)
+        #print('layer1 {}'.format(x.shape))
         x = torch.sigmoid(self.conv1(x))
+        #print('conv1 {}'.format(x.shape))
         x = x.view(x.size(0), 3, 64, 64)
+        #print('output {}'.format(x.shape))
         return x
 
 class Autoencoder(torch.nn.Module):

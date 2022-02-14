@@ -1533,7 +1533,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     loss = loss_
                 elif self._n_updates % self.policy_delay == 0:
                     q_val = q_val.mean()
-                    q_val.backward()
+                    q_val.backward(retain_graph = True)
                     delta_a = copy.deepcopy(_actions.grad.data)
                     delta_a[:] = self._invert_gradients(delta_a.cpu(), _actions.cpu())
                     out = -torch.mul(delta_a, _actions)

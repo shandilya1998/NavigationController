@@ -1566,7 +1566,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     observations[j]['scale_2'].float(), gen_image_2,
                     data_range=255, size_average=True
                 )    
-                loss+ = l1_1 + l1_2 + \
+                loss += l1_1 + l1_2 + \
                     ssim_loss_1 + ssim_loss_2
                 L1_1.append(l1_1.item())
                 L1_2.append(l1_2.item())

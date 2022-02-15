@@ -58,7 +58,7 @@ params = {
     'critic_lr'                   : 1e-2,
     'weight_decay'                : 1e-2,
     'collision_threshold'         : 20,
-    'debug'                       : True,
+    'debug'                       : False,
     'max_vyaw'                    : 1.5,
     'policy_delay'                : 2,
     'seed'                        : 245,
@@ -248,7 +248,7 @@ tf_params = {
     'target_policy_noise'           : 0.2,
     'target_policy_noise_clip'      : 0.5,
     'gradient_clipping'             : None,
-    'debug'                         : True,
+    'debug'                         : False,
 
     'buffer_capacity'               : int(1e4),
     'train_metrics'                 : [

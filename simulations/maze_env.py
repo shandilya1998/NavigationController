@@ -438,6 +438,12 @@ class MazeEnv(gym.Env):
                 shape = observation['scale_2'].shape,
                 dtype = observation['scale_2'].dtype
             ),
+            'scale_3' : gym.spaces.Box(
+                low = np.zeros_like(observation['scale_3'], dtype = np.uint8),
+                high = 255 * np.ones_like(observation['scale_3'], dtype = np.uint8),
+                shape = observation['scale_3'].shape,
+                dtype = observation['scale_3'].dtype
+            ),
             'sensors' : gym.spaces.Box(
                 low = -np.ones_like(observation['sensors']),
                 high = np.ones_like(observation['sensors']),
@@ -504,8 +510,7 @@ class MazeEnv(gym.Env):
         assert frame.shape[0] == frame.shape[1]
         scale_1 = frame.copy()
         scale_2 = frame.copy()
-        x, y, w, h = None
-
+        x, y, w, h = None, None, None, None
 
         if len(bbx) > 0:
             x, y, w, h = bbx
@@ -516,11 +521,14 @@ class MazeEnv(gym.Env):
             w = size // 2
             h = size // 2
         
+        #print(x + w // 2, y + h // 2)
+        
         # scale 1
         scale = 5
         x_min, x_max, y_min, y_max = self.__get_scale_indices(
             x, y, w, h, scale, size
         )
+
         scale_1 = scale_1[y_min:y_max, x_min:x_max]
 
         # scale 2
@@ -980,11 +988,9 @@ class MazeEnv(gym.Env):
             outer_reward += 200.0
         if outbound:
             collision_penalty += -10.0 * self._inner_reward_scaling
-            next_obs['scale_1'] = np.zeros_like(obs['next_scale_1'])
-            next_obs['scale_2'] = np.zeros_like(obs['next_scale_2'])
-            #next_obs['back'] = np.zeros_like(next_obs['back'])
-            #next_obs['left'] = np.zeros_like(next_obs['left'])
-            #next_obs['right'] = np.zeros_like(next_obs['right'])
+            next_obs['scale_1'] = np.zeros_like(obs['scale_1'])
+            next_obs['scale_2'] = np.zeros_like(obs['scale_2'])
+            next_obs['scale_3'] = np.zeros_like(obs['scale_3'])
             done = True
         if self.t > self.max_episode_size:
             done = True

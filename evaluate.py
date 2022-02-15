@@ -53,13 +53,9 @@ if __name__ == '__main__':
     model_path = os.path.join(args.logdir, args.model_file)
     top = env.render(mode="rgb_array").shape
     obs = env.observation_space['front'].shape
-    video1 = cv2.VideoWriter(
-        '{}_evaluation_camera_view.avi'.format(model_path),
-        cv2.VideoWriter_fourcc(*"MJPG"), 10, (obs[2], obs[1]), isColor = True
-    )
-    video2 = cv2.VideoWriter(
-        '{}_evaluation_top_view.avi'.format(model_path),
-        cv2.VideoWriter_fourcc(*"MJPG"), 10, (top[0], top[1]), isColor = True
+    video = cv2.VideoWriter(
+        '{}_evaluation.avi'.format(model_path),
+        cv2.VideoWriter_fourcc(*"MJPG"), 10, (2 * top[2], 2 * top[1]), isColor = True
     )
     def grab_screens(
         _locals: Dict[str, Any],
@@ -75,19 +71,27 @@ if __name__ == '__main__':
             A dictionary containing all global variables of the callback's scope
         """
         screen = env.render(mode="rgb_array")
+        size = screen.shape[:2]
         # PyTorch uses CxHxW vs HxWxC gym (and tensorflow) image convention
-        front = _locals['observations']['front'][0, :3].transpose(1, 2, 0)
-        #back = _locals['observations']['back'][0, :3].transpose(1, 2, 0)
-        #left = _locals['observations']['left'][0, :3].transpose(1, 2, 0)
-        #right = _locals['observations']['right'][0, :3].transpose(1, 2, 0)
-        #print(front.shape)
-        #observation = np.concatenate([
-        #    np.concatenate([front, back], 0),
-        #    np.concatenate([left, right], 0)
-        #], 1)
-        observation = cv2.cvtColor(front, cv2.COLOR_RGB2BGR)
-        video1.write(observation)
-        video2.write(screen)
+        scale_1 = cv2.resize(
+            _locals['observations']['scale_1'][0, :3].transpose(1, 2, 0),
+            size
+        )
+        scale_2 = cv2.resize(
+            _locals['observations']['scale_2'][0, :3].transpose(1, 2, 0),
+            size
+        )
+        scale_3 = cv2.resize(
+            _locals['observations']['scale_3'][0, :3].transpose(1, 2, 0),
+            size
+        )
+        observation = np.concatenate([
+            np.concatenate([screen, scale_1], 0),
+            np.concatenate([scale_2, scale_3], 0)
+        ], 1)
+        
+        observation = cv2.cvtColor(observation, cv2.COLOR_RGB2BGR)
+        video.write(observation)
 
     model = RTD3.load(
         path = model_path,
@@ -109,5 +113,5 @@ if __name__ == '__main__':
         deterministic = True,
     )
     cv2.destroyAllWindows()
-    video1.release()
-    video2.release()
+    video.release()
+

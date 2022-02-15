@@ -578,7 +578,7 @@ class Critic(torch.nn.Module):
 
     def forward(self, observation, hidden_state, action):
         sensors, scale_1, scale_2, scale_3 = observation
-        visual = torch.cat([scale_1, scale_2, scale_3], -1)
+        visual = torch.cat([scale_1, scale_2, scale_3], 1)
         visual, gen_image = self.vc(visual)
         y = torch.cat([sensors, action], -1)
         y = self.fc_sensors_actions(y)
@@ -827,16 +827,16 @@ class RecurrentContinuousCritic(sb3.common.policies.BaseModel):
         with torch.set_grad_enabled(not self.share_features_extractor):
             features = self.extract_features(obs)
         _states = []
-        actions = []
+        outputs = []
         visuals = []
         gen_images = []
         for i, q_net in enumerate(self.q_networks):
-            [action, [visual, gen_image]]], state = q_net(features, states[i], actions)
-            actions.append(action)
+            [output, [visual, gen_image]], state = q_net(features, states[i], actions)
+            outputs.append(output)
             visuals.append(visual)
             gen_images.append(gen_image)
             _states.append(state)
-        return tuple([tuple(actions), tuple([tuple(visuals), tuple(gen_images)])]), _states
+        return tuple([tuple(outputs), tuple([tuple(visuals), tuple(gen_images)])]), _states
 
     def q1_forward(self,
                    obs: torch.Tensor,
@@ -1461,7 +1461,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     if i == 0:
                         [next_ac, _], next_hidden_state = self.actor_target(
                             observations[-1], hidden_state)
-                        _ next_hidden_state_critic = self.critic_target(
+                        _, next_hidden_state_critic = self.critic_target(
                             observations[-1], hidden_state_critic, next_ac
                         )
                     # Select action according to policy and add clipped noise
@@ -1494,14 +1494,13 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     observations[-1]['scale_3']
                 ], 1).float()
                 reconstruction_loss = sum([torch.nn.functional.mse_loss(
-                    gen_image, image for gen_image in gen_images
-                )])
+                    gen_image, image) for gen_image in gen_images
+                ])
                 critic_losses.append(critic_loss_.item())
                 CRITIC_MSE.append(reconstruction_loss.item())
                 critic_loss += critic_loss_ + reconstruction_loss
             
                 i += 1
-                self._n_updates += 1
 
             # Optimize the critics
             self.critic.optimizer.zero_grad()
@@ -1523,46 +1522,61 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             loss = torch.zeros(()).to(self.device)
             for j in range(steps):
                 with torch.no_grad():
-                    [_actions, _], _ = self.actor(observations[j], hidden_state)
+                    [_actions, [features_1, gen_image_1]], _ = self.actor(observations[j], hidden_state)
                 _actions.requires_grad = True
-                q_val, hidden_state_loss = self.critic.q1_forward(observations[j], hidden_state_loss, _actions)
+                [q_val, _], hidden_state_loss = self.critic.q1_forward(observations[j], hidden_state_loss, _actions)
                
-                [    
-                    _actions,
-                    [features_1, gen_image_1],
-                ], hidden_state = self.actor(
-                    observations[j],
-                    hidden_state
-                )
-
                     
-                if params['staging_steps'] < self.num_timesteps < params['imitation_steps']:                    
-                    sampled_action = (observations[j]['sampled_action'] - self.min_p_gpu) / self.rnge_gpu
-                    loss_ = torch.nn.functional.mse_loss(_actions, sampled_action)
-                    actor_losses.append(loss_.item())
-                    loss += loss_
-                elif self._n_updates % self.policy_delay == 0:
+                if self.num_timesteps >= params['staging_steps'] + params['imitation_steps']:
                     q_val = q_val.mean()
                     q_val.backward(retain_graph = True)
                     delta_a = copy.deepcopy(_actions.grad.data)
                     delta_a[:] = self._invert_gradients(delta_a.cpu(), _actions.cpu())
+                    [
+                        _actions,
+                        [features_1, gen_image_1],
+                    ], hidden_state = self.actor(
+                        observations[j],
+                        hidden_state
+                    )
                     out = -torch.mul(delta_a, _actions)
                     actor_loss = -q_val.mean()
                     loss = loss + out
                     actor_losses.append(actor_loss.item())
-    
+
+                else:
+                    [
+                        _actions,
+                        [features_1, gen_image_1],
+                    ], hidden_state = self.actor(
+                        observations[j],
+                        hidden_state
+                    )
+               
+                if params['staging_steps'] < self.num_timesteps < params['staging_steps'] + params['imitation_steps']:                    
+                    sampled_action = (observations[j]['sampled_action'] - self.min_p_gpu) / self.rnge_gpu
+                    loss_ = torch.nn.functional.mse_loss(_actions, sampled_action)
+                    actor_losses.append(loss_.item())
+                    loss += loss_
+                
                 # Supplementary loss computed every step
+                image = torch.cat([
+                    observations[j]['scale_1'].float(),
+                    observations[j]['scale_2'].float(),
+                    observations[j]['scale_3'].float()
+                ], 1)
                 mse_1 = torch.nn.functional.mse_loss(
-                    gen_image_1, observations[-1]['scale_1'].float()
+                    gen_image_1, image
                 )    
                 ssim_loss_1 = 1 - ssim(
-                    observations[j]['scale_1'].float(), gen_image_1,
+                    image, gen_image_1,
                     data_range=255, size_average=True
-                )    
+                )
                 loss += mse_1
                 MSE_1.append(mse_1.item())
                 SSIM_1.append(ssim_loss_1.item())
 
+            self._n_updates += 1
             if self._n_updates % self.policy_delay == 0 and self.num_timesteps >= params['staging_steps'] + params['imitation_steps']:
                 self.actor.optimizer.zero_grad()
                 loss.backward(torch.ones(out.shape).to(self.device))

@@ -84,14 +84,20 @@ class Explore:
                 ))
             ])
         )
+        
+        env = env_class(
+            PointEnv,
+            task,
+            max_episode_size,
+            history_steps
+        )
+        self.image_size = (
+            int(2 * env.top_view_size * len(env._maze_structure[0])),
+            int(2 * env.top_view_size * len(env._maze_structure))
+        )
         self.eval_env = VecTransposeImage(
             sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
-                lambda : sb3.common.monitor.Monitor(env_class(
-                    PointEnv,
-                    task,
-                    max_episode_size,
-                    history_steps
-                ))
+                lambda : sb3.common.monitor.Monitor(env)
             ])
         )
 
@@ -185,7 +191,9 @@ class Explore:
 
     def __set_rl_callback(self):
         recordcallback = CustomCallback(
-            self.eval_env,
+            logdir = self.logdir,
+            image_size = self.image_size,
+            eval_env = self.eval_env,
             render_freq = params['render_freq']
         )
         checkpointcallback = CheckpointCallback(
@@ -199,6 +207,7 @@ class Explore:
             eval_freq = params['eval_freq'],
         )
         self.rl_callback = sb3.common.callbacks.CallbackList([
+            recordcallback,
             checkpointcallback,
             evalcallback,
         ])

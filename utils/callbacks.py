@@ -11,9 +11,10 @@ import datetime
 import os
 #from stable_baselines3.common.evaluation import evaluate_policy
 import warnings
+import cv2
 
 """
-		Modifying def evaluate_policy(**kwargs)
+    Modifying def evaluate_policy(**kwargs)
 """
 def evaluate_policy(
     model: "base_class.BaseAlgorithm",
@@ -88,7 +89,7 @@ def evaluate_policy(
     size = model.policy.net_arch[-1]
     states = (torch.zeros((1, size)).to(model.device), torch.zeros((1, size)).to(model.device))
     while (episode_counts < episode_count_targets).any():
-        [actions, _, _], states = model.predict(observations, state=states, deterministic=deterministic)
+        [actions, _], states = model.predict(observations, state=states, deterministic=deterministic)
         observations, rewards, dones, infos = env.step(actions)
         current_rewards += rewards
         current_lengths += 1
@@ -182,6 +183,8 @@ class SaveOnBestTrainingRewardCallback(sb3.common.callbacks.BaseCallback):
 
 class CustomCallback(sb3.common.callbacks.BaseCallback):
     def __init__(self,
+        logdir,
+        image_size,
         eval_env: gym.Env,
         render_freq: int,
         n_eval_episodes: int = 1,
@@ -195,6 +198,8 @@ class CustomCallback(sb3.common.callbacks.BaseCallback):
         :param n_eval_episodes: Number of episodes to render
         :param deterministic: Whether to use deterministic or stochastic policy
         """
+        self.logdir = logdir
+        self.image_size = image_size
         super().__init__()
         self._eval_env = eval_env
         self._render_freq = render_freq
@@ -204,12 +209,15 @@ class CustomCallback(sb3.common.callbacks.BaseCallback):
 
     def _on_step(self) -> bool:
         if self.n_calls % self._render_freq == 0:
-            screens = []
+            video = cv2.VideoWriter(
+                os.path.join(self.logdir, 'model_{}_evaluation.avi'.format(int(self.n_calls))),
+                cv2.VideoWriter_fourcc(*"MJPG"), 10, self.image_size, isColor = True
+            )
             def grab_screens(
                 _locals: Dict[str, Any],
                 _globals: Dict[str, Any]
             ) -> None:
-                """
+                """ 
                 Renders the environment in its current state,
                     recording the screen in the captured `screens` list
 
@@ -219,8 +227,27 @@ class CustomCallback(sb3.common.callbacks.BaseCallback):
                     A dictionary containing all global variables of the callback's scope
                 """
                 screen = self._eval_env.render(mode="rgb_array")
+                size = screen.shape[:2]
                 # PyTorch uses CxHxW vs HxWxC gym (and tensorflow) image convention
-                screens.append(screen.transpose(2, 0, 1))
+                scale_1 = cv2.resize(
+                    _locals['observations']['scale_1'][0, :3].transpose(1, 2, 0), 
+                    size
+                )   
+                scale_2 = cv2.resize(
+                    _locals['observations']['scale_2'][0, :3].transpose(1, 2, 0),
+                    size
+                )
+                scale_3 = cv2.resize(
+                    _locals['observations']['scale_3'][0, :3].transpose(1, 2, 0),
+                    size
+                )
+                observation = np.concatenate([
+                    np.concatenate([screen, scale_1], 0),
+                    np.concatenate([scale_2, scale_3], 0)
+                ], 1)
+
+                observation = cv2.cvtColor(observation, cv2.COLOR_RGB2BGR)
+                video.write(observation)
             evaluate_policy(
                 self.model,
                 self._eval_env,
@@ -228,11 +255,8 @@ class CustomCallback(sb3.common.callbacks.BaseCallback):
                 n_eval_episodes=self._n_eval_episodes,
                 deterministic=self._deterministic,
             )
-            self.logger.record(
-                "trajectory/video",
-                sb3.common.logger.Video(torch.ByteTensor([screens]), fps=40),
-                exclude=("stdout", "log", "json", "csv"),
-            )
+            cv2.destroyAllWindows()
+            video.release()
         return True
 
 def save_model(model_dir, model_name):

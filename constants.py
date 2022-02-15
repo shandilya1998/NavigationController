@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 params = {
     'input_size_low_level_control': 6,
@@ -46,12 +47,12 @@ params = {
     'OU_SIGMA'                    : 0.12,
     'top_view_size'               : 50.,
     'batch_size'                  : 60,
-    'lr'                          : 1e-3,
+    'lr'                          : 1e-2,
     'final_lr'                    : 1e-5,
     'n_steps'                     : 2000,
     'gamma'                       : 0.98,
     'tau'                         : 0.002, 
-    'n_updates'                   : 64,
+    'n_updates'                   : 32,
     'num_ctx'                     : 512,
     'actor_lr'                    : 1e-3,
     'critic_lr'                   : 1e-2,
@@ -85,9 +86,23 @@ params = {
     'preprocessing'               : {
                                         'num_epochs'      : 1000
                                     },
-    'lstm_steps'                  : 3,
+    'lstm_steps'                  : 2,
 }
 
+params_quadruped = {
+    'num_legs'                    : 4,
+    'INIT_HEIGHT'                 : 0.05,
+    'INIT_JOINT_POS'              : np.array([0.0, 0.0, 1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, 1.0], dtype = np.float32),
+    'update_action_every'         : 1.0,
+    'end_eff'                     : [5, 9, 13, 17],
+    'degree'                      : 15,
+    'alpha'                       : 0.6,
+    'lambda'                      : 1,
+    'beta'                        : 1.0,
+    'delta'                       : 0.05,
+}
+
+params.update(params_quadruped)
 
 import tensorflow as tf
 import tf_agents as tfa
@@ -207,7 +222,7 @@ tf_params = {
 
     'optimizer_class_actor'        : tf.keras.optimizers.Adam,
     'optimizer_kwargs_actor'       : {
-                                        'learning_rate' : 1e-3,
+                                        'learning_rate' : 1e-2,
                                         'beta_1'        : 0.9,
                                         'beta_2'        : 0.999,
                                         'epsilon'       : 1e-7,
@@ -216,7 +231,7 @@ tf_params = {
                                     },
     'optimizer_class_critic'        : tf.keras.optimizers.Adam,
     'optimizer_kwargs_critic'       : { 
-                                        'learning_rate' : 1e-3,
+                                        'learning_rate' : 1e-2,
                                         'beta_1'        : 0.9,
                                         'beta_2'        : 0.999,
                                         'epsilon'       : 1e-7,

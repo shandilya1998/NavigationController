@@ -1502,6 +1502,8 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             
                 i += 1
 
+            self._n_updates += 1    
+
             # Optimize the critics
             self.critic.optimizer.zero_grad()
             critic_loss.backward()
@@ -1527,7 +1529,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 [q_val, _], hidden_state_loss = self.critic.q1_forward(observations[j], hidden_state_loss, _actions)
                
                     
-                if self.num_timesteps >= params['staging_steps'] + params['imitation_steps']:
+                if self._n_updates % self.policy_delay and self.num_timesteps >= params['staging_steps'] + params['imitation_steps']:
                     q_val = q_val.mean()
                     q_val.backward(retain_graph = True)
                     delta_a = copy.deepcopy(_actions.grad.data)
@@ -1576,7 +1578,6 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 MSE_1.append(mse_1.item())
                 SSIM_1.append(ssim_loss_1.item())
 
-            self._n_updates += 1
             if self._n_updates % self.policy_delay == 0 and self.num_timesteps >= params['staging_steps'] + params['imitation_steps']:
                 self.actor.optimizer.zero_grad()
                 loss.backward(torch.ones(out.shape).to(self.device))
@@ -1616,7 +1617,8 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 "train/n_updates",
                 self._n_updates,
                 exclude="tensorboard")
-            self.logger.record("train/actor_loss", np.mean(actor_losses))
+            if self.num_timesteps >= params['staging_steps'] + params['imitation_steps']:
+                self.logger.record("train/actor_loss", np.mean(actor_losses))
             self.logger.record("train/critic_loss", np.mean(critic_losses))
             self.logger.record("train/mse", np.mean(MSE_1))
             self.logger.record("train/ssim", np.mean(SSIM_1))

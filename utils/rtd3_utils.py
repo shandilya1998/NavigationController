@@ -1429,8 +1429,8 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
 
         num_updates = math.ceil(gradient_steps / self.n_steps)
         i = 0
-        L1_1 = []
-        L1_2 = []
+        MSE_1 = []
+        MSE_2 = []
         SSIM_1 = []
         SSIM_2 = []
 
@@ -1537,7 +1537,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
 
                 if self.num_timesteps < params['staging_steps'] + params['imitation_steps']:                    
                     sampled_action = (observations[j]['sampled_action'] - self.min_p_gpu) / self.rnge_gpu
-                    loss_ = torch.nn.functional.l1_loss(_actions, sampled_action)
+                    loss_ = torch.nn.functional.mse_loss(_actions, sampled_action)
                     actor_losses.append(loss_.item())
                     loss += loss_
                 elif self._n_updates % self.policy_delay == 0:
@@ -1551,10 +1551,10 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     actor_losses.append(actor_loss.item())
     
                 # Supplementary loss computed every step
-                l1_1 = torch.nn.functional.l1_loss(
+                mse_1 = torch.nn.functional.mse_loss(
                     gen_image_1, observations[-1]['scale_1']
                 )    
-                l1_2 = torch.nn.functional.l1_loss(
+                mse_2 = torch.nn.functional.mse_loss(
                     gen_image_2, observations[-1]['scale_2']
                 )    
                 ssim_loss_1 = 1 - ssim(
@@ -1565,10 +1565,9 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     observations[j]['scale_2'].float(), gen_image_2,
                     data_range=255, size_average=True
                 )    
-                loss += l1_1 + l1_2 + \
-                    ssim_loss_1 + ssim_loss_2
-                L1_1.append(l1_1.item())
-                L1_2.append(l1_2.item())
+                loss += mse_1 + mse_2
+                MSE_1.append(mse_1.item())
+                MSE_2.append(mse_2.item())
                 SSIM_1.append(ssim_loss_1.item())
                 SSIM_2.append(ssim_loss_2.item())
 
@@ -1613,8 +1612,8 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 exclude="tensorboard")
             self.logger.record("train/actor_loss", np.mean(actor_losses))
             self.logger.record("train/critic_loss", np.mean(critic_losses))
-            self.logger.record("train/l1_1", np.mean(L1_1))
-            self.logger.record("train/l1_2", np.mean(L1_2))
+            self.logger.record("train/mse_1", np.mean(MSE_1))
+            self.logger.record("train/mse_2", np.mean(MSE_2))
             self.logger.record("train/ssim_1", np.mean(SSIM_1))
             self.logger.record("train/ssim_2", np.mean(SSIM_2))
 

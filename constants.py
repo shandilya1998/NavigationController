@@ -36,7 +36,7 @@ params = {
     'render_freq'                 : 8004,
     'save_freq'                   : 16008,
     'eval_freq'                   : 8004,
-    'buffer_size'                 : int(5e5),
+    'buffer_size'                 : int(1e5),
     'total_timesteps'             : int(1.6e6),
     'ds'                          : 0.01,
     'motor_cortex'                : [256, 128],
@@ -58,7 +58,7 @@ params = {
     'critic_lr'                   : 1e-2,
     'weight_decay'                : 1e-2,
     'collision_threshold'         : 20,
-    'debug'                       : False,
+    'debug'                       : True,
     'max_vyaw'                    : 1.5,
     'policy_delay'                : 2,
     'seed'                        : 245,
@@ -107,8 +107,8 @@ params.update(params_quadruped)
 import tensorflow as tf
 import tf_agents as tfa
 
-image_height = 128
-image_width = 128
+image_height = 200
+image_width = 200
 image_channels = 3
 n_history_steps = 5
 activation_fn_actor = tf.keras.activations.relu
@@ -247,7 +247,7 @@ tf_params = {
     'target_policy_noise'           : 0.2,
     'target_policy_noise_clip'      : 0.5,
     'gradient_clipping'             : None,
-    'debug'                         : False,
+    'debug'                         : True,
 
     'buffer_capacity'               : int(1e4),
     'train_metrics'                 : [

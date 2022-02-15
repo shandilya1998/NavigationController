@@ -120,7 +120,7 @@ class ResNet18Dec(torch.nn.Module):
         self.in_planes = 512
 
         self.linear = torch.nn.Linear(z_dim, 512)
-
+        self.nc = nc
         self.layer4 = self._make_layer(BasicBlockDec, 256, num_Blocks[3], stride=2)
         self.layer3 = self._make_layer(BasicBlockDec, 128, num_Blocks[2], stride=2)
         self.layer2 = self._make_layer(BasicBlockDec, 64, num_Blocks[1], stride=2)
@@ -154,16 +154,16 @@ class ResNet18Dec(torch.nn.Module):
         #print('layer1 {}'.format(x.shape))
         x = torch.sigmoid(self.conv1(x))
         #print('conv1 {}'.format(x.shape))
-        x = x.view(x.size(0), 3, 64, 64)
+        x = x.view(x.size(0), self.nc, 64, 64)
         #print('output {}'.format(x.shape))
         return x
 
 class Autoencoder(torch.nn.Module):
 
-    def __init__(self, z_dim):
+    def __init__(self, num_Blocks=[1,1,1,1], z_dim=10, nc=3):
         super(Autoencoder, self).__init__()
-        self.encoder = ResNet18Enc(z_dim=z_dim)
-        self.decoder = ResNet18Dec(z_dim=z_dim)
+        self.encoder = ResNet18Enc(num_Blocks, z_dim, nc)
+        self.decoder = ResNet18Dec(num_Blocks, z_dim, nc)
 
     def forward(self, x):
         z = self.encoder(x)

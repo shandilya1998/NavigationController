@@ -107,7 +107,7 @@ class MultiModalFeaturesExtractorV2(sb3.common.torch_layers.BaseFeaturesExtracto
         super(MultiModalFeaturesExtractorV2, self).__init__(observation_space, features_dim)
 
     def forward(self, observations):
-        return observations['sensors'], observations['scale_1'], observations['scale_2']
+        return observations['sensors'], observations['scale_1'], observations['scale_2'], observations['scale_3']
 
 class PassAsIsFeaturesExtractorV2(sb3.common.torch_layers.BaseFeaturesExtractor):
     def __init__(self, observation_space: gym.Space):

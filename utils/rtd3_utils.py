@@ -1674,7 +1674,6 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         state_dicts = ["policy", "actor.optimizer", "critic.optimizer"]
         return state_dicts, []
 
-
 def train_autoencoder(
     logdir,
     env,
@@ -1700,7 +1699,7 @@ def train_autoencoder(
         env.observation_space,
         env.action_space,
         max_episode_size = max_episode_size,
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        device = device
     )
 
     writer = SummaryWriter(log_dir = logdir)
@@ -1772,7 +1771,7 @@ def train_autoencoder(
                 obs, reward, done, info = env.step(last_obs['sampled_action'])
                 image = torch.from_numpy(
                     np.concatenate([obs['scale_1'], obs['scale_2'], obs['scale_3']], 1) / 255
-                ).float()
+                ).float().to(device)
                 REAL.append(image.clone())
                 with torch.no_grad():
                     _, gen_image = model(image)
@@ -1803,6 +1802,10 @@ def train_autoencoder(
 
                 total_reward += reward
 
+            print('-----------------------------')
+            print('Evaluation Loss: {:.4f}'.format(np.mean(losses)))
+            print('-----------------------------')
+
             cv2.destroyAllWindows()
             video.release()
 
@@ -1812,3 +1815,4 @@ def train_autoencoder(
                 'optimizer_state_dict' : optim.state_dict(),
             }   
             torch.save(state_dict, os.path.join(logdir, 'model_epoch_{}.pt'.format(i)))
+

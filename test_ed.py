@@ -3,7 +3,7 @@ from simulations.point import PointEnv
 from simulations.maze_task import CustomGoalReward4Rooms
 from constants import params
 import torch
-from bg.models import Autoencoder
+from bg.autoencoder import Autoencoder
 import stable_baselines3 as sb3
 
 env = MazeEnv(PointEnv, CustomGoalReward4Rooms)
@@ -14,10 +14,10 @@ env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
     ])  
 )
 
-model = Autoencoder(env.observation_space['front'], 512)
+model = Autoencoder([1,1,1,1], 1000, 3)
+inp = torch.zeros((1, 9, 64, 64))
 
-inp = torch.zeros((1, 3, 75, 100))
-
+print(inp.shape)
 with torch.no_grad():
     out = model(inp)
 if isinstance(out, tuple) or isinstance(out, list):

@@ -1685,11 +1685,13 @@ def train_autoencoder(
     eval_freq,
     max_episode_size,
 ):
+
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model = Autoencoder(
         params['autoencoder_arch'],
         512,
         nc = 9
-    )
+    ).to(device)
 
     optim = torch.optim.Adam(model.parameters(), lr = learning_rate)
 

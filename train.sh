@@ -3,11 +3,11 @@
 export GOOGLE_APPLICATION_CREDENTIALS="key.json"
 PROJECT_ID=$(gcloud config list project --format "value(core.project)")
 BUCKET_NAME=${PROJECT_ID}-aiplatform
-#LOGDIR="/content/drive/MyDrive/CNS/exp22"
-LOGDIR="assets/out/models/exp22"
+LOGDIR="/content/drive/MyDrive/CNS/exp22"
+#LOGDIR="assets/out/models/exp22"
 ENV_TYPE="maze"
-TIMESTEPS=1600
-MAX_EPISODE_SIZE=75
+TIMESTEPS=1300000
+MAX_EPISODE_SIZE=751
 LEARNING_TYPE="explore"
 HISTORY_STEPS=15
 TASK_VERSION=1

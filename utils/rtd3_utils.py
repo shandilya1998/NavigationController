@@ -1529,7 +1529,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 [q_val, _], hidden_state_loss = self.critic.q1_forward(observations[j], hidden_state_loss, _actions)
                
                     
-                if self._n_updates % self.policy_delay and self.num_timesteps >= params['staging_steps'] + params['imitation_steps']:
+                if self._n_updates % self.policy_delay == 0 and self.num_timesteps >= params['staging_steps'] + params['imitation_steps']:
                     q_val = q_val.mean()
                     q_val.backward(retain_graph = True)
                     delta_a = copy.deepcopy(_actions.grad.data)
@@ -1543,7 +1543,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     )
                     out = -torch.mul(delta_a, _actions)
                     actor_loss = -q_val.mean()
-                    loss += loss + out
+                    loss = loss + out
                     actor_losses.append(actor_loss.item())
 
                 else:
@@ -1555,11 +1555,11 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                         hidden_state
                     )
                
-                if params['staging_steps'] =< self.num_timesteps < params['staging_steps'] + params['imitation_steps']:                    
+                if params['staging_steps'] <= self.num_timesteps < params['staging_steps'] + params['imitation_steps']:                    
                     sampled_action = (observations[j]['sampled_action'] - self.min_p_gpu) / self.rnge_gpu
                     loss_ = torch.nn.functional.mse_loss(_actions, sampled_action)
                     actor_losses.append(loss_.item())
-                    loss += loss_
+                    loss = loss + loss_
                 
                 # Supplementary loss computed every step
                 image = torch.cat([

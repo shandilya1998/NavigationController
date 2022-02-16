@@ -16,6 +16,8 @@ from bg.models import VisualCortexV2
 from bg.autoencoder import Autoencoder, ResNet18Enc
 from pytorch_msssim import ssim, ms_ssim
 import cv2
+from torch.utils.tensorboard import SummaryWriter
+import os
 
 TensorDict = Dict[Union[str, int], List[np.ndarray]]
 
@@ -1492,7 +1494,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     observations[-1]['scale_1'],
                     observations[-1]['scale_2'],
                     observations[-1]['scale_3']
-                ], 1).float()
+                ], 1).float() / 255.0
                 reconstruction_loss = sum([torch.nn.functional.mse_loss(
                     gen_image, image) for gen_image in gen_images
                 ])
@@ -1566,13 +1568,13 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                     observations[j]['scale_1'].float(),
                     observations[j]['scale_2'].float(),
                     observations[j]['scale_3'].float()
-                ], 1)
+                ], 1).float() / 255.0
                 mse_1 = torch.nn.functional.mse_loss(
                     gen_image_1, image
                 )    
                 ssim_loss_1 = 1 - ssim(
                     image, gen_image_1,
-                    data_range=255, size_average=True
+                    data_range=1.0, size_average=True
                 )
                 loss += mse_1
                 MSE_1.append(mse_1.item())
@@ -1671,3 +1673,140 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
     def _get_torch_save_params(self) -> Tuple[List[str], List[str]]:
         state_dicts = ["policy", "actor.optimizer", "critic.optimizer"]
         return state_dicts, []
+
+
+def train_autoencoder(
+    logdir,
+    env,
+    n_epochs,
+    batch_size,
+    learning_rate,
+    save_freq,
+    eval_freq,
+    max_episode_size,
+):
+    model = Autoencoder(
+        params['autoencoder_arch'],
+        512,
+        nc = 9
+    )
+
+    optim = torch.optim.Adam(model.parameters(), lr = learning_rate)
+
+    buff = EpisodicDictReplayBuffer(
+        int(1e5), 
+        env.observation_space,
+        env.action_space,
+        max_episode_size = max_episode_size,
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    )
+
+    writer = SummaryWriter(log_dir = logdir)
+
+    total_steps = 0
+
+    for i in range(n_epochs):
+        
+        # Data Sampling
+        total_reward = 0
+        for j in range(2):
+            done = False
+            last_obs = env.reset()
+            while not done:
+                obs, reward, done, info = env.step(last_obs['sampled_action'])
+                buff.add(
+                    last_obs,
+                    obs,
+                    last_obs['sampled_action'],
+                    reward,
+                    done,
+                    info,
+                )
+                last_obs = obs
+                total_reward += reward
+        total_reward = total_reward / 2
+        
+        data, steps = buff.sample(batch_size)
+        total_steps += steps
+        losses = []
+
+        # Updates
+        for j, rollout in enumerate(data):
+            image = torch.cat([
+                rollout.observations['scale_1'],
+                rollout.observations['scale_2'],
+                rollout.observations['scale_3']
+
+            ], 1).float()
+
+            # Prediction
+            _, gen_image = model(image)
+
+            # Gradient Computatation and Optimsation
+            loss = torch.nn.functional.mse_loss(gen_image, image)
+            optim.zero_grad()
+            loss.backward()
+            optim.step()
+
+            losses.append(loss.item())
+
+        # Logging
+        writer.add_scalar('Train/Loss', np.mean(losses))
+        print('Epoch {} Total Reward {:.4f} Loss {:.4f} Steps {}'.format(i, total_reward[0], np.mean(losses), steps))
+        
+        if (i + 1) % eval_freq == 0 or i == 0:
+            total_reward = 0
+            done = False
+            losses = []
+            last_obs = env.reset()
+            REAL = []
+            RECONSTRUCTION = []
+            image_size = (64 * 3, 64 * 2)
+            video = cv2.VideoWriter(
+                os.path.join(logdir, 'model_{}_evaluation.avi'.format(i)),
+                cv2.VideoWriter_fourcc(*"MJPG"), 10, image_size, isColor = True
+            )
+            while not done: 
+                obs, reward, done, info = env.step(last_obs['sampled_action'])
+                image = torch.from_numpy(
+                    np.concatenate([obs['scale_1'], obs['scale_2'], obs['scale_3']], 1) / 255
+                ).float()
+                REAL.append(image.clone())
+                with torch.no_grad():
+                    _, gen_image = model(image)
+                    RECONSTRUCTION.append(gen_image.clone())
+                    loss = torch.nn.functional.mse_loss(gen_image, image)
+                    losses.append(loss.item())
+
+                scale_1, scale_2, scale_3 = torch.split(image[0], 3, dim = 0)
+                gen_scale_1, gen_scale_2, gen_scale_3 = torch.split(gen_image[0], 3, dim = 0)
+
+                observation = np.concatenate([
+                    np.concatenate([
+                        scale_1.cpu().numpy(),
+                        gen_scale_1.cpu().numpy()
+                    ], 1),
+                    np.concatenate([
+                        scale_2.cpu().numpy(),
+                        gen_scale_2.cpu().numpy()
+                    ], 1),
+                    np.concatenate([
+                        scale_3.cpu().numpy(),
+                        gen_scale_3.cpu().numpy()
+                    ], 1),
+                ], 2).transpose(1, 2, 0) * 255
+                observation = observation.astype(np.uint8)
+                observation = cv2.cvtColor(observation, cv2.COLOR_RGB2BGR)
+                video.write(observation)
+
+                total_reward += reward
+
+            cv2.destroyAllWindows()
+            video.release()
+
+        if (i + 1) % save_freq == 0:
+            state_dict = { 
+                'model_state_dict' : model.state_dict(),
+                'optimizer_state_dict' : optim.state_dict(),
+            }   
+            torch.save(state_dict, os.path.join(logdir, 'model_epoch_{}.pt'.format(i)))

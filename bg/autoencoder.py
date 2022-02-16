@@ -126,6 +126,7 @@ class ResNet18Dec(torch.nn.Module):
         self.layer2 = self._make_layer(BasicBlockDec, 64, num_Blocks[1], stride=2)
         self.layer1 = self._make_layer(BasicBlockDec, 64, num_Blocks[0], stride=1)
         self.conv1 = ResizeConv2d(64, nc, kernel_size=3, scale_factor=2)
+        self.output = torch.nn.Sigmoid()
 
     def _make_layer(self, BasicBlockDec, planes, num_Blocks, stride):
         strides = [stride] + [1]*(num_Blocks-1)
@@ -152,7 +153,7 @@ class ResNet18Dec(torch.nn.Module):
         #print('layer2 {}'.format(x.shape))
         x = self.layer1(x)
         #print('layer1 {}'.format(x.shape))
-        x = torch.sigmoid(self.conv1(x))
+        x = self.output(self.conv1(x))
         #print('conv1 {}'.format(x.shape))
         x = x.view(x.size(0), self.nc, 64, 64)
         #print('output {}'.format(x.shape))

@@ -17,7 +17,7 @@ if __name__ == '__main__':
         ])
     )
 
-    logdir = '/content/drive/MyDrive/CNS/exp22' #'assets/out/models/exp22/autoencoder/'
+    logdir = '/content/drive/MyDrive/CNS/exp22/autoencoder' #'assets/out/models/exp22/autoencoder/'
 
     train_autoencoder(
         logdir,

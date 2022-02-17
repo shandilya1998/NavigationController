@@ -13,7 +13,7 @@ if __name__ == '__main__':
             lambda : sb3.common.monitor.Monitor(MazeEnv(
                 PointEnv,
                 CustomGoalReward4Rooms,
-                max_episode_size = 750
+                max_episode_size = 750,
                 n_steps = 15
             ))
         ])

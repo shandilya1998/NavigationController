@@ -1767,6 +1767,7 @@ def train_autoencoder(
                 os.path.join(logdir, 'model_{}_evaluation.avi'.format(i)),
                 cv2.VideoWriter_fourcc(*"MJPG"), 10, image_size, isColor = True
             )
+            steps = 0
             while not done: 
                 obs, reward, done, info = env.step(last_obs['sampled_action'])
                 image = torch.from_numpy(
@@ -1799,11 +1800,11 @@ def train_autoencoder(
                 observation = observation.astype(np.uint8)
                 observation = cv2.cvtColor(observation, cv2.COLOR_RGB2BGR)
                 video.write(observation)
-
+                steps += 1
                 total_reward += reward
 
             print('-----------------------------')
-            print('Evaluation Loss: {:.4f}'.format(np.mean(losses)))
+            print('Evaluation Loss: {:.4f} Steps {}'.format(np.mean(losses), steps))
             print('-----------------------------')
 
             cv2.destroyAllWindows()

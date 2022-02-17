@@ -281,7 +281,6 @@ class ResNet18DecV2(torch.nn.Module):
         x = self.separator(x)
         scale_1, scale_2, scale_3 = torch.split(x, 128, 1)
 
-
         scale_1 = self.layer2_1(scale_1)
         scale_1 = self.layer1_1(scale_1)
         scale_1 = self.output_1(self.conv1_1(scale_1))

@@ -1802,6 +1802,7 @@ def train_autoencoder(
                 video.write(observation)
                 steps += 1
                 total_reward += reward
+                last_obs = obs
 
             print('-----------------------------')
             print('Evaluation Loss: {:.4f} Steps {}'.format(np.mean(losses), steps))

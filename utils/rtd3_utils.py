@@ -1807,7 +1807,7 @@ def train_autoencoder(
             print('-----------------------------')
             print('Evaluation Loss: {:.4f} Steps {}'.format(np.mean(losses), steps))
             print('-----------------------------')
-
+            writer.add_scalar('Eval/Loss', np.mean(losses))
             cv2.destroyAllWindows()
             video.release()
 

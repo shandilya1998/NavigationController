@@ -17,16 +17,16 @@ if __name__ == '__main__':
         ])
     )
 
-    logdir = '/content/drive/MyDrive/CNS/exp22/autoencoder' 
-    #logdir = 'assets/out/models/exp22/autoencoder/'
+    #logdir = '/content/drive/MyDrive/CNS/exp22/autoencoder' 
+    logdir = 'assets/out/models/exp22/autoencoder/'
 
     train_autoencoder(
         logdir,
         env, 
-        n_epochs = 1000,
+        n_epochs = 50,
         batch_size = 64,
         learning_rate = 1e-3,
-        save_freq = 100,
-        eval_freq = 50,
+        save_freq = 5,
+        eval_freq = 5,
         max_episode_size = 750,
     )

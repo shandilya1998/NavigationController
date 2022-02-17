@@ -1738,7 +1738,7 @@ def train_autoencoder(
                 rollout.observations['scale_2'],
                 rollout.observations['scale_3']
 
-            ], 1).float()
+            ], 1).float() / 255
 
             # Prediction
             _, gen_image = model(image.contiguous())

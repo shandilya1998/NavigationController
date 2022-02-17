@@ -162,10 +162,7 @@ class MazeEnv(gym.Env):
                         material="MatObj",
                         contype="1",
                         conaffinity="1",
-                        rgba="0.0 {} {} 1".format(
-                            np.random.random(),
-                            np.random.random()
-                        ),
+                        rgba="0.9 0.9 0.9 1"
                     )
                     self.obstacles.append(f"elevated_{i}_{j}")
                 if struct.is_block():
@@ -181,7 +178,7 @@ class MazeEnv(gym.Env):
                         material="MatObj",
                         contype="1",
                         conaffinity="1",
-                        rgba="0.0 {} {} 1".format(
+                        rgba="0.4 0.4 0.4 1".format(
                             np.random.random(),
                             np.random.random()
                         ),

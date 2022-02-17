@@ -190,9 +190,9 @@ class ResNet18EncV2(torch.nn.Module):
         )
         self.layer3 = self._make_layer(BasicBlockEnc, 256, num_Blocks[2], stride=2)
         self.layer4 = self._make_layer(BasicBlockEnc, 512, num_Blocks[3], stride=2)
-        self.layer5 = self._make_layer(BasicBlockEnc, 1024, num_Blocks[4], stride=2)
-        self.layer6 = torch.nn.Conv2d(1024, 2048, kernel_size = 2, stride = 1, padding = 0)
-        self.linear = torch.nn.Linear(2048, z_dim)
+        #self.layer5 = self._make_layer(BasicBlockEnc, 1024, num_Blocks[4], stride=2)
+        #self.layer6 = torch.nn.Conv2d(1024, 2048, kernel_size = 2, stride = 1, padding = 0)
+        #self.linear = torch.nn.Linear(2048, z_dim)
 
     def _make_layer(self, BasicBlockEnc, planes, num_Blocks, stride):
         strides = [stride] + [1]*(num_Blocks-1)
@@ -221,22 +221,22 @@ class ResNet18EncV2(torch.nn.Module):
         x = self.combiner(x)
         x = self.layer3(x)
         x = self.layer4(x)
-        x = self.layer5(x)
-        x = self.layer6(x)
-        x = x.view(x.size(0), -1)
-        x = self.linear(x)
+        #x = self.layer5(x)
+        #x = self.layer6(x)
+        #x = x.view(x.size(0), -1)
+        #x = self.linear(x)
         return x
 
 class ResNet18DecV2(torch.nn.Module):
 
     def __init__(self, num_Blocks=[1,1,1,1], z_dim=10, nc=3):
         super(ResNet18DecV2, self).__init__()
-        self.in_planes = 1024
+        self.in_planes = 512
 
-        self.linear = torch.nn.Linear(z_dim, 2048)
+        #self.linear = torch.nn.Linear(z_dim, 2048)
         self.nc = nc
-        self.layer6 = ResizeConv2d(2048, 1024, kernel_size=3, scale_factor=2)
-        self.layer5 = self._make_layer(BasicBlockDec, 512, num_Blocks[3], stride=2)
+        #self.layer6 = ResizeConv2d(2048, 1024, kernel_size=3, scale_factor=2)
+        #self.layer5 = self._make_layer(BasicBlockDec, 512, num_Blocks[3], stride=2)
         self.layer4 = self._make_layer(BasicBlockDec, 256, num_Blocks[3], stride=2)
         self.layer3 = self._make_layer(BasicBlockDec, 128, num_Blocks[2], stride=2)
         self.separator = torch.nn.Sequential(
@@ -272,11 +272,11 @@ class ResNet18DecV2(torch.nn.Module):
         return torch.nn.Sequential(*layers)
 
     def forward(self, z):
-        x = self.linear(z)
-        x = x.view(z.size(0), 2048, 1, 1)
-        x = self.layer6(x)
-        x = self.layer5(x)
-        x = self.layer4(x)
+        #x = self.linear(z)
+        #x = x.view(z.size(0), 2048, 1, 1)
+        #x = self.layer6(x)
+        #x = self.layer5(x)
+        x = self.layer4(z)
         x = self.layer3(x)
         x = self.separator(x)
         scale_1, scale_2, scale_3 = torch.split(x, 128, 1)

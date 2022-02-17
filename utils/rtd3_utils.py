@@ -1741,7 +1741,7 @@ def train_autoencoder(
             ], 1).float()
 
             # Prediction
-            _, gen_image = model(image)
+            _, gen_image = model(image.contiguous())
 
             # Gradient Computatation and Optimsation
             loss = torch.nn.functional.mse_loss(gen_image, image)
@@ -1774,7 +1774,7 @@ def train_autoencoder(
                 ).float().to(device)
                 REAL.append(image.clone())
                 with torch.no_grad():
-                    _, gen_image = model(image)
+                    _, gen_image = model(image.contiguous())
                     RECONSTRUCTION.append(gen_image.clone())
                     loss = torch.nn.functional.mse_loss(gen_image, image)
                     losses.append(loss.item())

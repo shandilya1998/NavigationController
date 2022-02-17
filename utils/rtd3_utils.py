@@ -1730,6 +1730,10 @@ def train_autoencoder(
         data, steps = buff.sample(batch_size)
         total_steps += steps
         losses = []
+        MSE = []
+        SSIM_1 = []
+        SSIM_2 = []
+        SSIM_3 = []
 
         # Updates
         for j, rollout in enumerate(data):
@@ -1745,6 +1749,27 @@ def train_autoencoder(
 
             # Gradient Computatation and Optimsation
             loss = torch.nn.functional.mse_loss(gen_image, image)
+            MSE.append(loss.item())
+            scale_1, scale_2, scale_3 = torch.split(image, 3, 1)
+            gen_1, gen_2, gen_3 = torch.split(gen_image, 3, 1)
+            ssim_1 = 1 - ssim(
+                scale_1, gen_1,
+                data_range=1.0, size_average=True
+            )
+            ssim_2 = 1 - ssim(
+                scale_2, gen_2,
+                data_range=1.0, size_average=True
+            )
+            ssim_3 = 1 - ssim(
+                scale_3, gen_3,
+                data_range=1.0, size_average=True
+            )
+            SSIM_1.append(ssim_1.item())
+            SSIM_2.append(ssim_2.item())
+            SSIM_3.append(ssim_3.item())
+
+            loss += ssim_1 + ssim_2 + ssim_3
+
             optim.zero_grad()
             loss.backward()
             optim.step()
@@ -1753,15 +1778,22 @@ def train_autoencoder(
 
         # Logging
         writer.add_scalar('Train/Loss', np.mean(losses))
-        print('Epoch {} Total Reward {:.4f} Loss {:.4f} Steps {}'.format(i, total_reward[0], np.mean(losses), steps))
-        
+        writer.add_scalar('Train/MSE', np.mean(MSE))
+        writer.add_scalar('Train/ssim_1', np.mean(SSIM_1))
+        writer.add_scalar('Train/ssim_2', np.mean(SSIM_2))
+        writer.add_scalar('Train/ssim_3', np.mean(SSIM_3))
+        print('Epoch {} Total Reward {:.4f} Loss {:.4f} MSE {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} SSIM_3 {:.4f} Steps {}'.format(
+            i, total_reward[0], np.mean(losses), np.mean(MSE),
+            np.mean(SSIM_1), np.mean(SSIM_2), np.mean(SSIM_3), steps))
         if (i + 1) % eval_freq == 0 or i == 0:
             total_reward = 0
             done = False
             losses = []
+            MSE = []
+            SSIM_1 = []
+            SSIM_2 = []
+            SSIM_3 = []
             last_obs = env.reset()
-            REAL = []
-            RECONSTRUCTION = []
             image_size = (64 * 3, 64 * 2)
             video = cv2.VideoWriter(
                 os.path.join(logdir, 'model_{}_evaluation.avi'.format(i)),
@@ -1773,15 +1805,36 @@ def train_autoencoder(
                 image = torch.from_numpy(
                     np.concatenate([obs['scale_1'], obs['scale_2'], obs['scale_3']], 1) / 255
                 ).float().to(device)
-                REAL.append(image.clone())
                 with torch.no_grad():
                     _, gen_image = model(image.contiguous())
-                    RECONSTRUCTION.append(gen_image.clone())
                     loss = torch.nn.functional.mse_loss(gen_image, image)
-                    losses.append(loss.item())
+                    MSE.append(loss.item())
 
-                scale_1, scale_2, scale_3 = torch.split(image[0], 3, dim = 0)
-                gen_scale_1, gen_scale_2, gen_scale_3 = torch.split(gen_image[0], 3, dim = 0)
+                    scale_1, scale_2, scale_3 = torch.split(image, 3, dim = 1)
+                    gen_scale_1, gen_scale_2, gen_scale_3 = torch.split(gen_image, 3, dim = 1)
+                    ssim_1 = 1 - ssim(
+                        scale_1, gen_scale_1,
+                        data_range=1.0, size_average=True
+                    )    
+                    ssim_2 = 1 - ssim(
+                        scale_2, gen_scale_2,
+                        data_range=1.0, size_average=True
+                    )    
+                    ssim_3 = 1 - ssim(
+                        scale_3, gen_scale_3,
+                        data_range=1.0, size_average=True
+                    )    
+                    SSIM_1.append(ssim_1.item())
+                    SSIM_2.append(ssim_2.item())
+                    SSIM_3.append(ssim_3.item())
+                    loss += ssim_1 + ssim_2 + ssim_3
+                    losses.append(loss.item())
+                    scale_1 = scale_1[0]
+                    scale_2 = scale_2[0]
+                    scale_3 = scale_3[0]
+                    gen_scale_1 = gen_scale_1[0]
+                    gen_scale_2 = gen_scale_2[0]
+                    gen_scale_3 = gen_scale_3[0]
 
                 observation = np.concatenate([
                     np.concatenate([
@@ -1805,9 +1858,15 @@ def train_autoencoder(
                 last_obs = obs
 
             print('-----------------------------')
-            print('Evaluation Loss: {:.4f} Steps {}'.format(np.mean(losses), steps))
+            print('Evaluation Total Reward {:.4f} Loss {:.4f} MSE {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} SSIM_3 {:.4f} Steps {}'.format(
+                total_reward[0], np.mean(losses), np.mean(MSE),
+                np.mean(SSIM_1), np.mean(SSIM_2), np.mean(SSIM_3), steps))
             print('-----------------------------')
             writer.add_scalar('Eval/Loss', np.mean(losses))
+            writer.add_scalar('Eval/MSE', np.mean(MSE))
+            writer.add_scalar('Eval/ssim_1', np.mean(SSIM_1))
+            writer.add_scalar('Eval/ssim_2', np.mean(SSIM_2))
+            writer.add_scalar('Eval/ssim_3', np.mean(SSIM_3))
             cv2.destroyAllWindows()
             video.release()
 

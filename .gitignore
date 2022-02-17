@@ -8,5 +8,6 @@
 *swp
 key.json
 assets/plots/tests/
+assets/
 Python*
 nvidia-container-runtime-script.sh

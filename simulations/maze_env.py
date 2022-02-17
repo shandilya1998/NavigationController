@@ -422,39 +422,56 @@ class MazeEnv(gym.Env):
         self._action_space = self.wrapped_env.action_space
 
     def _set_observation_space(self, observation):
-        self.observation_space = gym.spaces.Dict({
+        spaces = {
             'scale_1' : gym.spaces.Box(
                 low = np.zeros_like(observation['scale_1'], dtype = np.uint8),
                 high = 255 * np.ones_like(observation['scale_1'], dtype = np.uint8),
                 shape = observation['scale_1'].shape,
                 dtype = observation['scale_1'].dtype
-            ),
+            ),   
             'scale_2' : gym.spaces.Box(
                 low = np.zeros_like(observation['scale_2'], dtype = np.uint8),
                 high = 255 * np.ones_like(observation['scale_2'], dtype = np.uint8),
                 shape = observation['scale_2'].shape,
                 dtype = observation['scale_2'].dtype
-            ),
+            ),   
             'scale_3' : gym.spaces.Box(
                 low = np.zeros_like(observation['scale_3'], dtype = np.uint8),
                 high = 255 * np.ones_like(observation['scale_3'], dtype = np.uint8),
                 shape = observation['scale_3'].shape,
                 dtype = observation['scale_3'].dtype
-            ),
+            ),   
             'sensors' : gym.spaces.Box(
                 low = -np.ones_like(observation['sensors']),
                 high = np.ones_like(observation['sensors']),
                 shape = observation['sensors'].shape,
                 dtype = observation['sensors'].dtype
-            ),
+            ),   
             'sampled_action' : copy.deepcopy(self._action_space),
             'inframe' : gym.spaces.Box(
                 low = np.zeros_like(observation['inframe']),
                 high = np.ones_like(observation['inframe']),
                 shape = observation['inframe'].shape,
                 dtype = observation['inframe'].dtype
+            )    
+        }
+    
+        if params['add_ref_scales']:
+            spaces['ref_scale_1'] = gym.spaces.Box(
+                low = np.zeros_like(observation['ref_scale_1'], dtype = np.uint8),
+                high = 255 * np.ones_like(observation['ref_scale_1'], dtype = np.uint8),
+                shape = observation['ref_scale_1'].shape,
+                dtype = observation['ref_scale_1'].dtype
             )
-        })
+            spaces['ref_scale_2'] = gym.spaces.Box(
+                low = np.zeros_like(observation['ref_scale_2'], dtype = np.uint8),
+                high = 255 * np.ones_like(observation['ref_scale_2'], dtype = np.uint8),
+                shape = observation['ref_scale_2'].shape,
+                dtype = observation['ref_scale_2'].dtype
+            )
+
+        self.observation_space = gym.spaces.Dict(spaces)
+
         return self.observation_space
 
     def _xy_limits(self) -> Tuple[float, float, float, float]:
@@ -610,12 +627,12 @@ class MazeEnv(gym.Env):
             cv2.imshow('position stream', top)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 pass
-        
+
         shape = scale_1.shape[:2]
         scale_2 = cv2.resize(scale_2, shape)
         scale_3 = cv2.resize(obs['front'], shape)
 
-        obs = {
+        _obs = {
             'scale_1' : scale_1.copy(),
             'scale_2' : scale_2.copy(),
             'scale_3' : scale_3.copy(),
@@ -623,7 +640,14 @@ class MazeEnv(gym.Env):
             'sampled_action' : sampled_action.copy(),
             'inframe' : np.array([inframe], dtype = np.float32)
         }
-        return obs
+
+        if params['add_ref_scales']:
+            ref_scale_1, ref_scale_2 = self.get_scales(obs['front'].copy(), []) 
+            ref_scale_2 = cv2.resize(ref_scale_2, shape)
+            _obs['ref_scale_1'] = ref_scale_1.copy()
+            _obs['ref_scale_2'] = ref_scale_2.copy()
+
+        return _obs
 
     def reset(self) -> np.ndarray:
         self.collision_count = 0

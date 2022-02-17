@@ -1741,7 +1741,6 @@ def train_autoencoder(
                 rollout.observations['scale_1'],
                 rollout.observations['scale_2'],
                 rollout.observations['scale_3']
-
             ], 1).float() / 255
 
             # Prediction
@@ -1764,6 +1763,44 @@ def train_autoencoder(
                 scale_3, gen_3,
                 data_range=1.0, size_average=True
             )
+            SSIM_1.append(ssim_1.item())
+            SSIM_2.append(ssim_2.item())
+            SSIM_3.append(ssim_3.item())
+
+            loss += ssim_1 + ssim_2 + ssim_3
+
+            optim.zero_grad()
+            loss.backward()
+            optim.step()
+
+            losses.append(loss.item())
+
+            image = torch.cat([
+                rollout.observations['ref_scale_1'],
+                rollout.observations['ref_scale_2'],
+                rollout.observations['scale_3']
+            ], 1).float() / 255
+
+            # Prediction
+            _, gen_image = model(image.contiguous())
+
+            # Gradient Computatation and Optimsation
+            loss = torch.nn.functional.mse_loss(gen_image, image)
+            MSE.append(loss.item())
+            scale_1, scale_2, scale_3 = torch.split(image, 3, 1)
+            gen_1, gen_2, gen_3 = torch.split(gen_image, 3, 1)
+            ssim_1 = 1 - ssim(
+                scale_1, gen_1,
+                data_range=1.0, size_average=True
+            )    
+            ssim_2 = 1 - ssim(
+                scale_2, gen_2,
+                data_range=1.0, size_average=True
+            )    
+            ssim_3 = 1 - ssim(
+                scale_3, gen_3,
+                data_range=1.0, size_average=True
+            )    
             SSIM_1.append(ssim_1.item())
             SSIM_2.append(ssim_2.item())
             SSIM_3.append(ssim_3.item())

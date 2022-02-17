@@ -87,7 +87,8 @@ params = {
                                         'num_epochs'      : 1000
                                     },
     'lstm_steps'                  : 2,
-    'autoencoder_arch'            : [1, 1, 1, 1]
+    'autoencoder_arch'            : [1, 1, 1, 1],
+    'add_ref_scales'              : True
 }
 
 params_quadruped = {

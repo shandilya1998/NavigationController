@@ -25,7 +25,7 @@ if __name__ == '__main__':
     train_autoencoder(
         logdir,
         env, 
-        n_epochs = 50,
+        n_epochs = 75,
         batch_size = 64,
         learning_rate = 1e-3,
         save_freq = 5,

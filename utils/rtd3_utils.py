@@ -1805,7 +1805,7 @@ def train_autoencoder(
             SSIM_2.append(ssim_2.item())
             SSIM_3.append(ssim_3.item())
 
-            #loss += ssim_1 + ssim_2 + ssim_3
+            loss += ssim_1 + ssim_2 + ssim_3
 
             optim.zero_grad()
             loss.backward()

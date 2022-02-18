@@ -298,7 +298,7 @@ class GoalReward4Rooms(MazeTask):
             [B, E, E, E, E, E, E, E, B],
             [B, E, E, E, B, E, E, E, B],
             [B, E, E, E, E, E, E, E, B],
-            [B, E, B, E, E, E, B, E, B],
+            [B, E, B, E, B, E, B, E, B],
             [B, E, E, E, E, E, E, E, B],
             [B, E, E, E, B, E, E, E, B],
             [B, R, E, E, E, E, E, E, B],

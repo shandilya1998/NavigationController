@@ -210,7 +210,7 @@ class EpisodicReplayBuffer(sb3.common.buffers.BaseBuffer):
             Refer to EpisodicDictReplayBuffer
         """
         raise NotImplementedError
-        size = self.episode_lengths[batch_inds].mean()
+        size = self.episode_lengths[batch_inds].min()
         if self.optimize_memory_usage:
             obs = self._normalize_obs(
                 self.observations[batch_inds, :-1, 0, :], env)
@@ -407,7 +407,7 @@ class EpisodicDictReplayBuffer(sb3.common.buffers.BaseBuffer):
             batch_inds = np.random.randint(0, self.ep, size=batch_size)
         else:
             batch_inds = np.random.randint(0, self.n_ep, size=batch_size)
-        size = int(self.episode_lengths[batch_inds].mean())
+        size = int(self.episode_lengths[batch_inds].min())
         return self._get_samples(batch_inds, size, env=env), size
 
     def _get_samples(self, batch_inds: np.ndarray, size: int,
@@ -1837,6 +1837,7 @@ def train_autoencoder(
                 cv2.VideoWriter_fourcc(*"MJPG"), 10, image_size, isColor = True
             )
             steps = 0
+            model.eval()
             while not done: 
                 obs, reward, done, info = env.step(last_obs['sampled_action'])
                 image = torch.from_numpy(
@@ -1864,7 +1865,7 @@ def train_autoencoder(
                     SSIM_1.append(ssim_1.item())
                     SSIM_2.append(ssim_2.item())
                     SSIM_3.append(ssim_3.item())
-                    #loss += ssim_1 + ssim_2 + ssim_3
+                    loss += ssim_1 + ssim_2 + ssim_3
                     losses.append(loss.item())
                     scale_1 = scale_1[0]
                     scale_2 = scale_2[0]
@@ -1906,6 +1907,7 @@ def train_autoencoder(
             writer.add_scalar('Eval/ssim_3', np.mean(SSIM_3))
             cv2.destroyAllWindows()
             video.release()
+            model.train()
 
         if (i + 1) % save_freq == 0:
             state_dict = { 

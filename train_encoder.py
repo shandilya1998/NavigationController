@@ -13,7 +13,7 @@ if __name__ == '__main__':
             lambda : sb3.common.monitor.Monitor(MazeEnv(
                 PointEnv,
                 CustomGoalReward4Rooms,
-                max_episode_size = 750,
+                max_episode_size = 1000,
                 n_steps = 15
             ))
         ])
@@ -30,5 +30,5 @@ if __name__ == '__main__':
         learning_rate = 1e-3,
         save_freq = 5,
         eval_freq = 5,
-        max_episode_size = 750,
+        max_episode_size = 1000,
     )

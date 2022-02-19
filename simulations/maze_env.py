@@ -453,7 +453,13 @@ class MazeEnv(gym.Env):
                 high = np.ones_like(observation['inframe']),
                 shape = observation['inframe'].shape,
                 dtype = observation['inframe'].dtype
-            )    
+            ),
+            'depth' : gym.spaces.Box(
+                low = np.zeros_like(observation['depth'], dtype = np.float),
+                high = np.ones_like(observation['depth'], dtype = np.float),
+                shape = observation['depth'].shape,
+                dtype = observation['depth'].dtype
+            ),
         }
     
         if params['add_ref_scales']:
@@ -631,6 +637,11 @@ class MazeEnv(gym.Env):
         shape = scale_1.shape[:2]
         scale_2 = cv2.resize(scale_2, shape)
         scale_3 = cv2.resize(obs['front'], shape)
+        depth = np.expand_dims(
+            cv2.resize(
+                obs['front_depth'].copy(), shape
+            ), 0
+        )
 
         _obs = {
             'scale_1' : scale_1.copy(),
@@ -638,7 +649,8 @@ class MazeEnv(gym.Env):
             'scale_3' : scale_3.copy(),
             'sensors' : sensors,
             'sampled_action' : sampled_action.copy(),
-            'inframe' : np.array([inframe], dtype = np.float32)
+            'depth' : depth,
+            'inframe' : np.array([inframe], dtype = np.float32),
         }
 
         if params['add_ref_scales']:

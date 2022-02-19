@@ -20,8 +20,13 @@ inp = torch.zeros((1, 9, 64, 64))
 print(inp.shape)
 with torch.no_grad():
     out = model(inp)
-if isinstance(out, tuple) or isinstance(out, list):
-    for o in out:
-        print(o.shape)
-else:
-    print(out.shape)
+
+def print_shapes(x):
+    if isinstance(x, tuple) or isinstance(x, list):
+        for item in x:
+            print_shapes(item)
+    else:
+        print(x.shape)
+
+print_shapes(out)
+

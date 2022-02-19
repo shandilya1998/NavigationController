@@ -1850,7 +1850,7 @@ def train_autoencoder(
                 image = torch.from_numpy(
                     np.concatenate([obs['scale_1'], obs['scale_2'], obs['scale_3']], 1) / 255
                 ).float().to(device)
-                gt_depth = torch.from_numpy(obs['depth'])
+                gt_depth = torch.from_numpy(obs['depth']).to(device)
                 with torch.no_grad():
                     _, [gen_image, depth] = model(image.contiguous())
                     loss = torch.nn.functional.mse_loss(gen_image, image)

@@ -455,8 +455,8 @@ class MazeEnv(gym.Env):
                 dtype = observation['inframe'].dtype
             ),
             'depth' : gym.spaces.Box(
-                low = np.zeros_like(observation['depth'], dtype = np.float),
-                high = np.ones_like(observation['depth'], dtype = np.float),
+                low = np.zeros_like(observation['depth'], dtype = np.float32),
+                high = np.ones_like(observation['depth'], dtype = np.float32),
                 shape = observation['depth'].shape,
                 dtype = observation['depth'].dtype
             ),

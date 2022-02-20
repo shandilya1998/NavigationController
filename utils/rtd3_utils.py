@@ -1748,8 +1748,8 @@ def train_autoencoder(
             _, [gen_image, depth] = model(image.contiguous())
 
             # Gradient Computatation and Optimsation
-            loss = torch.nn.functional.mse_loss(gen_image, image)
-            loss_depth = torch.nn.functional.mse_loss(depth, rollout.observations['depth'])
+            loss = torch.nn.functional.l1_loss(gen_image, image)
+            loss_depth = torch.nn.functional.l1_loss(depth, rollout.observations['depth'])
             MSE.append(loss.item())
             MSE_DEPTH.append(loss_depth.item())
             scale_1, scale_2, scale_3 = torch.split(image, 3, 1)
@@ -1788,8 +1788,8 @@ def train_autoencoder(
             _, [gen_image, depth] = model(image.contiguous())
 
             # Gradient Computatation and Optimsation
-            loss = torch.nn.functional.mse_loss(gen_image, image)
-            loss_depth = torch.nn.functional.mse_loss(depth, rollout.observations['depth'])
+            loss = torch.nn.functional.l1_loss(gen_image, image)
+            loss_depth = torch.nn.functional.l1_loss(depth, rollout.observations['depth'])
             MSE.append(loss.item())
             MSE_DEPTH.append(loss_depth.item())
             scale_1, scale_2, scale_3 = torch.split(image, 3, 1)
@@ -1853,8 +1853,8 @@ def train_autoencoder(
                 gt_depth = torch.from_numpy(obs['depth']).to(device)
                 with torch.no_grad():
                     _, [gen_image, depth] = model(image.contiguous())
-                    loss = torch.nn.functional.mse_loss(gen_image, image)
-                    loss_depth = torch.nn.functional.mse_loss(depth, gt_depth)
+                    loss = torch.nn.functional.l1_loss(gen_image, image)
+                    loss_depth = torch.nn.functional.l1_loss(depth, gt_depth)
                     MSE_DEPTH.append(loss_depth.item())
                     MSE.append(loss.item())
 

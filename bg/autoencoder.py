@@ -191,10 +191,10 @@ class ResNet18EncV2(torch.nn.Module):
         self.layer3 = self._make_layer(BasicBlockEnc, 256, num_Blocks[2], stride=2)
         self.layer4 = self._make_layer(BasicBlockEnc, 512, num_Blocks[3], stride=2)
 
-        self.layer5 = torch.nn.Conv2d(512, 256, kernel_size = 2, stride = 2, padding = 0)
-        self.layer6 = torch.nn.Conv2d(256, 72, kernel_size = 2, stride = 1, padding = 0)
+        self.layer5 = torch.nn.Conv2d(512, 128, kernel_size = 2, stride = 2, padding = 0)
+        self.layer6 = torch.nn.Conv2d(128, 32, kernel_size = 2, stride = 1, padding = 0)
         self.linear = torch.nn.Sequential(
-            torch.nn.Linear(72, 1),
+            torch.nn.Linear(32, 1),
             torch.nn.Sigmoid()
         )
 

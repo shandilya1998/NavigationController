@@ -190,9 +190,13 @@ class ResNet18EncV2(torch.nn.Module):
         )
         self.layer3 = self._make_layer(BasicBlockEnc, 256, num_Blocks[2], stride=2)
         self.layer4 = self._make_layer(BasicBlockEnc, 512, num_Blocks[3], stride=2)
-        #self.layer5 = self._make_layer(BasicBlockEnc, 1024, num_Blocks[4], stride=2)
-        #self.layer6 = torch.nn.Conv2d(1024, 2048, kernel_size = 2, stride = 1, padding = 0)
-        #self.linear = torch.nn.Linear(2048, z_dim)
+
+        self.layer5 = torch.nn.Conv2d(512, 256, kernel_size = 2, stride = 2, padding = 0)
+        self.layer6 = torch.nn.Conv2d(256, 72, kernel_size = 2, stride = 1, padding = 0)
+        self.linear = torch.nn.Sequential(
+            torch.nn.Linear(72, 1),
+            torch.nn.Sigmoid()
+        )
 
     def _make_layer(self, BasicBlockEnc, planes, num_Blocks, stride):
         strides = [stride] + [1]*(num_Blocks-1)
@@ -221,11 +225,11 @@ class ResNet18EncV2(torch.nn.Module):
         x = self.combiner(x)
         x = self.layer3(x)
         x = self.layer4(x)
-        #x = self.layer5(x)
-        #x = self.layer6(x)
-        #x = x.view(x.size(0), -1)
-        #x = self.linear(x)
-        return x
+        y = self.layer5(x)
+        y = self.layer6(y)
+        y = y.view(y.size(0), -1)
+        y = self.linear(y)
+        return x, y
 
 class ResNet18DecV2(torch.nn.Module):
 
@@ -317,6 +321,6 @@ class Autoencoder(torch.nn.Module):
         self.decoder = ResNet18DecV2(num_Blocks, z_dim, nc)
 
     def forward(self, x):
-        z = self.encoder(x)
+        z, y = self.encoder(x)
         x, depth = self.decoder(z)
-        return z, [x, depth]
+        return z, [x, depth, y]

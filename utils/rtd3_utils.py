@@ -1862,7 +1862,7 @@ def train_autoencoder(
                 gt_depth = torch.from_numpy(obs['depth']).to(device)
                 inframe = torch.from_numpy(
                     obs['inframe']
-                ).float()
+                ).float().to(device)
                 with torch.no_grad():
                     _, [gen_image, depth, probab] = model(image.contiguous())
                     loss = torch.nn.functional.l1_loss(gen_image, image)

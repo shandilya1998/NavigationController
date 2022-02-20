@@ -1775,6 +1775,7 @@ def train_autoencoder(
             SSIM_2.append(ssim_2.item())
             SSIM_3.append(ssim_3.item())
 
+            loss += bce
             loss += ssim_1 + ssim_2 + ssim_3 + loss_depth
 
             optim.zero_grad()
@@ -1816,7 +1817,7 @@ def train_autoencoder(
             SSIM_1.append(ssim_1.item())
             SSIM_2.append(ssim_2.item())
             SSIM_3.append(ssim_3.item())
-
+            loss += bce
             loss += ssim_1 + ssim_2 + ssim_3
 
             optim.zero_grad()
@@ -1888,6 +1889,7 @@ def train_autoencoder(
                     SSIM_1.append(ssim_1.item())
                     SSIM_2.append(ssim_2.item())
                     SSIM_3.append(ssim_3.item())
+                    loss += bce
                     loss += ssim_1 + ssim_2 + ssim_3 + loss_depth
                     losses.append(loss.item())
                     scale_1 = scale_1[0]

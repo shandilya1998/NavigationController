@@ -379,9 +379,10 @@ class EpisodicDictReplayBuffer(sb3.common.buffers.BaseBuffer):
 
         for i, d in enumerate(done):
             if d or self.pos[i] >= self.max_ep_size - 1:
-                self.episode_lengths[self.ep, i] = self.pos[i] + 1
+                if self.pos > self.max_ep_size * 0.1:
+                    self.episode_lengths[self.ep, i] = self.pos[i] + 1
+                    self.ep += 1
                 self.pos[i] = 0
-                self.ep += 1
             else:
                 self.pos[i] += 1
             if i >= 1:

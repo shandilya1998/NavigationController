@@ -1654,7 +1654,7 @@ class RTD3(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 "train/n_updates",
                 self._n_updates,
                 exclude="tensorboard")
-            if self.num_timesteps >= params['staging_steps'] + params['imitation_steps']:
+            if self.num_timesteps >= params['staging_steps']:
                 self.logger.record("train/actor_loss", np.mean(actor_losses))
             self.logger.record("train/critic_loss", np.mean(critic_losses))
             self.logger.record("train/reconstruction", np.mean(MSE))

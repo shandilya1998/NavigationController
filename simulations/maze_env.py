@@ -671,7 +671,7 @@ class MazeEnv(gym.Env):
         
         ori = np.random.uniform(low = -3 * np.pi / 5, high = np.pi / 10)
         self.wrapped_env.set_ori(ori)
-        
+
         # Samples a new start position
         if len(self._init_positions) > 1:
             xy = np.random.choice(self._init_positions)

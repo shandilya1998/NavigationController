@@ -191,11 +191,6 @@ class ResNet18EncV2(torch.nn.Module):
         self.layer3 = self._make_layer(BasicBlockEnc, 256, num_Blocks[2], stride=2)
         self.layer4 = self._make_layer(BasicBlockEnc, 512, num_Blocks[3], stride=2)
 
-        self.linear = torch.nn.Sequential(
-            torch.nn.Linear(512, 1),
-            torch.nn.Sigmoid()
-        )
-
     def _make_layer(self, BasicBlockEnc, planes, num_Blocks, stride):
         strides = [stride] + [1]*(num_Blocks-1)
         layers = []
@@ -223,10 +218,7 @@ class ResNet18EncV2(torch.nn.Module):
         x = self.combiner(x)
         x = self.layer3(x)
         x = self.layer4(x)
-        y = torch.nn.functional.adaptive_avg_pool2d(x, 1)
-        y = y.view(y.size(0), -1)
-        y = self.linear(y)
-        return x, y
+        return x
 
 class ResNet18DecV2(torch.nn.Module):
 
@@ -318,6 +310,6 @@ class Autoencoder(torch.nn.Module):
         self.decoder = ResNet18DecV2(num_Blocks, z_dim, nc)
 
     def forward(self, x):
-        z, y = self.encoder(x)
+        z = self.encoder(x)
         x, depth = self.decoder(z)
-        return z, [x, depth, y]
+        return z, [x, depth]

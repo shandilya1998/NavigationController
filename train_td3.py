@@ -79,7 +79,7 @@ def evaluate_policy(
     if not isinstance(env, sb3.common.vec_env.VecEnv):
         env = sb3.common.vec_env.dummy_vec_env.DummyVecEnv([lambda: env])
 
-    is_monitor_wrapped = is_vecenv_wrapped(env, VecMonitor) or env.env_is_wrapped(Monitor)[0]
+    is_monitor_wrapped = sb3.common.vec_env.is_vecenv_wrapped(env, sb3.common.vec_env.VecMonitor) or env.env_is_wrapped(Monitor)[0]
 
     if not is_monitor_wrapped and warn:
         warnings.warn(
@@ -177,6 +177,7 @@ class Callback(sb3.common.callbacks.EventCallback):
     def __init__(
         self,
         eval_env: Union[gym.Env, sb3.common.vec_env.VecEnv],
+        logdir: str,
         callback_on_new_best: Optional[sb3.common.callbacks.BaseCallback] = None,
         n_eval_episodes: int = 5,
         eval_freq: int = 10000,
@@ -190,6 +191,7 @@ class Callback(sb3.common.callbacks.EventCallback):
         warn: bool = True,
     ):
         super(Callback, self).__init__(callback_on_new_best, verbose=verbose)
+        self.logdir = logdir
         self.n_eval_episodes = n_eval_episodes
         self.eval_freq = eval_freq
         self.render_freq = render_every * self.eval_freq
@@ -247,7 +249,7 @@ class Callback(sb3.common.callbacks.EventCallback):
 
         if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
             # Sync training and eval env if there is VecNormalize
-            sync_envs_normalization(self.training_env, self.eval_env)
+            sb3.common.vec_env.sync_envs_normalization(self.training_env, self.eval_env)
 
             # Reset success rate buffer
             self._is_success_buffer = []
@@ -273,10 +275,7 @@ class Callback(sb3.common.callbacks.EventCallback):
                     :param _globals:
                         A dictionary containing all global variables of the callback's scope
                     """
-                    screen = cv2.cvtColor(
-                        self._eval_env.render(mode="rgb_array"),
-                        cv2.COLOR_RGB2BGR
-                    )
+                    screen = self.eval_env.render(mode="rgb_array")
                     size = screen.shape[:2]
                     # PyTorch uses CxHxW vs HxWxC gym (and tensorflow) image convention
                     scale_1 = cv2.resize(
@@ -291,38 +290,46 @@ class Callback(sb3.common.callbacks.EventCallback):
                         _locals['observations']['scale_3'][0, :3].transpose(1, 2, 0),
                         size
                     )
-
+                    #print(_locals['gen_image'].shape)
                     gen_scale_1 = cv2.resize(
-                        _locals['gen_image'][:3].transpose(1, 2, 0),
+                        _locals['gen_image'][0, :3].transpose(1, 2, 0) * 255,
                         size
                     )
 
                     gen_scale_2 = cv2.resize(
-                        _locals['gen_image'][3:6].transpose(1, 2, 0),
+                        _locals['gen_image'][0, 3:6].transpose(1, 2, 0) * 255,
                         size
                     )
 
                     gen_scale_3 = cv2.resize(
-                        _locals['gen_image'][6:].transpose(1, 2, 0),
+                        _locals['gen_image'][0, 6:].transpose(1, 2, 0) * 255,
                         size
                     )
+                    gen_scale_1 = gen_scale_1.astype(np.uint8)
+                    gen_scale_2 = gen_scale_2.astype(np.uint8)
+                    gen_scale_3 = gen_scale_3.astype(np.uint8)
 
+                    depth = _locals['observations']['depth'][0].transpose(1, 2, 0) * 255
+                    depth = depth.astype(np.uint8)
                     depth = cv2.cvtColor(cv2.resize(
-                        _locals['observations']['depth'][0].transpose(1, 2, 0),
+                        depth,
                         size
-                    ), cv2.COLOR_GRAY2BGR)
+                    ), cv2.COLOR_GRAY2RGB)
+
+                    gen_depth =  _locals['depth'][0].transpose(1, 2, 0) * 255
+                    gen_depth = gen_depth.astype(np.uint8)
                     gen_depth = cv2.cvtColor(cv2.resize(
-                        _locals['depth'].transpose(1, 2, 0),
+                        gen_depth,
                         size
-                    ), cv2.COLOR_GRAY2BGR)
+                    ), cv2.COLOR_GRAY2RGB)
 
                     observation = np.concatenate([
                         np.concatenate([screen, scale_1, gen_scale_1], 0),
                         np.concatenate([depth, scale_2, gen_scale_2], 0),
                         np.concatenate([gen_depth, scale_3, gen_scale_3], 0)
-                    ], 1)
-
+                    ], 1).astype(np.uint8)
                     observation = cv2.cvtColor(observation, cv2.COLOR_RGB2BGR)
+
                     video.write(observation)
 
             episode_rewards, episode_lengths = evaluate_policy(
@@ -402,7 +409,8 @@ class Callback(sb3.common.callbacks.EventCallback):
 
 if __name__ == '__main__':
 
-    logdir = 'assets/out/models/exp22'
+    lodir = '/content/drive/MyDrive/CNS/exp22'
+    #logdir = 'assets/out/models/exp22'
 
     train_env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
         sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
@@ -481,6 +489,7 @@ if __name__ == '__main__':
     callbacks = sb3.common.callbacks.CallbackList([
         Callback(
             eval_env = eval_env,
+            logdir = logdir,
             callback_on_new_best = None,
             n_eval_episodes = 5,
             eval_freq = params['eval_freq'],

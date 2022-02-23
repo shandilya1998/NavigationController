@@ -796,10 +796,12 @@ class MazeEnv(gym.Env):
                     obs['scale_1'] = np.zeros_like(obs['scale_1'])
                     obs['scale_2'] = np.zeros_like(obs['scale_2'])
                     obs['scale_3'] = np.zeros_like(obs['scale_3'])
+                    obs['depth'] = np.zeros_like(obs['depth'])
                 elif -np.pi / 8 > yaw > -3 * np.pi / 8:
                     obs['scale_1'] = np.zeros_like(obs['scale_1'])
                     obs['scale_2'] = np.zeros_like(obs['scale_2'])
-                    obs['scale_3'] = np.zeros_like(obs['scale_3']) 
+                    obs['scale_3'] = np.zeros_like(obs['scale_3'])
+                    obs['depth'] = np.zeros_like(obs['depth'])
                 else:
                     pass
                 penalty += -1.0 * self._inner_reward_scaling
@@ -816,10 +818,12 @@ class MazeEnv(gym.Env):
                     obs['scale_1'] = np.zeros_like(obs['scale_1'])
                     obs['scale_2'] = np.zeros_like(obs['scale_2'])
                     obs['scale_3'] = np.zeros_like(obs['scale_3'])
+                    obs['depth'] = np.zeros_like(obs['depth'])
                 elif 3 * np.pi / 8 >= yaw > np.pi / 8:
                     obs['scale_1'] = np.zeros_like(obs['scale_1'])
                     obs['scale_2'] = np.zeros_like(obs['scale_2'])
                     obs['scale_3'] = np.zeros_like(obs['scale_3'])
+                    obs['depth'] = np.zeros_like(obs['depth'])
                 else:
                     pass
                 penalty += -1.0 * self._inner_reward_scaling
@@ -851,10 +855,12 @@ class MazeEnv(gym.Env):
                     obs['scale_1'] = np.zeros_like(obs['scale_1'])
                     obs['scale_2'] = np.zeros_like(obs['scale_2'])
                     obs['scale_3'] = np.zeros_like(obs['scale_3'])
+                    obs['depth'] = np.zeros_like(obs['depth'])
                 else:
                     obs['scale_1'] = np.zeros_like(obs['scale_1'])
                     obs['scale_2'] = np.zeros_like(obs['scale_2'])
                     obs['scale_3'] = np.zeros_like(obs['scale_3'])
+                    obs['depth'] = np.zeros_like(obs['depth'])
                 penalty += -1.0 * self._inner_reward_scaling
             elif np.pi / 2 > yaw >= 0:
                 if np.pi / 8 > yaw >= 0:
@@ -871,10 +877,12 @@ class MazeEnv(gym.Env):
                     obs['scale_1'] = np.zeros_like(obs['scale_1'])
                     obs['scale_2'] = np.zeros_like(obs['scale_2'])
                     obs['scale_3'] = np.zeros_like(obs['scale_3'])
+                    obs['depth'] = np.zeros_like(obs['depth'])
                 else:
                     obs['scale_1'] = np.zeros_like(obs['scale_1'])
                     obs['scale_2'] = np.zeros_like(obs['scale_2'])
                     obs['scale_3'] = np.zeros_like(obs['scale_3'])
+                    obs['depth'] = np.zeros_like(obs['depth'])
                 penalty += -1.0 * self._inner_reward_scaling
             else:
                 raise ValueError
@@ -903,22 +911,25 @@ class MazeEnv(gym.Env):
                     obs['scale_1'] = np.zeros_like(obs['scale_1'])
                     obs['scale_2'] = np.zeros_like(obs['scale_2'])
                     obs['scale_3'] = np.zeros_like(obs['scale_3'])
-                    pass
+                    obs['depth'] = np.zeros_like(obs['depth'])
                 else:
                     obs['scale_1'] = np.zeros_like(obs['scale_1'])
                     obs['scale_2'] = np.zeros_like(obs['scale_2'])
                     obs['scale_3'] = np.zeros_like(obs['scale_3'])
+                    obs['depth'] = np.zeros_like(obs['depth'])
                 penalty += -1.0 * self._inner_reward_scaling
             elif np.pi > yaw >= np.pi / 2:
                 if 5 * np.pi / 8 > yaw >= np.pi / 2:
                     obs['scale_1'] = np.zeros_like(obs['scale_1'])
                     obs['scale_2'] = np.zeros_like(obs['scale_2'])
                     obs['scale_3'] = np.zeros_like(obs['scale_3'])
+                    obs['depth'] = np.zeros_like(obs['depth'])
                 elif 7 * np.pi / 8 > yaw >= 5 * np.pi / 8:
                     pass
                     obs['scale_1'] = np.zeros_like(obs['scale_1'])
                     obs['scale_2'] = np.zeros_like(obs['scale_2'])
                     obs['scale_3'] = np.zeros_like(obs['scale_3'])
+                    obs['depth'] = np.zeros_like(obs['depth'])
                 else:
                     pass
                 penalty += -1.0 * self._inner_reward_scaling
@@ -933,20 +944,24 @@ class MazeEnv(gym.Env):
                     obs['scale_1'] = np.zeros_like(obs['scale_1'])
                     obs['scale_2'] = np.zeros_like(obs['scale_2'])
                     obs['scale_3'] = np.zeros_like(obs['scale_3'])
+                    obs['depth'] = np.zeros_like(obs['depth'])
                 else:
                     obs['scale_1'] = np.zeros_like(obs['scale_1'])
                     obs['scale_2'] = np.zeros_like(obs['scale_2'])
                     obs['scale_3'] = np.zeros_like(obs['scale_3'])
+                    obs['depth'] = np.zeros_like(obs['depth'])
                 penalty += -1.0 * self._inner_reward_scaling
             elif -np.pi / 2 > yaw >= -np.pi:
                 if -np.pi / 2 > yaw >= -5 * np.pi / 8:
                     obs['scale_1'] = np.zeros_like(obs['scale_1'])
                     obs['scale_2'] = np.zeros_like(obs['scale_2'])
                     obs['scale_3'] = np.zeros_like(obs['scale_3'])
+                    obs['depth'] = np.zeros_like(obs['depth'])
                 elif -5 * np.pi / 8 > yaw >= -7 * np.pi / 8:
                     obs['scale_1'] = np.zeros_like(obs['scale_1'])
                     obs['scale_2'] = np.zeros_like(obs['scale_2'])
                     obs['scale_3'] = np.zeros_like(obs['scale_3'])
+                    obs['depth'] = np.zeros_like(obs['depth'])
                 else:
                     pass
                 penalty += -1.0 * self._inner_reward_scaling

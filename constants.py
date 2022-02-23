@@ -33,7 +33,7 @@ params = {
     'learning_starts'             : 1000,
     'staging_steps'               : int(1e5),
     'imitation_steps'             : int(1e5),
-    'render_freq'                 : int(1e5),
+    'render_freq'                 : int(5e4),
     'save_freq'                   : int(5e4),
     'eval_freq'                   : 10000,
     'buffer_size'                 : int(2e5),

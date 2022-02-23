@@ -1023,6 +1023,9 @@ class MazeEnv(gym.Env):
         # Reward and Info Declaration
         if done:
             outer_reward += 200.0
+            info['is_success'] = True
+        else:
+            info['is_success'] = False
         if outbound:
             collision_penalty += -10.0 * self._inner_reward_scaling
             next_obs['scale_1'] = np.zeros_like(obs['scale_1'])

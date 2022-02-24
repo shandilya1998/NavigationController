@@ -469,7 +469,8 @@ if __name__ == '__main__':
         policy_kwargs = policy_kwargs,
         seed = params['seed'],
         device = 'auto',
-        _init_setup_model = True
+        _init_setup_model = True,
+        verbose = 2,
     )
 
     env = MazeEnv(
@@ -501,14 +502,14 @@ if __name__ == '__main__':
             best_model_save_path = None,
             deterministic = True,
             render = False,
-            verbose = 1,
+            verbose = 2,
             warn = True,
         ),
         sb3.common.callbacks.CheckpointCallback(
             save_freq = params['save_freq'],
             save_path = logdir,
             name_prefix = 'rl_model',
-            verbose = 0
+            verbose = 2
         )
     ])
 

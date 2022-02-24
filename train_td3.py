@@ -434,7 +434,7 @@ if __name__ == '__main__':
 
     policy_kwargs = {
         'net_arch' : params['net_arch'],
-        'activation_fn' : torch.nn.ReLU,
+        'activation_fn' : torch.nn.Tanh,
         'features_extractor_class' : FeaturesExtractor,
         'features_extractor_kwargs' : {
             'features_dim' : params['num_ctx']

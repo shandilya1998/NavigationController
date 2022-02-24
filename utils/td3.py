@@ -19,7 +19,7 @@ class FeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
 
         self.linear = torch.nn.Sequential(
             torch.nn.Linear(512, features_dim),
-            torch.nn.ELU()
+            torch.nn.Tanh()
         )
 
         self.fc_sensors = torch.nn.Sequential(
@@ -27,12 +27,12 @@ class FeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
                 observation_space['sensors'].shape[-1],
                 2 * observation_space['sensors'].shape[-1]
             ),
-            torch.nn.ELU()
+            torch.nn.Tanh()
         )
 
         self.combine = torch.nn.Sequential(
             torch.nn.Linear(features_dim + 2 * observation_space['sensors'].shape[-1], features_dim),
-            torch.nn.ELU()
+            torch.nn.Tanh()
         )
 
     def forward(self, observations):
@@ -71,7 +71,7 @@ class Actor(sb3.common.policies.BasePolicy):
         net_arch: List[int],
         features_extractor: torch.nn.Module,
         features_dim: int,
-        activation_fn: Type[torch.nn.Module] = torch.nn.ReLU,
+        activation_fn: Type[torch.nn.Module] = torch.nn.Tanh,
         normalize_images: bool = True,
     ):
         super(Actor, self).__init__(
@@ -207,7 +207,7 @@ class ContinuousCritic(sb3.common.policies.BaseModel):
         net_arch: List[int],
         features_extractor: torch.nn.Module,
         features_dim: int,
-        activation_fn: Type[torch.nn.Module] = torch.nn.ReLU,
+        activation_fn: Type[torch.nn.Module] = torch.nn.Tanh,
         normalize_images: bool = True,
         n_critics: int = 2,
         share_features_extractor: bool = True,
@@ -276,7 +276,7 @@ class TD3Policy(sb3.common.policies.BasePolicy):
         action_space: gym.spaces.Space,
         lr_schedule: sb3.common.type_aliases.Schedule,
         net_arch: Optional[Union[List[int], Dict[str, List[int]]]] = None,
-        activation_fn: Type[torch.nn.Module] = torch.nn.ReLU,
+        activation_fn: Type[torch.nn.Module] = torch.nn.Tanh,
         features_extractor_class: Type[sb3.common.torch_layers.BaseFeaturesExtractor] = sb3.common.torch_layers.FlattenExtractor,
         features_extractor_kwargs: Optional[Dict[str, Any]] = None,
         normalize_images: bool = True,

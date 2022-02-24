@@ -57,7 +57,7 @@ params = {
     'gamma'                       : 0.98,
     'tau'                         : 0.002, 
     'n_updates'                   : 32,
-    'num_ctx'                     : 1536,
+    'num_ctx'                     : 400,
     'actor_lr'                    : 1e-3,
     'critic_lr'                   : 1e-2,
     'weight_decay'                : 1e-2,

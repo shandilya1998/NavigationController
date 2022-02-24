@@ -10,6 +10,7 @@ import gym
 import stable_baselines3 as sb3
 import numpy as np
 import torch
+from utils import set_seeds
 
 def linear_schedule(initial_value, final_value):
     """ 
@@ -409,7 +410,8 @@ class Callback(sb3.common.callbacks.EventCallback):
 
 if __name__ == '__main__':
 
-    lodir = '/content/drive/MyDrive/CNS/exp22'
+    set_seeds(params['seed'])
+    logdir = '/content/drive/MyDrive/CNS/exp22'
     #logdir = 'assets/out/models/exp22'
 
     train_env = sb3.common.vec_env.vec_transpose.VecTransposeImage(

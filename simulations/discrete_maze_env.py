@@ -251,12 +251,6 @@ class MazeEnv(gym.Env):
         self.actions = [np.zeros_like(action) for i in range(self.n_steps)]
         goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
         self.goals = [goal.copy() for i in range(self.n_steps)]
-        self.__create_maze_graph()
-        self.sampled_path = self.__sample_path()
-        self._current_cell = copy.deepcopy(self.sampled_path[0])
-        self.__find_all_waypoints()
-        self.__find_cubic_spline_path()
-        self.__setup_vel_control()
         inertia = np.concatenate([
             self.data.qvel,
             self.data.qacc
@@ -264,159 +258,15 @@ class MazeEnv(gym.Env):
         ob = self._get_obs()
         self._set_observation_space(ob)
 
-    def __find_all_waypoints(self):
-        self.wx = []
-        self.wy = []
-        for cell in self.sampled_path:
-            row, col = self._graph_to_structure_index(cell)
-            x, y = self._rowcol_to_xy(row, col)
-            self.wx.append(copy.deepcopy(x))
-            self.wy.append(copy.deepcopy(y))
-        self.wx.append(self._task.goals[self._task.goal_index].pos[0])
-        self.wy.append(self._task.goals[self._task.goal_index].pos[1])
-        self.final = [self.wx[-1], self.wy[-1]]
-
-    def __find_cubic_spline_path(self):
-        self.cx, self.cy, self.cyaw, self.ck, self.s = calc_spline_course(self.wx, self.wy, params['ds'])
-
     @property
     def action_space(self):
         return self._action_space
-
-    def __setup_vel_control(self):
-        self.target_speed = np.random.uniform(low = 1.0, high = 4.0)
-        self.state = State(
-            x = self.wrapped_env.sim.data.qpos[0],
-            y = self.wrapped_env.sim.data.qpos[1],
-            yaw = self.wrapped_env.sim.data.qpos[2],
-            v = np.linalg.norm(self.wrapped_env.sim.data.qvel[:2]),
-            WB = 0.2 * self._maze_size_scaling,
-        )
-        self.last_idx = len(self.cx) - 1
-        self.target_course = TargetCourse(self.cx, self.cy)
-        self.target_ind, _ = self.target_course.search_target_index(self.state)
-
-    def __sample_path(self):
-        robot_x, robot_y = self.wrapped_env.get_xy()
-        robot_ori = self.wrapped_env.get_ori()
-        row, col = self._xy_to_rowcol(robot_x, robot_y)
-        source = self._structure_to_graph_index(row, col)
-        goal_pos = self._task.goals[self._task.goal_index].pos[:2]
-        row, col = self._xy_to_rowcol(goal_pos[0], goal_pos[1])
-        target = self._structure_to_graph_index(row, col)
-        paths = list(nx.algorithms.shortest_paths.generic.all_shortest_paths(
-            self._maze_graph,
-            source,
-            target
-        ))
-        return paths[0]
-
-    def get_action(self):
-        ai = proportional_control(self.target_speed, self.state.v)
-        di, self.target_ind = pure_pursuit_steer_control(
-            self.state, self.target_course, self.target_ind
-        )
-        #yaw = self.state.yaw +  self.state.v / self.state.WB * math.tan(di) * self.dt
-        v = self.state.v + ai * self.dt
-        vyaw = self.state.v / self.state.WB * math.tan(di)
-        #self.state.update(ai, di, self.dt)
-        #v = self.state.v
-        #yaw = self.state.yaw
-        # Refer to simulations/point PointEnv: def step() for more information
-        yaw = self.check_angle(self.state.yaw + vyaw * self.dt)
-        vx = v * np.cos(yaw)
-        vy = v * np.sin(yaw)
-        self.sampled_action = np.array([
-            vyaw,
-        ], dtype = np.float32)
-        return self.sampled_action
-
-    def _graph_to_structure_index(self, index):
-        row = int(index / len(self._maze_structure))
-        col = index % len(self._maze_structure[0])
-        return row, col
-
-    def _structure_to_graph_index(self, row, col):
-        return row * len(self._maze_structure[0]) + col
-
-    def __check_structure_index_validity(self, i, j):
-        valid = [True, True]
-        if i < 0:
-            valid[0] = False
-        elif i >= len(self._maze_structure):
-            valid[0] = False
-        if j < 0:
-            valid[1] = False
-        elif j >= len(self._maze_structure[0]):
-            valid[1] = False
-        return valid[0] and valid[1]
-
-    def __add_edges_to_maze_graph(self, node):
-        neighbors = [
-            (node['row'] - 1, node['col']),
-            (node['row'], node['col'] - 1),
-            (node['row'] + 1, node['col']),
-            (node['row'], node['col'] + 1),
-            (node['row'] + 1, node['col'] + 1),
-            (node['row'] + 1, node['col'] - 1),
-            (node['row'] - 1, node['col'] + 1),
-            (node['row'] - 1, node['col'] - 1)
-        ]
-        for neighbor in neighbors:
-            if self.__check_structure_index_validity(
-                neighbor[0],
-                neighbor[1]
-            ):
-                if not self._maze_graph.nodes[
-                    self._structure_to_graph_index(
-                        neighbor[0],
-                        neighbor[1]
-                    )
-                ]['struct'].is_wall_or_chasm():
-                    self._maze_graph.add_edge(
-                        node['index'],
-                        self._maze_graph.nodes[self._structure_to_graph_index(
-                            neighbor[0],
-                            neighbor[1]
-                        )]['index']
-                    )
-
-    def __create_maze_graph(self):
-        num_row = len(self._maze_structure)
-        num_col = len(self._maze_structure[0])
-        num_vertices = num_row * num_col
-        self._maze_graph = nx.DiGraph()
-        self._maze_graph.add_nodes_from(np.arange(
-            0, num_vertices
-        ))
-        for i in range(num_row):
-            for j in range(num_col):
-                self._maze_graph.nodes[
-                    self._structure_to_graph_index(i, j)
-                ]['struct'] = self._maze_structure[i][j]
-                self._maze_graph.nodes[
-                    self._structure_to_graph_index(i, j)
-                ]['row'] = i
-                self._maze_graph.nodes[
-                    self._structure_to_graph_index(i, j)
-                ]['col'] = j
-                self._maze_graph.nodes[
-                    self._structure_to_graph_index(i, j)
-                ]['index'] = self._structure_to_graph_index(i, j)
-
-        for i in range(num_row):
-            for j in range(num_col):
-                self.__add_edges_to_maze_graph(self._maze_graph.nodes[
-                    self._structure_to_graph_index(i, j)
-                ])
 
     def get_ori(self) -> float:
         return self.wrapped_env.get_ori()
 
     def _set_action_space(self):
-        low = self.wrapped_env.action_space.low[1:]
-        high = self.wrapped_env.action_space.high[1:]
-        self._action_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
+        self._action_space = self.wrapped_env.action_space
 
     def _set_observation_space(self, observation):
         spaces = {
@@ -437,7 +287,7 @@ class MazeEnv(gym.Env):
                 high = 255 * np.ones_like(observation['scale_3'], dtype = np.uint8),
                 shape = observation['scale_3'].shape,
                 dtype = observation['scale_3'].dtype
-            ),
+            ),   
             'sensors' : gym.spaces.Box(
                 low = -np.ones_like(observation['sensors']),
                 high = np.ones_like(observation['sensors']),
@@ -605,7 +455,7 @@ class MazeEnv(gym.Env):
         max_vel = np.array([
             self.wrapped_env.VELOCITY_LIMITS,
             self.wrapped_env.VELOCITY_LIMITS,
-            self.action_space.high[0]
+            self.action_space.high[1]
         ])
         min_vel = -max_vel
         sensors = np.concatenate([
@@ -677,11 +527,6 @@ class MazeEnv(gym.Env):
         self.actions = [np.zeros_like(action) for i in range(self.n_steps)]
         goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
         self.goals = [goal.copy() for i in range(self.n_steps)]
-        self.sampled_path = self.__sample_path()
-        self._current_cell = copy.deepcopy(self.sampled_path[0])
-        self.__find_all_waypoints()
-        self.__find_cubic_spline_path()
-        self.__setup_vel_control()
         obs = self._get_obs()
         return obs
 
@@ -804,14 +649,10 @@ class MazeEnv(gym.Env):
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         # Proprocessing and Environment Update
         action = np.clip(action, a_min = self.action_space.low, a_max = self.action_space.high)
-        action = np.concatenate([
-            np.array([self.target_speed], dtype = np.float32),
-            action
-        ], 0)
         self.t += 1
         info = {}
         self.actions.pop(0)
-        self.actions.append(action.copy()[1:])
+        self.actions.append(action.copy())
         inner_next_obs, inner_reward, _, info = self.wrapped_env.step(action)
 
         # Observation and Parameter Gathering

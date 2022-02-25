@@ -268,8 +268,8 @@ ob = env.reset()
 total_reward = 0.0
 ac = env.get_action()
 while not done:
-    #ob, reward, done, info = env.step(ob['sampled_action'])
-    ob, reward, done, info = env.step(env.action_space.sample())
+    ob, reward, done, info = env.step(ob['sampled_action'])
+    #ob, reward, done, info = env.step(env.action_space.sample())
     ac = env.get_action()
     if reward != 0.0:
         count += 1

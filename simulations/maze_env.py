@@ -833,8 +833,8 @@ class MazeEnv(gym.Env):
         qvel = self.wrapped_env.data.qvel.copy()
         vyaw = qvel[self.wrapped_env.ORI_IND]
         vmax = self.wrapped_env.VELOCITY_LIMITS * 1.4
-        inner_reward = -1 + (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / params['max_vyaw']))
-        inner_reward = self._inner_reward_scaling * inner_reward
+        #inner_reward = -1 + (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / params['max_vyaw']))
+        #inner_reward = self._inner_reward_scaling * inner_reward
         #print(rho * 15)
 
         # Task Reward Computation

@@ -87,7 +87,22 @@ class Actor(sb3.common.policies.BasePolicy):
         self.activation_fn = activation_fn
 
         action_dim = sb3.common.preprocessing.get_action_dim(self.action_space)
-        actor_net = sb3.common.torch_layers.create_mlp(features_dim, action_dim, net_arch, activation_fn, squash_output=True)
+        squash_output = True
+        actor_net = sb3.common.torch_layers.create_mlp(
+            features_dim,
+            action_dim,
+            net_arch,
+            activation_fn,
+            squash_output = squash_output
+        )
+
+        if squash_output:
+            torch.nn.init.uniform_(actor_net[-2].weight, -3e-3, 3e-3)
+            torch.nn.init.uniform_(actor_net[-2].bias, -3e-4, 3e-4)
+        else:
+            torch.nn.init.uniform_(actor_net[-1].weight, -3e-3, 3e-3)
+            torch.nn.init.uniform_(actor_net[-1].bias, -3e-4, 3e-4)
+
         # Deterministic action
         self.mu = torch.nn.Sequential(*actor_net)
 

@@ -496,7 +496,7 @@ if __name__ == '__main__':
             callback_on_new_best = None,
             n_eval_episodes = 5,
             eval_freq = params['eval_freq'],
-            render_every = 10,
+            render_every = 5,
             image_size = image_size,
             log_path = logdir,
             best_model_save_path = None,

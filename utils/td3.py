@@ -7,6 +7,7 @@ import gym
 import numpy as np
 from pytorch_msssim import ssim, ms_ssim
 import copy
+from constants import params
 
 class FeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
     def __init__(self, observation_space: gym.Space, features_dim: int):
@@ -540,6 +541,8 @@ class TD3(sb3.TD3):
         if self.num_timesteps < learning_starts and not (self.use_sde and self.use_sde_at_warmup):
             # Warmup phase
             unscaled_action = np.array([self.action_space.sample()])
+        elif self.num_timesteps < params['staging_steps']:
+            unscaled_action = self._last_obs['sampled_action']
         else:
             # Note: when using continuous actions,
             # we assume that the policy uses tanh to scale the action
@@ -600,47 +603,48 @@ class TD3(sb3.TD3):
             critic_loss.backward()
             self.critic.optimizer.step()
 
+            action, [gen_image, depth] = self.actor(replay_data.observations)
+            image = torch.cat([
+                replay_data.observations['scale_1'],
+                replay_data.observations['scale_2'],
+                replay_data.observations['scale_3']
+            ], 1).float() / 255
+
+            reconstruction_loss = torch.nn.functional.l1_loss(
+                gen_image, image
+            ) + torch.nn.functional.l1_loss(
+                depth, replay_data.observations['depth']
+            ) + 1 - ssim(
+                image[:, :3], gen_image[:, :3],
+                data_range=1.0, size_average=True
+            ) + 1 - ssim(
+                    image[:, 3:6], gen_image[:, 3:6],
+                data_range=1.0, size_average=True
+            ) + 1 - ssim(
+                image[:, 6:], gen_image[:, 6:],
+                data_range=1.0, size_average=True
+            )
+            reconstruction_losses.append(reconstruction_loss.item())
+            actor_loss = reconstruction_loss
+
             # Delayed policy updates
-            if self._n_updates % self.policy_delay == 0:
+            if self._n_updates % self.policy_delay == 0 and self.num_timesteps > params['staging_steps']:
                 # Compute actor loss
-                action, [gen_image, depth] = self.actor(replay_data.observations)
-                actor_loss = -self.critic.q1_forward(replay_data.observations, action).mean()
+                actor_loss += -self.critic.q1_forward(replay_data.observations, action).mean()
                 actor_losses.append(actor_loss.item())
 
-                image = torch.cat([
-                    replay_data.observations['scale_1'],
-                    replay_data.observations['scale_2'],
-                    replay_data.observations['scale_3']
-                ], 1).float() / 255
+            # Optimize the actor
+            self.actor.optimizer.zero_grad()
+            actor_loss.backward()
+            self.actor.optimizer.step()
 
-                reconstruction_loss = torch.nn.functional.l1_loss(
-                    gen_image, image
-                ) + torch.nn.functional.l1_loss(
-                    depth, replay_data.observations['depth']
-                ) + 1 - ssim(
-                    image[:, :3], gen_image[:, :3],
-                    data_range=1.0, size_average=True
-                ) + 1 - ssim(
-                        image[:, 3:6], gen_image[:, 3:6],
-                    data_range=1.0, size_average=True
-                ) + 1 - ssim(
-                    image[:, 6:], gen_image[:, 6:],
-                    data_range=1.0, size_average=True
-                )
-                reconstruction_losses.append(reconstruction_loss.item())
-                actor_loss += reconstruction_loss
-
-
-                # Optimize the actor
-                self.actor.optimizer.zero_grad()
-                actor_loss.backward()
-                self.actor.optimizer.step()
-
-                sb3.common.utils.polyak_update(self.critic.parameters(), self.critic_target.parameters(), self.tau)
-                sb3.common.utils.polyak_update(self.actor.parameters(), self.actor_target.parameters(), self.tau)
+            sb3.common.utils.polyak_update(self.critic.parameters(), self.critic_target.parameters(), self.tau)
+            sb3.common.utils.polyak_update(self.actor.parameters(), self.actor_target.parameters(), self.tau)
 
         self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
         if len(actor_losses) > 0:
-            self.logger.record("train/actor_loss", np.mean(actor_losses))
+            if self.num_timesteps > params['staging_steps']:
+                self.logger.record("train/actor_loss", np.mean(actor_losses))
             self.logger.record("train/reconstruction", np.mean(reconstruction_losses))
-        self.logger.record("train/critic_loss", np.mean(critic_losses))
+        if self.num_timesteps > params['staging_steps']:
+            self.logger.record("train/critic_loss", np.mean(critic_losses))

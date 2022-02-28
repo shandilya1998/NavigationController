@@ -284,7 +284,7 @@ class MazeEnv(gym.Env):
         return self._action_space
 
     def __setup_vel_control(self):
-        self.target_speed = np.random.uniform(low = 1.0, high = 4.0)
+        self.target_speed = 2.0
         self.state = State(
             x = self.wrapped_env.sim.data.qpos[0],
             y = self.wrapped_env.sim.data.qpos[1],

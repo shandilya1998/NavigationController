@@ -92,7 +92,8 @@ params = {
                                     },
     'lstm_steps'                  : 2,
     'autoencoder_arch'            : [1, 1, 1, 1],
-    'add_ref_scales'              : True
+    'add_ref_scales'              : True,
+    'stage1'                      : int(2e5),
 }
 
 params_quadruped = {

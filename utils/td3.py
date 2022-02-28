@@ -631,7 +631,9 @@ class TD3(sb3.TD3):
             if self._n_updates % self.policy_delay == 0 and self.num_timesteps > params['staging_steps']:
                 # Compute actor loss
                 actor_loss += -self.critic.q1_forward(replay_data.observations, action).mean()
-                actor_losses.append(actor_loss.item())
+            else:
+                actor_loss += torch.nn.functional.mse_loss(action, replay_data.observations['sampled_action'])
+            actor_losses.append(actor_loss.item())
 
             # Optimize the actor
             self.actor.optimizer.zero_grad()
@@ -642,9 +644,7 @@ class TD3(sb3.TD3):
             sb3.common.utils.polyak_update(self.actor.parameters(), self.actor_target.parameters(), self.tau)
 
         self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
+        self.logger.record("train/reconstruction", np.mean(reconstruction_losses))
+        self.logger.record("train/critic_loss", np.mean(critic_losses))
         if len(actor_losses) > 0:
-            if self.num_timesteps > params['staging_steps']:
-                self.logger.record("train/actor_loss", np.mean(actor_losses))
-            self.logger.record("train/reconstruction", np.mean(reconstruction_losses))
-        if self.num_timesteps > params['staging_steps']:
-            self.logger.record("train/critic_loss", np.mean(critic_losses))
+            self.logger.record("train/actor_loss", np.mean(actor_losses))

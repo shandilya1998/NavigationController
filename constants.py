@@ -31,7 +31,7 @@ params = {
     'show_animation'              : False,
     'dt'                          : 0.02,
     'learning_starts'             : 1000,
-    'staging_steps'               : int(1e5),
+    'staging_steps'               : int(2e4),
     'imitation_steps'             : int(1e5),
     'render_freq'                 : int(5e4),
     'save_freq'                   : int(5e4),

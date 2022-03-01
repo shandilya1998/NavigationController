@@ -833,13 +833,10 @@ class MazeEnv(gym.Env):
         theta_t = self.check_angle(np.arctan2(goal[1], goal[0]) - self.get_ori())
         qvel = self.wrapped_env.data.qvel.copy()
         vyaw = qvel[self.wrapped_env.ORI_IND]
-        vmax = self.wrapped_env.VELOCITY_LIMITS * 1.4
-        
+        vmax = self.wrapped_env.VELOCITY_LIMITS * 1.4        
         if self.total_steps > params['stage1']:
-            #inner_reward = -1 + (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / params['max_vyaw']))
-            #inner_reward = self._inner_reward_scaling * inner_reward
-            #print(rho * 15)
-            pass
+            inner_reward = -1 + (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / params['max_vyaw']))
+            inner_reward = self._inner_reward_scaling * inner_reward
 
         # Task Reward Computation
         outer_reward = 0

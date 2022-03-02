@@ -357,10 +357,6 @@ class MazeEnv(gym.Env):
             (node['row'], node['col'] - 1),
             (node['row'] + 1, node['col']),
             (node['row'], node['col'] + 1),
-            (node['row'] + 1, node['col'] + 1),
-            (node['row'] + 1, node['col'] - 1),
-            (node['row'] - 1, node['col'] + 1),
-            (node['row'] - 1, node['col'] - 1)
         ]
         for neighbor in neighbors:
             if self.__check_structure_index_validity(

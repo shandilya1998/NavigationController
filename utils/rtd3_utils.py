@@ -1769,7 +1769,6 @@ def train_autoencoder(
         SSIM_1 = []
         SSIM_2 = []
         SSIM_3 = []
-        BCE = []
 
         # Updates
         for j, rollout in enumerate(data):
@@ -1780,17 +1779,13 @@ def train_autoencoder(
             ], 1).float() / 255
 
             # Prediction
-            _, [gen_image, depth, probab] = model(image.contiguous())
+            _, [gen_image, depth] = model(image.contiguous())
 
             # Gradient Computatation and Optimsation
             loss = torch.nn.functional.l1_loss(gen_image, image)
             loss_depth = torch.nn.functional.l1_loss(depth, rollout.observations['depth'])
-            bce = torch.nn.functional.binary_cross_entropy(
-                probab, rollout.observations['inframe'].float()
-            )
             MSE.append(loss.item())
             MSE_DEPTH.append(loss_depth.item())
-            BCE.append(bce.item())
             scale_1, scale_2, scale_3 = torch.split(image, 3, 1)
             gen_1, gen_2, gen_3 = torch.split(gen_image, 3, 1)
             ssim_1 = 1 - ssim(
@@ -1809,7 +1804,6 @@ def train_autoencoder(
             SSIM_2.append(ssim_2.item())
             SSIM_3.append(ssim_3.item())
 
-            loss += bce
             loss += ssim_1 + ssim_2 + ssim_3 + loss_depth
 
             optim.zero_grad()
@@ -1825,15 +1819,13 @@ def train_autoencoder(
             ], 1).float() / 255
 
             # Prediction
-            _, [gen_image, depth, probab] = model(image.contiguous())
+            _, [gen_image, depth] = model(image.contiguous())
 
             # Gradient Computatation and Optimsation
             loss = torch.nn.functional.l1_loss(gen_image, image)
             loss_depth = torch.nn.functional.l1_loss(depth, rollout.observations['depth'])
-            bce = torch.nn.functional.binary_cross_entropy(probab, rollout.observations['inframe'].float())
             MSE.append(loss.item())
             MSE_DEPTH.append(loss_depth.item())
-            BCE.append(bce.item())
             scale_1, scale_2, scale_3 = torch.split(image, 3, 1)
             gen_1, gen_2, gen_3 = torch.split(gen_image, 3, 1)
             ssim_1 = 1 - ssim(
@@ -1851,7 +1843,6 @@ def train_autoencoder(
             SSIM_1.append(ssim_1.item())
             SSIM_2.append(ssim_2.item())
             SSIM_3.append(ssim_3.item())
-            loss += bce
             loss += ssim_1 + ssim_2 + ssim_3
 
             optim.zero_grad()
@@ -1861,15 +1852,14 @@ def train_autoencoder(
             losses.append(loss.item())
 
         # Logging
-        writer.add_scalar('Train/Loss', np.mean(losses))
-        writer.add_scalar('Train/MSE', np.mean(MSE))
-        writer.add_scalar('Train/ssim_1', np.mean(SSIM_1))
-        writer.add_scalar('Train/ssim_2', np.mean(SSIM_2))
-        writer.add_scalar('Train/ssim_3', np.mean(SSIM_3))
-        writer.add_scalar('Train/depth', np.mean(MSE_DEPTH))
-        writer.add_scalar('Train/bce', np.mean(BCE))
-        print('Epoch {} Total Reward {:.4f} Loss {:.4f} BCE {:.4f} MSE {:.4f} MSE depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} SSIM_3 {:.4f} Steps {}'.format(
-            i, total_reward[0], np.mean(losses), np.mean(BCE), np.mean(MSE), np.mean(MSE_DEPTH),
+        writer.add_scalar('Train/Loss', np.mean(losses), i)
+        writer.add_scalar('Train/MSE', np.mean(MSE), i)
+        writer.add_scalar('Train/ssim_1', np.mean(SSIM_1), i)
+        writer.add_scalar('Train/ssim_2', np.mean(SSIM_2), i)
+        writer.add_scalar('Train/ssim_3', np.mean(SSIM_3), i)
+        writer.add_scalar('Train/depth', np.mean(MSE_DEPTH), i)
+        print('Epoch {} Total Reward {:.4f} Loss {:.4f} MSE {:.4f} MSE depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} SSIM_3 {:.4f} Steps {}'.format(
+            i, total_reward[0], np.mean(losses), np.mean(MSE), np.mean(MSE_DEPTH),
             np.mean(SSIM_1), np.mean(SSIM_2), np.mean(SSIM_3), steps))
         if (i + 1) % eval_freq == 0 or i == 0:
             total_reward = 0
@@ -1880,7 +1870,6 @@ def train_autoencoder(
             SSIM_1 = []
             SSIM_2 = []
             SSIM_3 = []
-            BCE = []
             last_obs = env.reset()
             image_size = (64 * 4, 64 * 2)
             video = cv2.VideoWriter(
@@ -1899,13 +1888,11 @@ def train_autoencoder(
                     obs['inframe']
                 ).float().to(device)
                 with torch.no_grad():
-                    _, [gen_image, depth, probab] = model(image.contiguous())
+                    _, [gen_image, depth] = model(image.contiguous())
                     loss = torch.nn.functional.l1_loss(gen_image, image)
                     loss_depth = torch.nn.functional.l1_loss(depth, gt_depth)
-                    bce = torch.nn.functional.binary_cross_entropy(probab, inframe)
                     MSE_DEPTH.append(loss_depth.item())
                     MSE.append(loss.item())
-                    BCE.append(bce.item())
                     scale_1, scale_2, scale_3 = torch.split(image, 3, dim = 1)
                     gen_scale_1, gen_scale_2, gen_scale_3 = torch.split(gen_image, 3, dim = 1)
                     ssim_1 = 1 - ssim(
@@ -1923,7 +1910,6 @@ def train_autoencoder(
                     SSIM_1.append(ssim_1.item())
                     SSIM_2.append(ssim_2.item())
                     SSIM_3.append(ssim_3.item())
-                    loss += bce
                     loss += ssim_1 + ssim_2 + ssim_3 + loss_depth
                     losses.append(loss.item())
                     scale_1 = scale_1[0]
@@ -1961,17 +1947,16 @@ def train_autoencoder(
                 last_obs = obs
 
             print('-----------------------------')
-            print('Evaluation Total Reward {:.4f} Loss {:.4f} BCE {:.4f} MSE {:.4f} MSE depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} SSIM_3 {:.4f} Steps {}'.format(
-                total_reward[0], np.mean(losses), np.mean(BCE), np.mean(MSE), np.mean(MSE_DEPTH),
+            print('Evaluation Total Reward {:.4f} Loss {:.4f} MSE {:.4f} MSE depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} SSIM_3 {:.4f} Steps {}'.format(
+                total_reward[0], np.mean(losses), np.mean(MSE), np.mean(MSE_DEPTH),
                 np.mean(SSIM_1), np.mean(SSIM_2), np.mean(SSIM_3), steps))
             print('-----------------------------')
-            writer.add_scalar('Eval/Loss', np.mean(losses))
-            writer.add_scalar('Eval/MSE', np.mean(MSE))
-            writer.add_scalar('Eval/ssim_1', np.mean(SSIM_1))
-            writer.add_scalar('Eval/ssim_2', np.mean(SSIM_2))
-            writer.add_scalar('Eval/ssim_3', np.mean(SSIM_3))
-            writer.add_scalar('Eval/depth', np.mean(MSE_DEPTH))
-            writer.add_scalar('Eval/bce', np.mean(BCE))
+            writer.add_scalar('Eval/Loss', np.mean(losses), i)
+            writer.add_scalar('Eval/MSE', np.mean(MSE), i)
+            writer.add_scalar('Eval/ssim_1', np.mean(SSIM_1), i)
+            writer.add_scalar('Eval/ssim_2', np.mean(SSIM_2), i)
+            writer.add_scalar('Eval/ssim_3', np.mean(SSIM_3), i)
+            writer.add_scalar('Eval/depth', np.mean(MSE_DEPTH), i)
             cv2.destroyAllWindows()
             video.release()
             model.train()

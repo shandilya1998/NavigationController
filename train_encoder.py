@@ -31,5 +31,5 @@ if __name__ == '__main__':
         learning_rate = 1e-3,
         save_freq = 5,
         eval_freq = 5,
-        max_episode_size = params['max_epsiode_size'],
+        max_episode_size = params['max_episode_size'],
     )

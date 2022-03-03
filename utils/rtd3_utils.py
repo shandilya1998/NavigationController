@@ -1732,11 +1732,10 @@ def train_autoencoder(
         optim, 0.99
     )
 
-    buff = EpisodicDictReplayBuffer(
+    buff = sb3.common.buffers.DictReplayBuffer(
         int(1e5), 
         env.observation_space,
         env.action_space,
-        max_episode_size = max_episode_size,
         device = device
     )
 
@@ -1745,7 +1744,6 @@ def train_autoencoder(
     total_steps = 0
 
     for i in range(n_epochs):
-        print(scheduler.get_last_lr())       
         # Data Sampling
         total_reward = 0
         for j in range(2):
@@ -1765,8 +1763,6 @@ def train_autoencoder(
                 total_reward += reward
         total_reward = total_reward / 2
         
-        data, steps = buff.sample(batch_size)
-        total_steps += steps
         losses = []
         MSE = []
         MSE_DEPTH = []
@@ -1775,7 +1771,8 @@ def train_autoencoder(
         SSIM_3 = []
 
         # Updates
-        for j, rollout in enumerate(data):
+        for j in range(params['max_episode_size']):
+            rollout = buff.sample(batch_size)
             image = torch.cat([
                 rollout.observations['scale_1'],
                 rollout.observations['scale_2'],
@@ -1863,9 +1860,9 @@ def train_autoencoder(
         writer.add_scalar('Train/ssim_3', np.mean(SSIM_3), i)
         writer.add_scalar('Train/depth', np.mean(MSE_DEPTH), i)
         writer.add_scalar('Train/learning_rate', scheduler.get_last_lr()[0])
-        print('Epoch {} Learning Rate {:.6f} Total Reward {:.4f} Loss {:.4f} MSE {:.4f} MSE depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} SSIM_3 {:.4f} Steps {}'.format(
+        print('Epoch {} Learning Rate {:.6f} Total Reward {:.4f} Loss {:.4f} MSE {:.4f} MSE depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} SSIM_3 {:.4f}'.format(
             i, scheduler.get_last_lr()[0], total_reward[0], np.mean(losses), np.mean(MSE), np.mean(MSE_DEPTH),
-            np.mean(SSIM_1), np.mean(SSIM_2), np.mean(SSIM_3), steps))
+            np.mean(SSIM_1), np.mean(SSIM_2), np.mean(SSIM_3)))
         if (i + 1) % eval_freq == 0 or i == 0:
             total_reward = 0
             done = False

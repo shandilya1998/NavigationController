@@ -4,6 +4,7 @@ from simulations.point import PointEnv
 from simulations.maze_task import CustomGoalReward4Rooms
 import stable_baselines3 as sb3
 from utils import set_seeds
+from constants import params
 
 if __name__ == '__main__':
     set_seeds(117)
@@ -13,7 +14,7 @@ if __name__ == '__main__':
             lambda : sb3.common.monitor.Monitor(MazeEnv(
                 PointEnv,
                 CustomGoalReward4Rooms,
-                max_episode_size = 1200,
+                max_episode_size = params['max_episode_size'],
                 n_steps = 15
             ))
         ])
@@ -30,5 +31,5 @@ if __name__ == '__main__':
         learning_rate = 1e-3,
         save_freq = 5,
         eval_freq = 5,
-        max_episode_size = 1200,
+        max_episode_size = params['max_epsiode_size'],
     )

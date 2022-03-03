@@ -1728,6 +1728,10 @@ def train_autoencoder(
 
     optim = torch.optim.Adam(model.parameters(), lr = learning_rate)
 
+    scheduler = torch.optim.lr_scheduler.ExponentialLR(
+        optim, 0.99
+    )
+
     buff = EpisodicDictReplayBuffer(
         int(1e5), 
         env.observation_space,
@@ -1858,8 +1862,9 @@ def train_autoencoder(
         writer.add_scalar('Train/ssim_2', np.mean(SSIM_2), i)
         writer.add_scalar('Train/ssim_3', np.mean(SSIM_3), i)
         writer.add_scalar('Train/depth', np.mean(MSE_DEPTH), i)
-        print('Epoch {} Total Reward {:.4f} Loss {:.4f} MSE {:.4f} MSE depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} SSIM_3 {:.4f} Steps {}'.format(
-            i, total_reward[0], np.mean(losses), np.mean(MSE), np.mean(MSE_DEPTH),
+        writer.add_scaler('Train/learning_rate', scheduler.get_lr())
+        print('Epoch {} Learning Rate {:.6f} Total Reward {:.4f} Loss {:.4f} MSE {:.4f} MSE depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} SSIM_3 {:.4f} Steps {}'.format(
+            i, scheduler.get_lr(), total_reward[0], np.mean(losses), np.mean(MSE), np.mean(MSE_DEPTH),
             np.mean(SSIM_1), np.mean(SSIM_2), np.mean(SSIM_3), steps))
         if (i + 1) % eval_freq == 0 or i == 0:
             total_reward = 0
@@ -1965,6 +1970,6 @@ def train_autoencoder(
             state_dict = { 
                 'model_state_dict' : model.state_dict(),
                 'optimizer_state_dict' : optim.state_dict(),
-            }   
+            }
             torch.save(state_dict, os.path.join(logdir, 'model_epoch_{}.pt'.format(i)))
-
+        scheduler.step()

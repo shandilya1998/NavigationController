@@ -18,6 +18,8 @@ class FeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
             3
         )
 
+        self.vc.requires_grad_(False)
+
         self.linear = torch.nn.Sequential(
             torch.nn.Linear(512, features_dim),
             torch.nn.Tanh()

@@ -1743,7 +1743,109 @@ def train_autoencoder(
 
     total_steps = 0
 
-    for i in range(n_epochs):
+    for i in range(1, n_epochs + 1):
+        # Evaluation
+        if i % eval_freq == 0 and not i == 0:
+            total_reward = 0
+            losses = []
+            MSE = []
+            MSE_DEPTH = []
+            SSIM_1 = []
+            SSIM_2 = []
+            SSIM_3 = []
+            image_size = (64 * 4, 64 * 2)
+            video = cv2.VideoWriter(
+                os.path.join(logdir, 'model_{}_evaluation.avi'.format(i)),
+                cv2.VideoWriter_fourcc(*"MJPG"), 10, image_size, isColor = True
+            )
+            steps = 0
+            model.eval()
+            for j in range(5):
+                last_obs = env.reset()
+                done = False
+                while not done:
+                    obs, reward, done, info = env.step(last_obs['sampled_action'])
+                    image = torch.from_numpy(
+                        np.concatenate([obs['scale_1'], obs['scale_2'], obs['scale_3']], 1) / 255
+                    ).float().to(device)
+                    gt_depth = torch.from_numpy(obs['depth']).to(device)
+                    inframe = torch.from_numpy(
+                        obs['inframe']
+                    ).float().to(device)
+                    with torch.no_grad():
+                        _, [gen_image, depth] = model(image.contiguous())
+                        loss = torch.nn.functional.l1_loss(gen_image, image)
+                        loss_depth = torch.nn.functional.l1_loss(depth, gt_depth)
+                        MSE_DEPTH.append(loss_depth.item())
+                        MSE.append(loss.item())
+                        scale_1, scale_2, scale_3 = torch.split(image, 3, dim = 1)
+                        gen_scale_1, gen_scale_2, gen_scale_3 = torch.split(gen_image, 3, dim = 1)
+                        ssim_1 = 1 - ssim(
+                            scale_1, gen_scale_1,
+                            data_range=1.0, size_average=True
+                        )
+                        ssim_2 = 1 - ssim(
+                            scale_2, gen_scale_2,
+                            data_range=1.0, size_average=True
+                        )
+                        ssim_3 = 1 - ssim(
+                            scale_3, gen_scale_3,
+                            data_range=1.0, size_average=True
+                        )
+                        SSIM_1.append(ssim_1.item())
+                        SSIM_2.append(ssim_2.item())
+                        SSIM_3.append(ssim_3.item())
+                        loss += ssim_1 + ssim_2 + ssim_3 + loss_depth
+                        losses.append(loss.item())
+                    scale_1 = scale_1[0]
+                    scale_2 = scale_2[0]
+                    scale_3 = scale_3[0]
+                    gt_depth = gt_depth[0]
+                    gen_scale_1 = gen_scale_1[0]
+                    gen_scale_2 = gen_scale_2[0]
+                    gen_scale_3 = gen_scale_3[0]
+                    depth = depth[0]
+
+                    observation = np.concatenate([
+                        np.concatenate([
+                            scale_1.cpu().numpy(),
+                            gen_scale_1.cpu().numpy()
+                        ], 1),
+                        np.concatenate([
+                            scale_2.cpu().numpy(),
+                            gen_scale_2.cpu().numpy()
+                        ], 1),
+                        np.concatenate([
+                            scale_3.cpu().numpy(),
+                            gen_scale_3.cpu().numpy()
+                        ], 1),
+                        np.repeat(np.concatenate([
+                            gt_depth.cpu().numpy(),
+                            depth.cpu().numpy()
+                        ], 1), 3, 0),
+                    ], 2).transpose(1, 2, 0) * 255
+                    observation = observation.astype(np.uint8)
+                    observation = cv2.cvtColor(observation, cv2.COLOR_RGB2BGR)
+                    video.write(observation)
+                    steps += 1
+                    total_reward += reward
+                    last_obs = obs
+            total_reward = total_reward / 5
+            print('-----------------------------')
+            print('Evaluation Total Reward {:.4f} Loss {:.4f} MSE {:.4f} MSE depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} SSIM_3 {:.4f} Steps {}'.format(
+                total_reward[0], np.mean(losses), np.mean(MSE), np.mean(MSE_DEPTH),
+                np.mean(SSIM_1), np.mean(SSIM_2), np.mean(SSIM_3), steps))
+            print('-----------------------------')
+            writer.add_scalar('Eval/Loss', np.mean(losses), i)
+            writer.add_scalar('Eval/MSE', np.mean(MSE), i)
+            writer.add_scalar('Eval/ssim_1', np.mean(SSIM_1), i)
+            writer.add_scalar('Eval/ssim_2', np.mean(SSIM_2), i)
+            writer.add_scalar('Eval/ssim_3', np.mean(SSIM_3), i)
+            writer.add_scalar('Eval/depth', np.mean(MSE_DEPTH), i)
+            cv2.destroyAllWindows()
+            video.release()
+            model.train()
+
         # Data Sampling
         total_reward = 0
         for j in range(2):
@@ -1859,111 +1961,13 @@ def train_autoencoder(
         writer.add_scalar('Train/ssim_2', np.mean(SSIM_2), i)
         writer.add_scalar('Train/ssim_3', np.mean(SSIM_3), i)
         writer.add_scalar('Train/depth', np.mean(MSE_DEPTH), i)
-        writer.add_scalar('Train/learning_rate', scheduler.get_last_lr()[0])
+        writer.add_scalar('Train/learning_rate', scheduler.get_last_lr()[0], i)
         print('Epoch {} Learning Rate {:.6f} Total Reward {:.4f} Loss {:.4f} MSE {:.4f} MSE depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} SSIM_3 {:.4f}'.format(
             i, scheduler.get_last_lr()[0], total_reward[0], np.mean(losses), np.mean(MSE), np.mean(MSE_DEPTH),
             np.mean(SSIM_1), np.mean(SSIM_2), np.mean(SSIM_3)))
-        if (i + 1) % eval_freq == 0 or i == 0:
-            total_reward = 0
-            done = False
-            losses = []
-            MSE = []
-            MSE_DEPTH = []
-            SSIM_1 = []
-            SSIM_2 = []
-            SSIM_3 = []
-            last_obs = env.reset()
-            image_size = (64 * 4, 64 * 2)
-            video = cv2.VideoWriter(
-                os.path.join(logdir, 'model_{}_evaluation.avi'.format(i)),
-                cv2.VideoWriter_fourcc(*"MJPG"), 10, image_size, isColor = True
-            )
-            steps = 0
-            model.eval()
-            while not done: 
-                obs, reward, done, info = env.step(last_obs['sampled_action'])
-                image = torch.from_numpy(
-                    np.concatenate([obs['scale_1'], obs['scale_2'], obs['scale_3']], 1) / 255
-                ).float().to(device)
-                gt_depth = torch.from_numpy(obs['depth']).to(device)
-                inframe = torch.from_numpy(
-                    obs['inframe']
-                ).float().to(device)
-                with torch.no_grad():
-                    _, [gen_image, depth] = model(image.contiguous())
-                    loss = torch.nn.functional.l1_loss(gen_image, image)
-                    loss_depth = torch.nn.functional.l1_loss(depth, gt_depth)
-                    MSE_DEPTH.append(loss_depth.item())
-                    MSE.append(loss.item())
-                    scale_1, scale_2, scale_3 = torch.split(image, 3, dim = 1)
-                    gen_scale_1, gen_scale_2, gen_scale_3 = torch.split(gen_image, 3, dim = 1)
-                    ssim_1 = 1 - ssim(
-                        scale_1, gen_scale_1,
-                        data_range=1.0, size_average=True
-                    )    
-                    ssim_2 = 1 - ssim(
-                        scale_2, gen_scale_2,
-                        data_range=1.0, size_average=True
-                    )    
-                    ssim_3 = 1 - ssim(
-                        scale_3, gen_scale_3,
-                        data_range=1.0, size_average=True
-                    )    
-                    SSIM_1.append(ssim_1.item())
-                    SSIM_2.append(ssim_2.item())
-                    SSIM_3.append(ssim_3.item())
-                    loss += ssim_1 + ssim_2 + ssim_3 + loss_depth
-                    losses.append(loss.item())
-                    scale_1 = scale_1[0]
-                    scale_2 = scale_2[0]
-                    scale_3 = scale_3[0]
-                    gt_depth = gt_depth[0]
-                    gen_scale_1 = gen_scale_1[0]
-                    gen_scale_2 = gen_scale_2[0]
-                    gen_scale_3 = gen_scale_3[0]
-                    depth = depth[0]
 
-                observation = np.concatenate([
-                    np.concatenate([
-                        scale_1.cpu().numpy(),
-                        gen_scale_1.cpu().numpy()
-                    ], 1),
-                    np.concatenate([
-                        scale_2.cpu().numpy(),
-                        gen_scale_2.cpu().numpy()
-                    ], 1),
-                    np.concatenate([
-                        scale_3.cpu().numpy(),
-                        gen_scale_3.cpu().numpy()
-                    ], 1),
-                    np.repeat(np.concatenate([
-                        gt_depth.cpu().numpy(),
-                        depth.cpu().numpy()
-                    ], 1), 3, 0),
-                ], 2).transpose(1, 2, 0) * 255
-                observation = observation.astype(np.uint8)
-                observation = cv2.cvtColor(observation, cv2.COLOR_RGB2BGR)
-                video.write(observation)
-                steps += 1
-                total_reward += reward
-                last_obs = obs
-
-            print('-----------------------------')
-            print('Evaluation Total Reward {:.4f} Loss {:.4f} MSE {:.4f} MSE depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} SSIM_3 {:.4f} Steps {}'.format(
-                total_reward[0], np.mean(losses), np.mean(MSE), np.mean(MSE_DEPTH),
-                np.mean(SSIM_1), np.mean(SSIM_2), np.mean(SSIM_3), steps))
-            print('-----------------------------')
-            writer.add_scalar('Eval/Loss', np.mean(losses), i)
-            writer.add_scalar('Eval/MSE', np.mean(MSE), i)
-            writer.add_scalar('Eval/ssim_1', np.mean(SSIM_1), i)
-            writer.add_scalar('Eval/ssim_2', np.mean(SSIM_2), i)
-            writer.add_scalar('Eval/ssim_3', np.mean(SSIM_3), i)
-            writer.add_scalar('Eval/depth', np.mean(MSE_DEPTH), i)
-            cv2.destroyAllWindows()
-            video.release()
-            model.train()
-
-        if (i + 1) % save_freq == 0:
+        # Save Model
+        if i % save_freq == 0:
             state_dict = { 
                 'model_state_dict' : model.state_dict(),
                 'optimizer_state_dict' : optim.state_dict(),

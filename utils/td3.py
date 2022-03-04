@@ -10,12 +10,17 @@ import copy
 from constants import params
 
 class FeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
-    def __init__(self, observation_space: gym.Space, features_dim: int):
+    def __init__(self, observation_space: gym.Space, features_dim: int, pretrained_params_path = 'assets/out/models/autoencoder/model.pt'):
         super(FeaturesExtractor, self).__init__(observation_space, features_dim)
         self.vc = Autoencoder(
             [1, 1, 1, 1],
             features_dim,
             3
+        )
+
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.vc.load_state_dict(
+            torch.load(pretrained_params_path, map_location = torch.device(device))['model_state_dict']
         )
 
         self.vc.requires_grad_(False)
@@ -627,14 +632,14 @@ class TD3(sb3.TD3):
                 data_range=1.0, size_average=True
             )
             reconstruction_losses.append(reconstruction_loss.item())
-            actor_loss = reconstruction_loss
+            #actor_loss = reconstruction_loss
 
             # Delayed policy updates
             if self._n_updates % self.policy_delay == 0 and self.num_timesteps > params['staging_steps']:
                 # Compute actor loss
-                actor_loss += -self.critic.q1_forward(replay_data.observations, action).mean()
+                actor_loss = -self.critic.q1_forward(replay_data.observations, action).mean()
             else:
-                actor_loss += torch.nn.functional.mse_loss(action, replay_data.observations['sampled_action'])
+                actor_loss = torch.nn.functional.mse_loss(action, replay_data.observations['sampled_action'])
             actor_losses.append(actor_loss.item())
 
             # Optimize the actor

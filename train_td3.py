@@ -440,7 +440,8 @@ if __name__ == '__main__':
         'activation_fn' : torch.nn.Tanh,
         'features_extractor_class' : FeaturesExtractor,
         'features_extractor_kwargs' : {
-            'features_dim' : params['num_ctx']
+            'features_dim' : params['num_ctx'],
+            'pretrained_params_path' : pretrained_params_path
         },
         'normalize_images' : True,
         'optimizer_class' : torch.optim.Adam,

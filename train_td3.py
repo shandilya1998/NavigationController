@@ -412,7 +412,10 @@ if __name__ == '__main__':
 
     set_seeds(params['seed'])
     logdir = '/content/drive/MyDrive/CNS/exp22'
-    #logdir = 'assets/out/models/exp22'
+    pretrained_params_path = 'content/drive/MyDrive/CNS/exp22/autoencoder/exp/model_epoch_150.pt'
+    if params['debug']:
+        logdir = 'assets/out/models/exp22'
+        pretrained_params_path = 'assets/out/models/autoencoder/model.pt'
 
     train_env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
         sb3.common.vec_env.dummy_vec_env.DummyVecEnv([

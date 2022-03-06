@@ -658,7 +658,7 @@ class MazeEnv(gym.Env):
         self.collision_count = 0
         self.t = 0
         self.close()
-        self._task.set()
+        self._task.set(self.total_steps)
         self.set_env()
         self.wrapped_env.reset()
         

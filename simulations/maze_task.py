@@ -7,6 +7,7 @@ import numpy as np
 from utils.cv_utils import blob_detect
 from simulations.maze_env_utils import MazeCell
 import copy
+from constants import params
 
 class Rgb(NamedTuple):
     red: float
@@ -388,7 +389,7 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
         super().__init__(scale, goal)
         self.set()
 
-    def set(self):
+    def set(self, steps = 0):
         self.goal_index = np.random.randint(low = 0, high = 3)
         self.colors = []
         self.scales = []
@@ -401,18 +402,24 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
                 self.colors.append(copy.deepcopy(GREEN))
                 self.scales.append(1.0)
 
+
+        offset = 0.2
+        if steps > params['staging_steps'] // 2:
+            offset = steps / params['staging_steps']
+        if offset > 1.0:
+            offset = 1.0
         self.goals = [ 
             MazeVisualGoal(np.array([
-                np.random.uniform(4.0, 6.0) * self.scale,
-                -np.random.uniform(4.0, 6.0) * self.scale
+                np.random.uniform(5.0 - offset, 5.0 + offset) * self.scale,
+                -np.random.uniform(5.0 - offset, 5.0 + offset) * self.scale
             ]), self.scales[0], self.colors[0], 2.25),
             MazeVisualGoal(np.array([
-                np.random.uniform(0.0, 2.0) * self.scale,
-                -np.random.uniform(4.0, 6.0) * self.scale
+                np.random.uniform(1.0 - offset, 1.0 + offset) * self.scale,
+                -np.random.uniform(5.0 - offset, 5.0 + offset) * self.scale
             ]), self.scales[1], self.colors[1], 2.25),
             MazeVisualGoal(np.array([
-                np.random.uniform(4.0, 6.0) * self.scale,
-                -np.random.uniform(0.0, 2.0) * self.scale 
+                np.random.uniform(5.0 - offset, 5.0 + offset) * self.scale,
+                -np.random.uniform(1.0 - offset, 1.0 + offset) * self.scale 
             ]), self.scales[2], self.colors[2], 2.25),
         ]
 

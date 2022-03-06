@@ -412,7 +412,7 @@ if __name__ == '__main__':
 
     set_seeds(params['seed'])
     logdir = '/content/drive/MyDrive/CNS/exp22'
-    pretrained_params_path = 'content/drive/MyDrive/CNS/exp22/autoencoder/exp/model_epoch_150.pt'
+    pretrained_params_path = '/content/drive/MyDrive/CNS/exp22/autoencoder/exp/model_epoch_150.pt'
     if params['debug']:
         logdir = 'assets/out/models/exp22'
         pretrained_params_path = 'assets/out/models/autoencoder/model.pt'

@@ -404,8 +404,8 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
 
 
         offset = 0.2
-        if steps > params['staging_steps'] // 2:
-            offset = steps / params['staging_steps']
+        if steps > params['staging_steps']:
+            offset = (steps - params['staging_steps']) / params['staging_steps']
         if offset > 1.0:
             offset = 1.0
         self.goals = [ 

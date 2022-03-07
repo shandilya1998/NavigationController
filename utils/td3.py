@@ -23,8 +23,6 @@ class FeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
             torch.load(pretrained_params_path, map_location = torch.device(device))['model_state_dict']
         )
 
-        self.vc.requires_grad_(False)
-
         self.linear = torch.nn.Sequential(
             torch.nn.Linear(512, features_dim),
             torch.nn.Tanh()
@@ -44,10 +42,11 @@ class FeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
         )
 
     def forward(self, observations):
-        image = torch.cat([
-            observations['scale_1'], observations['scale_2'], observations['scale_3']
-        ], 1)
-        visual, [gen_image, depth] = self.vc(image)
+        with torch.no_grad():
+            image = torch.cat([
+                observations['scale_1'], observations['scale_2'], observations['scale_3']
+            ], 1)
+            visual, [gen_image, depth] = self.vc(image)
         visual = torch.nn.functional.adaptive_avg_pool2d(visual, 1)
         visual = visual.view(visual.size(0), -1)
         visual = self.linear(visual)
@@ -611,28 +610,28 @@ class TD3(sb3.TD3):
             self.critic.optimizer.step()
 
             action, [gen_image, depth] = self.actor(replay_data.observations)
-            image = torch.cat([
-                replay_data.observations['scale_1'],
-                replay_data.observations['scale_2'],
-                replay_data.observations['scale_3']
-            ], 1).float() / 255
+            with torch.no_grad():
+                image = torch.cat([
+                    replay_data.observations['scale_1'],
+                    replay_data.observations['scale_2'],
+                    replay_data.observations['scale_3']
+                ], 1).float() / 255
 
-            reconstruction_loss = torch.nn.functional.l1_loss(
-                gen_image, image
-            ) + torch.nn.functional.l1_loss(
-                depth, replay_data.observations['depth']
-            ) + 1 - ssim(
-                image[:, :3], gen_image[:, :3],
-                data_range=1.0, size_average=True
-            ) + 1 - ssim(
-                    image[:, 3:6], gen_image[:, 3:6],
-                data_range=1.0, size_average=True
-            ) + 1 - ssim(
-                image[:, 6:], gen_image[:, 6:],
-                data_range=1.0, size_average=True
-            )
-            reconstruction_losses.append(reconstruction_loss.item())
-            #actor_loss = reconstruction_loss
+                reconstruction_loss = torch.nn.functional.l1_loss(
+                    gen_image, image
+                ) + torch.nn.functional.l1_loss(
+                    depth, replay_data.observations['depth']
+                ) + 1 - ssim(
+                    image[:, :3], gen_image[:, :3],
+                    data_range=1.0, size_average=True
+                ) + 1 - ssim(
+                        image[:, 3:6], gen_image[:, 3:6],
+                    data_range=1.0, size_average=True
+                ) + 1 - ssim(
+                    image[:, 6:], gen_image[:, 6:],
+                    data_range=1.0, size_average=True
+                )
+                reconstruction_losses.append(reconstruction_loss.item())
 
             # Delayed policy updates
             if self._n_updates % self.policy_delay == 0 and self.num_timesteps > params['staging_steps']:

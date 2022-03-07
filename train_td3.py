@@ -410,6 +410,11 @@ class Callback(sb3.common.callbacks.EventCallback):
 
 if __name__ == '__main__':
 
+    #device = 'auto'
+    import torch_xla
+    import torch_xla.core.xla_model as xm
+    device = xm.xla_device()
+
     set_seeds(params['seed'])
     logdir = '/content/drive/MyDrive/CNS/exp22'
     pretrained_params_path = '/content/drive/MyDrive/CNS/exp22/autoencoder/exp/model_epoch_150.pt'
@@ -441,7 +446,8 @@ if __name__ == '__main__':
         'features_extractor_class' : FeaturesExtractor,
         'features_extractor_kwargs' : {
             'features_dim' : params['num_ctx'],
-            'pretrained_params_path' : pretrained_params_path
+            'pretrained_params_path' : pretrained_params_path,
+            'device' : device
         },
         'normalize_images' : True,
         'optimizer_class' : torch.optim.Adam,
@@ -472,7 +478,7 @@ if __name__ == '__main__':
         create_eval_env = False,
         policy_kwargs = policy_kwargs,
         seed = params['seed'],
-        device = 'auto',
+        device = device,
         _init_setup_model = True,
         verbose = 2,
     )

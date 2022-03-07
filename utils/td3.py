@@ -10,7 +10,12 @@ import copy
 from constants import params
 
 class FeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
-    def __init__(self, observation_space: gym.Space, features_dim: int, pretrained_params_path = 'assets/out/models/autoencoder/model.pt'):
+    def __init__(self,
+        observation_space: gym.Space,
+        features_dim: int,
+        pretrained_params_path = 'assets/out/models/autoencoder/model.pt'
+        device = None,
+    ):
         super(FeaturesExtractor, self).__init__(observation_space, features_dim)
         self.vc = Autoencoder(
             [1, 1, 1, 1],
@@ -18,7 +23,9 @@ class FeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
             3
         )
 
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        if device is None:
+            device = 'cuda' if torch.cuda.is_available() else 'cpu'
+ 
         self.vc.load_state_dict(
             torch.load(pretrained_params_path, map_location = torch.device(device))['model_state_dict']
         )

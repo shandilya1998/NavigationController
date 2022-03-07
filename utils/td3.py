@@ -13,7 +13,7 @@ class FeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
     def __init__(self,
         observation_space: gym.Space,
         features_dim: int,
-        pretrained_params_path = 'assets/out/models/autoencoder/model.pt'
+        pretrained_params_path = 'assets/out/models/autoencoder/model.pt',
         device = None,
     ):
         super(FeaturesExtractor, self).__init__(observation_space, features_dim)

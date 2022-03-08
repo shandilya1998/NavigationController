@@ -62,7 +62,7 @@ params = {
     'critic_lr'                   : 1e-2,
     'weight_decay'                : 1e-2,
     'collision_threshold'         : 20,
-    'debug'                       : True,
+    'debug'                       : False,
     'max_vyaw'                    : 1.5,
     'policy_delay'                : 2,
     'seed'                        : 245,

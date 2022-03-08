@@ -644,7 +644,7 @@ class TD3(sb3.TD3):
                 # Compute actor loss
                 actor_loss = -self.critic.q1_forward(replay_data.observations, action).mean()
             else:
-                actor_loss = torch.nn.functional.mse_loss(action, replay_data.observations['sampled_action'])
+                actor_loss = torch.nn.functional.mse_loss(action, replay_data.observations['scaled_sampled_action'])
             actor_losses.append(actor_loss.item())
 
             # Optimize the actor
@@ -734,16 +734,7 @@ class Imitate(sb3.TD3):
             The two differs when the action space is not normalized (bounds are not [-1, 1]).
         """
         # Select action randomly or according to policy
-        if self.num_timesteps < learning_starts and not (self.use_sde and self.use_sde_at_warmup):
-            # Warmup phase
-            unscaled_action = np.array([self.action_space.sample()])
-        elif self.num_timesteps < params['staging_steps']:
-            unscaled_action = self._last_obs['sampled_action']
-        else:
-            # Note: when using continuous actions,
-            # we assume that the policy uses tanh to scale the action
-            # We use non-deterministic action in the case of SAC, for TD3, it does not matter
-            [unscaled_action, _], _ = self.predict(self._last_obs, deterministic=False)
+        unscaled_action = self._last_obs['sampled_action']
 
         # Rescale the action from [low, high] to [-1, 1]
         if isinstance(self.action_space, gym.spaces.Box):
@@ -822,7 +813,7 @@ class Imitate(sb3.TD3):
             )
             reconstruction_losses.append(reconstruction_loss.item())
 
-            actor_loss = reconstruction_loss + torch.nn.functional.mse_loss(action, replay_data.observations['sampled_action'])
+            actor_loss = reconstruction_loss + torch.nn.functional.mse_loss(action, replay_data.observations['scaled_sampled_action'])
             actor_losses.append(actor_loss.item())
 
             # Optimize the actor

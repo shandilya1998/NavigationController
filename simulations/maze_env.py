@@ -445,6 +445,12 @@ class MazeEnv(gym.Env):
                 dtype = observation['sensors'].dtype
             ),   
             'sampled_action' : copy.deepcopy(self._action_space),
+            'scaled_sampled_action' : gym.spaces.Box(
+                low = -np.ones_like(observation['sampled_action']),
+                high = np.ones_like(observation['sampled_action']),
+                shape = observation['sampled_action'].shape,
+                dtype = observation['sampled_action'].dtype
+            ),
             'inframe' : gym.spaces.Box(
                 low = np.zeros_like(observation['inframe']),
                 high = np.ones_like(observation['inframe']),
@@ -593,6 +599,7 @@ class MazeEnv(gym.Env):
         # Sampled Action
         high = self.action_space.high
         sampled_action = self.get_action().astype(np.float32)
+        scaled_sampled_action = sampled_action.copy() / self.action_space.high
 
         # Sensor Readings
         ## Goal
@@ -646,6 +653,7 @@ class MazeEnv(gym.Env):
             'scale_3' : scale_3.copy(),
             'sensors' : sensors,
             'sampled_action' : sampled_action.copy(),
+            'scaled_sampled_action' : scaled_sampled_action.copy(),
             'depth' : depth,
             'inframe' : np.array([inframe], dtype = np.float32),
         }

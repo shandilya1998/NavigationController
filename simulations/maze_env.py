@@ -357,6 +357,10 @@ class MazeEnv(gym.Env):
             (node['row'], node['col'] - 1),
             (node['row'] + 1, node['col']),
             (node['row'], node['col'] + 1),
+            (node['row'] + 1, node['col'] + 1),
+            (node['row'] + 1, node['col'] - 1),
+            (node['row'] - 1, node['col'] + 1),
+            (node['row'] - 1, node['col'] - 1)
         ]
         for neighbor in neighbors:
             if self.__check_structure_index_validity(
@@ -662,7 +666,7 @@ class MazeEnv(gym.Env):
         self.set_env()
         self.wrapped_env.reset()
         
-        ori = np.random.uniform(low = -3 * np.pi / 5, high = np.pi / 10)
+        ori = np.random.uniform(low = -np.pi, high = np.pi)
         self.wrapped_env.set_ori(ori)
 
         # Samples a new start position
@@ -830,12 +834,12 @@ class MazeEnv(gym.Env):
         qvel = self.wrapped_env.data.qvel.copy()
         vyaw = qvel[self.wrapped_env.ORI_IND]
         vmax = self.wrapped_env.VELOCITY_LIMITS * 1.4        
-        inner_reward = -1 + (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / params['max_vyaw']))
-        inner_reward = self._inner_reward_scaling * inner_reward
+        #inner_reward = -1 + (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / params['max_vyaw']))
+        #inner_reward = self._inner_reward_scaling * inner_reward
 
         # Task Reward Computation
         outer_reward = 0
-        outer_reward = self._task.reward(next_pos, bool(next_obs['inframe'][0])) + rho
+        #outer_reward = self._task.reward(next_pos, bool(next_obs['inframe'][0])) + rho
         done = self._task.termination(self.wrapped_env.get_xy(),  bool(next_obs['inframe'][0]))
         info["position"] = self.wrapped_env.get_xy()
 

@@ -295,15 +295,19 @@ class GoalReward4Rooms(MazeTask):
     def create_maze() -> List[List[MazeCell]]:
         E, B, R = MazeCell.EMPTY, MazeCell.BLOCK, MazeCell.ROBOT
         return [
-            [B, B, B, B, B, B, B, B, B],
-            [B, E, E, E, E, E, E, E, B],
-            [B, E, E, E, B, E, E, E, B],
-            [B, E, E, E, E, E, E, E, B],
-            [B, E, B, E, B, E, B, E, B],
-            [B, E, E, E, E, E, E, E, B],
-            [B, E, E, E, B, E, E, E, B],
-            [B, R, E, E, E, E, E, E, B],
-            [B, B, B, B, B, B, B, B, B],
+            [B, B, B, B, B, B, B, B, B, B, B, B, B],
+            [B, E, E, E, E, E, B, E, E, E, E, E, B],
+            [B, E, E, E, E, E, B, E, E, E, E, E, B],
+            [B, E, E, E, E, B, B, B, E, E, E, E, B],
+            [B, E, E, E, E, E, E, E, E, E, E, E, B],
+            [B, E, E, B, E, E, E, E, E, B, E, E, B],
+            [B, B, B, B, E, E, R, E, E, B, B, B, B],
+            [B, E, E, B, E, E, E, E, E, B, E, E, B],
+            [B, E, E, E, E, E, E, E, E, E, E, E, B],
+            [B, E, E, E, E, B, B, B, E, E, E, E, B],
+            [B, E, E, E, E, E, B, E, E, E, E, E, B],
+            [B, E, E, E, E, E, B, E, E, E, E, E, B],
+            [B, B, B, B, B, B, B, B, B, B, B, B, B],
         ]
 
 class DistReward4Rooms(GoalReward4Rooms, DistRewardMixIn):
@@ -390,11 +394,11 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
         self.set()
 
     def set(self, steps = 0):
-        self.goal_index = np.random.randint(low = 0, high = 3)
+        self.goal_index = np.random.randint(low = 0, high = 4)
         self.colors = []
         self.scales = []
         self.goals = []
-        for i in range(3):
+        for i in range(4):
             if i == self.goal_index:
                 self.colors.append(copy.deepcopy(RED))
                 self.scales.append(1.0)
@@ -410,17 +414,21 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
             offset = 1.0
         self.goals = [ 
             MazeVisualGoal(np.array([
-                np.random.uniform(5.0 - offset, 5.0 + offset) * self.scale,
-                -np.random.uniform(5.0 - offset, 5.0 + offset) * self.scale
+                np.random.uniform(4.0 - offset, 4.0 + offset) * self.scale,
+                -np.random.uniform(4.0 - offset, 4.0 + offset) * self.scale
             ]), self.scales[0], self.colors[0], 2.25),
             MazeVisualGoal(np.array([
-                np.random.uniform(1.0 - offset, 1.0 + offset) * self.scale,
-                -np.random.uniform(5.0 - offset, 5.0 + offset) * self.scale
+                np.random.uniform(4.0 - offset, 4.0 + offset) * self.scale,
+                -np.random.uniform(-4.0 - offset, -4.0 + offset) * self.scale
             ]), self.scales[1], self.colors[1], 2.25),
             MazeVisualGoal(np.array([
-                np.random.uniform(5.0 - offset, 5.0 + offset) * self.scale,
-                -np.random.uniform(1.0 - offset, 1.0 + offset) * self.scale 
+                np.random.uniform(-4.0 - offset, -4.0 + offset) * self.scale,
+                -np.random.uniform(4.0 - offset, 4.0 + offset) * self.scale 
             ]), self.scales[2], self.colors[2], 2.25),
+            MazeVisualGoal(np.array([
+                np.random.uniform(-4.0 - offset, -4.0 + offset) * self.scale,
+                -np.random.uniform(-4.0 - offset, -4.0 + offset) * self.scale 
+            ]), self.scales[3], self.colors[3], 2.25),
         ]
 
     def reward(self, pos: np.ndarray, inframe: bool) -> float:

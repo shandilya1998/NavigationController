@@ -728,10 +728,6 @@ class Imitate(sb3.TD3):
         if isinstance(self.action_space, gym.spaces.Box):
             scaled_action = self.policy.scale_action(unscaled_action)
 
-            # Add noise to the action (improve exploration)
-            if action_noise is not None:
-                scaled_action = np.clip(scaled_action + action_noise(), -1, 1)
-
             # We store the scaled action in the buffer
             buffer_action = scaled_action
             action = self.policy.unscale_action(scaled_action)

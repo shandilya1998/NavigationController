@@ -418,14 +418,23 @@ if __name__ == '__main__':
         logdir = 'assets/out/models/exp22'
         pretrained_params_path = 'assets/out/models/autoencoder/model.pt'
 
+    imitate_policy_path = '/content/drive/MyDrive/CNS/exp22/Imitate_1/rl_model_90000_steps.zip'
+    if params['debug']:
+        imitate_policy_path = 'assets/out/models/imitate/rl_model_90000_steps.zip'
+
+    
+    env = MazeEnv(
+        PointEnv, CustomGoalReward4Rooms, 
+        params['max_episode_size'],
+        params['history_steps']
+    )
+
+    env.total_steps = 90000
+
     train_env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
         sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
             lambda : sb3.common.monitor.Monitor(
-                MazeEnv(
-                    PointEnv, CustomGoalReward4Rooms, 
-                    params['max_episode_size'],
-                    params['history_steps']
-                )
+                env
             )
         ])
     )
@@ -479,11 +488,16 @@ if __name__ == '__main__':
         verbose = 2,
     )
 
+    model.set_parameters(
+        imitate_policy_path
+    )
+
     env = MazeEnv(
         PointEnv, CustomGoalReward4Rooms,
         params['max_episode_size'],
         params['history_steps']
     )
+    env.total_steps = 90000
     image_size = ( 
         int(3 * env.top_view_size * len(env._maze_structure[0])),
         int(3 * env.top_view_size * len(env._maze_structure))

@@ -550,16 +550,7 @@ class TD3(sb3.TD3):
             The two differs when the action space is not normalized (bounds are not [-1, 1]).
         """
         # Select action randomly or according to policy
-        if self.num_timesteps < learning_starts and not (self.use_sde and self.use_sde_at_warmup):
-            # Warmup phase
-            unscaled_action = np.array([self.action_space.sample()])
-        elif self.num_timesteps < params['staging_steps']:
-            unscaled_action = self._last_obs['sampled_action']
-        else:
-            # Note: when using continuous actions,
-            # we assume that the policy uses tanh to scale the action
-            # We use non-deterministic action in the case of SAC, for TD3, it does not matter
-            [unscaled_action, _], _ = self.predict(self._last_obs, deterministic=False)
+        [unscaled_action, _], _ = self.predict(self._last_obs, deterministic=False)
 
         # Rescale the action from [low, high] to [-1, 1]
         if isinstance(self.action_space, gym.spaces.Box):
@@ -616,35 +607,32 @@ class TD3(sb3.TD3):
             self.critic.optimizer.step()
 
             action, [gen_image, depth] = self.actor(replay_data.observations)
-            with torch.no_grad():
-                image = torch.cat([
-                    replay_data.observations['scale_1'],
-                    replay_data.observations['scale_2'],
-                    replay_data.observations['scale_3']
-                ], 1).float() / 255
+            image = torch.cat([
+                replay_data.observations['scale_1'],
+                replay_data.observations['scale_2'],
+                replay_data.observations['scale_3']
+            ], 1).float() / 255
 
-                reconstruction_loss = torch.nn.functional.l1_loss(
-                    gen_image, image
-                ) + torch.nn.functional.l1_loss(
-                    depth, replay_data.observations['depth']
-                ) + 1 - ssim(
-                    image[:, :3], gen_image[:, :3],
-                    data_range=1.0, size_average=True
-                ) + 1 - ssim(
-                        image[:, 3:6], gen_image[:, 3:6],
-                    data_range=1.0, size_average=True
-                ) + 1 - ssim(
-                    image[:, 6:], gen_image[:, 6:],
-                    data_range=1.0, size_average=True
-                )
-                reconstruction_losses.append(reconstruction_loss.item())
+            reconstruction_loss = torch.nn.functional.l1_loss(
+                gen_image, image
+            ) + torch.nn.functional.l1_loss(
+                depth, replay_data.observations['depth']
+            ) + 1 - ssim(
+                image[:, :3], gen_image[:, :3],
+                data_range=1.0, size_average=True
+            ) + 1 - ssim(
+                    image[:, 3:6], gen_image[:, 3:6],
+                data_range=1.0, size_average=True
+            ) + 1 - ssim(
+                image[:, 6:], gen_image[:, 6:],
+                data_range=1.0, size_average=True
+            )
+            reconstruction_losses.append(reconstruction_loss.item())
 
             # Delayed policy updates
-            if self._n_updates % self.policy_delay == 0 and self.num_timesteps > params['staging_steps']:
-                # Compute actor loss
-                actor_loss = -self.critic.q1_forward(replay_data.observations, action).mean()
-            else:
-                actor_loss = torch.nn.functional.mse_loss(action, replay_data.observations['scaled_sampled_action'])
+            # Compute actor loss
+            actor_loss = -self.critic.q1_forward(replay_data.observations, action).mean()
+            actor_loss += reconstruction_loss
             actor_losses.append(actor_loss.item())
 
             # Optimize the actor

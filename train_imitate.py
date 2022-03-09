@@ -456,7 +456,7 @@ if __name__ == '__main__':
         policy = TD3Policy,
         env = train_env,
         learning_rate = linear_schedule(params['lr'], params['final_lr']),
-        buffer_size = int(1e5),
+        buffer_size = int(3e4),
         learning_starts = params['learning_starts'],
         batch_size = params['batch_size'],
         tau = params['tau'],
@@ -520,7 +520,7 @@ if __name__ == '__main__':
     ])
 
     model.learn(
-        total_timesteps = int(1e5),
+        total_timesteps = int(1.2e5),
         callback = callbacks,
         tb_log_name = 'Imitate'
     )

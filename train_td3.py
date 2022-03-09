@@ -418,10 +418,9 @@ if __name__ == '__main__':
         logdir = 'assets/out/models/exp22'
         pretrained_params_path = 'assets/out/models/autoencoder/model.pt'
 
-    imitate_policy_path = '/content/drive/MyDrive/CNS/exp22/Imitate_1/rl_model_90000_steps.zip'
+    imitate_policy_path = '/content/drive/MyDrive/CNS/exp22/Imitate_1/il_model_30000_steps.zip'
     if params['debug']:
         imitate_policy_path = 'assets/out/models/imitate/rl_model_90000_steps.zip'
-
     
     env = MazeEnv(
         PointEnv, CustomGoalReward4Rooms, 

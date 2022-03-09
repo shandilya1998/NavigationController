@@ -514,7 +514,7 @@ if __name__ == '__main__':
         sb3.common.callbacks.CheckpointCallback(
             save_freq = params['save_freq'],
             save_path = logdir,
-            name_prefix = 'rl_model',
+            name_prefix = 'il_model',
             verbose = 2
         )
     ])

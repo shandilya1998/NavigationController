@@ -422,18 +422,16 @@ if __name__ == '__main__':
     if params['debug']:
         imitate_policy_path = 'assets/out/models/imitate/rl_model_90000_steps.zip'
     
-    env = MazeEnv(
+    _env = MazeEnv(
         PointEnv, CustomGoalReward4Rooms, 
         params['max_episode_size'],
         params['history_steps']
     )
 
-    env.total_steps = 90000
-
     train_env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
         sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
             lambda : sb3.common.monitor.Monitor(
-                env
+                _env
             )
         ])
     )
@@ -496,7 +494,6 @@ if __name__ == '__main__':
         params['max_episode_size'],
         params['history_steps']
     )
-    env.total_steps = 90000
     image_size = ( 
         int(3 * env.top_view_size * len(env._maze_structure[0])),
         int(3 * env.top_view_size * len(env._maze_structure))

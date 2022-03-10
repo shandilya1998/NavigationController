@@ -492,7 +492,8 @@ if __name__ == '__main__':
     env = MazeEnv(
         PointEnv, CustomGoalReward4Rooms,
         params['max_episode_size'],
-        params['history_steps']
+        params['history_steps'],
+        mode = 'eval'
     )
     image_size = ( 
         int(3 * env.top_view_size * len(env._maze_structure[0])),

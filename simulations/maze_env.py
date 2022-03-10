@@ -39,6 +39,7 @@ class MazeEnv(gym.Env):
         model_cls: Type[AgentModel],
         maze_task: Type[maze_task.MazeTask] = maze_task.MazeTask,
         max_episode_size: int = 2000,
+        mode = 'train',
         n_steps = 5,
         include_position: bool = True,
         maze_height: float = 0.5,
@@ -53,6 +54,7 @@ class MazeEnv(gym.Env):
         image_shape: Tuple[int, int] = (600, 480),
         **kwargs,
     ) -> None:
+        self.mode = mode
         self.collision_count = 0
         self.n_steps = n_steps
         self.kwargs = kwargs
@@ -670,7 +672,10 @@ class MazeEnv(gym.Env):
         self.collision_count = 0
         self.t = 0
         self.close()
-        self._task.set(self.total_steps)
+        if self.mode == 'eval':
+            self._task.set(3 * params['staging_steps'])
+        else:
+            self._task.set(self.total_steps)
         self.set_env()
         self.wrapped_env.reset()
         

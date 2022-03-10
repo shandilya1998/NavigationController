@@ -835,19 +835,21 @@ class MazeEnv(gym.Env):
 
         # Computing the reward in "https://ieeexplore.ieee.org/document/8398461"
         goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
-        rho = -np.linalg.norm(goal) / np.linalg.norm(self._task.goals[self._task.goal_index].pos)
+        rho = (1 - np.linalg.norm(goal) / np.linalg.norm(self._task.goals[self._task.goal_index].pos)) * 0.1
         self.goals.pop(0)
         self.goals.append(goal)
         theta_t = self.check_angle(np.arctan2(goal[1], goal[0]) - self.get_ori())
         qvel = self.wrapped_env.data.qvel.copy()
         vyaw = qvel[self.wrapped_env.ORI_IND]
         vmax = self.wrapped_env.VELOCITY_LIMITS * 1.4        
-        #inner_reward = -1 + (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / params['max_vyaw']))
-        #inner_reward = self._inner_reward_scaling * inner_reward
+        if self.total_timesteps > params['stage1']:
+            inner_reward = -1 + (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / params['max_vyaw']))
+            inner_reward = self._inner_reward_scaling * inner_reward
 
         # Task Reward Computation
         outer_reward = 0
-        outer_reward = self._task.reward(next_pos, bool(next_obs['inframe'][0])) + rho
+        if self.total_timesteps > params['stage1']:
+            outer_reward = self._task.reward(next_pos, bool(next_obs['inframe'][0])) + rho
         done = self._task.termination(self.wrapped_env.get_xy(),  bool(next_obs['inframe'][0]))
         info["position"] = self.wrapped_env.get_xy()
 

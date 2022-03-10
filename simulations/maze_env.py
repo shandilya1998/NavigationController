@@ -39,8 +39,8 @@ class MazeEnv(gym.Env):
         model_cls: Type[AgentModel],
         maze_task: Type[maze_task.MazeTask] = maze_task.MazeTask,
         max_episode_size: int = 2000,
-        mode = 'train',
         n_steps = 5,
+        mode = 'train',
         include_position: bool = True,
         maze_height: float = 0.5,
         maze_size_scaling: float = 4.0,
@@ -54,6 +54,7 @@ class MazeEnv(gym.Env):
         image_shape: Tuple[int, int] = (600, 480),
         **kwargs,
     ) -> None:
+        print('Environment Mode: {}'.format(mode))
         self.mode = mode
         self.collision_count = 0
         self.n_steps = n_steps

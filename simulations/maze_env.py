@@ -591,9 +591,9 @@ class MazeEnv(gym.Env):
 
     def _get_obs(self) -> np.ndarray:
         obs = self.wrapped_env._get_obs()
+        obs['front'] = cv2.resize(obs['front'], (320, 320))
         img = obs['front'].copy()
         assert img.shape[0] == img.shape[1]
-
         # Target Detection and Attention Window
         bbx = self.detect_target(img)
         scale_1, scale_2 = self.get_scales(obs['front'], bbx)

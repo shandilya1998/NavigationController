@@ -393,7 +393,7 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
         super().__init__(scale, goal)
         self.set()
 
-    def set(self, steps = 0):
+    def set(self, offset = 0.2):
         self.goal_index = np.random.randint(low = 0, high = 4)
         self.colors = []
         self.scales = []
@@ -406,12 +406,6 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
                 self.colors.append(copy.deepcopy(GREEN))
                 self.scales.append(1.0)
 
-
-        offset = 0.2
-        if steps > params['staging_steps']:
-            offset = (steps - params['staging_steps']) / params['staging_steps'] + 0.2
-        if offset > 1.0:
-            offset = 1.0
         self.goals = [ 
             MazeVisualGoal(np.array([
                 np.random.uniform(4.0 - offset, 4.0 + offset) * self.scale,

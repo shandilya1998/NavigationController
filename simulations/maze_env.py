@@ -673,10 +673,15 @@ class MazeEnv(gym.Env):
         self.collision_count = 0
         self.t = 0
         self.close()
+        offset = 0.2
         if self.mode == 'eval':
-            self._task.set(3 * params['staging_steps'])
+            offset = 1.0
         else:
-            self._task.set(self.total_steps)
+            if self.total_timesteps <  params['staging_steps']:
+                offset = 0.2
+            else:
+                offset = 0.2 + (self.total_steps - params['staging_steps']) / params['total_timesteps']
+        self._task.set(offset)
         self.set_env()
         self.wrapped_env.reset()
         

@@ -265,7 +265,7 @@ class Callback(sb3.common.callbacks.EventCallback):
                     cv2.VideoWriter_fourcc(*"MJPG"), 10, self.image_size, isColor = True
                 )
                 REWARDS = []
-                fig, ax = plt.subplots(1,1)
+                fig, ax = plt.subplots(1,1, figsize = (6.5,6.5))
                 canvas = FigureCanvas(fig)
                 ax.set_xlabel('steps')
                 ax.set_ylabel('reward')
@@ -328,7 +328,7 @@ class Callback(sb3.common.callbacks.EventCallback):
                     ax.plot(REWARDS, color = 'r', linestyle = '--')
                     canvas.draw()
                     image = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
-
+                    image = image.reshape(fig.canvas.get_width_height()[::-1] + (3,))
                     observation = np.concatenate([
                         np.concatenate([screen, image], 0),
                         np.concatenate([scale_1, gen_scale_1], 0),

@@ -12,6 +12,7 @@ import numpy as np
 import torch
 from utils import set_seeds
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+import matplotlib.pyplot as plt
 
 def linear_schedule(initial_value, final_value):
     """ 
@@ -352,6 +353,7 @@ class Callback(sb3.common.callbacks.EventCallback):
             if self.n_calls % self.render_freq == 0:
                 cv2.destroyAllWindows()
                 video.release()
+                plt.close()
 
             if self.log_path is not None:
                 self.evaluations_timesteps.append(self.num_timesteps)

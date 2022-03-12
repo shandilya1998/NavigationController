@@ -1,6 +1,8 @@
 import torch
 import numpy as np
 
+debug = False
+
 params = {
     'input_size_low_level_control': 6,
     'track_list'                  : [ 
@@ -33,12 +35,12 @@ params = {
     'learning_starts'             : 75,
     'staging_steps'               : int(6e4),
     'imitation_steps'             : int(1.2e5),
-    'render_freq'                 : int(1e3),
-    'save_freq'                   : int(3e4),
-    'eval_freq'                   : int(1e3),
+    'render_freq'                 : int(3e2),
+    'save_freq'                   : int(3e2),
+    'eval_freq'                   : int(7.5e1),
     'buffer_size'                 : int(2e5),
-    'max_episode_size'            : int(7.5e2),
-    'total_timesteps'             : int(1e6),
+    'max_episode_size'            : int(7.5e1),
+    'total_timesteps'             : int(1e3),
     'history_steps'               : 15,
     'net_arch'                    : [150, 300, 150],
     'n_critics'                   : 2,
@@ -50,7 +52,7 @@ params = {
     'OU_MEAN'                     : 0.00,
     'OU_SIGMA'                    : 0.12,
     'top_view_size'               : 50.,
-    'batch_size'                  : 1,
+    'batch_size'                  : 100,
     'lr'                          : 1e-3,
     'final_lr'                    : 1e-5,
     'n_steps'                     : 2000,
@@ -62,7 +64,7 @@ params = {
     'critic_lr'                   : 1e-2,
     'weight_decay'                : 1e-2,
     'collision_threshold'         : 20,
-    'debug'                       : False,
+    'debug'                       : debug,
     'max_vyaw'                    : 1.5,
     'policy_delay'                : 2,
     'seed'                        : 245,
@@ -254,7 +256,7 @@ tf_params = {
     'target_policy_noise'           : 0.2,
     'target_policy_noise_clip'      : 0.5,
     'gradient_clipping'             : None,
-    'debug'                         : False,
+    'debug'                         : debug,
 
     'buffer_capacity'               : int(1e4),
     'train_metrics'                 : [

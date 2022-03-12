@@ -23,12 +23,14 @@ class FeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
             3
         )
 
+        """
         if device is None:
             device = 'cuda' if torch.cuda.is_available() else 'cpu'
  
         self.vc.load_state_dict(
             torch.load(pretrained_params_path, map_location = torch.device(device))['model_state_dict']
         )
+        """
 
         self.linear = torch.nn.Sequential(
             torch.nn.Linear(512, features_dim),
@@ -50,7 +52,7 @@ class FeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
 
     def forward(self, observations):
         image = torch.cat([
-            observations['scale_1'], observations['scale_2'], observations['scale_3']
+            observations['scale_1'], observations['scale_2']
         ], 1)
         visual, [gen_image, depth] = self.vc(image)
         visual = torch.nn.functional.adaptive_avg_pool2d(visual, 1)
@@ -618,7 +620,6 @@ class TD3(sb3.TD3):
             image = torch.cat([
                 replay_data.observations['scale_1'],
                 replay_data.observations['scale_2'],
-                replay_data.observations['scale_3']
             ], 1).float() / 255
 
             reconstruction_loss = torch.nn.functional.l1_loss(
@@ -630,9 +631,6 @@ class TD3(sb3.TD3):
                 data_range=1.0, size_average=True
             ) + 1 - ssim(
                     image[:, 3:6], gen_image[:, 3:6],
-                data_range=1.0, size_average=True
-            ) + 1 - ssim(
-                image[:, 6:], gen_image[:, 6:],
                 data_range=1.0, size_average=True
             )
             reconstruction_losses.append(reconstruction_loss.item())
@@ -792,7 +790,6 @@ class Imitate(sb3.TD3):
             image = torch.cat([
                 replay_data.observations['scale_1'],
                 replay_data.observations['scale_2'],
-                replay_data.observations['scale_3']
             ], 1).float() / 255
 
             reconstruction_loss = torch.nn.functional.l1_loss(
@@ -804,9 +801,6 @@ class Imitate(sb3.TD3):
                 data_range=1.0, size_average=True
             ) + 1 - ssim(
                     image[:, 3:6], gen_image[:, 3:6],
-                data_range=1.0, size_average=True
-            ) + 1 - ssim(
-                image[:, 6:], gen_image[:, 6:],
                 data_range=1.0, size_average=True
             )
             reconstruction_losses.append(reconstruction_loss.item())

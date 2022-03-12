@@ -30,12 +30,12 @@ params = {
     'min_simulation_time'         : 1.0,
     'show_animation'              : False,
     'dt'                          : 0.02,
-    'learning_starts'             : 750,
+    'learning_starts'             : 75,
     'staging_steps'               : int(6e4),
     'imitation_steps'             : int(1.2e5),
-    'render_freq'                 : int(3e4),
+    'render_freq'                 : int(1e3),
     'save_freq'                   : int(3e4),
-    'eval_freq'                   : int(7.5e3),
+    'eval_freq'                   : int(1e3),
     'buffer_size'                 : int(2e5),
     'max_episode_size'            : int(7.5e2),
     'total_timesteps'             : int(1e6),
@@ -50,7 +50,7 @@ params = {
     'OU_MEAN'                     : 0.00,
     'OU_SIGMA'                    : 0.12,
     'top_view_size'               : 50.,
-    'batch_size'                  : 100,
+    'batch_size'                  : 1,
     'lr'                          : 1e-3,
     'final_lr'                    : 1e-5,
     'n_steps'                     : 2000,
@@ -92,7 +92,7 @@ params = {
                                     },
     'lstm_steps'                  : 2,
     'autoencoder_arch'            : [1, 1, 1, 1],
-    'add_ref_scales'              : True,
+    'add_ref_scales'              : False,
     'stage1'                      : int(2e5),
 }
 
@@ -114,8 +114,8 @@ params.update(params_quadruped)
 import tensorflow as tf
 import tf_agents as tfa
 
-image_height = 150
-image_width = 150
+image_height = 192
+image_width = 192
 image_channels = 3
 n_history_steps = 5
 activation_fn_actor = tf.keras.activations.relu

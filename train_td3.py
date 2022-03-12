@@ -11,6 +11,7 @@ import stable_baselines3 as sb3
 import numpy as np
 import torch
 from utils import set_seeds
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
 def linear_schedule(initial_value, final_value):
     """ 
@@ -261,7 +262,12 @@ class Callback(sb3.common.callbacks.EventCallback):
                 video = cv2.VideoWriter(
                     os.path.join(self.logdir, 'model_{}_evaluation.avi'.format(int(self.n_calls))),
                     cv2.VideoWriter_fourcc(*"MJPG"), 10, self.image_size, isColor = True
-                )   
+                )
+                REWARDS = []
+                fig, ax = plt.subplots(1,1)
+                canvas = FigureCanvas(fig)
+                ax.set_xlabel('steps')
+                ax.set_ylabel('reward')
                 def callback(
                     _locals: Dict[str, Any],
                     _globals: Dict[str, Any]
@@ -276,8 +282,10 @@ class Callback(sb3.common.callbacks.EventCallback):
                     :param _globals:
                         A dictionary containing all global variables of the callback's scope
                     """
+                    REWARDS.append(_locals['rewards'][0])
                     screen = self.eval_env.render(mode="rgb_array")
                     size = screen.shape[:2]
+                    screen = cv2.cvtColor(screen, cv2.COLOR_RGB2BGR)
                     # PyTorch uses CxHxW vs HxWxC gym (and tensorflow) image convention
                     scale_1 = cv2.resize(
                         _locals['observations']['scale_1'][0, :3].transpose(1, 2, 0),
@@ -285,10 +293,6 @@ class Callback(sb3.common.callbacks.EventCallback):
                     )
                     scale_2 = cv2.resize(
                         _locals['observations']['scale_2'][0, :3].transpose(1, 2, 0),
-                        size
-                    )
-                    scale_3 = cv2.resize(
-                        _locals['observations']['scale_3'][0, :3].transpose(1, 2, 0),
                         size
                     )
                     #print(_locals['gen_image'].shape)
@@ -302,13 +306,8 @@ class Callback(sb3.common.callbacks.EventCallback):
                         size
                     )
 
-                    gen_scale_3 = cv2.resize(
-                        _locals['gen_image'][0, 6:].transpose(1, 2, 0) * 255,
-                        size
-                    )
                     gen_scale_1 = gen_scale_1.astype(np.uint8)
                     gen_scale_2 = gen_scale_2.astype(np.uint8)
-                    gen_scale_3 = gen_scale_3.astype(np.uint8)
 
                     depth = _locals['observations']['depth'][0].transpose(1, 2, 0) * 255
                     depth = depth.astype(np.uint8)
@@ -324,10 +323,16 @@ class Callback(sb3.common.callbacks.EventCallback):
                         size
                     ), cv2.COLOR_GRAY2RGB)
 
+                    ax.clear()
+                    ax.plot(REWARDS, color = 'r', linestyle = '--')
+                    canvas.draw()
+                    image = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
+
                     observation = np.concatenate([
-                        np.concatenate([screen, scale_1, gen_scale_1], 0),
-                        np.concatenate([depth, scale_2, gen_scale_2], 0),
-                        np.concatenate([gen_depth, scale_3, gen_scale_3], 0)
+                        np.concatenate([screen, image], 0),
+                        np.concatenate([scale_1, gen_scale_1], 0),
+                        np.concatenate([scale_2, gen_scale_2], 0),
+                        np.concatenate([depth, gen_depth], 0)
                     ], 1).astype(np.uint8)
                     observation = cv2.cvtColor(observation, cv2.COLOR_RGB2BGR)
 
@@ -484,10 +489,12 @@ if __name__ == '__main__':
         _init_setup_model = True,
         verbose = 2,
     )
-
+    
+    """
     model.set_parameters(
         imitate_policy_path
     )
+    """
 
     env = MazeEnv(
         PointEnv, CustomGoalReward4Rooms,
@@ -496,8 +503,8 @@ if __name__ == '__main__':
         mode = 'eval'
     )
     image_size = ( 
-        int(3 * env.top_view_size * len(env._maze_structure[0])),
-        int(3 * env.top_view_size * len(env._maze_structure))
+        int(4 * env.top_view_size * len(env._maze_structure[0])),
+        int(2 * env.top_view_size * len(env._maze_structure))
     )
 
     eval_env = sb3.common.vec_env.vec_transpose.VecTransposeImage(

@@ -435,12 +435,6 @@ class MazeEnv(gym.Env):
                 shape = observation['scale_2'].shape,
                 dtype = observation['scale_2'].dtype
             ),   
-            'scale_3' : gym.spaces.Box(
-                low = np.zeros_like(observation['scale_3'], dtype = np.uint8),
-                high = 255 * np.ones_like(observation['scale_3'], dtype = np.uint8),
-                shape = observation['scale_3'].shape,
-                dtype = observation['scale_3'].dtype
-            ),
             'sensors' : gym.spaces.Box(
                 low = -np.ones_like(observation['sensors']),
                 high = np.ones_like(observation['sensors']),
@@ -531,11 +525,10 @@ class MazeEnv(gym.Env):
             y_min -= offset
         return x_min, x_max, y_min, y_max
 
-    def get_scales(self, frame, bbx):
+    def get_attention_window(self, frame, bbx):
         size = frame.shape[0]
-        assert frame.shape[0] == frame.shape[1]
-        scale_1 = frame.copy()
-        scale_2 = frame.copy()
+        #assert frame.shape[0] == frame.shape[1]
+        #window = frame.copy()
         x, y, w, h = None, None, None, None
 
         if len(bbx) > 0:
@@ -549,22 +542,13 @@ class MazeEnv(gym.Env):
         
         #print(x + w // 2, y + h // 2)
         
-        # scale 1
-        scale = 5
+        # attention window computation
+        scale = 3
         x_min, x_max, y_min, y_max = self.__get_scale_indices(
             x, y, w, h, scale, size
         )
-
-        scale_1 = scale_1[y_min:y_max, x_min:x_max]
-
-        # scale 2
-        scale = 2
-        x_min, x_max, y_min, y_max = self.__get_scale_indices(
-            x, y, w, h, scale, size
-        )
-        scale_2 = scale_2[y_min:y_max, x_min:x_max]
-
-        return scale_1, scale_2
+        window = frame[y_min:y_max, x_min:x_max].copy()
+        return window
 
     def detect_target(self, frame):
         
@@ -591,12 +575,12 @@ class MazeEnv(gym.Env):
 
     def _get_obs(self) -> np.ndarray:
         obs = self.wrapped_env._get_obs()
-        obs['front'] = cv2.resize(obs['front'], (320, 320))
+        #obs['front'] = cv2.resize(obs['front'], (320, 320))
         img = obs['front'].copy()
-        assert img.shape[0] == img.shape[1]
+        #assert img.shape[0] == img.shape[1]
         # Target Detection and Attention Window
         bbx = self.detect_target(img)
-        scale_1, scale_2 = self.get_scales(obs['front'], bbx)
+        window = self.get_attention_window(obs['front'], bbx)
         inframe = True if len(bbx) > 0 else False 
 
         # Sampled Action
@@ -628,12 +612,9 @@ class MazeEnv(gym.Env):
 
         if params['debug']:
             size = img.shape[0]
-            cv2.imshow('stream front', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
-            cv2.imshow('stream scale 1', cv2.cvtColor(cv2.resize(
-                scale_1, (size, size)
-            ), cv2.COLOR_RGB2BGR))
-            cv2.imshow('stream scale 2', cv2.cvtColor(cv2.resize(
-                scale_2, (size, size)
+            cv2.imshow('stream camera', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
+            cv2.imshow('stream attention window', cv2.cvtColor(cv2.resize(
+                window, (size, size)
             ), cv2.COLOR_RGB2BGR))
             cv2.imshow('depth stream', obs['front_depth'])
             top = self.render('rgb_array')
@@ -641,9 +622,8 @@ class MazeEnv(gym.Env):
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 pass
 
-        shape = scale_1.shape[:2]
-        scale_2 = cv2.resize(scale_2, shape)
-        scale_3 = cv2.resize(obs['front'], shape)
+        shape = window.shape[:2]
+        scale_2 = cv2.resize(obs['front'], shape)
         depth = np.expand_dims(
             cv2.resize(
                 obs['front_depth'].copy(), shape
@@ -651,9 +631,8 @@ class MazeEnv(gym.Env):
         )
 
         _obs = {
-            'scale_1' : scale_1.copy(),
+            'scale_1' : window.copy(),
             'scale_2' : scale_2.copy(),
-            'scale_3' : scale_3.copy(),
             'sensors' : sensors,
             'sampled_action' : sampled_action.copy(),
             'scaled_sampled_action' : scaled_sampled_action.copy(),
@@ -815,7 +794,6 @@ class MazeEnv(gym.Env):
             self.collision_count += 1
             obs['scale_1'] = np.zeros_like(obs['scale_1'])
             obs['scale_2'] = np.zeros_like(obs['scale_2'])
-            obs['scale_3'] = np.zeros_like(obs['scale_3'])
             obs['depth'] = np.zeros_like(obs['depth'])
         
         return obs, penalty
@@ -883,7 +861,6 @@ class MazeEnv(gym.Env):
             collision_penalty += -10.0 * self._inner_reward_scaling
             next_obs['scale_1'] = np.zeros_like(obs['scale_1'])
             next_obs['scale_2'] = np.zeros_like(obs['scale_2'])
-            next_obs['scale_3'] = np.zeros_like(obs['scale_3'])
             done = True
         if self.t > self.max_episode_size:
             done = True
@@ -957,8 +934,26 @@ class MazeEnv(gym.Env):
             return int(row), int(col)
 
         pos = self.wrapped_env.get_xy() 
+        ori = self.wrapped_env.get_ori()
+        if ori < 0 and ori > -np.pi:
+            ori += 2 * np.pi
         row, col = xy_to_imgrowcol(pos[0], pos[1])
-        img[row - int(block_size / 10): row + int(block_size / 10), col - int(block_size / 10): col + int(block_size / 10)] = [255, 255, 255]
+        
+        pt1_x = pos[0] + self._maze_size_scaling * 0.3 * np.cos(ori)
+        pt1_y = pos[1] + self._maze_size_scaling * 0.3 * np.sin(ori)
+        pt2_x = pos[0] + self._maze_size_scaling * 0.15 * np.cos(2 * np.pi / 3 + ori)
+        pt2_y = pos[1] + self._maze_size_scaling * 0.15 * np.sin(2 * np.pi / 3 + ori)
+        pt3_x = pos[0] + self._maze_size_scaling * 0.15 * np.cos(4 * np.pi / 3 + ori)
+        pt3_y = pos[1] + self._maze_size_scaling * 0.15 * np.sin(4 * np.pi / 3 + ori)
+
+        pt1 = xy_to_imgrowcol(pt1_y, pt1_x)
+        pt2 = xy_to_imgrowcol(pt2_y, pt2_x)
+        pt3 = xy_to_imgrowcol(pt3_y, pt3_x)
+
+        triangle_cnt = np.array( [pt1, pt2, pt3] )
+        cv2.drawContours(img, [triangle_cnt], 0, (255,255,255), -1)
+
+        #img[row - int(block_size / 10): row + int(block_size / 20), col - int(block_size / 20): col + int(block_size / 20)] = [255, 255, 255]
         for i, goal in enumerate(self._task.goals):
             pos = goal.pos
             row, col = xy_to_imgrowcol(pos[0], pos[1])

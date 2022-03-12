@@ -677,7 +677,7 @@ class MazeEnv(gym.Env):
         if self.mode == 'eval':
             offset = 1.0
         else:
-            if self.total_timesteps <  params['staging_steps']:
+            if self.total_steps <  params['staging_steps']:
                 offset = 0.2
             else:
                 offset = 0.2 + (self.total_steps - params['staging_steps']) / params['total_timesteps']

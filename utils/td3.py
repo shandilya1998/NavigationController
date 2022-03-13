@@ -585,6 +585,7 @@ class TD3(sb3.TD3):
         actor_losses, critic_losses = [], []
         reconstruction_losses = []
         supervised_losses = []
+        supervised_loss_ratios = []
 
         for _ in range(gradient_steps):
 
@@ -637,10 +638,20 @@ class TD3(sb3.TD3):
 
             # Delayed policy updates
             # Compute actor loss
-            if self.num_timesteps < params['staging_steps']:
+            if self.num_timesteps < params['staging_steps'] // 2:
                 actor_loss = torch.nn.functional.mse_loss(action, replay_data.observations['scaled_sampled_action'])
                 supervised_losses.append(actor_loss.item())
+                supervised_loss_ratios.append(1.0)
+            elif self.num_timesteps < 3 * params['staging_steps'] // 2:
+                ratio = 1.5 - self.num_timesteps / params['staging_steps']
+                supervised_loss_ratios.append(ratio)
+                supervised_loss = torch.nn.functional.mse_loss(action, replay_data.observations['scaled_sampled_action'])
+                supervised_losses.append(supervised_loss.item())
+                q_loss = -self.critic.q1_forward(replay_data.observations, action).mean()
+                actor_losses.append(q_loss.item())
+                actor_loss = supervised_loss * ratio + q_loss * (1 - ratio)
             else:
+                supervised_loss_ratios.append(0.0)
                 actor_loss = -self.critic.q1_forward(replay_data.observations, action).mean()
                 actor_losses.append(actor_loss.item())
             actor_loss += reconstruction_loss
@@ -656,6 +667,7 @@ class TD3(sb3.TD3):
         self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
         self.logger.record("train/reconstruction", np.mean(reconstruction_losses))
         self.logger.record("train/critic_loss", np.mean(critic_losses))
+        self.logger.record("train/supervised_loss_ratio", np.mean(supervised_loss_ratios))
         if len(actor_losses) > 0:
             self.logger.record("train/actor_loss", np.mean(actor_losses))
 

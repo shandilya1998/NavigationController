@@ -824,7 +824,7 @@ class MazeEnv(gym.Env):
 
         # Computing the reward in "https://ieeexplore.ieee.org/document/8398461"
         goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
-        rho = (1 - (np.linalg.norm(goal) / np.linalg.norm(self._task.goals[self._task.goal_index].pos))) * 0.1
+        rho = (1 - (np.linalg.norm(goal) / np.linalg.norm(self._task.goals[self._task.goal_index].pos))) * 0.5
         self.goals.pop(0)
         self.goals.append(goal)
         theta_t = self.check_angle(np.arctan2(goal[1], goal[0]) - self.get_ori())

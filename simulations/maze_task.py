@@ -429,11 +429,9 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
         goal = self.goals[self.goal_index]
         reward = 0.0
         if inframe:
-            reward = 2.0 * goal.reward_scale * (
-                1 - np.linalg.norm(pos[: goal.dim] - goal.pos) / (np.linalg.norm(goal.pos))
-            )
+            reward = 0.5 * goal.reward_scale
         if np.linalg.norm(pos - goal.pos) <= 2.5 * goal.threshold:
-            reward += 2 * goal.reward_scale
+            reward += 1.0 * goal.reward_scale
         return reward
 
     def termination(self, pos: np.ndarray, inframe: bool) -> bool:

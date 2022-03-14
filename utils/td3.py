@@ -618,14 +618,20 @@ class TD3(sb3.TD3):
             self.critic.optimizer.step()
 
             action, [gen_image, depth] = self.actor(replay_data.observations)
-            image = replay_data.observations['scale_2'].float() / 255
+            image = torch.cat([
+                 replay_data.observations['scale_1'],
+                 replay_data.observations['scale_2'],
+            ], 1).float() / 255
 
             reconstruction_loss = torch.nn.functional.l1_loss(
                 gen_image, image
             ) + torch.nn.functional.l1_loss(
                 depth, replay_data.observations['depth']
             ) + 1 - ssim(
-                image, gen_image,
+                image[:, :3], gen_image[:, :3],
+                data_range=1.0, size_average=True
+            ) + 1 - ssim(
+                image[:, 3:], gen_image[:, 3:],
                 data_range=1.0, size_average=True
             )
             reconstruction_losses.append(reconstruction_loss.item())
@@ -793,14 +799,20 @@ class Imitate(sb3.TD3):
             self.critic.optimizer.step()
 
             action, [gen_image, depth] = self.actor(replay_data.observations)
-            image = replay_data.observations['scale_2'].float() / 255
 
+            image = torch.cat([
+                 replay_data.observations['scale_1'],
+                 replay_data.observations['scale_2'],
+            ], 1).float() / 255
             reconstruction_loss = torch.nn.functional.l1_loss(
                 gen_image, image
             ) + torch.nn.functional.l1_loss(
                 depth, replay_data.observations['depth']
             ) + 1 - ssim(
-                image, gen_image,
+                image[:, :3], gen_image[:, :3],
+                data_range=1.0, size_average=True
+            ) + 1 - ssim(
+                image[:, 3:], gen_image[:, 3:],
                 data_range=1.0, size_average=True
             )
             reconstruction_losses.append(reconstruction_loss.item())

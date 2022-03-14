@@ -267,13 +267,10 @@ class Callback(sb3.common.callbacks.EventCallback):
                 REWARDS = []
                 ACTION_ERROR = []
                 fig, ax = plt.subplots(1,1, figsize = (6.5,6.5))
-                fig1, ax1 = plt.subplots(1,1, figsize = (6.5, 6.5))
                 canvas = FigureCanvas(fig)
-                canvas1 = FigureCanvas(fig1)
                 ax.set_xlabel('steps')
                 ax.set_ylabel('reward')
-                ax1.set_xlabel('steps')
-                ax1.set_ylabel('error')
+
                 def callback(
                     _locals: Dict[str, Any],
                     _globals: Dict[str, Any]
@@ -302,11 +299,16 @@ class Callback(sb3.common.callbacks.EventCallback):
                         size
                     )
                     #print(_locals['gen_image'].shape)
+                    gen_scale_1 = cv2.resize(
+                         _locals['gen_image'][0, :3].transpose(1, 2, 0) * 255,
+                         size
+                    )
                     gen_scale_2 = cv2.resize(
-                        _locals['gen_image'][0, :3].transpose(1, 2, 0) * 255,
+                        _locals['gen_image'][0, 3:].transpose(1, 2, 0) * 255,
                         size
                     )
 
+                    gen_scale_1 = gen_scale_1.astype(np.uint8)
                     gen_scale_2 = gen_scale_2.astype(np.uint8)
 
                     depth = _locals['observations']['depth'][0].transpose(1, 2, 0) * 255
@@ -327,17 +329,11 @@ class Callback(sb3.common.callbacks.EventCallback):
                     ax.plot(REWARDS, color = 'r', linestyle = '--')
                     canvas.draw()
                     error = np.square(_locals['observations']['sampled_action'] - _locals['actions']).mean()
-                    ax1.clear()
-                    ACTION_ERROR.append(error)
-                    ax1.plot(ACTION_ERROR, color = 'r', linestyle = '--')
-                    canvas1.draw()
                     image = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
                     image = image.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-                    image1 = np.frombuffer(canvas1.tostring_rgb(), dtype='uint8')
-                    image1 = image1.reshape(fig1.canvas.get_width_height()[::-1] + (3,))
                     observation = np.concatenate([
                         np.concatenate([screen, image], 0),
-                        np.concatenate([scale_1, image1], 0),
+                        np.concatenate([scale_1, gen_scale_1], 0),
                         np.concatenate([scale_2, gen_scale_2], 0),
                         np.concatenate([depth, gen_depth], 0)
                     ], 1).astype(np.uint8)

@@ -225,7 +225,7 @@ class ResNet18DecV2(torch.nn.Module):
         self.in_planes = 128
         self.layer2 = self._make_layer(BasicBlockDec, 64, num_Blocks[1], stride=2)
         self.layer1 = self._make_layer(BasicBlockDec, 64, num_Blocks[0], stride=1)
-        self.conv1 = ResizeConv2d(64, nc, kernel_size=3, scale_factor=2)
+        self.conv1 = ResizeConv2d(64, 2 * nc, kernel_size=3, scale_factor=2)
         self.output = torch.nn.Sigmoid()
 
         self.in_planes = 128 
@@ -249,7 +249,7 @@ class ResNet18DecV2(torch.nn.Module):
         image = self.layer2(x)
         image = self.layer1(image)
         image = self.output(self.conv1(image))
-        image = image.view(image.size(0), self.nc, 64, 64)
+        image = image.view(image.size(0), 2 * self.nc, 64, 64)
 
         depth = self.layer2_depth(x)
         depth = self.layer1_depth(depth)

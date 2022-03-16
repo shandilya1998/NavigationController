@@ -823,9 +823,6 @@ class Pretrain(sb3.TD3):
         if len(actor_losses) > 0:
             self.logger.record("train/actor_loss", np.mean(actor_losses))
 
-        if len(supervised_losses) > 0:
-            self.logger.record("train/supervised_loss", np.mean(supervised_losses))
-
 class Imitate(sb3.TD3):
     def __init__(
         self,

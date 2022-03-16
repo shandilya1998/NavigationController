@@ -34,7 +34,7 @@ params = {
     'dt'                          : 0.02,
     'learning_starts'             : 750,
     'staging_steps'               : int(6e4),
-    'imitation_steps'             : int(1.2e5),
+    'imitation_steps'             : int(1e5),
     'render_freq'                 : int(3e4),
     'save_freq'                   : int(3e4),
     'eval_freq'                   : int(7.5e3),

@@ -674,6 +674,158 @@ class TD3(sb3.TD3):
         if len(supervised_losses) > 0:
             self.logger.record("train/supervised_loss", np.mean(supervised_losses))
 
+class Pretrain(sb3.TD3):
+    def __init__(
+        self,
+        policy: Union[str, Type[TD3Policy]],
+        env: Union[sb3.common.type_aliases.GymEnv, str],
+        learning_rate: Union[float, sb3.common.type_aliases.Schedule] = 1e-3,
+        buffer_size: int = 1000000,  # 1e6
+        learning_starts: int = 100,
+        batch_size: int = 100,
+        tau: float = 0.005,
+        gamma: float = 0.99,
+        train_freq: Union[int, Tuple[int, str]] = (1, "episode"),
+        gradient_steps: int = -1,
+        action_noise: Optional[sb3.common.noise.ActionNoise] = None,
+        replay_buffer_class: Optional[sb3.common.buffers.ReplayBuffer] = None,
+        replay_buffer_kwargs: Optional[Dict[str, Any]] = None,
+        optimize_memory_usage: bool = False,
+        policy_delay: int = 2,
+        target_policy_noise: float = 0.2,
+        target_noise_clip: float = 0.5,
+        tensorboard_log: Optional[str] = None,
+        create_eval_env: bool = False,
+        policy_kwargs: Dict[str, Any] = None,
+        verbose: int = 0,
+        seed: Optional[int] = None,
+        device: Union[torch.device, str] = "auto",
+        _init_setup_model: bool = True,
+    ):
+        super(Pretrain, self).__init__(
+            policy,
+            env,
+            learning_rate,
+            buffer_size,
+            learning_starts,
+            batch_size,
+            tau,
+            gamma,
+            train_freq,
+            gradient_steps,
+            action_noise,
+            replay_buffer_class,
+            replay_buffer_kwargs,
+            optimize_memory_usage,
+            policy_delay,
+            target_policy_noise,
+            target_noise_clip,
+            tensorboard_log,
+            create_eval_env,
+            policy_kwargs,
+            verbose,
+            seed,
+            device,
+            _init_setup_model,
+        )
+
+    def _sample_action(
+        self, learning_starts: int, action_noise: Optional[sb3.common.noise.ActionNoise] = None
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Sample an action according to the exploration policy.
+        This is either done by sampling the probability distribution of the policy,
+        or sampling a random action (from a uniform distribution over the action space)
+        or by adding noise to the deterministic output.
+        :param action_noise: Action noise that will be used for exploration
+            Required for deterministic policy (e.g. TD3). This can also be used
+            in addition to the stochastic policy for SAC.
+        :param learning_starts: Number of steps before learning for the warm-up phase.
+        :return: action to take in the environment
+            and scaled action that will be stored in the replay buffer.
+            The two differs when the action space is not normalized (bounds are not [-1, 1]).
+        """
+        # Select action randomly or according to policy
+        unscaled_action = self._last_obs['sampled_action']
+
+        # Rescale the action from [low, high] to [-1, 1]
+        if isinstance(self.action_space, gym.spaces.Box):
+            scaled_action = self.policy.scale_action(unscaled_action)
+
+            # Add noise to the action (improve exploration)
+            if action_noise is not None:
+                scaled_action = np.clip(scaled_action + action_noise(), -1, 1)
+
+            # We store the scaled action in the buffer
+            buffer_action = scaled_action
+            action = self.policy.unscale_action(scaled_action)
+        else:
+            # Discrete case, no need to normalize or clip
+            buffer_action = unscaled_action
+            action = buffer_action
+        return action, buffer_action
+
+    def train(self, gradient_steps: int, batch_size: int = 100) -> None:
+        # Update learning rate according to lr schedule
+        self._update_learning_rate([self.actor.optimizer, self.critic.optimizer])
+
+        actor_losses = []
+        reconstruction_losses = []
+        loss_ratios = []
+
+        for _ in range(gradient_steps):
+            self._n_updates += 1
+            # Sample replay buffer
+            replay_data = self.replay_buffer.sample(batch_size, env=self._vec_normalize_env)
+
+            action, [gen_image, depth] = self.actor(replay_data.observations)
+            image = torch.cat([
+                 replay_data.observations['scale_1'],
+                 replay_data.observations['scale_2'],
+            ], 1).float() / 255
+
+            reconstruction_loss = torch.nn.functional.l1_loss(
+                gen_image, image
+            ) + torch.nn.functional.l1_loss(
+                depth, replay_data.observations['depth']
+            ) + 1 - ssim(
+                image[:, :3], gen_image[:, :3],
+                data_range=1.0, size_average=True
+            ) + 1 - ssim(
+                image[:, 3:], gen_image[:, 3:],
+                data_range=1.0, size_average=True
+            )
+            reconstruction_losses.append(reconstruction_loss.item())
+
+            # Delayed policy updates
+            # Compute actor loss
+            ratio = 0.0
+            if self.num_timesteps < params['imitation_steps']:
+                ratio = self.num_timesteps / params['imitation_steps']
+                loss_ratios.append(ratio)
+            else:
+                ratio = 1.0
+            actor_loss = torch.nn.functional.mse_loss(action, replay_data.observations['scaled_sampled_action'])
+            actor_losses.append(actor_loss.item())
+            actor_loss = actor_loss * ratio + reconstruction_loss
+
+            # Optimize the actor
+            self.actor.optimizer.zero_grad()
+            actor_loss.backward()
+            self.actor.optimizer.step()
+
+            sb3.common.utils.polyak_update(self.critic.parameters(), self.critic_target.parameters(), self.tau)
+            sb3.common.utils.polyak_update(self.actor.parameters(), self.actor_target.parameters(), self.tau)
+
+        self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
+        self.logger.record("train/reconstruction", np.mean(reconstruction_losses))
+        self.logger.record("train/loss_ratio", np.mean(loss_ratios))
+        if len(actor_losses) > 0:
+            self.logger.record("train/actor_loss", np.mean(actor_losses))
+
+        if len(supervised_losses) > 0:
+            self.logger.record("train/supervised_loss", np.mean(supervised_losses))
+
 class Imitate(sb3.TD3):
     def __init__(
         self,

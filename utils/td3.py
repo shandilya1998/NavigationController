@@ -552,7 +552,7 @@ class TD3(sb3.TD3):
             The two differs when the action space is not normalized (bounds are not [-1, 1]).
         """
         # Select action randomly or according to policy
-        if self.num_timesteps < params['staging_steps']:
+        if self.num_timesteps < learning_starts and not (self.use_sde and self.use_sde_at_warmup):
             # Pretraining Phase
             unscaled_action = self._last_obs['sampled_action']
         else:
@@ -638,12 +638,8 @@ class TD3(sb3.TD3):
 
             # Delayed policy updates
             # Compute actor loss
-            if self.num_timesteps < params['staging_steps'] // 2:
-                actor_loss = torch.nn.functional.mse_loss(action, replay_data.observations['scaled_sampled_action'])
-                supervised_losses.append(actor_loss.item())
-                supervised_loss_ratios.append(1.0)
-            elif self.num_timesteps < 3 * params['staging_steps'] // 2:
-                ratio = 1.5 - self.num_timesteps / params['staging_steps']
+            if self.num_timesteps < params['staging_steps']:
+                ratio = 1.0 - self.num_timesteps / params['staging_steps']
                 supervised_loss_ratios.append(ratio)
                 supervised_loss = torch.nn.functional.mse_loss(action, replay_data.observations['scaled_sampled_action'])
                 supervised_losses.append(supervised_loss.item())

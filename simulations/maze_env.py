@@ -238,6 +238,8 @@ class MazeEnv(gym.Env):
         self.world_tree = tree
         self.wrapped_env = self.model_cls(file_path=file_path, **self.kwargs)
         offset = self.total_steps / params['total_timesteps']
+        if self.mode == 'eval':
+            offset = 1.0
         #offset = 1.0
         self._init_pos = np.random.uniform(low = -offset, high = offset, size = (2,)) * self._maze_size_scaling
         self.wrapped_env.set_xy(self._init_pos)

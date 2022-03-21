@@ -40,7 +40,7 @@ params = {
     'eval_freq'                   : int(7.5e3),
     'buffer_size'                 : int(4e5),
     'max_episode_size'            : int(7.5e2),
-    'total_timesteps'             : int(1e6),
+    'total_timesteps'             : int(1.75e5),
     'history_steps'               : 15,
     'net_arch'                    : [150, 300, 150],
     'n_critics'                   : 2,

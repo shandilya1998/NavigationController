@@ -144,6 +144,8 @@ class MazeEnv(gym.Env):
         self.movable_blocks = []
         self.object_balls = []
         torso_x, torso_y = self._find_robot()
+        self._init_torso_x = torso_x
+        self._init_torso_y = torso_y
         self.obstacles = []
         for i in range(len(self._maze_structure)):
             for j in range(len(self._maze_structure[0])):
@@ -235,6 +237,10 @@ class MazeEnv(gym.Env):
         tree.write(file_path)
         self.world_tree = tree
         self.wrapped_env = self.model_cls(file_path=file_path, **self.kwargs)
+        offset = self.total_steps / params['total_timesteps']
+        #offset = 1.0
+        self._init_pos = np.random.uniform(low = -offset, high = offset, size = (2,)) * self._maze_size_scaling
+        self.wrapped_env.set_xy(self._init_pos)
         self.dt = self.wrapped_env.dt
         assert self.dt == params['dt']
         self.model = self.wrapped_env.model
@@ -275,6 +281,8 @@ class MazeEnv(gym.Env):
             x, y = self._rowcol_to_xy(row, col)
             self.wx.append(copy.deepcopy(x))
             self.wy.append(copy.deepcopy(y))
+        self.wx.pop()
+        self.wy.pop()
         self.wx.append(self._task.goals[self._task.goal_index].pos[0])
         self.wy.append(self._task.goals[self._task.goal_index].pos[1])
         self.final = [self.wx[-1], self.wy[-1]]
@@ -312,7 +320,7 @@ class MazeEnv(gym.Env):
             source,
             target
         ))
-        return paths[0]
+        return random.choice(paths)
 
     def get_action(self):
         ai = proportional_control(self.target_speed, self.state.v)
@@ -592,7 +600,7 @@ class MazeEnv(gym.Env):
         ## Goal
         goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
         goal = np.array([
-            np.linalg.norm(goal) / np.linalg.norm(self._task.goals[self._task.goal_index].pos),
+            np.linalg.norm(goal) / np.linalg.norm(self._task.goals[self._task.goal_index].pos - self._init_pos),
             self.check_angle(np.arctan2(goal[1], goal[0]) - self.get_ori()) / np.pi
         ], dtype = np.float32)
         ## Velocity
@@ -662,8 +670,6 @@ class MazeEnv(gym.Env):
                 offset = 0.2 + (self.total_steps - params['staging_steps']) / params['total_timesteps']
         self._task.set(offset)
         self.set_env()
-        self.wrapped_env.reset()
-        
         ori = np.random.uniform(low = -np.pi, high = np.pi)
         self.wrapped_env.set_ori(ori)
 
@@ -824,7 +830,9 @@ class MazeEnv(gym.Env):
 
         # Computing the reward in "https://ieeexplore.ieee.org/document/8398461"
         goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
-        rho = (1 - (np.linalg.norm(goal) / np.linalg.norm(self._task.goals[self._task.goal_index].pos))) * 0.5
+        rho = (1 - (np.linalg.norm(goal) / np.linalg.norm(
+            self._task.goals[self._task.goal_index].pos - self._init_pos
+        ))) * 0.5
         self.goals.pop(0)
         self.goals.append(goal)
         theta_t = self.check_angle(np.arctan2(goal[1], goal[0]) - self.get_ori())

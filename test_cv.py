@@ -10,6 +10,7 @@ from tqdm import tqdm
 import shutil
 import os
 from typing import Dict, List, NamedTuple, Optional, Tuple, Type
+from constants import params
 
 class Rgb(NamedTuple):
     red: float
@@ -261,10 +262,11 @@ count_collisions = 0
 count_ball = 0
 ob = env.reset()
 
-fig, ax = plt.subplots(1,1,figsize= (5,5))
-line, = ax.plot(REWARDS, color = 'r', linestyle = '--')
-ax.set_xlabel('steps')
-ax.set_ylabel('reward')
+if params['debug']:
+    fig, ax = plt.subplots(1,1,figsize= (5,5))
+    line, = ax.plot(REWARDS, color = 'r', linestyle = '--')
+    ax.set_xlabel('steps')
+    ax.set_ylabel('reward')
 total_reward = 0.0
 ac = env.get_action()
 while not done:
@@ -283,9 +285,10 @@ while not done:
     REWARDS.append(reward)
     total_reward += reward
     INFO.append(info)
-    ax.clear()
-    ax.plot(REWARDS, color = 'r', linestyle = '--')
-    plt.pause(0.001)
+    if params['debug']:
+        ax.clear()
+        ax.plot(REWARDS, color = 'r', linestyle = '--')
+        plt.pause(0.001)
 pbar.close()
 #plt.close()
 print('Ideal Path:')
@@ -348,6 +351,14 @@ for index in range(len(env.sampled_path)):
 for pos in POS:
     row, col = xy_to_imgrowcol(pos[0], pos[1])
     img[row - int(block_size / 50): row + int(block_size / 50), col - int(block_size / 50): col + int(block_size / 50)] = [0, 0, 1]
+
+for x, y in zip(env.cx, env.cy):
+    row, col = xy_to_imgrowcol(x, y)
+    img[row - int(block_size / 50): row + int(block_size / 50), col - int(block_size / 50): col + int(block_size / 50)] = [1, 1, 1]
+
+for wx, wy in zip(env.wx, env.wy):
+    row, col = xy_to_imgrowcol(wx, wy)
+    img[row - int(block_size / 10): row + int(block_size / 10), col - int(block_size / 10): col + int(block_size / 10)] = [1, 1, 0]
 
 ax.imshow(np.flipud(img))
 #fig.savefig('output.png')

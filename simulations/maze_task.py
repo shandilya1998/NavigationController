@@ -439,6 +439,89 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
             return True
         return False
 
+class CustomGoalReward4RoomsV2(GoalReward4Rooms):
+    def __init__(self,
+        scale: float,
+        goal: Tuple[int, int] = (6.0, -6.0),
+        danger: List[Tuple[int, int]] = [ 
+            (0.0, -6.0),
+            (6.0, 0.0),
+        ]) -> None:
+        super().__init__(scale, goal)
+        self.set()
+
+    def set(self, offset = 0.2):
+        self.goal_index = np.random.randint(low = 0, high = 4)
+        self.colors = []
+        self.scales = []
+        self.goals = []
+        for i in range(4):
+            if i == self.goal_index:
+                self.colors.append(copy.deepcopy(RED))
+                self.scales.append(1.0)
+            else:
+                self.colors.append(copy.deepcopy(GREEN))
+                self.scales.append(1.0)
+
+        self.goals = [ 
+            MazeVisualGoal(np.array([
+                np.random.uniform(6.0 - offset, 6.0 + offset) * self.scale,
+                -np.random.uniform(6.0 - offset, 6.0 + offset) * self.scale
+            ]), self.scales[0], self.colors[0], 2.25),
+            MazeVisualGoal(np.array([
+                np.random.uniform(6.0 - offset, 6.0 + offset) * self.scale,
+                -np.random.uniform(-6.0 - offset, -6.0 + offset) * self.scale
+            ]), self.scales[1], self.colors[1], 2.25),
+            MazeVisualGoal(np.array([
+                np.random.uniform(-6.0 - offset, -6.0 + offset) * self.scale,
+                -np.random.uniform(6.0 - offset, 6.0 + offset) * self.scale 
+            ]), self.scales[2], self.colors[2], 2.25),
+            MazeVisualGoal(np.array([
+                np.random.uniform(-6.0 - offset, -6.0 + offset) * self.scale,
+                -np.random.uniform(-6.0 - offset, -6.0 + offset) * self.scale 
+            ]), self.scales[3], self.colors[3], 2.25),
+        ]   
+
+    def reward(self, pos: np.ndarray, inframe: bool) -> float:
+        goal = self.goals[self.goal_index]
+        reward = 0.0 
+        if inframe:
+            reward = 0.5 * goal.reward_scale
+        if np.linalg.norm(pos - goal.pos) <= 2.5 * goal.threshold:
+            reward += 1.0 * goal.reward_scale
+        return reward
+
+    def termination(self, pos: np.ndarray, inframe: bool) -> bool:
+        if self.goals[self.goal_index].neighbor(pos):
+            return True
+        return False
+
+
+    @staticmethod
+    def create_maze() -> List[List[MazeCell]]:
+        E, B, R = MazeCell.EMPTY, MazeCell.BLOCK, MazeCell.ROBOT
+        return [
+            [B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B],
+            [B, E, E, E, E, E, B, E, E, E, E, E, B, E, E, E, E, E, B],
+            [B, E, E, E, E, E, B, E, E, E, E, E, B, E, E, E, E, E, B],
+            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
+            [B, E, E, E, E, E, B, E, E, E, E, E, B, E, E, E, E, E, B],
+            [B, E, E, E, E, E, B, E, E, E, E, E, B, E, E, E, E, E, B],
+            [B, B, B, E, B, B, B, B, B, E, B, B, B, B, B, E, B, B, B],
+            [B, E, E, E, E, E, B, E, E, E, E, E, B, E, E, E, E, E, B],
+            [B, E, E, E, E, E, B, E, E, E, E, E, B, E, E, E, E, E, B],
+            [B, E, E, E, E, E, E, E, E, R, E, E, E, E, E, E, E, E, B],
+            [B, E, E, E, E, E, B, E, E, E, E, E, B, E, E, E, E, E, B],
+            [B, E, E, E, E, E, B, E, E, E, E, E, B, E, E, E, E, E, B],
+            [B, B, B, E, B, B, B, B, B, E, B, B, B, B, B, E, B, B, B],
+            [B, E, E, E, E, E, B, E, E, E, E, E, B, E, E, E, E, E, B],
+            [B, E, E, E, E, E, B, E, E, E, E, E, B, E, E, E, E, E, B],
+            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
+            [B, E, E, E, E, E, B, E, E, E, E, E, B, E, E, E, E, E, B],
+            [B, E, E, E, E, E, B, E, E, E, E, E, B, E, E, E, E, E, B],
+            [B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B],
+        ]
+
 class GoalRewardNoObstacle(GoalReward4Rooms):
     def __init__(self,
         scale: float,

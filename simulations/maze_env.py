@@ -123,6 +123,71 @@ class MazeEnv(gym.Env):
         self._websock_server_pipe = None
         self.set_env()
 
+    def _verify_init(self, pos):
+        (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(pos[0], pos[1])
+        struct = self._maze_structure[row][col]
+        if struct.is_block():
+            neighbors = [
+                [row + 1, col],
+                [row, col + 1],
+                [row - 1, col],
+                [row, col - 1],
+                [row + 1, col + 1],
+                [row - 1, col + 1],
+                [row + 1, col - 1],
+                [row - 1, col - 1]
+            ]
+            eligible = []
+            for neighbor in neighbors:
+                r, c = neighbor
+                if self.__check_structure_index_validity(r, c):
+                    if not self._maze_structure[r][c].is_block():
+                        eligible.append([r, c])
+            choice = random.choice(eligible)
+            d_r = choice[0] - row
+            d_c = choice[1] - col
+            row = r + d_r + 1
+            col = c + d_c + 1
+            x, y = self._rowcol_to_xy(row, col)
+            pos = np.array([x, y], dtype = np.float32)
+            (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(pos[0], pos[1])
+
+        (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(pos[0], pos[1])
+        neighbors = [
+            [row + 1, col],
+            [row, col + 1],
+            [row - 1, col],
+            [row, col - 1],
+            [row + 1, col + 1],
+            [row - 1, col + 1],
+            [row + 1, col - 1],
+            [row - 1, col - 1]
+        ]
+
+        possibilities = [-np.pi, -3 * np.pi / 4, -np.pi / 2, -np.pi / 4, 
+            0.0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi]
+        for neighbor in neighbors:
+            r, c = neighbor
+            if self.__check_structure_index_validity(r, c):
+                if self._maze_structure[r][c].is_block():
+                    try:
+                        angle = np.arctan2(r - row, c - col)
+                        index = possibilities.index(angle)
+                    except:
+                        pass
+                    possibilities.pop(index)
+
+        ori = np.random.choice([
+                np.random.uniform(low = p - np.pi / 4, high = p + np.pi / 4) for p in possibilities
+        ])
+
+        if ori > np.pi:
+            ori = ori - 2 * np.pi
+        elif ori < -np.pi:
+            ori = ori + 2 * np.pi
+
+        return pos, ori
+
     def set_env(self):
         xml_path = os.path.join(MODEL_DIR, self.model_cls.FILE)
         tree = ET.parse(xml_path)
@@ -237,16 +302,18 @@ class MazeEnv(gym.Env):
         tree.write(file_path)
         self.world_tree = tree
         self.wrapped_env = self.model_cls(file_path=file_path, **self.kwargs)
-        offset = self.total_steps / params['total_timesteps']
-        if self.mode == 'eval':
-            offset = 1.0
-        #offset = 1.0
-        self._init_pos = np.random.uniform(low = -offset, high = offset, size = (2,)) * self._maze_size_scaling
-        self.wrapped_env.set_xy(self._init_pos)
-        self.dt = self.wrapped_env.dt
-        assert self.dt == params['dt']
         self.model = self.wrapped_env.model
         self.data = self.wrapped_env.data
+        offset = 5 * self.total_steps / params['total_timesteps']
+        if self.mode == 'eval':
+            offset = 5.0
+        #offset = 1.0
+        self._init_pos = np.random.uniform(low = -offset, high = offset, size = (2,)) * self._maze_size_scaling
+        self._init_pos, self._init_ori = self._verify_init(self._init_pos.copy())
+        self.wrapped_env.set_xy(self._init_pos)
+        self.wrapped_env.set_ori(self._init_ori)
+        self.dt = self.wrapped_env.dt
+        assert self.dt == params['dt']
         self.obstacles_ids = []
         self.agent_ids = []
         for name in self.model.geom_names:
@@ -672,8 +739,6 @@ class MazeEnv(gym.Env):
                 offset = 0.2 + (self.total_steps - params['staging_steps']) / params['total_timesteps']
         self._task.set(offset)
         self.set_env()
-        ori = np.random.uniform(low = -np.pi, high = np.pi)
-        self.wrapped_env.set_ori(ori)
 
         # Samples a new start position
         if len(self._init_positions) > 1:

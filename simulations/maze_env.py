@@ -282,6 +282,17 @@ class MazeEnv(gym.Env):
                 raise Exception("Every geom of the torso must have a name")
 
         # Set goals
+        offset = 0.2
+        if self.mode == 'eval':
+            offset = 1.0
+        elif self.mode == 'imitate':
+            offset = 0.2
+        else:
+            if self.total_steps <  params['staging_steps']:
+                offset = 0.2
+            else:
+                offset = 0.2 + (self.total_steps - params['staging_steps']) / params['total_timesteps']
+        self._task.set(offset)
         for i, goal in enumerate(self._task.goals):
             z = goal.pos[2] if goal.dim >= 3 else 0.1 *  self._maze_size_scaling
             if goal.custom_size is None:
@@ -305,18 +316,6 @@ class MazeEnv(gym.Env):
         self.model = self.wrapped_env.model
         self.data = self.wrapped_env.data
         
-        offset = 0.2
-        if self.mode == 'eval':
-            offset = 1.0
-        elif self.mode == 'imitate':
-            offset = 0.2
-        else:
-            if self.total_steps <  params['staging_steps']:
-                offset = 0.2
-            else:
-                offset = 0.2 + (self.total_steps - params['staging_steps']) / params['total_timesteps']
-        self._task.set(offset)
-
         offset = 5 * self.total_steps / params['total_timesteps']
         if self.mode == 'eval':
             offset = 5.0
@@ -334,6 +333,8 @@ class MazeEnv(gym.Env):
                 d_r, d_c = 0, 0
             self._init_pos = self._rowcol_to_xy(r + d_r, c + d_c)
             self._init_pos = np.array(self._init_pos, dtype = np.float32)
+        else:
+            self._init_pos = np.array([self._init_torso_x, self._init_torso_y], dtype = np.float32)
 
         self._init_pos, self._init_ori = self._verify_init(self._init_pos.copy())
         self.wrapped_env.set_xy(self._init_pos)
@@ -371,8 +372,25 @@ class MazeEnv(gym.Env):
     def __find_all_waypoints(self):
         self.wx = []
         self.wy = []
-        for cell in self.sampled_path:
-            row, col = self._graph_to_structure_index(cell)
+        cells = []
+        for i in range(len(self.sampled_path)):
+            row, col = self._graph_to_structure_index(self.sampled_path[i])
+            cells.append([row, col])
+            if i < len(self.sampled_path) - 1:
+                n_row, n_col = self._graph_to_structure_index(self.sampled_path[i + 1])
+                d_r = n_row - row
+                d_c = n_col - col
+                if abs(d_r) > 0 and abs(d_c) > 0:
+                    print(d_r, d_c, row, col, n_row, n_col)
+                    if self._maze_structure[row + d_r][col].is_block():
+                        print(True, d_r)
+                        cells.append([row, col + d_c])
+                    elif self._maze_structure[row][col + d_c].is_block():
+                        print(True, d_c)
+                        cells.append([row + d_r, col])
+
+
+        for row, col in cells:
             x, y = self._rowcol_to_xy(row, col)
             self.wx.append(copy.deepcopy(x))
             self.wy.append(copy.deepcopy(y))
@@ -380,6 +398,9 @@ class MazeEnv(gym.Env):
         self.wy.pop()
         self.wx.append(self._task.goals[self._task.goal_index].pos[0])
         self.wy.append(self._task.goals[self._task.goal_index].pos[1])
+        
+        
+
         self.final = [self.wx[-1], self.wy[-1]]
 
     def __find_cubic_spline_path(self):
@@ -390,7 +411,7 @@ class MazeEnv(gym.Env):
         return self._action_space
 
     def __setup_vel_control(self):
-        self.target_speed = 2.0
+        self.target_speed = 2.5
         self.state = State(
             x = self.wrapped_env.sim.data.qpos[0],
             y = self.wrapped_env.sim.data.qpos[1],
@@ -415,7 +436,7 @@ class MazeEnv(gym.Env):
             source,
             target
         ))
-        return random.choice(paths)
+        return paths[0]
 
     def get_action(self):
         ai = proportional_control(self.target_speed, self.state.v)
@@ -756,20 +777,10 @@ class MazeEnv(gym.Env):
         self.t = 0
         self.close()
         self.set_env()
-
-        # Samples a new start position
-        if len(self._init_positions) > 1:
-            xy = np.random.choice(self._init_positions)
-            self.wrapped_env.set_xy(xy)
         action = self.actions[0]
         self.actions = [np.zeros_like(action) for i in range(self.n_steps)]
         goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
         self.goals = [goal.copy() for i in range(self.n_steps)]
-        self.sampled_path = self.__sample_path()
-        self._current_cell = copy.deepcopy(self.sampled_path[0])
-        self.__find_all_waypoints()
-        self.__find_cubic_spline_path()
-        self.__setup_vel_control()
         obs = self._get_obs()
         return obs
 

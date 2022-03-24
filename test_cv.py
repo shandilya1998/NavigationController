@@ -2,7 +2,7 @@ from simulations.maze_env import MazeEnv
 from simulations.point import PointEnv, PointEnvV2
 from simulations.maze_task import CustomGoalReward4Rooms, \
     GoalRewardNoObstacle, GoalRewardSimple, CustomGoalReward4RoomsV2
-env = MazeEnv(PointEnv, CustomGoalReward4RoomsV2, mode = 'train')
+env = MazeEnv(PointEnv, CustomGoalReward4Rooms, mode = 'imitate')
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
@@ -260,7 +260,7 @@ pbar = tqdm()
 count = 0
 count_collisions = 0
 count_ball = 0
-ob = env.reset()
+ob = env._get_obs()
 
 if params['debug']:
     fig, ax = plt.subplots(1,1,figsize= (5,5))
@@ -314,6 +314,10 @@ for i in range(len(env._maze_structure)):
                 block_size * j: block_size * (j + 1)
             ] = 0.5
 
+for wx, wy in zip(env.wx, env.wy):
+    row, col = xy_to_imgrowcol(wx, wy) 
+    img[row - int(block_size / 10): row + int(block_size / 10), col - int(block_size / 10): col + int(block_size / 10)] = [1, 1, 0]
+
 for i, goal in enumerate(env._task.goals):
     pos = goal.pos
     row, col = xy_to_imgrowcol(pos[0], pos[1]) 
@@ -355,10 +359,6 @@ for pos in POS:
 for x, y in zip(env.cx, env.cy):
     row, col = xy_to_imgrowcol(x, y)
     img[row - int(block_size / 50): row + int(block_size / 50), col - int(block_size / 50): col + int(block_size / 50)] = [1, 1, 1]
-
-for wx, wy in zip(env.wx, env.wy):
-    row, col = xy_to_imgrowcol(wx, wy)
-    img[row - int(block_size / 10): row + int(block_size / 10), col - int(block_size / 10): col + int(block_size / 10)] = [1, 1, 0]
 
 ax.imshow(np.flipud(img))
 #fig.savefig('output.png')

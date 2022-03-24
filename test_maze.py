@@ -1,11 +1,11 @@
 from simulations.maze_env import MazeEnv
-from simulations.maze_task import CustomGoalReward4RoomsV2
+from simulations.maze_task import CustomGoalReward4Rooms
 from simulations.point import PointEnv
 import matplotlib.pyplot as plt
 import cv2
 import numpy as np 
 
-env = MazeEnv(PointEnv, CustomGoalReward4RoomsV2, mode = 'eval')
+env = MazeEnv(PointEnv, CustomGoalReward4Rooms, mode = 'imitate')
 
 """
 for i, struct in enumerate(env._maze_structure):

@@ -304,11 +304,37 @@ class MazeEnv(gym.Env):
         self.wrapped_env = self.model_cls(file_path=file_path, **self.kwargs)
         self.model = self.wrapped_env.model
         self.data = self.wrapped_env.data
+        
+        offset = 0.2
+        if self.mode == 'eval':
+            offset = 1.0
+        elif self.mode == 'imitate':
+            offset = 0.2
+        else:
+            if self.total_steps <  params['staging_steps']:
+                offset = 0.2
+            else:
+                offset = 0.2 + (self.total_steps - params['staging_steps']) / params['total_timesteps']
+        self._task.set(offset)
+
         offset = 5 * self.total_steps / params['total_timesteps']
         if self.mode == 'eval':
             offset = 5.0
-        #offset = 1.0
-        self._init_pos = np.random.uniform(low = -offset, high = offset, size = (2,)) * self._maze_size_scaling
+            self._init_pos = np.random.uniform(low = -offset, high = offset, size = (2,)) * self._maze_size_scaling
+        elif self.mode == 'imitate':
+            possibilities = [[6, 6]]
+            for i, goal in enumerate(self._task.goals):
+                if i != self._task.goal_index:
+                    (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(goal.pos[0], goal.pos[1])
+                    possibilities.append([row, col])
+
+            r, c = random.choice(possibilities)
+            d_r, d_c = random.choice([[0.5, 0.5], [0.5, -0.5], [-0.5, 0.5], [-0.5, -0.5], [0.5, 0], [0, 0.5], [-0.5, 0], [0, -0.5]])
+            if r == 6 or c == 6:
+                d_r, d_c = 0, 0
+            self._init_pos = self._rowcol_to_xy(r + d_r, c + d_c)
+            self._init_pos = np.array(self._init_pos, dtype = np.float32)
+
         self._init_pos, self._init_ori = self._verify_init(self._init_pos.copy())
         self.wrapped_env.set_xy(self._init_pos)
         self.wrapped_env.set_ori(self._init_ori)
@@ -729,15 +755,6 @@ class MazeEnv(gym.Env):
         self.collision_count = 0
         self.t = 0
         self.close()
-        offset = 0.2
-        if self.mode == 'eval':
-            offset = 1.0
-        else:
-            if self.total_steps <  params['staging_steps']:
-                offset = 0.2
-            else:
-                offset = 0.2 + (self.total_steps - params['staging_steps']) / params['total_timesteps']
-        self._task.set(offset)
         self.set_env()
 
         # Samples a new start position

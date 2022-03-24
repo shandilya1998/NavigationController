@@ -288,10 +288,7 @@ class MazeEnv(gym.Env):
         elif self.mode == 'imitate':
             offset = 0.2
         else:
-            if self.total_steps <  params['staging_steps']:
-                offset = 0.2
-            else:
-                offset = 0.2 + (self.total_steps - params['staging_steps']) / params['total_timesteps']
+            offset = 0.2 + self.total_steps / (params['total_timesteps'] * 0.75)
         self._task.set(offset)
         for i, goal in enumerate(self._task.goals):
             z = goal.pos[2] if goal.dim >= 3 else 0.1 *  self._maze_size_scaling
@@ -328,13 +325,22 @@ class MazeEnv(gym.Env):
                     possibilities.append([row, col])
 
             r, c = random.choice(possibilities)
-            d_r, d_c = random.choice([[0.5, 0.5], [0.5, -0.5], [-0.5, 0.5], [-0.5, -0.5], [0.5, 0], [0, 0.5], [-0.5, 0], [0, -0.5]])
-            if r == 6 or c == 6:
-                d_r, d_c = 0, 0
+            if r < 6:
+                d_r = -1
+            elif r == 6:
+                d_r = 0
+            else:
+                d_r = 1
+            if c < 6:
+                d_c = -1
+            elif c == 6:
+                d_c = 0
+            else:
+                d_c = 1
             self._init_pos = self._rowcol_to_xy(r + d_r, c + d_c)
             self._init_pos = np.array(self._init_pos, dtype = np.float32)
         else:
-            self._init_pos = np.array([self._init_torso_x, self._init_torso_y], dtype = np.float32)
+            self._init_pos = np.random.uniform(low = -offset, high = offset, size = (2,)) * self._maze_size_scaling
 
         self._init_pos, self._init_ori = self._verify_init(self._init_pos.copy())
         self.wrapped_env.set_xy(self._init_pos)
@@ -408,7 +414,7 @@ class MazeEnv(gym.Env):
         return self._action_space
 
     def __setup_vel_control(self):
-        self.target_speed = 2.5
+        self.target_speed = 2
         self.state = State(
             x = self.wrapped_env.sim.data.qpos[0],
             y = self.wrapped_env.sim.data.qpos[1],

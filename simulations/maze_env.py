@@ -381,12 +381,9 @@ class MazeEnv(gym.Env):
                 d_r = n_row - row
                 d_c = n_col - col
                 if abs(d_r) > 0 and abs(d_c) > 0:
-                    print(d_r, d_c, row, col, n_row, n_col)
                     if self._maze_structure[row + d_r][col].is_block():
-                        print(True, d_r)
                         cells.append([row, col + d_c])
                     elif self._maze_structure[row][col + d_c].is_block():
-                        print(True, d_c)
                         cells.append([row + d_r, col])
 
 

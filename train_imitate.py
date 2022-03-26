@@ -508,7 +508,7 @@ if __name__ == '__main__':
         PointEnv, CustomGoalReward4Rooms,
         params['max_episode_size'],
         params['history_steps'],
-        mode = 'eval'
+        mode = 'imitate'
     )
     image_size = ( 
         int(4 * env.top_view_size * len(env._maze_structure[0])),

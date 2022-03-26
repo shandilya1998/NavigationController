@@ -393,7 +393,7 @@ class EpisodicDictReplayBuffer(sb3.common.buffers.BaseBuffer):
             self.ep = 0
 
     def sample(self, batch_size: int,
-               env: Optional[sb3.common.vec_env.vec_normalize.VecNormalize] = None) -> DictReplayBufferSamples:
+               env: Optional[sb3.common.vec_env.vec_normalize.VecNormalize] = None):
         """
         Sample elements from the replay buffer.
         Custom sampling when using memory efficient variant,
@@ -412,7 +412,7 @@ class EpisodicDictReplayBuffer(sb3.common.buffers.BaseBuffer):
         return self._get_samples(batch_inds, size, env=env), size
 
     def _get_samples(self, batch_inds: np.ndarray, size: int,
-                     env: Optional[sb3.common.vec_env.vec_normalize.VecNormalize] = None) -> DictReplayBufferSamples:
+                     env: Optional[sb3.common.vec_env.vec_normalize.VecNormalize] = None):
         for i in range(size):
             obs = self._normalize_obs(
                 {key: obs[batch_inds, i, 0, :] for key, obs in self.observations.items()})
@@ -436,7 +436,6 @@ class EpisodicDictReplayBuffer(sb3.common.buffers.BaseBuffer):
                 rewards=self.to_torch(rewards),
                 size=size
             )
-
 
 class LSTM(torch.nn.Module):
     def __init__(self, input_dim, output_dim, net_arch, squash_output=False):

@@ -3,8 +3,9 @@ from constants import params
 from simulations.maze_env import MazeEnv
 from simulations.point import PointEnv
 from simulations.maze_task import CustomGoalReward4Rooms
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union, NamedTuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import os
+import warnings
 import cv2
 import gym
 import stable_baselines3 as sb3

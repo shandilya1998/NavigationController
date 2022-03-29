@@ -7,7 +7,6 @@ import torch
 import psutil
 import copy
 from bg.autoencoder import Autoencoder
-from pytorch_msssim import ssim, ms_ssim
 from constants import params
 """
 Idea of burn in comes from the following paper:
@@ -67,8 +66,8 @@ class TimeDistributedFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtra
         features = self.combine(features)
 
         features = features.contiguous().view(image.size(0), -1, features.size(-1))  # (samples, timesteps, output_size)
-        gen_image = gen_image.contiguous().view(image.size(0), -1, image.size(-3), image.size(-2), image.size(-1))[:, -1]
-        depth = depth.contiguous().view(image.size(0), -1, 1, image.size(-2), image.size(-1))[:, -1]
+        gen_image = gen_image.contiguous().view(image.size(0), -1, image.size(-3), image.size(-2), image.size(-1))
+        depth = depth.contiguous().view(image.size(0), -1, 1, image.size(-2), image.size(-1))
         return features, [gen_image, depth]
 
 class ReccurentDictReplayBufferSamples(NamedTuple):
@@ -1250,21 +1249,16 @@ class RTD3(sb3.TD3):
                 [_, actor_burnin_state], _ = self.actor(replay_data.prev_observations, replay_data.prev_states)
             [action, _], [gen_image, depth] = self.actor(replay_data.observations, actor_burnin_state)
             image = torch.cat([
-                replay_data.observations['scale_1'][:, -1],
-                replay_data.observations['scale_2'][:, -1],
+                replay_data.observations['scale_1'],
+                replay_data.observations['scale_2'],
             ], 1).float() / 255
 
             reconstruction_loss = torch.nn.functional.l1_loss(
                 gen_image, image
             ) + torch.nn.functional.l1_loss(
-                depth, replay_data.observations['depth'][:, -1]
-            ) + 1 - ssim(
-                image[:, :3], gen_image[:, :3],
-                data_range=1.0, size_average=True
-            ) + 1 - ssim(
-                image[:, 3:], gen_image[:, 3:],
-                data_range=1.0, size_average=True
+                depth, replay_data.observations['depth']
             )
+            
             reconstruction_losses.append(reconstruction_loss.item())
 
             # Delayed policy updates

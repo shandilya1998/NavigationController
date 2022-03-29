@@ -1205,12 +1205,12 @@ class RTD3(sb3.TD3):
         supervised_losses = []
         supervised_loss_ratios = []
 
-        for _ in range(gradient_steps):
-
+        steps = 0
+        while steps < gradient_steps:
             self._n_updates += 1
             # Sample replay buffer
             replay_data = self.replay_buffer.sample(batch_size, env=self._vec_normalize_env)
- 
+            steps += replay_data.size
             with torch.no_grad():
                 # Select action according to policy and add clipped noise
                 [_, target_burnin_state], _ = self.actor_target(replay_data.prev_next_observations, replay_data.next_states)

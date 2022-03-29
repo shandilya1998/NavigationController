@@ -123,8 +123,75 @@ class MazeEnv(gym.Env):
         self._websock_server_pipe = None
         self.set_env()
 
-    def _verify_init(self, pos):
-        (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(pos[0], pos[1])
+    def __get_init_pos(self):
+        offset = 5 * self.total_steps / params['total_timesteps']
+        pos = None
+        if self.mode == 'eval':
+            offset = 5.0
+            pos = np.random.uniform(low = -offset, high = offset, size = (2,)) * self._maze_size_scaling
+        elif self.mode == 'imitate':
+            possibilities = [[6, 6]]
+            for i, goal in enumerate(self._task.goals):
+                if i != self._task.goal_index:
+                    (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(goal.pos[0], goal.pos[1])
+                    possibilities.append([row, col])
+
+            r, c = random.choice(possibilities)
+            if r < 6:
+                d_r = -1
+            elif r == 6:
+                d_r = 0
+            else:
+                d_r = 1
+            if c < 6:
+                d_c = -1
+            elif c == 6:
+                d_c = 0
+            else:
+                d_c = 1
+            pos = self._rowcol_to_xy(r + d_r, c + d_c)
+            pos = np.array(pos, dtype = np.float32)
+        else:
+            pos = np.random.uniform(low = -offset, high = offset, size = (2,)) * self._maze_size_scaling
+        return pos, offset
+
+    def _ensure_distance_from_target(self, row, row_frac, col, col_frac, neighbors, offset, pos):
+        target_pos = self._task.goals[self._task.goal_index].pos
+        (pos_row, _), (pos_col, _) = self._xy_to_rowcol_v2(target_pos[0], target_pos[1])
+        if [pos_row, pos_col] in neighbors or [pos_row, pos_col] == [row, col]:
+            pos, offset = self.__get_init_pos()
+            (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(pos[0], pos[1])
+            neighbors = [
+                [row + 1, col],
+                [row, col + 1],
+                [row - 1, col],
+                [row, col - 1],
+                [row + 1, col + 1],
+                [row - 1, col + 1],
+                [row + 1, col - 1],
+                [row - 1, col - 1]
+            ]
+            (row, row_frac), (col, col_frac), neighbors, offset, pos = self._ensure_distance_from_target(
+                row, row_frac, col, col_frac, neighbors, offset, pos
+            )
+        return (row, row_frac), (col, col_frac), neighbors, offset, pos
+
+    def _set_init(self):
+        pos, offset = self.__get_init_pos()
+        (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(pos[0], pos[1]) 
+        neighbors = [
+            [row + 1, col],
+            [row, col + 1],
+            [row - 1, col],
+            [row, col - 1],
+            [row + 1, col + 1],
+            [row - 1, col + 1],
+            [row + 1, col - 1],
+            [row - 1, col - 1]
+        ]
+        (row, row_frac), (col, col_frac), neighbors, offset, pos = self._ensure_distance_from_target(
+            row, row_frac, col, col_frac, neighbors, offset, pos
+        )
         struct = self._maze_structure[row][col]
         if struct.is_block():
             neighbors = [
@@ -312,39 +379,8 @@ class MazeEnv(gym.Env):
         self.wrapped_env = self.model_cls(file_path=file_path, **self.kwargs)
         self.model = self.wrapped_env.model
         self.data = self.wrapped_env.data
-        self.__set_agent_paths()
 
-    def __set_agent_paths(self):
-        offset = 5 * self.total_steps / params['total_timesteps']
-        if self.mode == 'eval':
-            offset = 5.0
-            self._init_pos = np.random.uniform(low = -offset, high = offset, size = (2,)) * self._maze_size_scaling
-        elif self.mode == 'imitate':
-            possibilities = [[6, 6]]
-            for i, goal in enumerate(self._task.goals):
-                if i != self._task.goal_index:
-                    (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(goal.pos[0], goal.pos[1])
-                    possibilities.append([row, col])
-
-            r, c = random.choice(possibilities)
-            if r < 6:
-                d_r = -1
-            elif r == 6:
-                d_r = 0
-            else:
-                d_r = 1
-            if c < 6:
-                d_c = -1
-            elif c == 6:
-                d_c = 0
-            else:
-                d_c = 1
-            self._init_pos = self._rowcol_to_xy(r + d_r, c + d_c)
-            self._init_pos = np.array(self._init_pos, dtype = np.float32)
-        else:
-            self._init_pos = np.random.uniform(low = -offset, high = offset, size = (2,)) * self._maze_size_scaling
-
-        self._init_pos, self._init_ori = self._verify_init(self._init_pos.copy())
+        self._init_pos, self._init_ori = self._set_init()
         self.wrapped_env.set_xy(self._init_pos)
         self.wrapped_env.set_ori(self._init_ori)
         self.dt = self.wrapped_env.dt
@@ -404,14 +440,6 @@ class MazeEnv(gym.Env):
         self.wx.append(self._task.goals[self._task.goal_index].pos[0])
         self.wy.append(self._task.goals[self._task.goal_index].pos[1])
         self.final = [self.wx[-1], self.wy[-1]]
-
-    def __check_lst_waypoints(self, wx, wy):
-        if len(wx) > 1 and len(wy) > 1:
-            print('no reset needed')
-            return wx, wy
-        else:
-            print('resetting again')
-            self.__set_agent_paths()
 
     def __find_cubic_spline_path(self):
         self.cx, self.cy, self.cyaw, self.ck, self.s = calc_spline_course(self.wx, self.wy, params['ds'])

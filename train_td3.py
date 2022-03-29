@@ -427,12 +427,12 @@ if __name__ == '__main__':
     set_seeds(params['seed'])
     logdir = '/content/drive/MyDrive/CNS/exp22'
     pretrained_params_path = '/content/drive/MyDrive/CNS/exp22/autoencoder/exp/model_epoch_150.pt'
-    if not params['debug']:
+    if params['debug']:
         logdir = 'assets/out/models/exp22'
         pretrained_params_path = 'assets/out/models/autoencoder/model.pt'
 
     imitate_policy_path = '/content/drive/MyDrive/CNS/exp22/Imitate_2/il_model_300000_steps.zip'
-    if not params['debug']:
+    if params['debug']:
         imitate_policy_path = 'assets/out/models/imitate/il_model_300000_steps.zip'
     
     _env = MazeEnv(

@@ -1251,8 +1251,7 @@ class RTD3(sb3.TD3):
             image = torch.cat([
                 replay_data.observations['scale_1'],
                 replay_data.observations['scale_2'],
-            ], 1).float() / 255
-
+            ], 2).float() / 255
             reconstruction_loss = torch.nn.functional.l1_loss(
                 gen_image, image
             ) + torch.nn.functional.l1_loss(

@@ -312,7 +312,9 @@ class MazeEnv(gym.Env):
         self.wrapped_env = self.model_cls(file_path=file_path, **self.kwargs)
         self.model = self.wrapped_env.model
         self.data = self.wrapped_env.data
-        
+        self.__set_agent_paths()
+
+    def __set_agent_paths(self):
         offset = 5 * self.total_steps / params['total_timesteps']
         if self.mode == 'eval':
             offset = 5.0
@@ -401,10 +403,15 @@ class MazeEnv(gym.Env):
         self.wy.pop()
         self.wx.append(self._task.goals[self._task.goal_index].pos[0])
         self.wy.append(self._task.goals[self._task.goal_index].pos[1])
-        
-        
-
         self.final = [self.wx[-1], self.wy[-1]]
+
+    def __check_lst_waypoints(self, wx, wy):
+        if len(wx) > 1 and len(wy) > 1:
+            print('no reset needed')
+            return wx, wy
+        else:
+            print('resetting again')
+            self.__set_agent_paths()
 
     def __find_cubic_spline_path(self):
         self.cx, self.cy, self.cyaw, self.ck, self.s = calc_spline_course(self.wx, self.wy, params['ds'])

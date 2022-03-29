@@ -533,7 +533,7 @@ class RecurrentActor(sb3.common.policies.BasePolicy):
             observation = np.array(observation)
 
         observation = sb3.common.utils.obs_as_tensor(observation, self.device)
-        state = [torch.as_tensor(s) for s in state]
+        state = [torch.as_tensor(s).to(self.device) for s in state]
 
         with torch.no_grad():
             [actions, state], [gen_image, depth] = self._predict(observation, state, deterministic=deterministic)
@@ -837,7 +837,7 @@ class RTD3Policy(sb3.common.policies.BasePolicy):
             observation = np.array(observation)
 
         observation = sb3.common.utils.obs_as_tensor(observation, self.device)
-        state = [torch.as_tensor(s) for s in state]
+        state = [torch.as_tensor(s).to(self.device) for s in state]
 
         with torch.no_grad():
             [actions, state], [gen_image, depth] = self._predict(observation, state, deterministic=deterministic)

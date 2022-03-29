@@ -124,12 +124,12 @@ class MazeEnv(gym.Env):
         self.set_env()
 
     def __get_init_pos(self):
-        offset = 5 * self.total_steps / params['total_timesteps']
+        offset = 0.0
         pos = None
         if self.mode == 'eval':
             offset = 5.0
             pos = np.random.uniform(low = -offset, high = offset, size = (2,)) * self._maze_size_scaling
-        elif self.mode == 'imitate':
+        elif self.mode == 'imitate' or self.mode == 'train':
             possibilities = [[6, 6]]
             for i, goal in enumerate(self._task.goals):
                 if i != self._task.goal_index:
@@ -137,18 +137,36 @@ class MazeEnv(gym.Env):
                     possibilities.append([row, col])
 
             r, c = random.choice(possibilities)
-            if r < 6:
-                d_r = -1
-            elif r == 6:
-                d_r = 0
+            d_r, d_c = 0, 0
+            if self.mode == 'imitate':
+                if r < 6:
+                    d_r = -1
+                elif r == 6:
+                    d_r = 0
+                else:
+                    d_r = 1
+                if c < 6:
+                    d_c = -1
+                elif c == 6:
+                    d_c = 0
+                else:
+                    d_c = 1
             else:
-                d_r = 1
-            if c < 6:
-                d_c = -1
-            elif c == 6:
-                d_c = 0
-            else:
-                d_c = 1
+                offset = self.total_steps / (params['total_timesteps'] * 2)
+                if offset > 1.0:
+                    offset = 1.0
+                if r < 6:
+                    d_r = -1 + np.random.uniform(low = 0, high = 3 * offset) * self._maze_size_scaling
+                elif r == 6:
+                    d_r = np.random.uniform(low = -3 * offset, high = 3 * offset) * self._maze_size_scaling
+                else:
+                    d_r = 1 - np.random.uniform(low = 0, high = 3 * offset) * self._maze_size_scaling
+                if c < 6:
+                    d_c = -1 + np.random.uniform(low = 0, high = 3 * offset) * self._maze_size_scaling
+                elif c == 6:
+                    d_c = np.random.uniform(low = -3 * offset, high = 3 * offset) * self._maze_size_scaling
+                else:
+                    d_c = 1 - np.random.uniform(low = 0, high = 3 * offset) * self._maze_size_scaling
             pos = self._rowcol_to_xy(r + d_r, c + d_c)
             pos = np.array(pos, dtype = np.float32)
         else:
@@ -217,7 +235,6 @@ class MazeEnv(gym.Env):
             col = c + d_c + 1
             x, y = self._rowcol_to_xy(row, col)
             pos = np.array([x, y], dtype = np.float32)
-            (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(pos[0], pos[1])
 
         (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(pos[0], pos[1])
         neighbors = [
@@ -949,11 +966,10 @@ class MazeEnv(gym.Env):
         info = {}
         self.actions.pop(0)
         self.actions.append(action.copy()[1:])
-        inner_next_obs, inner_reward, _, info = self.wrapped_env.step(action)
+        _, inner_reward, _, info = self.wrapped_env.step(action)
 
         # Observation and Parameter Gathering
         x, y = self.wrapped_env.get_xy()
-        (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(x, y)
         yaw = self.get_ori()
         v = np.linalg.norm(self.data.qvel[:2])
         self.state.set(x, y, v, yaw)

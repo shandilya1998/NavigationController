@@ -301,26 +301,24 @@ class Callback(sb3.common.callbacks.EventCallback):
                         _locals['observations']['scale_2'][0, :3].transpose(1, 2, 0),
                         size
                     )
-                    #print(_locals['gen_image'].shape)
                     gen_scale_1 = cv2.resize(
-                         _locals['gen_image'][:3].transpose(1, 2, 0) * 255,
+                         _locals['gen_image'][0, :3].transpose(1, 2, 0) * 255,
                          size
                     )
                     gen_scale_2 = cv2.resize(
-                        _locals['gen_image'][3:].transpose(1, 2, 0) * 255,
+                        _locals['gen_image'][0, 3:].transpose(1, 2, 0) * 255,
                         size
                     )
 
                     gen_scale_1 = gen_scale_1.astype(np.uint8)
                     gen_scale_2 = gen_scale_2.astype(np.uint8)
-
                     depth = _locals['observations']['depth'][0].transpose(1, 2, 0) * 255
                     depth = depth.astype(np.uint8)
                     depth = cv2.cvtColor(cv2.resize(
                         depth,
                         size
                     ), cv2.COLOR_GRAY2RGB)
-                    gen_depth =  _locals['depth'].transpose(1, 2, 0) * 255
+                    gen_depth =  _locals['depth'][0].transpose(1, 2, 0) * 255
                     gen_depth = gen_depth.astype(np.uint8)
                     gen_depth = cv2.cvtColor(cv2.resize(
                         gen_depth,

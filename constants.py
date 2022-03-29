@@ -38,7 +38,7 @@ params = {
     'render_freq'                 : int(4.5e4),
     'save_freq'                   : int(4.5e4),
     'eval_freq'                   : int(1.5e4),
-    'buffer_size'                 : int(2e5),
+    'buffer_size'                 : int(3e5),
     'max_episode_size'            : int(1.5e3),
     'max_seq_len'                 : 10,
     'burn_in_seq_len'             : 5,

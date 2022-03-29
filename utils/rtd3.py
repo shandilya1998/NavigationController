@@ -3,11 +3,12 @@ import numpy as np
 import gym
 import stable_baselines3 as sb3
 from typing import NamedTuple, Any, Dict, List, Optional, Tuple, Union, Type
-from stable_baselines3.common import type_aliases
 import torch
 import psutil
 import copy
-
+from bg.autoencoder import Autoencoder
+from pytorch_msssim import ssim, ms_ssim
+from constants import params
 """
 Idea of burn in comes from the following paper:
 https://openreview.net/pdf?id=r1lyTjAqYX
@@ -16,6 +17,59 @@ https://openreview.net/pdf?id=r1lyTjAqYX
 TensorDict = Dict[Union[str, int], torch.Tensor]
 TensorList = List[torch.Tensor]
 
+class TimeDistributedFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
+    def __init__(self,
+        observation_space: gym.Space,
+        features_dim: int,
+        pretrained_params_path = 'assets/out/models/autoencoder/model.pt',
+        device = None,
+    ):
+        super(TimeDistributedFeaturesExtractor, self).__init__(observation_space, features_dim)
+        self.vc = Autoencoder(
+            [1, 1, 1, 1],
+            features_dim,
+            3
+        )
+
+        self.linear = torch.nn.Sequential(
+            torch.nn.Linear(512, features_dim),
+            torch.nn.Tanh()
+        )
+
+        self.fc_sensors = torch.nn.Sequential(
+            torch.nn.Linear(
+                observation_space['sensors'].shape[-1],
+                2 * observation_space['sensors'].shape[-1]
+            ),
+            torch.nn.Tanh()
+        )
+
+        self.combine = torch.nn.Sequential(
+            torch.nn.Linear(features_dim + 2 * observation_space['sensors'].shape[-1], features_dim),
+            torch.nn.Tanh()
+        )
+
+    def forward(self, observations):
+        image = torch.cat([
+            observations['scale_1'], observations['scale_2']
+        ], 2)
+        image_reshape = image.contiguous().view(-1, image.size(-3), image.size(-2), image.size(-1))
+        visual, [gen_image, depth] = self.vc(image_reshape)
+        visual = torch.nn.functional.adaptive_avg_pool2d(visual, 1)
+        visual = visual.view(visual.size(0), -1)
+        visual = self.linear(visual)
+
+        sensors = observations['sensors']
+        sensors_reshape = sensors.contiguous().view(-1, sensors.size(-1))
+        sensors_reshape = self.fc_sensors(sensors_reshape)
+
+        features = torch.cat([visual, sensors_reshape], -1)
+        features = self.combine(features)
+
+        features = features.contiguous().view(image.size(0), -1, features.size(-1))  # (samples, timesteps, output_size)
+        gen_image = gen_image.contiguous().view(image.size(0), -1, image.size(-3), image.size(-2), image.size(-1))[:, -1]
+        depth = depth.contiguous().view(image.size(0), -1, 1, image.size(-2), image.size(-1))[:, -1]
+        return features, [gen_image, depth]
 
 class ReccurentDictReplayBufferSamples(NamedTuple):
     prev_observations: TensorDict
@@ -25,10 +79,12 @@ class ReccurentDictReplayBufferSamples(NamedTuple):
     observations: TensorDict
     actions: torch.Tensor
     prev_actions: torch.Tensor
+    prev_next_actions: torch.Tensor
     next_observations: TensorDict
     dones: torch.Tensor
     rewards: torch.Tensor
-    states: TensorList
+    size: int
+    prev_size: int
 
 
 class DictReplayBuffer(sb3.common.buffers.ReplayBuffer):
@@ -97,7 +153,6 @@ class DictReplayBuffer(sb3.common.buffers.ReplayBuffer):
         ]
 
         # only 1 env is supported
-        self.prev_actions = np.zeros((self.buffer_size, self.action_dim), dtype=action_space.dtype)
         self.actions = np.zeros((self.buffer_size, self.action_dim), dtype=action_space.dtype)
         self.rewards = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
         self.dones = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
@@ -133,7 +188,6 @@ class DictReplayBuffer(sb3.common.buffers.ReplayBuffer):
         obs: Dict[str, np.ndarray],
         next_obs: Dict[str, np.ndarray],
         action: np.ndarray,
-        prev_actions: np.ndarray,
         reward: np.ndarray,
         done: np.ndarray,
         states: List[np.ndarray],
@@ -153,7 +207,6 @@ class DictReplayBuffer(sb3.common.buffers.ReplayBuffer):
             self.next_states[i][self.pos] = np.array(state).copy()
 
         self.actions[self.pos] = np.array(action).copy()
-        self.prev_actions[self.pos] = np.array(prev_actions).copy()
         self.rewards[self.pos] = np.array(reward).copy()
         self.dones[self.pos] = np.array(done).copy()
 
@@ -189,29 +242,54 @@ class DictReplayBuffer(sb3.common.buffers.ReplayBuffer):
         prev_inds = np.repeat(np.expand_dims(batch_inds, 1), self.burn_in_seq_len, 1) + offsets
         offset = self.buffer_size if self.full else self.pos
         prev_inds[prev_inds < 0] = prev_inds[prev_inds < 0] + offset
+        max_ind = self.buffer_size - 1 if self.full else self.pos
+        prev_next_inds = prev_inds + 1
+        prev_next_inds[prev_next_inds > max_ind] = prev_next_inds[prev_next_inds > max_ind] - max_ind
         prev_done_inds = prev_inds
         prev_dones = self.dones[prev_done_inds, 0]
+        prev_next_dones = self.dones[prev_next_inds, 0]
         include = np.flip(np.multiply.accumulate(np.flip(1 - prev_dones, 1), 1), 1)
+        next_include = np.flip(np.multiply.accumulate(np.flip(1 - prev_next_dones, 1), 1), 1)
         prev_obs = self._normalize_obs({
-            key: obs[prev_inds, 0, :] * self.__expand_include(include, obs[prev_inds, 0, :].shape).astype(obs.dtype) for key, obs in self.observations.items()
-            })
+            key: obs[prev_inds, 0, :] * self.__expand_include(
+                include,
+                obs[prev_inds, 0, :].shape
+            ).astype(obs.dtype) for key, obs in self.observations.items()
+        })
         prev_next_obs = self._normalize_obs({
             key: obs[prev_inds, 0, :] * self.__expand_include(include, obs[prev_inds, 0, :].shape).astype(obs.dtype) for key, obs in self.next_observations.items()
-            })
-        prev_states = [state[prev_inds[:, 0], 0] * np.prod(include, 1) for state in self.states]
-        next_states = [state[prev_inds[:, 0], 0] * np.prod(include, 1) for state in self.next_states]
-    
+        })
+        prev_states = [
+            state[prev_inds[:, 0], 0] * self.__expand_include(
+                np.prod(include, 1),
+                state[prev_inds[:, 0], 0].shape
+            ) for state in self.states
+        ]
+        next_states = [
+            state[prev_inds[:, 0], 0] * self.__expand_include(
+                np.prod(include, 1),
+                state[prev_inds[:, 0], 0].shape
+            ) for state in self.next_states
+        ]
+        prev_actions = self.actions[prev_inds] * self.__expand_include(
+            include,
+            self.actions[prev_inds].shape
+        )
+        prev_next_actions = self.actions[prev_next_inds] * self.__expand_include(
+            next_include,
+            self.actions[prev_next_inds].shape
+        )
+
         # Computing indices for timesteps used for gradient computation
         inds = np.repeat(np.expand_dims(batch_inds, 1), self.max_seq_len, 1)
-        offsets = np.repeat(np.expand_dims(np.arange(0, self.max_seq_len), 0), len(batch_inds))
+        offsets = np.repeat(np.expand_dims(np.arange(0, self.max_seq_len), 0), len(batch_inds), 0)
         inds = inds + offsets
-        max_ind = self.buffer_size - 1 if self.full else self.pos
         inds[inds > max_ind] = inds[inds > max_ind] - max_ind
         dones = self.dones[inds]
         size = self.max_seq_len
         all_dones = np.where(dones == 1)[1]
         if len(all_dones) > 0:
-            size = all_dones.min()
+            size = all_dones.min() + 1
         inds = inds[:, :size]
 
         # Normalize if needed and remove extra dimension (we are using only one env for now)
@@ -219,7 +297,6 @@ class DictReplayBuffer(sb3.common.buffers.ReplayBuffer):
         obs = self._normalize_obs({key: obs[inds, 0, :] for key, obs in self.observations.items()})
         next_obs = self._normalize_obs({key: obs[inds, 0, :] for key, obs in self.next_observations.items()})
         actions = self.actions[inds]
-        prev_actions = self.prev_actions[inds]
         rewards = self._normalize_reward(self.rewards[inds], env)
         states = [
                 state[inds] for state in self.states
@@ -230,10 +307,11 @@ class DictReplayBuffer(sb3.common.buffers.ReplayBuffer):
         next_observations = {key: self.to_torch(obs) for key, obs in next_obs.items()}
         prev_observations = {key: self.to_torch(obs) for key, obs in prev_obs.items()}
         prev_next_observations = {key: self.to_torch(obs) for key, obs in prev_next_obs.items()}
-        prev_states = [self.to_torch(state) for state in prev_states]
-        next_states = [self.to_torch(state) for state in next_states]
+        prev_states = [self.to_torch(state.transpose(1, 0, 2)) for state in prev_states]
+        next_states = [self.to_torch(state.transpose(1, 0 ,2)) for state in next_states]
         actions = self.to_torch(actions)
         prev_actions = self.to_torch(prev_actions)
+        prev_next_actions = self.to_torch(prev_next_actions)
         rewards = self.to_torch(rewards)
         dones = self.to_torch(dones)
         states = [self.to_torch(state) for state in states]
@@ -246,14 +324,16 @@ class DictReplayBuffer(sb3.common.buffers.ReplayBuffer):
             observations=observations,
             actions=actions,
             prev_actions=prev_actions,
+            prev_next_actions=prev_next_actions,
             next_observations=next_observations,
             dones=dones,
             rewards=rewards,
-            states=states
+            prev_size=self.burn_in_seq_len,
+            size=size
         )
 
 
-class Network(torch.nn.Module):
+class ActorNetwork(torch.nn.Module):
     def __init__(
         self,
         features_dim,
@@ -262,7 +342,56 @@ class Network(torch.nn.Module):
         net_arch,
         squash_output=False
     ):
-        super(Network, self).__init__()
+        super(ActorNetwork, self).__init__()
+        self.gru = torch.nn.GRU(
+            input_size=features_dim,
+            hidden_size=net_arch[0],
+            num_layers=1,
+            bias=False,
+            batch_first=True,
+        )
+        input_size = net_arch[0]
+        linear = []
+        for param in net_arch[1:]:
+            linear.append(torch.nn.Linear(
+                input_size,
+                param
+            ))
+            linear.append(activation_fn())
+            input_size = param
+        linear.append(torch.nn.Linear(
+            input_size,
+            output_dim
+        ))
+        last = -1
+        if squash_output:
+            linear.append(torch.nn.Tanh())
+            last = -2
+        torch.nn.init.uniform_(linear[last].weight, -3e-3, 3e-3)
+        torch.nn.init.uniform_(linear[last].bias, -3e-4, 3e-4)
+
+        self.linear = torch.nn.Sequential(
+            *linear
+        )
+
+    def forward(self, features, hidden_state):
+        output, state = self.gru(features, hidden_state[0])
+        hidden_state = [state]
+        output_reshape = output.contiguous().view(-1, output.size(-1))
+        output_reshape = self.linear(output_reshape)
+        output = output_reshape.contiguous().view(features.size(0), -1, output_reshape.size(-1))
+        return [output, hidden_state]
+
+class CriticNetwork(torch.nn.Module):
+    def __init__(
+        self,
+        features_dim,
+        activation_fn,
+        output_dim,
+        net_arch,
+        squash_output=False
+    ):
+        super(CriticNetwork, self).__init__()
         self.gru = torch.nn.GRU(
             input_size=features_dim,
             hidden_size=net_arch[0],
@@ -299,7 +428,6 @@ class Network(torch.nn.Module):
         hidden_state = [state]
         output = self.linear(output[:, -1])
         return [output, hidden_state]
-
 
 class RecurrentActor(sb3.common.policies.BasePolicy):
     """
@@ -341,7 +469,7 @@ class RecurrentActor(sb3.common.policies.BasePolicy):
         squash_output = True
 
         # Deterministic action
-        self.mu = Network(
+        self.mu = ActorNetwork(
             features_dim=features_dim,
             activation_fn=activation_fn,
             output_dim=action_dim,
@@ -375,37 +503,37 @@ class RecurrentActor(sb3.common.policies.BasePolicy):
     def predict(self, observation: Union[np.ndarray, Dict[str, np.ndarray]],
             state: List[np.ndarray],
             mask: Optional[np.ndarray] = None,
-            deterministic: bool = False):
+            deterministic: bool = False,
+            steps: int = 1):
 
         vectorized_env = False
         if isinstance(observation, dict):
             # need to copy the dict as the dict in VecFrameStack will become a torch tensor
             observation = copy.deepcopy(observation)
-            for key, obs in observation.items():
+            for key, _obs in observation.items():
                 obs_space = self.observation_space.spaces[key]
-                if sb3.common.preprocessing.is_image_space(obs_space):
-                    obs_ = sb3.common.preprocessing.maybe_transpose(obs, obs_space)
-                else:
-                    obs_ = np.array(obs)
-                vectorized_env = vectorized_env or sb3.common.utils.is_vectorized_observation(obs_, obs_space)
-                # Add batch dimension if needed
-                observation[key] = obs_.reshape((-1,) + self.observation_space[key].shape)
+                for step in range(steps):
+                    obs = _obs[:, step]
+                    if sb3.common.preprocessing.is_image_space(obs_space):
+                        obs_ = sb3.common.preprocessing.maybe_transpose(obs, obs_space)
+                    else:
+                        obs_ = np.array(obs)
+                    vectorized_env = vectorized_env or sb3.common.utils.is_vectorized_observation(obs_, obs_space)
+                    # Add batch dimension if needed
+                    observation[key][step] = obs_.reshape((-1,) + self.observation_space[key].shape)
 
         elif sb3.common.preprocessing.is_image_space(self.observation_space):
             # Handle the different cases for images
             # as PyTorch use channel first format
-            observation = sb3.common.preprocessing.maybe_transpose(observation, self.observation_space)
+            observation = np.split(observation, steps, 1)
+            for step in range(steps):
+                observation[step][:, 0] = sb3.common.preprocessing.maybe_transpose(observation[step][:, 0], self.observation_space)
+            observation = np.concatenate(observation, 1)
         else:
             observation = np.array(observation)
 
-        if not isinstance(observation, dict):
-            # Dict obs need to be handled separately
-            vectorized_env = sb3.common.utils.is_vectorized_observation(observation, self.observation_space)
-            # Add batch dimension if needed
-            observation = observation.reshape((-1,) + self.observation_space.shape)
-
         observation = sb3.common.utils.obs_as_tensor(observation, self.device)
-        state = [torch.as_tensor(s) for s in state]    
+        state = [torch.as_tensor(s) for s in state]
 
         with torch.no_grad():
             [actions, state], [gen_image, depth] = self._predict(observation, state, deterministic=deterministic)
@@ -430,6 +558,10 @@ class RecurrentActor(sb3.common.policies.BasePolicy):
             actions = actions[0]
             gen_image = gen_image[0]
             depth = depth[0]
+            if steps == 1: 
+                actions = actions[0]
+                gen_image = gen_image[0]
+                depth = depth[0]
 
         return [actions, [gen_image, depth]], state
 
@@ -484,7 +616,7 @@ class RecurrentContinuousCritic(sb3.common.policies.BaseModel):
         self.n_critics = n_critics
         self.q_networks = []
         for idx in range(n_critics):
-            q_net = Network(
+            q_net = CriticNetwork(
                 features_dim=features_dim + action_dim,
                 activation_fn=activation_fn,
                 output_dim=1,
@@ -495,16 +627,18 @@ class RecurrentContinuousCritic(sb3.common.policies.BaseModel):
             self.q_networks.append(q_net)
 
     def forward(self,
-                obs: torch.Tensor,
-                states: List[List[torch.Tensor]],
-                actions: torch.Tensor) -> Tuple[Tuple[torch.Tensor],
-                                                Tuple[List[torch.Tensor]]]:
+        obs: torch.Tensor,
+        actions: torch.Tensor,
+        states: Optional[List[List[torch.Tensor]]] = None
+    ) -> Tuple[Tuple[torch.Tensor], Tuple[List[torch.Tensor]]]:
         # Learn the features extractor using the policy loss only
         # when the features_extractor is shared with the actor
         with torch.set_grad_enabled(not self.share_features_extractor):
             features, _ = self.extract_features(obs)
         _states = []
         outputs = []
+        if states is None:
+            states = [[None] for i in range(self.n_critics)]
         for i, q_net in enumerate(self.q_networks):
             output, state = q_net(torch.cat([features, actions], -1), states[i])
             outputs.append(output)
@@ -512,10 +646,10 @@ class RecurrentContinuousCritic(sb3.common.policies.BaseModel):
         return tuple(outputs), tuple(_states)
 
     def q1_forward(self,
-                   obs: torch.Tensor,
-                   states: List[torch.Tensor],
-                   actions: torch.Tensor) -> Tuple[torch.Tensor,
-                                                   List[torch.Tensor]]:
+       obs: torch.Tensor,
+       actions: torch.Tensor,
+       states: Optional[List[List[torch.Tensor]]] = None
+    ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         """
         Only predict the Q-value using the first network.
         This allows to reduce computation when all the estimates are not needed
@@ -523,6 +657,8 @@ class RecurrentContinuousCritic(sb3.common.policies.BaseModel):
         """
         with torch.no_grad():
             features, _ = self.extract_features(obs)
+        if states is None:
+            states = [None]
         return self.q_networks[0](torch.cat([features, actions], -1), states)
 
 
@@ -659,47 +795,46 @@ class RTD3Policy(sb3.common.policies.BasePolicy):
         critic_kwargs = self._update_features_extractor(self.critic_kwargs, features_extractor)
         return RecurrentContinuousCritic(**critic_kwargs).to(self.device)
 
-    def forward(self, obs: torch.Tensor, state: List[torch.Tensor]):
+    def forward(self, obs: torch.Tensor, state: List[torch.Tensor], deterministic: bool = False):
         # assert deterministic, 'The TD3 actor only outputs deterministic actions'
-        features, [gen_image, depth] = self.extract_features(obs)
-        return self.mu(features, state), [gen_image, depth]
+        return self._predict(observation, state, deterministic=deterministic)
 
     def _predict(self, observation: torch.Tensor, state: List[torch.Tensor], deterministic: bool = False):
         # Note: the deterministic deterministic parameter is ignored in the case of TD3.
         #   Predictions are always deterministic.
-        return self.forward(observation, state)
+        return self.actor(observation, state)
 
     def predict(self, observation: Union[np.ndarray, Dict[str, np.ndarray]],
             state: List[np.ndarray],
             mask: Optional[np.ndarray] = None,
-            deterministic: bool = False):
+            deterministic: bool = False,
+            steps: int = 1):
 
         vectorized_env = False
         if isinstance(observation, dict):
             # need to copy the dict as the dict in VecFrameStack will become a torch tensor
             observation = copy.deepcopy(observation)
-            for key, obs in observation.items():
+            for key, _obs in observation.items():
                 obs_space = self.observation_space.spaces[key]
-                if sb3.common.preprocessing.is_image_space(obs_space):
-                    obs_ = sb3.common.preprocessing.maybe_transpose(obs, obs_space)
-                else:
-                    obs_ = np.array(obs)
-                vectorized_env = vectorized_env or sb3.common.utils.is_vectorized_observation(obs_, obs_space)
-                # Add batch dimension if needed
-                observation[key] = obs_.reshape((-1,) + self.observation_space[key].shape)
+                for step in range(steps):
+                    obs = _obs[:, step]
+                    if sb3.common.preprocessing.is_image_space(obs_space):
+                        obs_ = sb3.common.preprocessing.maybe_transpose(obs, obs_space)
+                    else:
+                        obs_ = np.array(obs)
+                    vectorized_env = vectorized_env or sb3.common.utils.is_vectorized_observation(obs_, obs_space)
+                    # Add batch dimension if needed
+                    observation[key][step] = obs_.reshape((-1,) + self.observation_space[key].shape)
 
         elif sb3.common.preprocessing.is_image_space(self.observation_space):
             # Handle the different cases for images
             # as PyTorch use channel first format
-            observation = sb3.common.preprocessing.maybe_transpose(observation, self.observation_space)
+            observation = np.split(observation, steps, 1)
+            for step in range(steps):
+                observation[step][:, 0] = sb3.common.preprocessing.maybe_transpose(observation[step][:, 0], self.observation_space)
+            observation = np.concatenate(observation, 1)
         else:
             observation = np.array(observation)
-
-        if not isinstance(observation, dict):
-            # Dict obs need to be handled separately
-            vectorized_env = sb3.common.utils.is_vectorized_observation(observation, self.observation_space)
-            # Add batch dimension if needed
-            observation = observation.reshape((-1,) + self.observation_space.shape)
 
         observation = sb3.common.utils.obs_as_tensor(observation, self.device)
         state = [torch.as_tensor(s) for s in state]
@@ -727,13 +862,17 @@ class RTD3Policy(sb3.common.policies.BasePolicy):
             actions = actions[0]
             gen_image = gen_image[0]
             depth = depth[0]
-
+        if steps == 1: 
+            actions = actions[0]
+            gen_image = gen_image[0]
+            depth = depth[0]
+        
         return [actions, [gen_image, depth]], state
 
 class RTD3(sb3.TD3):
     def __init__(
         self,
-        policy: Union[str, Type[TD3Policy]],
+        policy: Union[str, Type[RTD3Policy]],
         env: Union[sb3.common.type_aliases.GymEnv, str],
         state_spec: List[Tuple[Tuple[int], np.dtype]],
         learning_rate: Union[float, sb3.common.type_aliases.Schedule] = 1e-3,
@@ -818,14 +957,32 @@ class RTD3(sb3.TD3):
                 tb_log_name)
     
         self._last_state = [
-                np.zeros((1,) + self.state_spec[i][0], dtype = self.state_spec[i][1]) for i in range(len(self.state_spec))
+                np.zeros((1,) + self.state_spec[i][0], dtype = self.state_spec[i][1]).transpose(1, 0, 2) for i in range(len(self.state_spec))
                 ]
         self._next_state = [
-                np.zeros((1,) + self.state_spec[i][0], dtype = self.state_spec[i][1]) for i in range(len(self.state_spec))
+                np.zeros((1,) + self.state_spec[i][0], dtype = self.state_spec[i][1]).transpose(1, 0 ,2) for i in range(len(self.state_spec))
                 ]
-        self._last_actions = np.zeros(shape = self.env.action_space.shape, dtype = self.env.action_space.dtype)
 
         return total_timesteps, callback
+
+    def predict(
+        self,
+        observation: np.ndarray,
+        state: Optional[np.ndarray] = None,
+        mask: Optional[np.ndarray] = None,
+        deterministic: bool = False,
+        steps: int = 1,
+    ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
+        """
+        Get the model's action(s) from an observation
+        :param observation: the input observation
+        :param state: The last states (can be None, used in recurrent policies)
+        :param mask: The last masks (can be None, used in recurrent policies)
+        :param deterministic: Whether or not to return deterministic actions.
+        :return: the model's action and the next state
+            (used in recurrent policies)
+        """
+        return self.policy.predict(observation, state, mask, deterministic, steps = steps)
 
     def _sample_action(
         self, learning_starts: int, action_noise: Optional[sb3.common.noise.ActionNoise] = None
@@ -852,7 +1009,7 @@ class RTD3(sb3.TD3):
             # we assume that the policy uses tanh to scale the action
             # We use non-deterministic action in the case of SAC, for TD3, it does not matter
             self._last_obs = {key: np.expand_dims(ob, 1) for key, ob in self._last_obs.items()}
-            [unscaled_action, _], self._next_state = self.predict(self._last_obs, state = self._last_state, deterministic=False)
+            [unscaled_action, _], self._next_state = self.predict(self._last_obs, state = self._last_state, deterministic=False, steps = 1)
         
         # Rescale the action from [low, high] to [-1, 1]
         if isinstance(self.action_space, gym.spaces.Box):
@@ -915,16 +1072,14 @@ class RTD3(sb3.TD3):
             self._last_original_obs,
             next_obs,
             buffer_action,
-            self._last_actions,
             reward_,
+            done,
             [s[0] for s in self._last_state],
             [s[0] for s in self._next_state],
-            done,
             infos,
         )
 
         self._last_obs = new_obs
-        self._last_actions = buffer_action
         self._last_state = self._next_state
         # Save the unnormalized observation
         if self._vec_normalize_env is not None:
@@ -1025,7 +1180,6 @@ class RTD3(sb3.TD3):
                 self._next_state = [
                         np.zeros((1,) + self.state_spec[i][0], dtype = self.state_spec[i][1]) for i in range(len(self.state_spec))
                         ]
-                self._last_actions = np.zeros(shape = self.env.action_space.shape, dtype = self.env.action_space.dtype)
                 episode_rewards.append(episode_reward)
                 total_timesteps.append(episode_timesteps)
 
@@ -1051,42 +1205,36 @@ class RTD3(sb3.TD3):
         supervised_losses = []
         supervised_loss_ratios = []
 
-        init_critic_state = [[
-                torch.as_tensor(
-                    np.zeros((1,) + self.state_spec[i][0], dtype = self.state_spec[i][1])
-                ).to(self.device) for i in range(len(self.state_spec))
-                ] for i in range(self.n_critics)]
-
         for _ in range(gradient_steps):
 
             self._n_updates += 1
             # Sample replay buffer
             replay_data = self.replay_buffer.sample(batch_size, env=self._vec_normalize_env)
-
+ 
             with torch.no_grad():
                 # Select action according to policy and add clipped noise
-                _, target_burnin_state = self.actor_target(replay_data.prev_next_observations, replay_data.next_states)
+                [_, target_burnin_state], _ = self.actor_target(replay_data.prev_next_observations, replay_data.next_states)
                 noise = replay_data.actions.clone().data.normal_(0, self.target_policy_noise)
                 noise = noise.clamp(-self.target_noise_clip, self.target_noise_clip)
-                next_actions, _ = self.actor_target(replay_data.next_observations, target_burnin_state)
+                [next_actions, _], _ = self.actor_target(replay_data.next_observations, target_burnin_state)
                 next_actions = (next_actions + noise).clamp(-1, 1)
 
                 # Compute the next Q-values: min over all critics targets
-                init_critic_state = [[s.detach() for s in state] for state in init_critic_state]
-                _, target_critic_burnin_state = self.critic_target(replay_data.prev_next_observations, init_critic_state, replay_data.actions)
-                next_q_values = torch.cat(self.critic_target(replay_data.next_observations, target_critic_burnin_state, next_actions), dim=1)
+                _, target_critic_burnin_state = self.critic_target(replay_data.prev_next_observations, replay_data.prev_next_actions, None)
+                next_q_values, _ = self.critic_target(replay_data.next_observations, next_actions, target_critic_burnin_state)
+                next_q_values = torch.cat(next_q_values, dim=1)
                 next_q_values, _ = torch.min(next_q_values, dim=1, keepdim=True)
                 gamma = torch.as_tensor(np.multiply.accumulate(
                         np.ones(
                             shape = replay_data.rewards.shape,
                             dtype = np.float32) * self.gamma, 1
-                        ) *  / self.gamma).to(self.device)
-                target_q_values = torch.sum(replay_data.rewards * rewards, 1) + (1 - replay_data.dones[:, -1]) * self.gamma * next_q_values
+                        ) / self.gamma).to(self.device)
+                target_q_values = torch.sum(replay_data.rewards * gamma, 1) + (1 - replay_data.dones[:, -1]) * self.gamma * next_q_values
 
             # Get current Q-values estimates for each critic network
-            init_critic_state = [[s.detach() for s in state] for state in init_critic_state]
-            _, critic_burnin_state = self.critic(replay_data.prev_observations, init_critic_state, replay_data.prev_actions)
-            current_q_values = self.critic(replay_data.observations, critic_burnin_state, replay_data.actions)
+            with torch.no_grad():
+                _, critic_burnin_state = self.critic(replay_data.prev_observations, replay_data.prev_actions, None)
+            current_q_values, _ = self.critic(replay_data.observations, replay_data.actions, critic_burnin_state)
 
             # Compute critic loss
             critic_loss = sum([torch.nn.functional.mse_loss(current_q, target_q_values) for current_q in current_q_values])
@@ -1097,16 +1245,19 @@ class RTD3(sb3.TD3):
             critic_loss.backward()
             self.critic.optimizer.step()
 
-            action, [gen_image, depth] = self.actor(replay_data.observations)
+            
+            with torch.no_grad():
+                [_, actor_burnin_state], _ = self.actor(replay_data.prev_observations, replay_data.prev_states)
+            [action, _], [gen_image, depth] = self.actor(replay_data.observations, actor_burnin_state)
             image = torch.cat([
-                 replay_data.observations['scale_1'],
-                 replay_data.observations['scale_2'],
+                replay_data.observations['scale_1'][:, -1],
+                replay_data.observations['scale_2'][:, -1],
             ], 1).float() / 255
 
             reconstruction_loss = torch.nn.functional.l1_loss(
                 gen_image, image
             ) + torch.nn.functional.l1_loss(
-                depth, replay_data.observations['depth']
+                depth, replay_data.observations['depth'][:, -1]
             ) + 1 - ssim(
                 image[:, :3], gen_image[:, :3],
                 data_range=1.0, size_average=True
@@ -1123,17 +1274,17 @@ class RTD3(sb3.TD3):
                 supervised_loss_ratios.append(ratio)
                 supervised_loss = torch.nn.functional.mse_loss(action, replay_data.observations['scaled_sampled_action'])
                 supervised_losses.append(supervised_loss.item())
-                init_critic_state = [[s.detach() for s in state] for state in init_critic_state]
-                _, critic_burnin_state = self.critic.q1_forward(replay_data.prev_observations, init_critic_state[0], replay_data.prev_actions)
-                q, _ = self.critic.q1_forward(replay_data.observations, action)
+                with torch.no_grad():
+                    _, critic_burnin_state = self.critic.q1_forward(replay_data.prev_observations, replay_data.prev_actions, None)
+                q, _ = self.critic.q1_forward(replay_data.observations, action, critic_burnin_state)
                 q_loss = -q.mean()
                 actor_losses.append(q_loss.item())
                 actor_loss = supervised_loss * ratio + q_loss * (1 - ratio)
             else:
                 supervised_loss_ratios.append(0.0)
-                init_critic_state = [[s.detach() for s in state] for state in init_critic_state]
-                _, critic_burnin_state = self.critic.q1_forward(replay_data.prev_observations, init_critic_state[0], replay_data.prev_actions)
-                q, _ = self.critic.q1_forward(replay_data.observations, action)
+                with torch.no_grad():
+                    _, critic_burnin_state = self.critic.q1_forward(replay_data.prev_observations, replay_data.prev_actions, None)
+                q, _ = self.critic.q1_forward(replay_data.observations, action, critic_burnin_state)
                 actor_loss = -q.mean()
                 actor_losses.append(actor_loss.item())
             actor_loss += reconstruction_loss

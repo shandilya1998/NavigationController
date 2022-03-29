@@ -1,4 +1,5 @@
-from utils.td3 import TD3, FeaturesExtractor, TD3Policy
+from utils.rtd3 import RTD3, RTD3Policy, DictReplayBuffer, TimeDistributedFeaturesExtractor
+from utils.td3 import FeaturesExtractor
 from constants import params
 from simulations.maze_env import MazeEnv
 from simulations.point import PointEnv
@@ -104,9 +105,10 @@ def evaluate_policy(
     current_rewards = np.zeros(n_envs)
     current_lengths = np.zeros(n_envs, dtype="int")
     observations = env.reset()
-    states = None
+    states = [np.zeros((1, ) + spec[0], dtype = spec[1]) for spec in model.state_spec]
     while (episode_counts < episode_count_targets).any():
-        [actions, [gen_image, depth]], states = model.predict(observations, state=states, deterministic=deterministic)
+        obs = {key: np.expand_dims(ob, 1) for key, ob in observations.items()}
+        [actions, [gen_image, depth]], states = model.predict(obs, state=states, deterministic=deterministic)
         observations, rewards, dones, infos = env.step(actions)
         current_rewards += rewards
         current_lengths += 1
@@ -301,11 +303,11 @@ class Callback(sb3.common.callbacks.EventCallback):
                     )
                     #print(_locals['gen_image'].shape)
                     gen_scale_1 = cv2.resize(
-                         _locals['gen_image'][0, :3].transpose(1, 2, 0) * 255,
+                         _locals['gen_image'][:3].transpose(1, 2, 0) * 255,
                          size
                     )
                     gen_scale_2 = cv2.resize(
-                        _locals['gen_image'][0, 3:].transpose(1, 2, 0) * 255,
+                        _locals['gen_image'][3:].transpose(1, 2, 0) * 255,
                         size
                     )
 
@@ -318,8 +320,8 @@ class Callback(sb3.common.callbacks.EventCallback):
                         depth,
                         size
                     ), cv2.COLOR_GRAY2RGB)
-
-                    gen_depth =  _locals['depth'][0].transpose(1, 2, 0) * 255
+                    print(_locals['depth'].shape)
+                    gen_depth =  _locals['depth'].transpose(1, 2, 0) * 255
                     gen_depth = gen_depth.astype(np.uint8)
                     gen_depth = cv2.cvtColor(cv2.resize(
                         gen_depth,
@@ -458,7 +460,7 @@ if __name__ == '__main__':
     policy_kwargs = {
         'net_arch' : params['net_arch'],
         'activation_fn' : torch.nn.Tanh,
-        'features_extractor_class' : FeaturesExtractor,
+        'features_extractor_class' :  TimeDistributedFeaturesExtractor,
         'features_extractor_kwargs' : {
             'features_dim' : params['num_ctx'],
             'pretrained_params_path' : pretrained_params_path,
@@ -471,20 +473,30 @@ if __name__ == '__main__':
         'share_features_extractor' : True
     }
 
-    model = TD3(
-        policy = TD3Policy,
+
+    state_spec = [[(1, params['net_arch'][0]), np.float32]]
+    replay_buffer_kwargs = {
+            'state_spec' : state_spec,
+            'max_seq_len' : params['max_seq_len'],
+            'burn_in_seq_len' : params['burn_in_seq_len']
+            }
+    model = RTD3(
+        policy = RTD3Policy,
         env = train_env,
+        state_spec = state_spec,
         learning_rate = linear_schedule(params['lr'], params['final_lr']),
         buffer_size = params['buffer_size'],
         learning_starts = params['learning_starts'],
         batch_size = params['batch_size'],
+        max_seq_len = params['max_seq_len'],
+        burn_in_seq_len = params['burn_in_seq_len'],
         tau = params['tau'],
         gamma = params['gamma'],
         train_freq = (1, 'episode'),
         gradient_steps = -1,
         action_noise = action_noise,
-        replay_buffer_class = sb3.common.buffers.DictReplayBuffer,
-        replay_buffer_kwargs = None,
+        replay_buffer_class = DictReplayBuffer,
+        replay_buffer_kwargs = replay_buffer_kwargs,
         optimize_memory_usage = False,
         policy_delay = params['policy_delay'],
         target_policy_noise = 0.2,
@@ -497,10 +509,12 @@ if __name__ == '__main__':
         _init_setup_model = True,
         verbose = 2,
     )
-    
+
+    """
     model.set_parameters(
         imitate_policy_path
     )
+    """
 
     env = MazeEnv(
         PointEnv, CustomGoalReward4Rooms,

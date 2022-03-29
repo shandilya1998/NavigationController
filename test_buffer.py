@@ -26,7 +26,7 @@ env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
 )
 
 
-state_spec = [((100,), np.float32)]
+state_spec = [((1, 100), np.float32)]
 buff = DictReplayBuffer(
     buffer_size=int(1e4),
     observation_space=env.observation_space,
@@ -34,8 +34,8 @@ buff = DictReplayBuffer(
     device='cpu',
     n_envs=1,
     state_spec=state_spec,
-    max_seq_len=100,
-    burn_in_seq_len=40
+    max_seq_len=300,
+    burn_in_seq_len=100
 )
 
 count = 0
@@ -52,6 +52,7 @@ for i in tqdm(range(5)):
             reward=reward,
             done=done,
             states=states,
+            next_states=states,
             infos=info
         )
         ob = next_ob
@@ -73,7 +74,7 @@ for i in range(count):
         break
 
 
-for j in range(int(1e5)):
+for j in range(int(1e2)):
     replay = buff.sample(batch_size=1)
     total_steps = replay.prev_observations['scale_1'][0].shape[0] + replay.observations['scale_1'][0].shape[0]
     scale_1 = replay.prev_observations['scale_1'][0].cpu().detach().numpy().transpose(0, 2, 3, 1)

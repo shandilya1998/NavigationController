@@ -320,7 +320,6 @@ class Callback(sb3.common.callbacks.EventCallback):
                         depth,
                         size
                     ), cv2.COLOR_GRAY2RGB)
-                    print(_locals['depth'].shape)
                     gen_depth =  _locals['depth'].transpose(1, 2, 0) * 255
                     gen_depth = gen_depth.astype(np.uint8)
                     gen_depth = cv2.cvtColor(cv2.resize(
@@ -559,7 +558,8 @@ if __name__ == '__main__':
 
     model.learn(
         total_timesteps = params['total_timesteps'],
-        callback = callbacks
+        callback = callbacks,
+        tb_log_name = 'RTD3'
     )
 
     print('Training Done.')

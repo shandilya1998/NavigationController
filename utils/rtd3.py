@@ -1651,18 +1651,12 @@ class Imitate(sb3.TD3):
             reconstruction_losses.append(reconstruction_loss.item())
 
             # Delayed policy updates
-            # Compute actor loss
-            ratio = 1.0
-            if self.num_timesteps < params['staging_steps']:
-                ratio = self.num_timesteps / params['staging_steps']
-            supervised_loss_ratios.append(ratio)
-            
+            # Compute actor loss 
             supervised_loss = torch.nn.functional.mse_loss(action, replay_data.observations['scaled_sampled_action'])
-            supervised_losses.append(supervised_loss.item()) 
-            supervised_loss_ratios.append(ratio)
+            supervised_losses.append(supervised_loss.item())
             actor_loss = reconstruction_loss
             if self._n_updates % self.policy_delay == 0:
-                actor_loss += supervised_loss * ratio
+                actor_loss += supervised_loss
                 actor_losses.append(actor_loss.item())
 
             # Optimize the actor
@@ -1679,4 +1673,3 @@ class Imitate(sb3.TD3):
             self.logger.record("train/supervised_loss", np.mean(supervised_losses))
             self.logger.record('train/actor_loss', np.mean(actor_losses))
             self.logger.record("train/reconstruction", np.mean(reconstruction_losses))
-            self.logger.record("train/supervised_loss_ratio", np.mean(supervised_loss_ratios))

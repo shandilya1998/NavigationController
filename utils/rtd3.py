@@ -1666,8 +1666,10 @@ class Imitate(sb3.TD3):
             # Delayed policy updates
             # Compute actor loss 
             ratio = 1.0
-            if self.num_timesteps < params['staging_steps']:
-                ratio = self.num_timesteps / params['staging_steps']
+            if self.num_timesteps < params['staging_steps'] // 2:
+                ratio = 0.0
+            elif self.num_timesteps < params['staging_steps']:
+                ratio = (2 * self.num_timesteps - params['staging_steps']) / params['staging_steps']
             supervised_loss_ratios.append(ratio)
             supervised_loss = torch.nn.functional.mse_loss(action, replay_data.observations['scaled_sampled_action'])
             supervised_losses.append(supervised_loss.item())

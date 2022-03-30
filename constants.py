@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-debug = True
+debug = False
 
 params = {
     'input_size_low_level_control': 6,
@@ -33,7 +33,7 @@ params = {
     'show_animation'              : False,
     'dt'                          : 0.02,
     'learning_starts'             : int(1.5e3),
-    'staging_steps'               : int(1e5),
+    'staging_steps'               : int(1.5e5),
     'imitation_steps'             : int(2e5),
     'render_freq'                 : int(4.5e4),
     'save_freq'                   : int(4.5e4),
@@ -97,7 +97,6 @@ params = {
     'lstm_steps'                  : 2,
     'autoencoder_arch'            : [1, 1, 1, 1],
     'add_ref_scales'              : False,
-    'stage1'                      : int(2e5),
 }
 
 params_quadruped = {

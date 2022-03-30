@@ -140,33 +140,33 @@ class MazeEnv(gym.Env):
             d_r, d_c = 0, 0
             if self.mode == 'imitate':
                 if r < 6:
-                    d_r = -1
+                    d_r = -0.51
                 elif r == 6:
                     d_r = 0
                 else:
-                    d_r = 1
+                    d_r = 0.49
                 if c < 6:
-                    d_c = -1
+                    d_c = -0.51
                 elif c == 6:
                     d_c = 0
                 else:
-                    d_c = 1
+                    d_c = 0.49
             else:
                 offset = self.total_steps / (params['total_timesteps'] * 2)
                 if offset > 1.0:
                     offset = 1.0
                 if r < 6:
-                    d_r = -1 + np.random.uniform(low = 0, high = 3 * offset) * self._maze_size_scaling
+                    d_r = -0.51 + np.random.uniform(low = 0, high = 3 * offset) * self._maze_size_scaling
                 elif r == 6:
                     d_r = np.random.uniform(low = -3 * offset, high = 3 * offset) * self._maze_size_scaling
                 else:
-                    d_r = 1 - np.random.uniform(low = 0, high = 3 * offset) * self._maze_size_scaling
+                    d_r = 0.49 - np.random.uniform(low = 0, high = 3 * offset) * self._maze_size_scaling
                 if c < 6:
-                    d_c = -1 + np.random.uniform(low = 0, high = 3 * offset) * self._maze_size_scaling
+                    d_c = -0.51 + np.random.uniform(low = 0, high = 3 * offset) * self._maze_size_scaling
                 elif c == 6:
                     d_c = np.random.uniform(low = -3 * offset, high = 3 * offset) * self._maze_size_scaling
                 else:
-                    d_c = 1 - np.random.uniform(low = 0, high = 3 * offset) * self._maze_size_scaling
+                    d_c = 0.49 - np.random.uniform(low = 0, high = 3 * offset) * self._maze_size_scaling
             pos = self._rowcol_to_xy(r + d_r, c + d_c)
             pos = np.array(pos, dtype = np.float32)
         else:
@@ -254,11 +254,8 @@ class MazeEnv(gym.Env):
             r, c = neighbor
             if self.__check_structure_index_validity(r, c):
                 if self._maze_structure[r][c].is_block():
-                    try:
-                        angle = np.arctan2(r - row, c - col)
-                        index = possibilities.index(angle)
-                    except:
-                        pass
+                    angle = np.arctan2(r - row, c - col)
+                    index = possibilities.index(angle)
                     possibilities.pop(index)
 
         ori = np.random.choice([

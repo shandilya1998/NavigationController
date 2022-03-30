@@ -1432,15 +1432,7 @@ class Imitate(sb3.TD3):
             The two differs when the action space is not normalized (bounds are not [-1, 1]).
         """
         # Select action randomly or according to policy
-        if self.num_timesteps < learning_starts and not (self.use_sde and self.use_sde_at_warmup):
-            # Pretraining Phase
-            unscaled_action = self._last_obs['sampled_action']
-        else:
-            # Note: when using continuous actions,
-            # we assume that the policy uses tanh to scale the action
-            # We use non-deterministic action in the case of SAC, for TD3, it does not matter
-            _last_obs = {key: np.expand_dims(ob, 1) for key, ob in self._last_obs.items()}
-            [unscaled_action, _], self._next_state = self.predict(_last_obs, state = self._last_state, deterministic=False, steps = 1)
+        unscaled_action = self._last_obs['sampled_action']
         
         # Rescale the action from [low, high] to [-1, 1]
         if isinstance(self.action_space, gym.spaces.Box):

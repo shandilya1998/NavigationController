@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-debug = False
+debug = True
 
 params = {
     'input_size_low_level_control': 6,
@@ -34,15 +34,15 @@ params = {
     'dt'                          : 0.02,
     'learning_starts'             : int(1.5e3),
     'staging_steps'               : int(6e4),
-    'imitation_steps'             : int(1.5e5),
+    'imitation_steps'             : int(2e5),
     'render_freq'                 : int(4.5e4),
     'save_freq'                   : int(4.5e4),
     'eval_freq'                   : int(1.5e4),
     'buffer_size'                 : int(3e5),
     'max_episode_size'            : int(1.5e3),
-    'max_seq_len'                 : 10,
-    'burn_in_seq_len'             : 5,
-    'total_timesteps'             : int(2e5),
+    'max_seq_len'                 : 100,
+    'burn_in_seq_len'             : 20,
+    'total_timesteps'             : int(1e6),
     'history_steps'               : 15,
     'net_arch'                    : [150, 300, 150],
     'n_critics'                   : 2,

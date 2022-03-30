@@ -437,7 +437,8 @@ if __name__ == '__main__':
     _env = MazeEnv(
         PointEnv, CustomGoalReward4Rooms, 
         params['max_episode_size'],
-        params['history_steps']
+        params['history_steps'],
+        mode = 'imitate'
     )
 
     train_env = sb3.common.vec_env.vec_transpose.VecTransposeImage(

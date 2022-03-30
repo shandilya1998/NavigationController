@@ -8,6 +8,7 @@ import psutil
 import copy
 from bg.autoencoder import Autoencoder
 from constants import params
+from pytorch_msssim import ssim, ms_ssim
 """
 Idea of burn in comes from the following paper:
 https://openreview.net/pdf?id=r1lyTjAqYX
@@ -1638,6 +1639,8 @@ class Imitate(sb3.TD3):
             with torch.no_grad():
                 [_, actor_burnin_state], _ = self.actor(replay_data.prev_observations, replay_data.prev_states)
             [action, _], [gen_image, depth] = self.actor(replay_data.observations, actor_burnin_state)
+            
+            # Reconstruction Loss Computation
             image = torch.cat([
                 replay_data.observations['scale_1'],
                 replay_data.observations['scale_2'],
@@ -1647,17 +1650,30 @@ class Imitate(sb3.TD3):
             ) + torch.nn.functional.l1_loss(
                 depth, replay_data.observations['depth']
             )
-            
+            for i in range(replay_data.size):
+                reconstruction_loss += 1 - ssim(
+                    image[:, i, :3], gen_image[:, i, :3],
+                    data_range=1.0, size_average=True
+                ) + 1 - ssim(
+                    image[:, i, 3:], gen_image[:, i, 3:],
+                    data_range=1.0, size_average=True
+                ) + 1 - ssim(
+                    replay_data.observations['depth'][:, i], depth[:, i],
+                    data_range=1.0, size_average=True
+                )
             reconstruction_losses.append(reconstruction_loss.item())
 
             # Delayed policy updates
             # Compute actor loss 
+            ratio = 1.0
+            if self.num_timesteps < params['staging_steps']:
+                ratio = self.num_timesteps / params['staging_steps']
+            supervised_loss_ratios.append(ratio)
             supervised_loss = torch.nn.functional.mse_loss(action, replay_data.observations['scaled_sampled_action'])
             supervised_losses.append(supervised_loss.item())
             actor_loss = reconstruction_loss
-            if self._n_updates % self.policy_delay == 0:
-                actor_loss += supervised_loss
-                actor_losses.append(actor_loss.item())
+            actor_loss += supervised_loss * ratio
+            actor_losses.append(actor_loss.item())
 
             # Optimize the actor
             self.actor.optimizer.zero_grad()
@@ -1673,3 +1689,4 @@ class Imitate(sb3.TD3):
             self.logger.record("train/supervised_loss", np.mean(supervised_losses))
             self.logger.record('train/actor_loss', np.mean(actor_losses))
             self.logger.record("train/reconstruction", np.mean(reconstruction_losses))
+            self.logger.record("train/supervised_loss_ratio", np.mean(supervised_loss_ratios))

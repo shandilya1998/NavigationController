@@ -471,11 +471,13 @@ if __name__ == '__main__':
     }
 
 
-    state_spec = [[(1, params['net_arch'][0]), np.float32]]
+    state_spec = [
+        [(1, params['net_arch'][0]), np.float32],
+        [(1, params['net_arch'][0]), np.float32]
+    ]
     replay_buffer_kwargs = {
             'state_spec' : state_spec,
             'max_seq_len' : params['max_seq_len'],
-            'burn_in_seq_len' : params['burn_in_seq_len']
             }
     model = RTD3(
         policy = RTD3Policy,
@@ -485,8 +487,6 @@ if __name__ == '__main__':
         buffer_size = params['buffer_size'],
         learning_starts = params['learning_starts'],
         batch_size = params['batch_size'],
-        max_seq_len = params['max_seq_len'],
-        burn_in_seq_len = params['burn_in_seq_len'],
         tau = params['tau'],
         gamma = params['gamma'],
         train_freq = (1, 'episode'),

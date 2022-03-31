@@ -119,8 +119,10 @@ class DictReplayBuffer(sb3.common.buffers.ReplayBuffer):
         handle_timeout_termination: bool = True,
         state_spec: Optional[List[Tuple[Tuple[int], np.dtype]]] = None,
         max_seq_len: int = 30,
+        seq_sample_freq: int = 5
     ):
         self.max_seq_len = max_seq_len
+        self.seq_sample_freq = seq_sample_freq
         super(sb3.common.buffers.ReplayBuffer, self).__init__(
             buffer_size, observation_space, action_space, device, n_envs=n_envs
         )
@@ -241,7 +243,7 @@ class DictReplayBuffer(sb3.common.buffers.ReplayBuffer):
 
     def _get_samples(self, batch_inds: np.ndarray, env: Optional[sb3.common.vec_env.VecNormalize] = None) -> ReccurentDictReplayBufferSamples: 
         # Computing all indices and zeroing in states and observations for sequence truncation
-        offsets = np.repeat(np.expand_dims(np.arange(-self.max_seq_len + 1, 1), 0), len(batch_inds), 0)
+        offsets = np.repeat(np.expand_dims(np.arange(-(self.max_seq_len - 1) * self.seq_sample_freq, 1, self.seq_sample_freq), 0), len(batch_inds), 0)
         inds = np.repeat(np.expand_dims(batch_inds, 1), self.max_seq_len, 1) + offsets
         offset = self.buffer_size if self.full else self.pos
         inds[inds < 0] = inds[inds < 0] + offset 
@@ -1642,18 +1644,10 @@ class Imitate(sb3.TD3):
 
             # Delayed policy updates
             # Compute actor loss
-            ratio = 1.0
-            if self.num_timesteps < params['staging_steps'] // 2:
-                ratio = 0
-            elif self.num_timesteps < params['staging_steps']:
-                ratio = 1 - 2 * self.num_timesteps / params['total_timesteps']
-            else:
-                ratio = 1.00
-            supervised_loss_ratios.append(ratio)
             supervised_loss = torch.nn.functional.mse_loss(action, replay_data.observations['scaled_sampled_action'][:, -1])
             supervised_losses.append(supervised_loss.item())
             actor_loss = reconstruction_loss
-            actor_loss += supervised_loss * ratio
+            actor_loss += supervised_loss
             actor_losses.append(actor_loss.item())
 
             # Optimize the actor
@@ -1666,7 +1660,6 @@ class Imitate(sb3.TD3):
 
         self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
         self.logger.record("train/reconstruction", np.mean(reconstruction_losses))
-        self.logger.record("train/supervised_loss_ratio", np.mean(supervised_loss_ratios))
         if len(actor_losses) > 0:
             self.logger.record("train/actor_loss", np.mean(actor_losses))
 

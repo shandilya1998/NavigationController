@@ -477,9 +477,10 @@ if __name__ == '__main__':
         [(1, params['net_arch'][0]), np.float32]
     ]
     replay_buffer_kwargs = {
-            'state_spec' : state_spec,
-            'max_seq_len' : params['max_seq_len'],
-            }
+        'state_spec' : state_spec,
+        'max_seq_len' : params['max_seq_len'],
+        'seq_sample_freq' : params['seq_sample_freq']
+    }
     model = Imitate(
         policy = RTD3Policy,
         env = train_env,

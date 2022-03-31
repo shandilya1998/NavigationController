@@ -1646,7 +1646,7 @@ class Imitate(sb3.TD3):
             # Compute actor loss
             supervised_loss = torch.nn.functional.mse_loss(action, replay_data.observations['scaled_sampled_action'][:, -1])
             supervised_losses.append(supervised_loss.item())
-            actor_loss = reconstruction_loss
+            actor_loss = reconstruction_loss * 5e-2
             actor_loss += supervised_loss
             actor_losses.append(actor_loss.item())
 

@@ -989,7 +989,7 @@ class MazeEnv(gym.Env):
 
         # Task Reward Computation
         outer_reward = 0
-        outer_reward = self._task.reward(next_pos, bool(next_obs['inframe'][0]))
+        outer_reward = self._task.reward(next_pos, bool(next_obs['inframe'][0])) - np.abs(self.wrapped_env.data.qvel[self.wrapped_env.ORI_IND])
         done = self._task.termination(self.wrapped_env.get_xy(),  bool(next_obs['inframe'][0]))
         info["position"] = self.wrapped_env.get_xy()
 

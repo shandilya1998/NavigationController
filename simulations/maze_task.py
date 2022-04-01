@@ -429,7 +429,7 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
         goal = self.goals[self.goal_index]
         reward = 0.0
         if inframe:
-            reward = 0.5 * goal.reward_scale
+            reward += 0.5 * goal.reward_scale
         if np.linalg.norm(pos - goal.pos) <= 2.5 * goal.threshold:
             reward += 1.0 * goal.reward_scale
         return reward

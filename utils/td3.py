@@ -586,6 +586,9 @@ class TD3(sb3.TD3):
         reconstruction_losses = []
         supervised_losses = []
         supervised_loss_ratios = []
+        q_losses = []
+
+        policy_update_count = 0
 
         for _ in range(gradient_steps):
 
@@ -638,37 +641,39 @@ class TD3(sb3.TD3):
 
             # Delayed policy updates
             # Compute actor loss
-            if self.num_timesteps < params['staging_steps']:
-                ratio = 1.0 - self.num_timesteps / params['staging_steps']
-                supervised_loss_ratios.append(ratio)
-                supervised_loss = torch.nn.functional.mse_loss(action, replay_data.observations['scaled_sampled_action'])
-                supervised_losses.append(supervised_loss.item())
+            actor_loss = reconstruction_loss
+            if self._n_updates % self.policy_delay == 0:
                 q_loss = -self.critic.q1_forward(replay_data.observations, action).mean()
-                actor_losses.append(q_loss.item())
-                actor_loss = supervised_loss * ratio + q_loss * (1 - ratio)
-            else:
-                supervised_loss_ratios.append(0.0)
-                actor_loss = -self.critic.q1_forward(replay_data.observations, action).mean()
+                supervised_loss = torch.nn.functional.mse_loss(action, replay_data.observations['scaled_sampled_action'])
+                ratio = 1.0
+                if self.num_timesteps < params['staging_steps']:
+                    ratio = 1.0 - self.num_timesteps / params['staging_steps']
+                else:
+                    ratio = 0.0
+                supervised_loss_ratios.append(ratio)
+                supervised_losses.append(supervised_loss)
+                q_losses.append(q_loss.item())
+                actor_loss += supervised_loss * ratio + q_loss * (1 - ratio)
                 actor_losses.append(actor_loss.item())
-            actor_loss += reconstruction_loss
+                policy_update_count += 1
 
             # Optimize the actor
             self.actor.optimizer.zero_grad()
             actor_loss.backward()
             self.actor.optimizer.step()
 
-            sb3.common.utils.polyak_update(self.critic.parameters(), self.critic_target.parameters(), self.tau)
-            sb3.common.utils.polyak_update(self.actor.parameters(), self.actor_target.parameters(), self.tau)
+            if self._n_updates % self.policy_delay == 0:
+                sb3.common.utils.polyak_update(self.critic.parameters(), self.critic_target.parameters(), self.tau)
+                sb3.common.utils.polyak_update(self.actor.parameters(), self.actor_target.parameters(), self.tau)
 
         self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
         self.logger.record("train/reconstruction", np.mean(reconstruction_losses))
         self.logger.record("train/critic_loss", np.mean(critic_losses))
-        self.logger.record("train/supervised_loss_ratio", np.mean(supervised_loss_ratios))
-        if len(actor_losses) > 0:
+        if policy_update_count > 0:
             self.logger.record("train/actor_loss", np.mean(actor_losses))
-
-        if len(supervised_losses) > 0:
             self.logger.record("train/supervised_loss", np.mean(supervised_losses))
+            self.logger.record("train/q_loss", np.mean(q_losses))
+            self.logger.record("train/supervised_loss_ratio", np.mean(supervised_loss_ratios))
 
 class Pretrain(sb3.TD3):
     def __init__(

@@ -651,7 +651,7 @@ class TD3(sb3.TD3):
                 else:
                     ratio = 0.0
                 supervised_loss_ratios.append(ratio)
-                supervised_losses.append(supervised_loss)
+                supervised_losses.append(supervised_loss.item())
                 q_losses.append(q_loss.item())
                 actor_loss += supervised_loss * ratio + q_loss * (1 - ratio)
                 actor_losses.append(actor_loss.item())

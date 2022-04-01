@@ -497,10 +497,12 @@ if __name__ == '__main__':
         _init_setup_model = True,
         verbose = 2,
     )
-    
+
+    """  
     model.set_parameters(
         imitate_policy_path
     )
+    """
 
     env = MazeEnv(
         PointEnv, CustomGoalReward4Rooms,

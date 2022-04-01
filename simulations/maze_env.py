@@ -39,7 +39,7 @@ class MazeEnv(gym.Env):
         model_cls: Type[AgentModel],
         maze_task: Type[maze_task.MazeTask] = maze_task.MazeTask,
         max_episode_size: int = 2000,
-        n_steps = 5,
+        n_steps = 50,
         mode = 'train',
         include_position: bool = True,
         maze_height: float = 0.5,
@@ -780,9 +780,9 @@ class MazeEnv(gym.Env):
         min_vel = -max_vel
         sensors = np.concatenate([
             self.data.qvel.copy() / max_vel,
-            (self.actions[-1].copy() - self.action_space.low) / (self.action_space.high - self.action_space.low),
             np.array([self.get_ori() / np.pi, self.t / self.max_episode_size], dtype = np.float32),
-            goal.copy(),
+        ] +  [
+            (action.copy() - self.action_space.low) / (self.action_space.high - self.action_space.low) for action in self.actions
         ], -1)
 
 

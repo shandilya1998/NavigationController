@@ -1,4 +1,4 @@
-from utils.rtd3_utils import train_autoencoder
+from utils.rtd3 import train_autoencoder
 from simulations.maze_env import MazeEnv
 from simulations.point import PointEnv
 from simulations.maze_task import CustomGoalReward4Rooms
@@ -21,15 +21,15 @@ if __name__ == '__main__':
     )
 
     logdir = '/content/drive/MyDrive/CNS/exp22/autoencoder/exp' 
-    #logdir = 'assets/out/models/autoencoder/'
+    if params['debug']:
+        logdir = 'assets/out/models/autoencoder/'
 
     train_autoencoder(
         logdir,
         env, 
-        n_epochs = 150,
-        batch_size = 100,
+        n_epochs = 10,
+        batch_size = 1,
         learning_rate = 1e-3,
         save_freq = 5,
         eval_freq = 5,
-        max_episode_size = params['max_episode_size'],
     )

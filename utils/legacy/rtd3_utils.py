@@ -1759,7 +1759,7 @@ def train_autoencoder(
             )
             steps = 0
             model.eval()
-            for j in range(5):
+            for _ in range(5):
                 last_obs = env.reset()
                 done = False
                 while not done:
@@ -1768,9 +1768,6 @@ def train_autoencoder(
                         np.concatenate([obs['scale_1'], obs['scale_2'], obs['scale_3']], 1) / 255
                     ).float().to(device)
                     gt_depth = torch.from_numpy(obs['depth']).to(device)
-                    inframe = torch.from_numpy(
-                        obs['inframe']
-                    ).float().to(device)
                     with torch.no_grad():
                         _, [gen_image, depth] = model(image.contiguous())
                         loss = torch.nn.functional.l1_loss(gen_image, image)

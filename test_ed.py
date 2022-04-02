@@ -15,7 +15,7 @@ env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
 )
 
 model = Autoencoder([1,1,1,1], 1000, 3)
-inp = torch.zeros((1, 9, 64, 64))
+inp = torch.zeros((1, 6, 64, 64))
 
 print(inp.shape)
 with torch.no_grad():

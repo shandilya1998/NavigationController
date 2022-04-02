@@ -7,8 +7,12 @@ import torch
 import psutil
 import copy
 from bg.autoencoder import ResNet18EncV2, ResNet18DecV2
+from bg.autoencoder3D import Autoencoder
 from constants import params
 from pytorch_msssim import ssim
+from torch.utils.tensorboard import SummaryWriter
+import cv2
+import os
 """
 Idea of burn in comes from the following paper:
 https://openreview.net/pdf?id=r1lyTjAqYX
@@ -84,18 +88,10 @@ class TimeDistributedFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtra
         """
         return features, [gen_image, depth]
 
-class ReccurentDictReplayBufferSamples(NamedTuple):
-    states: TensorList
-    next_states: TensorList
-    observations: TensorDict
-    actions: torch.Tensor
-    next_observations: TensorDict
-    dones: torch.Tensor
-    rewards: torch.Tensor
 
 class DictReplayBuffer(sb3.common.buffers.ReplayBuffer):
     """
-    Recurrent Dict Replay buffer used in RTD3.
+    Dict Replay buffer used in off-policy algorithms like SAC/TD3.
     Extends the ReplayBuffer to use dictionary observations
     :param buffer_size: Max number of element in the buffer
     :param observation_space: Observation space
@@ -118,15 +114,12 @@ class DictReplayBuffer(sb3.common.buffers.ReplayBuffer):
         n_envs: int = 1,
         optimize_memory_usage: bool = False,
         handle_timeout_termination: bool = True,
-        state_spec: Optional[List[Tuple[Tuple[int], np.dtype]]] = None,
-        max_seq_len: int = 30,
-        seq_sample_freq: int = 5
+        max_seq_len = 10,
+        seq_sample_freq = 5
     ):
         self.max_seq_len = max_seq_len
         self.seq_sample_freq = seq_sample_freq
-        super(sb3.common.buffers.ReplayBuffer, self).__init__(
-            buffer_size, observation_space, action_space, device, n_envs=n_envs
-        )
+        super(sb3.common.buffers.ReplayBuffer, self).__init__(buffer_size, observation_space, action_space, device, n_envs=n_envs)
 
         assert isinstance(self.obs_shape, dict), "DictReplayBuffer must be used with Dict obs space only"
         assert n_envs == 1, "Replay buffer only support single environment for now"
@@ -141,22 +134,13 @@ class DictReplayBuffer(sb3.common.buffers.ReplayBuffer):
         self.optimize_memory_usage = optimize_memory_usage
 
         self.observations = {
-            key: np.zeros((self.buffer_size, self.n_envs) + _obs_shape, dtype=observation_space[key].dtype) for key, _obs_shape in self.obs_shape.items()
+            key: np.zeros((self.buffer_size, self.n_envs) + _obs_shape, dtype=observation_space[key].dtype)
+            for key, _obs_shape in self.obs_shape.items()
         }
         self.next_observations = {
-            key: np.zeros((self.buffer_size, self.n_envs) + _obs_shape, dtype=observation_space[key].dtype) for key, _obs_shape in self.obs_shape.items()
+            key: np.zeros((self.buffer_size, self.n_envs) + _obs_shape, dtype=observation_space[key].dtype)
+            for key, _obs_shape in self.obs_shape.items()
         }
-
-        assert state_spec is not None
-
-        self.states = [
-            np.zeros((self.buffer_size, self.n_envs) + s, dtype=d)
-            for s, d in state_spec
-        ]
-        self.next_states = [
-            np.zeros((self.buffer_size, self.n_envs) + s, dtype=d)
-            for s, d in state_spec
-        ]
 
         # only 1 env is supported
         self.actions = np.zeros((self.buffer_size, self.action_dim), dtype=action_space.dtype)
@@ -196,8 +180,6 @@ class DictReplayBuffer(sb3.common.buffers.ReplayBuffer):
         action: np.ndarray,
         reward: np.ndarray,
         done: np.ndarray,
-        states: List[np.ndarray],
-        next_states: List[np.ndarray],
         infos: List[Dict[str, Any]],
     ) -> None:
         # Copy to avoid modification by reference
@@ -206,11 +188,6 @@ class DictReplayBuffer(sb3.common.buffers.ReplayBuffer):
 
         for key in self.next_observations.keys():
             self.next_observations[key][self.pos] = np.array(next_obs[key]).copy()
-
-        for i, state in enumerate(states):
-            self.states[i][self.pos] = np.array(state).copy()
-        for i, state in enumerate(next_states):
-            self.next_states[i][self.pos] = np.array(state).copy()
 
         self.actions[self.pos] = np.array(action).copy()
         self.rewards[self.pos] = np.array(reward).copy()
@@ -224,7 +201,7 @@ class DictReplayBuffer(sb3.common.buffers.ReplayBuffer):
             self.full = True
             self.pos = 0
 
-    def sample(self, batch_size: int, env: Optional[sb3.common.vec_env.VecNormalize] = None) -> ReccurentDictReplayBufferSamples:
+    def sample(self, batch_size: int, env: Optional[sb3.common.vec_env.VecNormalize] = None) -> sb3.common.type_aliases.DictReplayBufferSamples:
         """
         Sample elements from the replay buffer.
         :param batch_size: Number of element to sample
@@ -234,15 +211,8 @@ class DictReplayBuffer(sb3.common.buffers.ReplayBuffer):
         """
         return super(sb3.common.buffers.ReplayBuffer, self).sample(batch_size=batch_size, env=env)
 
-    def __expand_include(self, include, shape):
-        length = len(include.shape)
-        assert shape[:length] == include.shape
-        shape = shape[length:]
-        for item in shape:
-            include = np.repeat(np.expand_dims(include, -1), item, -1)
-        return include
+    def _get_samples(self, batch_inds: np.ndarray, env: Optional[sb3.common.vec_env.VecNormalize] = None) -> sb3.common.type_aliases.DictReplayBufferSamples:
 
-    def _get_samples(self, batch_inds: np.ndarray, env: Optional[sb3.common.vec_env.VecNormalize] = None) -> ReccurentDictReplayBufferSamples: 
         # Computing all indices and zeroing in states and observations for sequence truncation
         offsets = np.repeat(np.expand_dims(np.arange(-(self.max_seq_len - 1) * self.seq_sample_freq, 1, self.seq_sample_freq), 0), len(batch_inds), 0)
         inds = np.repeat(np.expand_dims(batch_inds, 1), self.max_seq_len, 1) + offsets
@@ -264,41 +234,278 @@ class DictReplayBuffer(sb3.common.buffers.ReplayBuffer):
                 obs[inds, 0, :].shape
             ).astype(obs.dtype) for key, obs in self.next_observations.items()
         })
-        states = [
-            state[inds[:, 0], 0] * self.__expand_include(
-                np.prod(include, 1),
-                state[inds[:, 0], 0].shape
-            ) for state in self.states
-        ]
-        next_states = [
-            state[inds[:, 0], 0] * self.__expand_include(
-                np.prod(include, 1),
-                state[inds[:, 0], 0].shape
-            ) for state in self.next_states
-        ]
         dones = self.dones[batch_inds] * (1 - self.timeouts[batch_inds])
         actions = self.actions[batch_inds]
         rewards = self._normalize_reward(self.rewards[batch_inds], env)
 
         # Convert to torch tensor
+        obs['scale_1'] = obs['scale_1'].transpose(0, 2, 1, 3, 4)
+        obs['scale_2'] = obs['scale_2'].transpose(0, 2, 1, 3, 4) 
+        obs['depth'] = obs['depth'].transpose(0, 2, 1, 3, 4)
+        next_obs['scale_1'] = next_obs['scale_1'].transpose(0, 2, 1, 3, 4)
+        next_obs['scale_2'] = next_obs['scale_2'].transpose(0, 2, 1, 3, 4) 
+        next_obs['depth'] = next_obs['depth'].transpose(0, 2, 1, 3, 4)
         observations = {key: self.to_torch(obs) for key, obs in obs.items()}
         next_observations = {key: self.to_torch(obs) for key, obs in next_obs.items()}
-        states = [self.to_torch(state.transpose(1, 0, 2)) for state in states]
-        next_states = [self.to_torch(state.transpose(1, 0 ,2)) for state in next_states]
         actions = self.to_torch(actions)
         rewards = self.to_torch(rewards)
         dones = self.to_torch(dones)
-
-        return ReccurentDictReplayBufferSamples(
-            states=states,
-            next_states=next_states,
+        return sb3.common.type_aliases.DictReplayBufferSamples(
             observations=observations,
             actions=actions,
             next_observations=next_observations,
+            # Only use dones that are not due to timeouts
+            # deactivated by default (timeouts is initialized as an array of False)
             dones=dones,
             rewards=rewards,
         )
 
+    def __expand_include(self, include, shape):
+        length = len(include.shape)
+        assert shape[:length] == include.shape
+        shape = shape[length:]
+        for item in shape:
+            include = np.repeat(np.expand_dims(include, -1), item, -1)
+        return include
+
+def train_autoencoder(
+        logdir,
+        env,
+        n_epochs,
+        batch_size,
+        learning_rate,
+        save_freq,
+        eval_freq,
+    ):
+    # Setting Training Device
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+    # Model Initialisation
+    model = Autoencoder().to(device)
+    
+    # Optimiser and Scheduler Initalisation
+    optim = torch.optim.Adam(model.parameters(), lr = learning_rate)
+    scheduler = torch.optim.lr_scheduler.ExponentialLR(
+        optim, 0.99
+    )
+
+    # Buffer Initialisation
+    buff = DictReplayBuffer( 
+        buffer_size=params['buffer_size'],
+        observation_space=env.observation_space,
+        action_space=env.action_space,
+        device=device,
+        max_seq_len = 10,
+        seq_sample_freq = 5
+    )
+    
+    # Initialise Tensorboard logger
+    writer = SummaryWriter(log_dir = logdir)
+
+    eval_indices = np.arange(-(params['max_seq_len'] - 1) * params['seq_sample_freq'], 1, params['seq_sample_freq'])
+
+    last_obs = env.reset()
+    for i in range(1, n_epochs + 1):
+        # Evaluation
+        if i % eval_freq == 0 and not i == 0:
+            total_reward = 0
+            losses = []
+            MSE = []
+            MSE_DEPTH = []
+            SSIM_1 = []
+            SSIM_2 = []
+            image_size = (64 * 3, 64 * 2)
+            video = cv2.VideoWriter(
+                os.path.join(logdir, 'model_{}_evaluation.avi'.format(i)),
+                cv2.VideoWriter_fourcc(*"MJPG"), 10, image_size, isColor = True
+            )
+            steps = 0
+            model.eval()
+            SCALE_1 = [np.zeros_like(last_obs['scale_1']) for _ in range(params['max_seq_len'] * params['seq_sample_freq'])]
+            SCALE_2 = [np.zeros_like(last_obs['scale_2']) for _ in range(params['max_seq_len'] * params['seq_sample_freq'])]
+            DEPTH = [np.zeros_like(last_obs['depth']) for _ in range(params['max_seq_len'] * params['seq_sample_freq'])]
+            for j in range(5):
+                last_obs = env.reset()
+                done = False
+                while not done:
+                    obs, reward, done, info = env.step(last_obs['sampled_action'])
+                    SCALE_1.append(obs['scale_1'])
+                    SCALE_2.append(obs['scale_2'])
+                    DEPTH.append(obs['depth'])
+                    gt_image = torch.from_numpy(np.concatenate([
+                        np.stack([
+                            SCALE_1[-len(SCALE_1) - eval_indices[i]] for i in range(params['max_seq_len'])
+                        ], 2),
+                        np.stack([
+                            SCALE_2[-len(SCALE_2) - eval_indices[i]] for i in range(params['max_seq_len'])
+                        ], 2)
+                    ], 1)).float() / 255
+                    gt_depth = torch.from_numpy(np.stack([
+                        DEPTH[-len(DEPTH) - eval_indices[i]] for i in range(params['max_seq_len'])
+                    ], 2))
+                    # Model Evaluation
+                    with torch.no_grad():    
+                        _, [gen_image, depth, traj] = model(gt_image.contiguous())
+                        l1_gen_image = torch.nn.functional.l1_loss(gen_image, gt_image)
+                        l1_depth = torch.nn.functional.l1_loss(depth, gt_depth)
+                        MSE.append(l1_gen_image.item())
+                        MSE_DEPTH.append(l1_depth.item())
+                        scale_1, scale_2 = torch.split(gt_image, 3, dim = 1)
+                        gen_scale_1, gen_scale_2 = torch.split(gen_image, 3, dim = 1)
+                        # SSIM computation
+                        ssim_scale_1 = []
+                        ssim_scale_2 = []
+                        for _ in range(params['max_seq_len']):
+                            ssim_scale_1.append(1 - ssim(
+                                scale_1[:, :, j], gen_scale_1[:, :, j],
+                                data_range=1, size_average=True
+                            ).item())
+                            ssim_scale_2.append(1 - ssim(
+                                scale_2[:, :, j], gen_scale_2[:, :, j],
+                                data_range=1, size_average=True
+                            ).item())
+                        SSIM_1.append(np.mean(ssim_scale_1))
+                        SSIM_2.append(np.mean(ssim_scale_2))
+                        loss = np.mean(ssim_scale_1) + np.mean(ssim_scale_2) + l1_depth + l1_gen_image
+                        losses.append(loss)
+                    
+                    # Sampling last frame for writing to video
+                    scale_1 = scale_1[0, :, -1]
+                    scale_2 = scale_2[0, :, -1]
+                    gt_depth = gt_depth[0, :, -1]
+                    gen_scale_1 = gen_scale_1[0, :, -1]
+                    gen_scale_2 = gen_scale_2[0, :, -1]
+                    depth = depth[0, :, -1]
+                    
+                    observation = np.concatenate([
+                        np.concatenate([
+                            scale_1.cpu().numpy(),
+                            gen_scale_1.cpu().numpy()
+                        ], 1),
+                        np.concatenate([
+                            scale_2.cpu().numpy(),
+                            gen_scale_2.cpu().numpy()
+                        ], 1),
+                        np.repeat(np.concatenate([
+                            gt_depth.cpu().numpy(),
+                            depth.cpu().numpy()
+                        ], 1), 3, 0),
+                    ], 2).transpose(1, 2, 0) * 255 
+                    observation = observation.astype(np.uint8)
+                    observation = cv2.cvtColor(observation, cv2.COLOR_RGB2BGR)
+                    video.write(observation)
+                    steps += 1
+                    total_reward += reward
+                    last_obs = obs
+
+            # Writing Evalulation Metrics to Tensorboard
+            total_reward = total_reward / 5
+            print('-----------------------------')
+            print('Evaluation Total Reward {:.4f} Loss {:.4f} MSE {:.4f} MSE depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} Steps {}'.format(
+                total_reward[0], np.mean(losses), np.mean(MSE), np.mean(MSE_DEPTH),
+                np.mean(SSIM_1), np.mean(SSIM_2), steps))
+            print('-----------------------------')
+            writer.add_scalar('Eval/Loss', np.mean(losses), i)
+            writer.add_scalar('Eval/MSE', np.mean(MSE), i)
+            writer.add_scalar('Eval/ssim_1', np.mean(SSIM_1), i)
+            writer.add_scalar('Eval/ssim_2', np.mean(SSIM_2), i)
+            writer.add_scalar('Eval/depth', np.mean(MSE_DEPTH), i)
+            cv2.destroyAllWindows()
+            video.release()
+            model.train()
+
+
+        # Data Sampling
+        total_reward = 0
+        done = False
+        last_obs = env.reset()
+        count = 0
+        while not done:
+            obs, reward, done, info = env.step(last_obs['sampled_action'])
+            buff.add(
+                last_obs,
+                obs,
+                last_obs['sampled_action'],
+                reward,
+                done,
+                info,
+            )
+            count += 1
+            last_obs = obs
+            total_reward += reward
+
+        losses = []
+        MSE = []
+        MSE_DEPTH = []
+        SSIM_1 = []
+        SSIM_2 = []
+
+        # Model Update
+        for _ in range(count):
+            rollout = buff.sample(batch_size)
+            scale_1 = rollout.observations['scale_1']
+            scale_2 = rollout.observations['scale_2']
+            gt_image = torch.cat([
+                scale_1, scale_2
+            ], 1).float() / 255
+
+            gt_depth = rollout.observations['depth']
+
+            # Prediction
+            _, [gen_image, depth, traj] = model(gt_image.contiguous())
+
+            # Gradient Computatation and Optimsation
+            l1_gen_image = torch.nn.functional.l1_loss(gen_image, gt_image)
+            l1_depth = torch.nn.functional.l1_loss(depth, gt_depth)
+
+            MSE.append(l1_gen_image.item())
+            MSE_DEPTH.append(l1_depth.item())
+
+            # SSIM computation
+            ssim_scale_1 = []
+            ssim_scale_2 = []
+            
+            for j in range(params['max_seq_len']):
+                ssim_scale_1.append(1 - ssim(
+                    gt_image[:, :3, j], gen_image[:, :3, j],
+                    data_range=1, size_average=True
+                ))
+                ssim_scale_2.append(1 - ssim(
+                    gt_image[:, 3:, j], gen_image[:, 3:, j],
+                    data_range=1, size_average=True
+                ))
+            ssim_1 = sum(ssim_scale_1)
+            ssim_2 = sum(ssim_scale_2)
+            SSIM_1.append(ssim_1.item())
+            SSIM_2.append(ssim_2.item())
+            loss = l1_depth + l1_gen_image + ssim_1 + ssim_2
+
+            optim.zero_grad()
+            loss.backward()
+            optim.step()
+
+            losses.append(loss.item())
+
+        
+        # Logging
+        writer.add_scalar('Train/Loss', np.mean(losses), i)
+        writer.add_scalar('Train/MSE', np.mean(MSE), i)
+        writer.add_scalar('Train/ssim_1', np.mean(SSIM_1), i)
+        writer.add_scalar('Train/ssim_2', np.mean(SSIM_2), i)
+        writer.add_scalar('Train/depth', np.mean(MSE_DEPTH), i)
+        writer.add_scalar('Train/learning_rate', scheduler.get_last_lr()[0], i)
+        print('Epoch {} Learning Rate {:.6f} Total Reward {:.4f} Loss {:.4f} MSE {:.4f} MSE depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f}'.format(
+            i, scheduler.get_last_lr()[0], total_reward[0], np.mean(losses), np.mean(MSE), np.mean(MSE_DEPTH),
+            np.mean(SSIM_1), np.mean(SSIM_2)))
+
+        # Save Model
+        if i % save_freq == 0:
+            state_dict = { 
+                'model_state_dict' : model.state_dict(),
+                'optimizer_state_dict' : optim.state_dict(),
+            }
+            torch.save(state_dict, os.path.join(logdir, 'model_epoch_{}.pt'.format(i)))
+        scheduler.step()
 
 class ActorNetwork(torch.nn.Module):
     def __init__(

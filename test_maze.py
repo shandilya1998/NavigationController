@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import cv2
 import numpy as np 
 
-env = MazeEnv(PointEnv, CustomGoalReward4Rooms, mode = 'imitate')
+env = MazeEnv(PointEnv, CustomGoalReward4Rooms, mode = 'eval')
 
 """
 for i, struct in enumerate(env._maze_structure):

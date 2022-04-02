@@ -140,33 +140,33 @@ class MazeEnv(gym.Env):
             d_r, d_c = 0, 0
             if self.mode == 'imitate':
                 if r < 6:
-                    d_r = -0.51
+                    d_r = -0.5
                 elif r == 6:
                     d_r = 0
                 else:
-                    d_r = 0.49
+                    d_r = 0.5
                 if c < 6:
-                    d_c = -0.51
+                    d_c = -0.5
                 elif c == 6:
                     d_c = 0
                 else:
-                    d_c = 0.49
+                    d_c = 0.5
             else:
                 offset = self.total_steps / (params['total_timesteps'] * 2)
                 if offset > 1.0:
                     offset = 1.0
                 if r < 6:
-                    d_r = -0.51 + np.random.uniform(low = 0, high = 3 * offset) * self._maze_size_scaling
+                    d_r = -0.5 + np.random.uniform(low = 0, high = 3 * offset) * self._maze_size_scaling
                 elif r == 6:
                     d_r = np.random.uniform(low = -3 * offset, high = 3 * offset) * self._maze_size_scaling
                 else:
-                    d_r = 0.49 - np.random.uniform(low = 0, high = 3 * offset) * self._maze_size_scaling
+                    d_r = 0.5 - np.random.uniform(low = 0, high = 3 * offset) * self._maze_size_scaling
                 if c < 6:
-                    d_c = -0.51 + np.random.uniform(low = 0, high = 3 * offset) * self._maze_size_scaling
+                    d_c = -0.5 + np.random.uniform(low = 0, high = 3 * offset) * self._maze_size_scaling
                 elif c == 6:
                     d_c = np.random.uniform(low = -3 * offset, high = 3 * offset) * self._maze_size_scaling
                 else:
-                    d_c = 0.49 - np.random.uniform(low = 0, high = 3 * offset) * self._maze_size_scaling
+                    d_c = 0.5 - np.random.uniform(low = 0, high = 3 * offset) * self._maze_size_scaling
             pos = self._rowcol_to_xy(r + d_r, c + d_c)
             pos = np.array(pos, dtype = np.float32)
         else:
@@ -806,6 +806,8 @@ class MazeEnv(gym.Env):
             ), 0
         )
 
+        position = self.data.qpos.copy()
+
         _obs = {
             'scale_1' : window.copy(),
             'scale_2' : scale_2.copy(),
@@ -814,6 +816,7 @@ class MazeEnv(gym.Env):
             'scaled_sampled_action' : scaled_sampled_action.copy(),
             'depth' : depth,
             'inframe' : np.array([inframe], dtype = np.float32),
+            'position' : position
         }
 
         if params['add_ref_scales']:

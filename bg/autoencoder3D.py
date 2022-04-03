@@ -152,7 +152,6 @@ class Autoencoder(torch.nn.Module):
         self.deconv1 = ResizeConv(32, 7, kernel_size=3, scale_factor=2)
 
     def forward(self, x):
-        batch_size = x.size(0)
         scale_1, scale_2 = torch.split(x, 3, 1)
         scale_1 = self.conv1_1(scale_1)
         scale_1 = self.conv1_2(scale_1)
@@ -165,10 +164,6 @@ class Autoencoder(torch.nn.Module):
         x = self.conv4(x)
         z = self.conv5(x)
 
-        traj = torch.relu(self.conv6(z))
-        traj = self.conv7(traj)
-        traj = traj.view(batch_size, -1, 2)
-
         x = self.deconv5(z)
         x = self.deconv4(x)
        
@@ -178,4 +173,4 @@ class Autoencoder(torch.nn.Module):
 
         gen_image, depth = torch.split(x, [6, 1], 1)
 
-        return z, [gen_image, depth, traj]
+        return z, [gen_image, depth]

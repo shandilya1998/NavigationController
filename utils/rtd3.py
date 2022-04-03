@@ -313,7 +313,6 @@ def train_autoencoder(
             losses = []
             MSE = []
             MSE_DEPTH = []
-            MSE_TRAJ = []
             SSIM_1 = []
             SSIM_2 = []
             image_size = (64 * 3, 64 * 2)
@@ -355,21 +354,17 @@ def train_autoencoder(
                         params['max_seq_len'] - 1,
                         1
                     )
-                    gt_traj = torch.from_numpy(gt_positions[:, 1:] - ref)
 
                     gt_image = gt_image.to(device=device)
                     gt_depth = gt_depth.to(device=device)
-                    gt_traj = gt_traj.to(device=device)
 
                     # Model Evaluation
                     with torch.no_grad():
-                        _, [gen_image, depth, traj] = model(gt_image.contiguous())
+                        _, [gen_image, depth] = model(gt_image.contiguous())
                     l1_gen_image = torch.nn.functional.l1_loss(gen_image, gt_image)
                     l1_depth = torch.nn.functional.l1_loss(depth, gt_depth)
-                    l1_traj = torch.nn.functional.l1_loss(traj, gt_traj)
                     MSE.append(l1_gen_image.item())
                     MSE_DEPTH.append(l1_depth.item())
-                    MSE_TRAJ.append(l1_traj.item())
                     scale_1, scale_2 = torch.split(gt_image, 3, dim = 1)
                     gen_scale_1, gen_scale_2 = torch.split(gen_image, 3, dim = 1)
                     # SSIM computation
@@ -386,7 +381,7 @@ def train_autoencoder(
                         ).item())
                     SSIM_1.append(np.mean(ssim_scale_1))
                     SSIM_2.append(np.mean(ssim_scale_2))
-                    loss = np.mean(ssim_scale_1) + np.mean(ssim_scale_2) + l1_depth.item() + l1_gen_image.item() + l1_traj.item()
+                    loss = np.mean(ssim_scale_1) + np.mean(ssim_scale_2) + l1_depth.item() + l1_gen_image.item()
                     losses.append(loss)
                     
                     # Sampling last frame for writing to video
@@ -421,8 +416,8 @@ def train_autoencoder(
             # Writing Evalulation Metrics to Tensorboard
             total_reward = total_reward / 5
             print('-----------------------------')
-            print('Evaluation Total Reward {:.4f} Loss {:.4f} MSE {:.4f} MSE depth {:.4f} MSE trajectory {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} Steps {}'.format(
-                total_reward[0], np.mean(losses), np.mean(MSE), np.mean(MSE_DEPTH), np.mean(MSE_TRAJ),
+            print('Evaluation Total Reward {:.4f} Loss {:.4f} MSE {:.4f} MSE depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} Steps {}'.format(
+                total_reward[0], np.mean(losses), np.mean(MSE), np.mean(MSE_DEPTH),
                 np.mean(SSIM_1), np.mean(SSIM_2), steps))
             print('-----------------------------')
             writer.add_scalar('Eval/Loss', np.mean(losses), i)
@@ -457,7 +452,6 @@ def train_autoencoder(
         losses = []
         MSE = []
         MSE_DEPTH = []
-        MSE_TRAJ = []
         SSIM_1 = []
         SSIM_2 = []
 
@@ -476,18 +470,15 @@ def train_autoencoder(
                 params['max_seq_len'] - 1,
                 1
             )
-            gt_traj = rollout.observations['position'][:, 1:] - ref
 
             # Prediction
-            _, [gen_image, depth, traj] = model(gt_image.contiguous())
+            _, [gen_image, depth] = model(gt_image.contiguous())
 
             # Gradient Computatation and Optimsation
             l1_gen_image = torch.nn.functional.l1_loss(gen_image, gt_image)
             l1_depth = torch.nn.functional.l1_loss(depth, gt_depth)
-            l1_traj = torch.nn.functional.l1_loss(traj, gt_traj)
             MSE.append(l1_gen_image.item())
             MSE_DEPTH.append(l1_depth.item())
-            MSE_TRAJ.append(l1_traj.item())
 
             # SSIM computation
             ssim_scale_1 = []
@@ -506,7 +497,7 @@ def train_autoencoder(
             ssim_2 = sum(ssim_scale_2)
             SSIM_1.append(ssim_1.item())
             SSIM_2.append(ssim_2.item())
-            loss = l1_depth + l1_gen_image + ssim_1 + ssim_2 + l1_traj
+            loss = l1_depth + l1_gen_image + ssim_1 + ssim_2
 
             optim.zero_grad()
             loss.backward()
@@ -522,8 +513,8 @@ def train_autoencoder(
         writer.add_scalar('Train/ssim_2', np.mean(SSIM_2), i)
         writer.add_scalar('Train/depth', np.mean(MSE_DEPTH), i)
         writer.add_scalar('Train/learning_rate', scheduler.get_last_lr()[0], i)
-        print('Epoch {} Learning Rate {:.6f} Total Reward {:.4f} Loss {:.4f} MSE {:.4f} MSE depth {:.4f} MSE trajectory {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f}'.format(
-            i, scheduler.get_last_lr()[0], total_reward[0], np.mean(losses), np.mean(MSE), np.mean(MSE_DEPTH), np.mean(MSE_TRAJ),
+        print('Epoch {} Learning Rate {:.6f} Total Reward {:.4f} Loss {:.4f} MSE {:.4f} MSE depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f}'.format(
+            i, scheduler.get_last_lr()[0], total_reward[0], np.mean(losses), np.mean(MSE), np.mean(MSE_DEPTH),
             np.mean(SSIM_1), np.mean(SSIM_2)))
 
         # Save Model

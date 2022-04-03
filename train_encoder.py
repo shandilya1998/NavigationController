@@ -15,7 +15,8 @@ if __name__ == '__main__':
                 PointEnv,
                 CustomGoalReward4Rooms,
                 max_episode_size = params['max_episode_size'],
-                n_steps = 15
+                n_steps = 15,
+                mode = 'eval'
             ))
         ])
     )
@@ -28,7 +29,7 @@ if __name__ == '__main__':
         logdir,
         env, 
         n_epochs = 100,
-        batch_size = 64,
+        batch_size = 100,
         learning_rate = 1e-3,
         save_freq = 5,
         eval_freq = 5,

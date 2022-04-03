@@ -386,7 +386,7 @@ def train_autoencoder(
                         ).item())
                     SSIM_1.append(np.mean(ssim_scale_1))
                     SSIM_2.append(np.mean(ssim_scale_2))
-                    loss = np.mean(ssim_scale_1) + np.mean(ssim_scale_2) + l1_depth + l1_gen_image + l1_traj
+                    loss = np.mean(ssim_scale_1) + np.mean(ssim_scale_2) + l1_depth.item() + l1_gen_image.item() + l1_traj.item()
                     losses.append(loss)
                     
                     # Sampling last frame for writing to video

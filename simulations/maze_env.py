@@ -636,6 +636,12 @@ class MazeEnv(gym.Env):
                 shape = observation['depth'].shape,
                 dtype = observation['depth'].dtype
             ),
+            'position' : gym.spaces.Box(
+                low = -np.ones((2,), dtype = np.float32) * 40,
+                high = np.ones((2,), dtype = np.float32) * 40,
+                shape = (2,),
+                dtype = np.float32
+            )
         }
     
         if params['add_ref_scales']:
@@ -806,7 +812,7 @@ class MazeEnv(gym.Env):
             ), 0
         )
 
-        position = self.data.qpos.copy()
+        position = self.data.qpos[:2].copy()
 
         _obs = {
             'scale_1' : window.copy(),
@@ -992,7 +998,7 @@ class MazeEnv(gym.Env):
 
         # Task Reward Computation
         outer_reward = 0
-        outer_reward = self._task.reward(next_pos, bool(next_obs['inframe'][0])) - np.abs(self.wrapped_env.data.qvel[self.wrapped_env.ORI_IND])
+        outer_reward = self._task.reward(next_pos, bool(next_obs['inframe'][0]))
         done = self._task.termination(self.wrapped_env.get_xy(),  bool(next_obs['inframe'][0]))
         info["position"] = self.wrapped_env.get_xy()
 

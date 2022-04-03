@@ -1,6 +1,6 @@
 import torch
 from bg.autoencoder3D import Autoencoder
-model = Autoencoder(512)
+model = Autoencoder()
 x = torch.zeros((1, 6, 10, 64, 64))
 out = model(x)
 

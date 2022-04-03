@@ -140,7 +140,8 @@ class Autoencoder(torch.nn.Module):
         self.conv4 = EncResNetBlock(64, 64, 2)
         self.conv5 = EncResNetBlock(64, 128, 2)
 
-        self.conv6 = torch.nn.Conv3d(128, 1, kernel_size = 2, stride = (1, 1, 1), padding = (0, 0, 0))
+        self.conv6 = torch.nn.Conv3d(128, 64, kernel_size = 3, stride = (1, 1, 1), padding = (1, 0, 0))
+        self.conv7 = torch.nn.Conv3d(64, 2, kernel_size = 2, stride = (1, 1, 1), padding = (0, 0, 0))
         #self.conv7 = torch.nn.Conv3d(128, 256, kernel_size = 3, stride = (1, 2, 2), padding = (1, 0, 0))
 
         self.deconv5 = DecResNetBlock(128, 128, 2)
@@ -151,6 +152,7 @@ class Autoencoder(torch.nn.Module):
         self.deconv1 = ResizeConv(32, 7, kernel_size=3, scale_factor=2)
 
     def forward(self, x):
+        batch_size = x.size(0)
         scale_1, scale_2 = torch.split(x, 3, 1)
         scale_1 = self.conv1_1(scale_1)
         scale_1 = self.conv1_2(scale_1)
@@ -163,7 +165,9 @@ class Autoencoder(torch.nn.Module):
         x = self.conv4(x)
         z = self.conv5(x)
 
-        traj = self.conv6(z)
+        traj = torch.relu(self.conv6(z))
+        traj = self.conv7(traj)
+        traj = traj.view(batch_size, -1, 2)
 
         x = self.deconv5(z)
         x = self.deconv4(x)

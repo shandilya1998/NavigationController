@@ -39,7 +39,7 @@ params = {
     'save_freq'                   : int(4.5e4),
     'eval_freq'                   : int(1.5e4),
     'buffer_size'                 : int(2e5),
-    'max_episode_size'            : int(5e1),
+    'max_episode_size'            : int(1.5e3),
     'max_seq_len'                 : 10,
     'seq_sample_freq'             : 5,
     'burn_in_seq_len'             : 20,

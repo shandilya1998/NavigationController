@@ -1,6 +1,7 @@
 import warnings
 import numpy as np
 import gym
+from numpy.core.numeric import roll
 import stable_baselines3 as sb3
 from typing import NamedTuple, Any, Dict, List, Optional, Tuple, Union, Type
 import torch
@@ -312,6 +313,7 @@ def train_autoencoder(
             losses = []
             MSE = []
             MSE_DEPTH = []
+            MSE_TRAJ = []
             SSIM_1 = []
             SSIM_2 = []
             image_size = (64 * 3, 64 * 2)
@@ -324,6 +326,7 @@ def train_autoencoder(
             SCALE_1 = [np.zeros_like(last_obs['scale_1']) for _ in range(params['max_seq_len'] * params['seq_sample_freq'])]
             SCALE_2 = [np.zeros_like(last_obs['scale_2']) for _ in range(params['max_seq_len'] * params['seq_sample_freq'])]
             DEPTH = [np.zeros_like(last_obs['depth']) for _ in range(params['max_seq_len'] * params['seq_sample_freq'])]
+            POSITIONS = [np.zeros_like(last_obs['position']) for _ in range(params['max_seq_len'] * params['seq_sample_freq'])]
             for j in range(5):
                 last_obs = env.reset()
                 done = False
@@ -331,6 +334,7 @@ def train_autoencoder(
                     obs, reward, done, info = env.step(last_obs['sampled_action'])
                     SCALE_1.append(obs['scale_1'])
                     SCALE_2.append(obs['scale_2'])
+                    POSITIONS.append(obs['position'])
                     DEPTH.append(obs['depth'])
                     gt_image = torch.from_numpy(np.concatenate([
                         np.stack([
@@ -343,52 +347,64 @@ def train_autoencoder(
                     gt_depth = torch.from_numpy(np.stack([
                         DEPTH[-len(DEPTH) - eval_indices[i]] for i in range(params['max_seq_len'])
                     ], 2))
+                    gt_positions = np.stack([
+                        POSITIONS[-len(POSITIONS) - eval_indices[i]] for i in range(params['max_seq_len'])
+                    ], 1)
+                    ref = np.repeat(
+                        gt_positions[:, :1],
+                        params['max_seq_len'] - 1,
+                        1
+                    )
+                    gt_traj = torch.from_numpy(gt_positions[:, 1:] - ref)
+
                     # Model Evaluation
-                    with torch.no_grad():    
+                    with torch.no_grad():
                         _, [gen_image, depth, traj] = model(gt_image.contiguous())
-                        l1_gen_image = torch.nn.functional.l1_loss(gen_image, gt_image)
-                        l1_depth = torch.nn.functional.l1_loss(depth, gt_depth)
-                        MSE.append(l1_gen_image.item())
-                        MSE_DEPTH.append(l1_depth.item())
-                        scale_1, scale_2 = torch.split(gt_image, 3, dim = 1)
-                        gen_scale_1, gen_scale_2 = torch.split(gen_image, 3, dim = 1)
-                        # SSIM computation
-                        ssim_scale_1 = []
-                        ssim_scale_2 = []
-                        for _ in range(params['max_seq_len']):
-                            ssim_scale_1.append(1 - ssim(
-                                scale_1[:, :, j], gen_scale_1[:, :, j],
-                                data_range=1, size_average=True
-                            ).item())
-                            ssim_scale_2.append(1 - ssim(
-                                scale_2[:, :, j], gen_scale_2[:, :, j],
-                                data_range=1, size_average=True
-                            ).item())
-                        SSIM_1.append(np.mean(ssim_scale_1))
-                        SSIM_2.append(np.mean(ssim_scale_2))
-                        loss = np.mean(ssim_scale_1) + np.mean(ssim_scale_2) + l1_depth + l1_gen_image
-                        losses.append(loss)
+                    l1_gen_image = torch.nn.functional.l1_loss(gen_image, gt_image)
+                    l1_depth = torch.nn.functional.l1_loss(depth, gt_depth)
+                    l1_traj = torch.nn.functional.l1_loss(traj, gt_traj)
+                    MSE.append(l1_gen_image.item())
+                    MSE_DEPTH.append(l1_depth.item())
+                    MSE_TRAJ.append(l1_traj.item())
+                    scale_1, scale_2 = torch.split(gt_image, 3, dim = 1)
+                    gen_scale_1, gen_scale_2 = torch.split(gen_image, 3, dim = 1)
+                    # SSIM computation
+                    ssim_scale_1 = []
+                    ssim_scale_2 = []
+                    for j in range(params['max_seq_len']):
+                        ssim_scale_1.append(1 - ssim(
+                            scale_1[:, :, j], gen_scale_1[:, :, j],
+                            data_range=1, size_average=True
+                        ).item())
+                        ssim_scale_2.append(1 - ssim(
+                            scale_2[:, :, j], gen_scale_2[:, :, j],
+                            data_range=1, size_average=True
+                        ).item())
+                    SSIM_1.append(np.mean(ssim_scale_1))
+                    SSIM_2.append(np.mean(ssim_scale_2))
+                    loss = np.mean(ssim_scale_1) + np.mean(ssim_scale_2) + l1_depth + l1_gen_image + l1_traj
+                    losses.append(loss)
                     
                     # Sampling last frame for writing to video
-                    scale_1 = scale_1[0, :, -1]
-                    scale_2 = scale_2[0, :, -1]
-                    gt_depth = gt_depth[0, :, -1]
-                    gen_scale_1 = gen_scale_1[0, :, -1]
-                    gen_scale_2 = gen_scale_2[0, :, -1]
-                    depth = depth[0, :, -1]
+                    scale_1 = scale_1[0, :, -1].cpu().numpy()
+                    scale_2 = scale_2[0, :, -1].cpu().numpy()
+                    gt_depth = gt_depth[0, :, -1].cpu().numpy()
+                    gen_scale_1 = gen_scale_1[0, :, -1].cpu().numpy()
+                    gen_scale_2 = gen_scale_2[0, :, -1].cpu().numpy()
+                    depth = depth[0, :, -1].cpu().numpy()
                     
                     observation = np.concatenate([
                         np.concatenate([
-                            scale_1.cpu().numpy(),
-                            gen_scale_1.cpu().numpy()
+                            scale_1,
+                            gen_scale_1
                         ], 1),
                         np.concatenate([
-                            scale_2.cpu().numpy(),
-                            gen_scale_2.cpu().numpy()
+                            scale_2,
+                            gen_scale_2
                         ], 1),
                         np.repeat(np.concatenate([
-                            gt_depth.cpu().numpy(),
-                            depth.cpu().numpy()
+                            gt_depth,
+                            depth
                         ], 1), 3, 0),
                     ], 2).transpose(1, 2, 0) * 255 
                     observation = observation.astype(np.uint8)
@@ -401,8 +417,8 @@ def train_autoencoder(
             # Writing Evalulation Metrics to Tensorboard
             total_reward = total_reward / 5
             print('-----------------------------')
-            print('Evaluation Total Reward {:.4f} Loss {:.4f} MSE {:.4f} MSE depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} Steps {}'.format(
-                total_reward[0], np.mean(losses), np.mean(MSE), np.mean(MSE_DEPTH),
+            print('Evaluation Total Reward {:.4f} Loss {:.4f} MSE {:.4f} MSE depth {:.4f} MSE trajectory {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} Steps {}'.format(
+                total_reward[0], np.mean(losses), np.mean(MSE), np.mean(MSE_DEPTH), np.mean(MSE_TRAJ),
                 np.mean(SSIM_1), np.mean(SSIM_2), steps))
             print('-----------------------------')
             writer.add_scalar('Eval/Loss', np.mean(losses), i)
@@ -437,6 +453,7 @@ def train_autoencoder(
         losses = []
         MSE = []
         MSE_DEPTH = []
+        MSE_TRAJ = []
         SSIM_1 = []
         SSIM_2 = []
 
@@ -450,6 +467,12 @@ def train_autoencoder(
             ], 1).float() / 255
 
             gt_depth = rollout.observations['depth']
+            ref = torch.repeat_interleave(
+                rollout.observations['position'][:, :1],
+                params['max_seq_len'] - 1,
+                1
+            )
+            gt_traj = rollout.observations['position'][:, 1:] - ref
 
             # Prediction
             _, [gen_image, depth, traj] = model(gt_image.contiguous())
@@ -457,9 +480,10 @@ def train_autoencoder(
             # Gradient Computatation and Optimsation
             l1_gen_image = torch.nn.functional.l1_loss(gen_image, gt_image)
             l1_depth = torch.nn.functional.l1_loss(depth, gt_depth)
-
+            l1_traj = torch.nn.functional.l1_loss(traj, gt_traj)
             MSE.append(l1_gen_image.item())
             MSE_DEPTH.append(l1_depth.item())
+            MSE_TRAJ.append(l1_traj.item())
 
             # SSIM computation
             ssim_scale_1 = []
@@ -478,7 +502,7 @@ def train_autoencoder(
             ssim_2 = sum(ssim_scale_2)
             SSIM_1.append(ssim_1.item())
             SSIM_2.append(ssim_2.item())
-            loss = l1_depth + l1_gen_image + ssim_1 + ssim_2
+            loss = l1_depth + l1_gen_image + ssim_1 + ssim_2 + l1_traj
 
             optim.zero_grad()
             loss.backward()
@@ -494,8 +518,8 @@ def train_autoencoder(
         writer.add_scalar('Train/ssim_2', np.mean(SSIM_2), i)
         writer.add_scalar('Train/depth', np.mean(MSE_DEPTH), i)
         writer.add_scalar('Train/learning_rate', scheduler.get_last_lr()[0], i)
-        print('Epoch {} Learning Rate {:.6f} Total Reward {:.4f} Loss {:.4f} MSE {:.4f} MSE depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f}'.format(
-            i, scheduler.get_last_lr()[0], total_reward[0], np.mean(losses), np.mean(MSE), np.mean(MSE_DEPTH),
+        print('Epoch {} Learning Rate {:.6f} Total Reward {:.4f} Loss {:.4f} MSE {:.4f} MSE depth {:.4f} MSE trajectory {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f}'.format(
+            i, scheduler.get_last_lr()[0], total_reward[0], np.mean(losses), np.mean(MSE), np.mean(MSE_DEPTH), np.mean(MSE_TRAJ),
             np.mean(SSIM_1), np.mean(SSIM_2)))
 
         # Save Model

@@ -338,17 +338,17 @@ def train_autoencoder(
                     DEPTH.append(obs['depth'])
                     gt_image = torch.from_numpy(np.concatenate([
                         np.stack([
-                            SCALE_1[-len(SCALE_1) - eval_indices[i]] for i in range(params['max_seq_len'])
+                            SCALE_1[-1 - eval_indices[i]] for i in range(params['max_seq_len'])
                         ], 2),
                         np.stack([
-                            SCALE_2[-len(SCALE_2) - eval_indices[i]] for i in range(params['max_seq_len'])
+                            SCALE_2[-1 - eval_indices[i]] for i in range(params['max_seq_len'])
                         ], 2)
                     ], 1)).float() / 255
                     gt_depth = torch.from_numpy(np.stack([
-                        DEPTH[-len(DEPTH) - eval_indices[i]] for i in range(params['max_seq_len'])
+                        DEPTH[-1 - eval_indices[i]] for i in range(params['max_seq_len'])
                     ], 2))
                     gt_positions = np.stack([
-                        POSITIONS[-len(POSITIONS) - eval_indices[i]] for i in range(params['max_seq_len'])
+                        POSITIONS[-1 - eval_indices[i]] for i in range(params['max_seq_len'])
                     ], 1)
                     ref = np.repeat(
                         gt_positions[:, :1],
@@ -356,6 +356,10 @@ def train_autoencoder(
                         1
                     )
                     gt_traj = torch.from_numpy(gt_positions[:, 1:] - ref)
+
+                    gt_image = gt_image.to(device=device)
+                    gt_depth = gt_depth.to(device=device)
+                    gt_traj = gt_traj.to(device=device)
 
                     # Model Evaluation
                     with torch.no_grad():

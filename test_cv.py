@@ -269,8 +269,37 @@ if params['debug']:
     ax.set_ylabel('reward')
 total_reward = 0.0
 ac = env.get_action()
+top = env.render('rgb_array')
+image_size = (top.shape[0], top.shape[1])
+video = cv2.VideoWriter(
+    'test_env.avi',
+    cv2.VideoWriter_fourcc(*"MJPG"), 10, image_size, isColor = True
+)
+
 while not done:
     ob, reward, done, info = env.step(ob['sampled_action'])
+    top = env.render('rgb_array')
+    top = cv2.cvtColor(
+        cv2.resize(top, (top.shape[0]//2, top.shape[1]//2)),
+        cv2.COLOR_RGB2BGR
+    )
+    scale_1 = cv2.resize(ob['scale_1'], top.shape[:2])
+    scale_2 = cv2.resize(ob['scale_2'], top.shape[:2])
+    depth = np.repeat(ob['depth'].transpose(1, 2, 0), 3, 2) * 255
+    depth = cv2.resize(depth, top.shape[:2])
+
+    image = np.concatenate([
+        np.concatenate([
+            scale_1, scale_2
+        ], 0),
+        np.concatenate([
+            depth, top
+        ], 0)
+    ], 1).astype(np.uint8)
+
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    video.write(image)
+
     #ob, reward, done, info = env.step(env.action_space.sample())
     ac = env.get_action()
     if reward != 0.0:
@@ -289,6 +318,9 @@ while not done:
         ax.clear()
         ax.plot(REWARDS, color = 'r', linestyle = '--')
         plt.pause(0.001)
+        cv2.imshow('saved video', image)
+
+video.release()
 pbar.close()
 #plt.close()
 print('Ideal Path:')

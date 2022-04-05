@@ -167,7 +167,7 @@ class Autoencoder(torch.nn.Module):
        
         x = self.deconv3(x)
         x = self.deconv2(x) 
-        x = self.deconv1(x)
+        x = torch.relu(self.deconv1(x))
 
         gen_image, depth = torch.split(x, [6, 1], 1)
 

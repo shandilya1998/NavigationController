@@ -128,28 +128,26 @@ class DecResNetBlock(torch.nn.Module):
 class Autoencoder(torch.nn.Module):
     def __init__(self):
         super(Autoencoder, self).__init__()
-        self.conv1_1 = torch.nn.Conv3d(3, 16, kernel_size=3, stride=(1, 2, 2), padding=1, bias=False)
-        self.conv1_2 = EncResNetBlock(16, 16, 1)
-        self.conv1_3 = EncResNetBlock(16, 32, 2)
+        self.conv1_1 = torch.nn.Conv3d(3, 32, kernel_size=3, stride=(1, 2, 2), padding=1, bias=False)
+        self.conv1_2 = EncResNetBlock(32, 32, 1)
+        self.conv1_3 = EncResNetBlock(32, 64, 2)
 
     
-        self.conv2_1 = torch.nn.Conv3d(3, 16, kernel_size=3, stride=(1, 2, 2), padding=1, bias=False)
-        self.conv2_2 = EncResNetBlock(16, 16, 1)
-        self.conv2_3 = EncResNetBlock(16, 32, 2)
+        self.conv2_1 = torch.nn.Conv3d(3, 32, kernel_size=3, stride=(1, 2, 2), padding=1, bias=False)
+        self.conv2_2 = EncResNetBlock(32, 32, 1)
+        self.conv2_3 = EncResNetBlock(32, 64, 2)
 
-        self.conv4 = EncResNetBlock(64, 64, 2)
-        self.conv5 = EncResNetBlock(64, 128, 2)
+        self.conv4 = EncResNetBlock(128, 128, 2)
+        self.conv5 = EncResNetBlock(128, 256, 2)
 
-        self.conv6 = torch.nn.Conv3d(128, 64, kernel_size = 3, stride = (1, 1, 1), padding = (1, 0, 0))
-        self.conv7 = torch.nn.Conv3d(64, 2, kernel_size = 2, stride = (1, 1, 1), padding = (0, 0, 0))
         #self.conv7 = torch.nn.Conv3d(128, 256, kernel_size = 3, stride = (1, 2, 2), padding = (1, 0, 0))
 
-        self.deconv5 = DecResNetBlock(128, 128, 2)
-        self.deconv4 = DecResNetBlock(128, 64, 2)
+        self.deconv5 = DecResNetBlock(256, 256, 2)
+        self.deconv4 = DecResNetBlock(256, 128, 2)
 
-        self.deconv3 = DecResNetBlock(64, 32, 2)
-        self.deconv2 = DecResNetBlock(32, 32, 1)
-        self.deconv1 = ResizeConv(32, 7, kernel_size=3, scale_factor=2)
+        self.deconv3 = DecResNetBlock(128, 64, 2)
+        self.deconv2 = DecResNetBlock(64, 64, 1)
+        self.deconv1 = ResizeConv(64, 7, kernel_size=3, scale_factor=2)
 
     def forward(self, x):
         scale_1, scale_2 = torch.split(x, 3, 1)

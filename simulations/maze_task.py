@@ -387,17 +387,16 @@ class GoalRewardSimple(GoalReward4Rooms):
 class CustomGoalReward4Rooms(GoalReward4Rooms):
     def __init__(self,
         scale: float,
-        goal: Tuple[int, int] = (6.0, -6.0),
+        goal: Tuple[int, int] = (3.0, 4.0),
         ) -> None:
         super().__init__(scale, goal)
-        self.set()
 
-    def set(self, offset = 0.2):
-        self.goal_index = np.random.randint(low = 0, high = 4)
+    def set(self, goals, torso_init):
+        self.goal_index = np.random.randint(low = 0, high = len(goals))
         self.colors = []
         self.scales = []
         self.goals = []
-        for i in range(4):
+        for i in range(len(goals)):
             if i == self.goal_index:
                 self.colors.append(copy.deepcopy(RED))
                 self.scales.append(1.0)
@@ -405,24 +404,54 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
                 self.colors.append(copy.deepcopy(GREEN))
                 self.scales.append(1.0)
 
+        self.goals = [
+            MazeVisualGoal(
+                np.array([
+                    col * self.scale - torso_init[1],
+                    row * self.scale - torso_init[0]
+                ]), self.scales[i], self.colors[i], 2.25
+            ) for i, (row, col) in enumerate(goals)
+        ]
+
+        """
         self.goals = [ 
             MazeVisualGoal(np.array([
-                np.random.uniform(3.0 - 3 * offset, 3.0 + 3 * offset) * self.scale,
-                -np.random.uniform(4.0 - 2 * offset, 4.0 + 2 * offset) * self.scale
-            ]), self.scales[0], self.colors[0], 2.25),
+                np.random.uniform(3.0 - 3 * offset, 3.0 + 3 * offset),
+                -np.random.uniform(4.0 - 2 * offset, 4.0 + 2 * offset)
+            ]) * self.scale, self.scales[0], self.colors[0], 2.25),
             MazeVisualGoal(np.array([
-                np.random.uniform(4.0 - 2 * offset, 4.0 + 2 * offset) * self.scale,
-                -np.random.uniform(-3.0 - 3 * offset, -3.0 + 3 * offset) * self.scale
-            ]), self.scales[1], self.colors[1], 2.25),
+                np.random.uniform(4.0 - 2 * offset, 4.0 + 2 * offset),
+                -np.random.uniform(-3.0 - 3 * offset, -3.0 + 3 * offset)
+            ]) * self.scale, self.scales[1], self.colors[1], 2.25),
             MazeVisualGoal(np.array([
-                np.random.uniform(-4.0 - 2 * offset, -4.0 + 2 * offset) * self.scale,
-                -np.random.uniform(3.0 - 3 * offset, 3.0 + 3 * offset) * self.scale 
-            ]), self.scales[2], self.colors[2], 2.25),
+                np.random.uniform(-4.0 - 2 * offset, -4.0 + 2 * offset),
+                -np.random.uniform(3.0 - 3 * offset, 3.0 + 3 * offset)
+            ]) * self.scale, self.scales[2], self.colors[2], 2.25),
             MazeVisualGoal(np.array([
-                np.random.uniform(-3.0 - 3 * offset, -3.0 + 3 * offset) * self.scale,
-                -np.random.uniform(-4.0 - 2 * offset, -4.0 + 2 * offset) * self.scale 
-            ]), self.scales[3], self.colors[3], 2.25),
+                np.random.uniform(-3.0 - 3 * offset, -3.0 + 3 * offset),
+                -np.random.uniform(-4.0 - 2 * offset, -4.0 + 2 * offset) 
+            ]) * self.scale, self.scales[3], self.colors[3], 2.25),
         ]
+        self.goals = [ 
+            MazeVisualGoal(np.array([
+                np.random.choice([1.0, 2.0, 3.0, 4.0, 5.0]) - offset,
+                -(np.random.choice([2.0, 3.0, 4.0, 5.0, 6.0]) - offset)
+            ]) * self.scale, self.scales[0], self.colors[0], 2.25),
+            MazeVisualGoal(np.array([
+                np.random.choice([2.0, 3.0, 4.0, 5.0, 6.0]) - offset,
+                -(-np.random.choice([1.0, 2.0, 3.0, 4.0, 5.0])  - offset)
+            ]) * self.scale, self.scales[1], self.colors[1], 2.25),
+            MazeVisualGoal(np.array([
+                -np.random.choice([2.0, 3.0, 4.0, 5.0, 6.0]) - offset,
+                -(np.random.choice([1.0, 2.0, 3.0, 4.0, 5.0])  - offset)
+            ]) * self.scale, self.scales[2], self.colors[2], 2.25),
+            MazeVisualGoal(np.array([
+                -np.random.choice([1.0, 2.0, 3.0, 4.0, 5.0])  - offset,
+                -(-np.random.choice([2.0, 3.0, 4.0, 5.0, 6.0]) - offset)
+            ]) * self.scale, self.scales[3], self.colors[3], 2.25),
+        ]
+        print([goal.pos for goal in self.goals])
+        """
 
     def reward(self, pos: np.ndarray, inframe: bool) -> float:
         goal = self.goals[self.goal_index]

@@ -105,11 +105,36 @@ def evaluate_policy(
     current_rewards = np.zeros(n_envs)
     current_lengths = np.zeros(n_envs, dtype="int")
     observations = env.reset()
-    states = [np.zeros((1, ) + spec[0], dtype = spec[1]) for spec in model.state_spec]
+
+    OBS = []
+    if isinstance(observations, np.ndarray):
+        OBS = [np.zeros_like(observations)] * (params['max_seq_len'] * params['seq_sample_freq'] - 1)
+    elif isinstance(observations, dict):
+        OBS = [{
+            key: np.zeros_like(ob) for key, ob in observations.items()
+        }] * (params['max_seq_len'] * params['seq_sample_freq'] - 1)
+        KEYS = list(OBS[-1].keys())
+
+    OBS.append(observations)
+
+    def get_obs():
+        indices = np.arange(-params['max_seq_len'] * params['seq_sample_freq'], 0, params['seq_sample_freq'])
+        if isinstance(OBS[-1], np.ndarray):
+            return np.stack([OBS[i] for i in indices], 2)
+        elif isinstance(OBS[-1], dict):
+            return {
+                key: np.stack([
+                    OBS[i][key] for i in indices
+                ], 2) for key in KEYS
+            }
+        else:
+            raise ValueError
+
     while (episode_counts < episode_count_targets).any():
-        obs = {key: np.expand_dims(ob, 1) for key, ob in observations.items()}
-        [actions, [gen_image, depth]], states = model.predict(obs, state=states, deterministic=deterministic)
+        obs = get_obs()
+        [actions, [gen_image, depth]], states = model.predict(obs, deterministic=deterministic)
         observations, rewards, dones, infos = env.step(actions)
+        OBS.append(observations)
         current_rewards += rewards
         current_lengths += 1
         for i in range(n_envs):
@@ -140,6 +165,16 @@ def evaluate_policy(
                         episode_rewards.append(current_rewards[i])
                         episode_lengths.append(current_lengths[i])
                         episode_counts[i] += 1
+                    _OBS = []
+                    if isinstance(OBS[-1], np.ndarray):
+                        _OBS = [np.zeros_like(OBS[-1])] * (params['max_seq_len'] * params['seq_sample_freq'] - 1)
+                    elif isinstance(observations, dict):
+                        _OBS = [{
+                            key: np.zeros_like(ob) for key, ob in OBS[-1].items()
+                        }] * (params['max_seq_len'] * params['seq_sample_freq'] - 1)    
+                        KEYS = list(OBS[-1].keys())
+                    _OBS.append(OBS[-1])
+                    OBS = _OBS
                     current_rewards[i] = 0
                     current_lengths[i] = 0
                     if states is not None:
@@ -302,11 +337,11 @@ class Callback(sb3.common.callbacks.EventCallback):
                         size
                     )
                     gen_scale_1 = cv2.resize(
-                         _locals['gen_image'][0, :3].transpose(1, 2, 0) * 255,
+                         _locals['gen_image'][0, :3, -1].transpose(1, 2, 0) * 255,
                          size
                     )
                     gen_scale_2 = cv2.resize(
-                        _locals['gen_image'][0, 3:].transpose(1, 2, 0) * 255,
+                        _locals['gen_image'][0, 3:, -1].transpose(1, 2, 0) * 255,
                         size
                     )
 
@@ -318,7 +353,7 @@ class Callback(sb3.common.callbacks.EventCallback):
                         depth,
                         size
                     ), cv2.COLOR_GRAY2RGB)
-                    gen_depth =  _locals['depth'][0].transpose(1, 2, 0) * 255
+                    gen_depth =  _locals['depth'][0, :, -1].transpose(1, 2, 0) * 255
                     gen_depth = gen_depth.astype(np.uint8)
                     gen_depth = cv2.cvtColor(cv2.resize(
                         gen_depth,
@@ -331,6 +366,7 @@ class Callback(sb3.common.callbacks.EventCallback):
                     error = np.square(_locals['observations']['sampled_action'] - _locals['actions']).mean()
                     image = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
                     image = image.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+                    image = cv2.resize(image, size)
                     observation = np.concatenate([
                         np.concatenate([screen, image], 0),
                         np.concatenate([scale_1, gen_scale_1], 0),
@@ -425,10 +461,10 @@ if __name__ == '__main__':
     device = 'auto'
     set_seeds(params['seed'])
     logdir = '/content/drive/MyDrive/CNS/exp22'
-    pretrained_params_path = '/content/drive/MyDrive/CNS/exp22/autoencoder/exp/model_epoch_150.pt'
+    pretrained_params_path = '/content/drive/MyDrive/CNS/exp22/autoencoder/exp/model_epoch_55.pt'
     if params['debug']:
         logdir = 'assets/out/models/exp22'
-        pretrained_params_path = 'assets/out/models/autoencoder/model.pt'
+        pretrained_params_path = 'assets/out/models/autoencoder/model_epoch_55.pt'
 
     imitate_policy_path = '/content/drive/MyDrive/CNS/exp22/Imitate_2/il_model_300000_steps.zip'
     if params['debug']:
@@ -437,7 +473,8 @@ if __name__ == '__main__':
     _env = MazeEnv(
         PointEnv, CustomGoalReward4Rooms, 
         params['max_episode_size'],
-        params['history_steps']
+        params['history_steps'],
+        params['max_seq_len'] * params['seq_sample_freq']
     )
 
     train_env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
@@ -461,7 +498,7 @@ if __name__ == '__main__':
         'features_extractor_kwargs' : {
             'features_dim' : params['num_ctx'],
             'pretrained_params_path' : pretrained_params_path,
-            'device' : None
+            'device' : 'cuda' if torch.cuda.is_available() else 'cpu'
         },
         'normalize_images' : True,
         'optimizer_class' : torch.optim.Adam,
@@ -470,19 +507,14 @@ if __name__ == '__main__':
         'share_features_extractor' : True
     }
 
-
-    state_spec = [
-        [(1, params['net_arch'][0]), np.float32],
-        [(1, params['net_arch'][0]), np.float32]
-    ]
     replay_buffer_kwargs = {
-            'state_spec' : state_spec,
             'max_seq_len' : params['max_seq_len'],
-            }
+            'seq_sample_freq' : params['seq_sample_freq']
+    }
+
     model = RTD3(
         policy = RTD3Policy,
         env = train_env,
-        state_spec = state_spec,
         learning_rate = linear_schedule(params['lr'], params['final_lr']),
         buffer_size = params['buffer_size'],
         learning_starts = params['learning_starts'],
@@ -517,7 +549,7 @@ if __name__ == '__main__':
         PointEnv, CustomGoalReward4Rooms,
         params['max_episode_size'],
         params['history_steps'],
-        mode = 'eval'
+        params['max_seq_len'] * params['seq_sample_freq'],
     )
     image_size = ( 
         int(4 * env.top_view_size * len(env._maze_structure[0])),

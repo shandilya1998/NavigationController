@@ -40,7 +40,6 @@ class MazeEnv(gym.Env):
         maze_task: Type[maze_task.MazeTask] = maze_task.MazeTask,
         max_episode_size: int = 2000,
         n_steps = 50,
-        mode = 'train',
         include_position: bool = True,
         maze_height: float = 0.5,
         maze_size_scaling: float = 4.0,
@@ -55,7 +54,6 @@ class MazeEnv(gym.Env):
         **kwargs,
     ) -> None:
         print('Environment Mode: {}'.format(mode))
-        self.mode = mode
         self.collision_count = 0
         self.n_steps = n_steps
         self.kwargs = kwargs
@@ -73,6 +71,12 @@ class MazeEnv(gym.Env):
         self._restitution_coef = restitution_coef
 
         self._maze_structure = structure = self._task.create_maze()
+        self._open_position_indices = []
+        for i in range(len(self._maze_structure)):
+            for j in range(len(self._maze_structure[i])):
+                if not self._maze_structure[i][j].is_wall_or_chasm():
+                    self._open_position_indices.append((i, j))
+
         # Elevate the maze to allow for falling.
         self.elevated = any(maze_env_utils.MazeCell.CHASM in row for row in structure)
         # Are there any movable blocks?
@@ -108,8 +112,8 @@ class MazeEnv(gym.Env):
             func2((x + torso_x) / size_scaling), 
         )
         self._rowcol_to_xy = lambda r, c: (
-            c * size_scaling - torso_x,
-            r * size_scaling - torso_y
+            c * size_scaling - torso_y,
+            r * size_scaling - torso_x
         )
 
         # Let's create MuJoCo XML
@@ -123,62 +127,13 @@ class MazeEnv(gym.Env):
         self._websock_server_pipe = None
         self.set_env()
 
-    def __get_init_pos(self):
-        offset = 0.0
-        pos = None
-        if self.mode == 'eval':
-            offset = 5.0
-            pos = np.random.uniform(low = -offset, high = offset, size = (2,)) * self._maze_size_scaling
-        elif self.mode == 'imitate' or self.mode == 'train':
-            possibilities = [[6, 6]]
-            for i, goal in enumerate(self._task.goals):
-                if i != self._task.goal_index:
-                    (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(goal.pos[0], goal.pos[1])
-                    possibilities.append([row, col])
-
-            r, c = random.choice(possibilities)
-            d_r, d_c = 0, 0
-            if self.mode == 'imitate':
-                if r < 6:
-                    d_r = -0.5
-                elif r == 6:
-                    d_r = 0
-                else:
-                    d_r = 0.5
-                if c < 6:
-                    d_c = -0.5
-                elif c == 6:
-                    d_c = 0
-                else:
-                    d_c = 0.5
-            else:
-                offset = self.total_steps / (params['total_timesteps'] * 2)
-                if offset > 1.0:
-                    offset = 1.0
-                if r < 6:
-                    d_r = -0.5 + np.random.uniform(low = 0, high = 3 * offset) * self._maze_size_scaling
-                elif r == 6:
-                    d_r = np.random.uniform(low = -3 * offset, high = 3 * offset) * self._maze_size_scaling
-                else:
-                    d_r = 0.5 - np.random.uniform(low = 0, high = 3 * offset) * self._maze_size_scaling
-                if c < 6:
-                    d_c = -0.5 + np.random.uniform(low = 0, high = 3 * offset) * self._maze_size_scaling
-                elif c == 6:
-                    d_c = np.random.uniform(low = -3 * offset, high = 3 * offset) * self._maze_size_scaling
-                else:
-                    d_c = 0.5 - np.random.uniform(low = 0, high = 3 * offset) * self._maze_size_scaling
-            pos = self._rowcol_to_xy(r + d_r, c + d_c)
-            pos = np.array(pos, dtype = np.float32)
-        else:
-            pos = np.random.uniform(low = -offset, high = offset, size = (2,)) * self._maze_size_scaling
-        return pos, offset
-
-    def _ensure_distance_from_target(self, row, row_frac, col, col_frac, neighbors, offset, pos):
+    def _ensure_distance_from_target(self, row, row_frac, col, col_frac, neighbors, pos):
         target_pos = self._task.goals[self._task.goal_index].pos
         (pos_row, _), (pos_col, _) = self._xy_to_rowcol_v2(target_pos[0], target_pos[1])
         if [pos_row, pos_col] in neighbors or [pos_row, pos_col] == [row, col]:
-            pos, offset = self.__get_init_pos()
-            (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(pos[0], pos[1])
+            row, col = random.choice(self._open_position_indices)
+            row_frac = np.random.uniform(low = -0.4, high = 0.4)
+            col_frac = np.random.uniform(low = -0.4, high = 0.4)
             neighbors = [
                 [row + 1, col],
                 [row, col + 1],
@@ -189,14 +144,17 @@ class MazeEnv(gym.Env):
                 [row + 1, col - 1],
                 [row - 1, col - 1]
             ]
-            (row, row_frac), (col, col_frac), neighbors, offset, pos = self._ensure_distance_from_target(
-                row, row_frac, col, col_frac, neighbors, offset, pos
+            pos = self._rowcol_to_xy(row + row_frac, col + col_frac)
+            (row, row_frac), (col, col_frac), neighbors, pos = self._ensure_distance_from_target(
+                row, row_frac, col, col_frac, neighbors, pos
             )
-        return (row, row_frac), (col, col_frac), neighbors, offset, pos
+        return (row, row_frac), (col, col_frac), neighbors, pos
 
-    def _set_init(self):
-        pos, offset = self.__get_init_pos()
-        (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(pos[0], pos[1]) 
+    def _set_init(self, agent):
+        row, col = agent
+        row_frac = np.random.uniform(low = -0.4, high = 0.4)
+        col_frac = np.random.uniform(low = -0.4, high = 0.4)
+        pos = self._rowcol_to_xy(row + row_frac, col + col_frac)
         neighbors = [
             [row + 1, col],
             [row, col + 1],
@@ -207,8 +165,8 @@ class MazeEnv(gym.Env):
             [row + 1, col - 1],
             [row - 1, col - 1]
         ]
-        (row, row_frac), (col, col_frac), neighbors, offset, pos = self._ensure_distance_from_target(
-            row, row_frac, col, col_frac, neighbors, offset, pos
+        (row, row_frac), (col, col_frac), neighbors, pos = self._ensure_distance_from_target(
+            row, row_frac, col, col_frac, neighbors, pos
         )
         struct = self._maze_structure[row][col]
         if struct.is_block():
@@ -254,7 +212,9 @@ class MazeEnv(gym.Env):
             r, c = neighbor
             if self.__check_structure_index_validity(r, c):
                 if self._maze_structure[r][c].is_block():
-                    angle = np.arctan2(r - row, c - col)
+                    x, y = self._rowcol_to_xy(row, col)
+                    _x, _y = self._rowcol_to_xy(r, c)
+                    angle = np.arctan2(_y - y, _x - x)
                     index = possibilities.index(angle)
                     possibilities.pop(index)
 
@@ -363,14 +323,10 @@ class MazeEnv(gym.Env):
                 raise Exception("Every geom of the torso must have a name")
 
         # Set goals
-        offset = 0.2
-        if self.mode == 'eval':
-            offset = 1.0
-        elif self.mode == 'imitate':
-            offset = 0.2
-        else:
-            offset = 0.2 + self.total_steps / (params['total_timesteps'] * 0.75)
-        self._task.set(offset)
+        sampled_cells = random.sample(self._open_position_indices, 5)
+        agent = sampled_cells[-1]
+        goals = sampled_cells[:4]
+        self._task.set(goals, (self._init_torso_x, self._init_torso_y))
         for i, goal in enumerate(self._task.goals):
             z = goal.pos[2] if goal.dim >= 3 else 0.1 *  self._maze_size_scaling
             if goal.custom_size is None:
@@ -394,7 +350,7 @@ class MazeEnv(gym.Env):
         self.model = self.wrapped_env.model
         self.data = self.wrapped_env.data
 
-        self._init_pos, self._init_ori = self._set_init()
+        self._init_pos, self._init_ori = self._set_init(agent)
         self.wrapped_env.set_xy(self._init_pos)
         self.wrapped_env.set_ori(self._init_ori)
         self.dt = self.wrapped_env.dt
@@ -411,19 +367,15 @@ class MazeEnv(gym.Env):
         self._set_action_space()
         self.last_wrapped_obs = self.wrapped_env._get_obs().copy()
         action = self.action_space.sample()
-        self.actions = [np.zeros_like(action) for i in range(self.n_steps)]
+        self.actions = [np.zeros_like(action) for _ in range(self.n_steps)]
         goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
-        self.goals = [goal.copy() for i in range(self.n_steps)]
+        self.goals = [goal.copy() for _ in range(self.n_steps)]
         self.__create_maze_graph()
         self.sampled_path = self.__sample_path()
         self._current_cell = copy.deepcopy(self.sampled_path[0])
         self.__find_all_waypoints()
         self.__find_cubic_spline_path()
         self.__setup_vel_control()
-        inertia = np.concatenate([
-            self.data.qvel,
-            self.data.qacc
-        ], -1)
         ob = self._get_obs()
         self._set_observation_space(ob)
 
@@ -477,17 +429,23 @@ class MazeEnv(gym.Env):
 
     def __sample_path(self):
         robot_x, robot_y = self.wrapped_env.get_xy()
-        robot_ori = self.wrapped_env.get_ori()
         row, col = self._xy_to_rowcol(robot_x, robot_y)
         source = self._structure_to_graph_index(row, col)
         goal_pos = self._task.goals[self._task.goal_index].pos[:2]
         row, col = self._xy_to_rowcol(goal_pos[0], goal_pos[1])
         target = self._structure_to_graph_index(row, col)
-        paths = list(nx.algorithms.shortest_paths.generic.all_shortest_paths(
-            self._maze_graph,
-            source,
-            target
-        ))
+        try:
+            paths = list(nx.algorithms.shortest_paths.generic.all_shortest_paths(
+                self._maze_graph,
+                source,
+                target
+            ))
+        except:
+            top = self.render('rgb_array')
+            while True:
+                cv2.imshow('position stream', cv2.cvtColor(top, cv2.COLOR_RGB2BGR))
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
         return paths[0]
 
     def get_action(self):
@@ -743,7 +701,7 @@ class MazeEnv(gym.Env):
         low, high = maze_task.get_hsv_ranges(maze_task.RED)
         low = np.array(low, dtype = np.uint8)
         high = np.array(high, dtype = np.uint8)
-        mask = cv2.inRange (hsv, low, high)
+        mask = cv2.inRange(hsv, low, high)
         contours, _ =  cv2.findContours(mask.copy(),
                            cv2.RETR_TREE,
                            cv2.CHAIN_APPROX_SIMPLE)

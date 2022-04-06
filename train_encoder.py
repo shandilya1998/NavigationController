@@ -15,8 +15,7 @@ if __name__ == '__main__':
                 PointEnv,
                 CustomGoalReward4Rooms,
                 max_episode_size = params['max_episode_size'],
-                n_steps = 15,
-                mode = 'eval'
+                n_steps = params['max_seq_len'] * params['seq_sample_freq'],
             ))
         ])
     )

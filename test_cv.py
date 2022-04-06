@@ -2,7 +2,7 @@ from simulations.maze_env import MazeEnv
 from simulations.point import PointEnv, PointEnvV2
 from simulations.maze_task import CustomGoalReward4Rooms, \
     GoalRewardNoObstacle, GoalRewardSimple, CustomGoalReward4RoomsV2
-env = MazeEnv(PointEnv, CustomGoalReward4Rooms, mode = 'eval')
+env = MazeEnv(PointEnv, CustomGoalReward4Rooms)
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2

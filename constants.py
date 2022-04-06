@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-debug = False
+debug = True
 
 params = {
     'input_size_low_level_control': 6,

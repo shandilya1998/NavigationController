@@ -53,7 +53,6 @@ class MazeEnv(gym.Env):
         image_shape: Tuple[int, int] = (600, 480),
         **kwargs,
     ) -> None:
-        print('Environment Mode: {}'.format(mode))
         self.collision_count = 0
         self.n_steps = n_steps
         self.kwargs = kwargs

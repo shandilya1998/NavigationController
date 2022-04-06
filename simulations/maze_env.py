@@ -445,7 +445,7 @@ class MazeEnv(gym.Env):
                 cv2.imshow('position stream', cv2.cvtColor(top, cv2.COLOR_RGB2BGR))
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
-        return paths[0]
+        return random.choice(paths)
 
     def get_action(self):
         ai = proportional_control(self.target_speed, self.state.v)

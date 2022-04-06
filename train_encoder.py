@@ -28,7 +28,7 @@ if __name__ == '__main__':
         logdir,
         env, 
         n_epochs = 100,
-        batch_size = 100,
+        batch_size = 75,
         learning_rate = 1e-3,
         save_freq = 5,
         eval_freq = 5,

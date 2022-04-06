@@ -126,46 +126,26 @@ class MazeEnv(gym.Env):
         self._websock_server_pipe = None
         self.set_env()
 
-    def _ensure_distance_from_target(self, row, row_frac, col, col_frac, neighbors, pos):
+    def _ensure_distance_from_target(self, row, row_frac, col, col_frac, pos):
         target_pos = self._task.goals[self._task.goal_index].pos
         (pos_row, _), (pos_col, _) = self._xy_to_rowcol_v2(target_pos[0], target_pos[1])
-        if [pos_row, pos_col] in neighbors or [pos_row, pos_col] == [row, col]:
+        if [pos_row, pos_col] == [row, col]:
             row, col = random.choice(self._open_position_indices)
             row_frac = np.random.uniform(low = -0.4, high = 0.4)
             col_frac = np.random.uniform(low = -0.4, high = 0.4)
-            neighbors = [
-                [row + 1, col],
-                [row, col + 1],
-                [row - 1, col],
-                [row, col - 1],
-                [row + 1, col + 1],
-                [row - 1, col + 1],
-                [row + 1, col - 1],
-                [row - 1, col - 1]
-            ]
             pos = self._rowcol_to_xy(row + row_frac, col + col_frac)
-            (row, row_frac), (col, col_frac), neighbors, pos = self._ensure_distance_from_target(
-                row, row_frac, col, col_frac, neighbors, pos
+            (row, row_frac), (col, col_frac), pos = self._ensure_distance_from_target(
+                row, row_frac, col, col_frac, pos
             )
-        return (row, row_frac), (col, col_frac), neighbors, pos
+        return (row, row_frac), (col, col_frac), pos
 
     def _set_init(self, agent):
         row, col = agent
         row_frac = np.random.uniform(low = -0.4, high = 0.4)
         col_frac = np.random.uniform(low = -0.4, high = 0.4)
         pos = self._rowcol_to_xy(row + row_frac, col + col_frac)
-        neighbors = [
-            [row + 1, col],
-            [row, col + 1],
-            [row - 1, col],
-            [row, col - 1],
-            [row + 1, col + 1],
-            [row - 1, col + 1],
-            [row + 1, col - 1],
-            [row - 1, col - 1]
-        ]
-        (row, row_frac), (col, col_frac), neighbors, pos = self._ensure_distance_from_target(
-            row, row_frac, col, col_frac, neighbors, pos
+        (row, row_frac), (col, col_frac), pos = self._ensure_distance_from_target(
+            row, row_frac, col, col_frac, pos
         )
         struct = self._maze_structure[row][col]
         if struct.is_block():

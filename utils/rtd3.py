@@ -13,6 +13,10 @@ from torch.utils.tensorboard import SummaryWriter
 import cv2
 import os
 from utils.td3 import Actor, ContinuousCritic
+if params['debug']:
+    from tqdm import tqdm
+else:
+    from tqdm.notebook import tqdm
 """
 Idea of burn in comes from the following paper:
 https://openreview.net/pdf?id=r1lyTjAqYX
@@ -433,6 +437,7 @@ def train_autoencoder(
             last_obs = obs
             total_reward += reward
 
+        print('Collected Data for {} steps'.format(count))
         losses = []
         MSE = []
         MSE_DEPTH = []
@@ -440,7 +445,7 @@ def train_autoencoder(
         SSIM_2 = []
 
         # Model Update
-        for _ in range(count):
+        for _ in tqdm(range(count)):
             rollout = buff.sample(batch_size)
             scale_1 = rollout.observations['scale_1']
             scale_2 = rollout.observations['scale_2']

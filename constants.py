@@ -44,7 +44,7 @@ params = {
     'seq_sample_freq'             : 5,
     'burn_in_seq_len'             : 5,
     'total_timesteps'             : int(2e5),
-    'history_steps'               : 6,
+    'history_steps'               : 50,
     'net_arch'                    : [300, 200, 100],
     'n_critics'                   : 2,
     'ds'                          : 0.01,

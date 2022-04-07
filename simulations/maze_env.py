@@ -413,18 +413,11 @@ class MazeEnv(gym.Env):
         goal_pos = self._task.goals[self._task.goal_index].pos[:2]
         row, col = self._xy_to_rowcol(goal_pos[0], goal_pos[1])
         target = self._structure_to_graph_index(row, col)
-        try:
-            paths = list(nx.algorithms.shortest_paths.generic.all_shortest_paths(
-                self._maze_graph,
-                source,
-                target
-            ))
-        except:
-            top = self.render('rgb_array')
-            while True:
-                cv2.imshow('position stream', cv2.cvtColor(top, cv2.COLOR_RGB2BGR))
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
+        paths = list(nx.algorithms.shortest_paths.generic.all_shortest_paths(
+            self._maze_graph,
+            source,
+            target
+        ))
         return paths[0]
 
     def get_action(self):

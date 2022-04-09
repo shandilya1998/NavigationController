@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-debug = False
+debug = True
 
 params = {
     'input_size_low_level_control': 6,
@@ -32,7 +32,7 @@ params = {
     'min_simulation_time'         : 1.0,
     'show_animation'              : False,
     'dt'                          : 0.02,
-    'learning_starts'             : int(1e3),
+    'learning_starts'             : int(1e2),
     'staging_steps'               : int(1e5),
     'imitation_steps'             : int(2e5),
     'render_freq'                 : int(4e4),
@@ -53,7 +53,7 @@ params = {
     'af'                          : [256, 1],
     'critic_net_arch'             : [400, 300],
     'OU_MEAN'                     : 0.00,
-    'OU_SIGMA'                    : 0.12,
+    'OU_SIGMA'                    : 0.2,
     'top_view_size'               : 50.,
     'batch_size'                  : 2,
     'lr'                          : 5e-3,

@@ -521,7 +521,7 @@ if __name__ == '__main__':
         batch_size = params['batch_size'],
         tau = params['tau'],
         gamma = params['gamma'],
-        train_freq = (1, 'episode'),
+        train_freq = (params['max_seq_len'] * params['seq_sample_freq'], 'step'),
         gradient_steps = -1,
         action_noise = action_noise,
         replay_buffer_class = DictReplayBuffer,

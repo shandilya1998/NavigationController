@@ -1124,7 +1124,7 @@ class RTD3(sb3.TD3):
 
             # Delayed policy updates
             # Compute actor loss
-            if self.num_timesteps % self.policy_delay == 0:
+            if self._n_updates % self.policy_delay == 0:
                 action, _ = self.actor(replay_data.observations)
                 if self.num_timesteps < params['staging_steps']:
                     ratio = 1.0 - self.num_timesteps / params['staging_steps']

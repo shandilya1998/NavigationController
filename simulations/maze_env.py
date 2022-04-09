@@ -717,6 +717,7 @@ class MazeEnv(gym.Env):
         sensors = np.concatenate([
             self.data.qvel.copy() / max_vel,
             np.array([self.get_ori() / np.pi, self.t / self.max_episode_size], dtype = np.float32),
+            goal.copy()
         ] +  [
             (action.copy() - self.action_space.low) / (self.action_space.high - self.action_space.low) for action in self.actions
         ], -1)

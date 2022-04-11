@@ -194,29 +194,18 @@ class ResNet18EncV2(torch.nn.Module):
 
     def forward(self, x):
         scale_1, scale_2 = torch.split(x, 3, 1)
-        print('start')
         scale_1 = torch.relu(self.bn1_1(self.conv1_1(scale_1)))
-        print(scale_1.shape)
         scale_1 = self.layer1_1(scale_1)
-        print(scale_1.shape)
         scale_1 = self.layer2_1(scale_1) 
-        print(scale_1.shape)
         scale_2 = torch.relu(self.bn1_2(self.conv1_2(scale_2)))
         scale_2 = self.layer1_2(scale_2)
         scale_2 = self.layer2_2(scale_2)
 
         x = torch.cat([scale_1, scale_2], 1)
-        print(scale_1.shape)
-
-        print(x.shape)
 
         x = self.combiner(x)
-        print(scale_1.shape)
         x = self.layer3(x)
-        print(scale_1.shape)
         x = self.layer4(x)
-        print(scale_1.shape)
-        print('end')
         return x
 
 class ResNet18DecV2(torch.nn.Module):

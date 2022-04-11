@@ -1,18 +1,20 @@
 import warnings
 import numpy as np
 import gym
+from numpy.core.fromnumeric import mean
 import stable_baselines3 as sb3
 from typing import NamedTuple, Any, Dict, List, Optional, Tuple, Union, Type
 import torch
 import psutil
 import copy
-from bg.autoencoder3D import Autoencoder
+from bg.autoencoder import Autoencoder
 from constants import params
 from pytorch_msssim import ssim
 from torch.utils.tensorboard import SummaryWriter
 import cv2
 import os
 from utils.td3 import Actor, ContinuousCritic
+from stable_baselines3.common.buffers import DictReplayBuffer
 if params['debug']:
     from tqdm import tqdm
 else:
@@ -36,10 +38,12 @@ class TimeDistributedFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtra
         super(TimeDistributedFeaturesExtractor, self).__init__(observation_space, features_dim)
 
         self.autoencoder = Autoencoder()
+        """
         self.autoencoder.load_state_dict(
             torch.load(pretrained_params_path, map_location=device)['model_state_dict']
         )
         self.autoencoder.eval()
+        """
         self.pool = torch.nn.AdaptiveAvgPool3d((params['max_seq_len'], 1, 1))
 
         self.linear = torch.nn.Sequential(
@@ -80,7 +84,7 @@ class TimeDistributedFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtra
         return features, [gen_image, depth]
 
 
-class DictReplayBuffer(sb3.common.buffers.ReplayBuffer):
+class ReccurentDictReplayBuffer(sb3.common.buffers.ReplayBuffer):
     """
     Dict Replay buffer used in off-policy algorithms like SAC/TD3.
     Extends the ReplayBuffer to use dictionary observations
@@ -284,8 +288,6 @@ def train_autoencoder(
         observation_space=env.observation_space,
         action_space=env.action_space,
         device=device,
-        max_seq_len = 10,
-        seq_sample_freq = 5
     )
     
     # Initialise Tensorboard logger
@@ -303,6 +305,7 @@ def train_autoencoder(
             MSE_DEPTH = []
             SSIM_1 = []
             SSIM_2 = []
+            SSIM_DEPTH = []
             image_size = (64 * 3, 64 * 2)
             video = cv2.VideoWriter(
                 os.path.join(logdir, 'model_{}_evaluation.avi'.format(i)),
@@ -310,75 +313,53 @@ def train_autoencoder(
             )
             steps = 0
             model.eval()
-            SCALE_1 = [np.zeros_like(last_obs['scale_1']) for _ in range(params['max_seq_len'] * params['seq_sample_freq'])]
-            SCALE_2 = [np.zeros_like(last_obs['scale_2']) for _ in range(params['max_seq_len'] * params['seq_sample_freq'])]
-            DEPTH = [np.zeros_like(last_obs['depth']) for _ in range(params['max_seq_len'] * params['seq_sample_freq'])]
-            POSITIONS = [np.zeros_like(last_obs['position']) for _ in range(params['max_seq_len'] * params['seq_sample_freq'])]
             for j in range(5):
                 last_obs = env.reset()
                 done = False
                 while not done:
                     obs, reward, done, info = env.step(last_obs['sampled_action'])
-                    SCALE_1.append(obs['scale_1'])
-                    SCALE_2.append(obs['scale_2'])
-                    POSITIONS.append(obs['position'])
-                    DEPTH.append(obs['depth'])
                     gt_image = torch.from_numpy(np.concatenate([
-                        np.stack([
-                            SCALE_1[-1 - eval_indices[i]] for i in range(params['max_seq_len'])
-                        ], 2),
-                        np.stack([
-                            SCALE_2[-1 - eval_indices[i]] for i in range(params['max_seq_len'])
-                        ], 2)
+                        obs['scale_1'], obs['scale_2']
                     ], 1)).float() / 255
-                    gt_depth = torch.from_numpy(np.stack([
-                        DEPTH[-1 - eval_indices[i]] for i in range(params['max_seq_len'])
-                    ], 2))
-                    gt_positions = np.stack([
-                        POSITIONS[-1 - eval_indices[i]] for i in range(params['max_seq_len'])
-                    ], 1)
-                    ref = np.repeat(
-                        gt_positions[:, :1],
-                        params['max_seq_len'] - 1,
-                        1
-                    )
-
+                    gt_depth = torch.from_numpy(obs['depth'])
                     gt_image = gt_image.to(device=device)
                     gt_depth = gt_depth.to(device=device)
 
                     # Model Evaluation
                     with torch.no_grad():
                         _, [gen_image, depth] = model(gt_image.contiguous())
-                    l1_gen_image = torch.nn.functional.l1_loss(gen_image, gt_image)
-                    l1_depth = torch.nn.functional.l1_loss(depth, gt_depth)
-                    MSE.append(l1_gen_image.item())
-                    MSE_DEPTH.append(l1_depth.item())
+                    l1_gen_image = torch.nn.functional.l1_loss(gen_image, gt_image).item()
+                    l1_depth = torch.nn.functional.l1_loss(depth, gt_depth).item()
+                    MSE.append(l1_gen_image)
+                    MSE_DEPTH.append(l1_depth)
                     scale_1, scale_2 = torch.split(gt_image, 3, dim = 1)
                     gen_scale_1, gen_scale_2 = torch.split(gen_image, 3, dim = 1)
                     # SSIM computation
-                    ssim_scale_1 = []
-                    ssim_scale_2 = []
-                    for j in range(params['max_seq_len']):
-                        ssim_scale_1.append(1 - ssim(
-                            scale_1[:, :, j], gen_scale_1[:, :, j],
-                            data_range=1, size_average=True
-                        ).item())
-                        ssim_scale_2.append(1 - ssim(
-                            scale_2[:, :, j], gen_scale_2[:, :, j],
-                            data_range=1, size_average=True
-                        ).item())
-                    SSIM_1.append(np.mean(ssim_scale_1))
-                    SSIM_2.append(np.mean(ssim_scale_2))
-                    loss = np.mean(ssim_scale_1) + np.mean(ssim_scale_2) + l1_depth.item() + l1_gen_image.item()
+                    ssim_scale_1 = 1 - ssim(
+                        scale_1, gen_scale_1,
+                        data_range=1, size_average=True
+                    ).item()
+                    ssim_scale_2 = 1 - ssim(
+                        scale_2, gen_scale_2,
+                        data_range=1, size_average=True
+                    ).item()
+                    ssim_depth = 1 - ssim(
+                        depth, gt_depth, size_average=True,
+                        data_range=1
+                    ).item()
+                    SSIM_1.append(ssim_scale_1)
+                    SSIM_2.append(ssim_scale_2)
+                    SSIM_DEPTH.append(ssim_depth)
+                    loss = ssim_scale_1 + ssim_scale_2 + ssim_depth + l1_depth + l1_gen_image
                     losses.append(loss)
                     
                     # Sampling last frame for writing to video
-                    scale_1 = scale_1[0, :, -1].cpu().numpy()
-                    scale_2 = scale_2[0, :, -1].cpu().numpy()
-                    gt_depth = gt_depth[0, :, -1].cpu().numpy()
-                    gen_scale_1 = gen_scale_1[0, :, -1].cpu().numpy()
-                    gen_scale_2 = gen_scale_2[0, :, -1].cpu().numpy()
-                    depth = depth[0, :, -1].cpu().numpy()
+                    scale_1 = scale_1[0].cpu().numpy()
+                    scale_2 = scale_2[0].cpu().numpy()
+                    gt_depth = gt_depth[0].cpu().numpy()
+                    gen_scale_1 = gen_scale_1[0].cpu().numpy()
+                    gen_scale_2 = gen_scale_2[0].cpu().numpy()
+                    depth = depth[0].cpu().numpy()
                     
                     observation = np.concatenate([
                         np.concatenate([
@@ -404,14 +385,15 @@ def train_autoencoder(
             # Writing Evalulation Metrics to Tensorboard
             total_reward = total_reward / 5
             print('-----------------------------')
-            print('Evaluation Total Reward {:.4f} Loss {:.4f} MSE {:.4f} MSE depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} Steps {}'.format(
+            print('Evaluation Total Reward {:.4f} Loss {:.4f} MSE {:.4f} MSE depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} SSIM_DEPTH {:.4f} Steps {}'.format(
                 total_reward[0], np.mean(losses), np.mean(MSE), np.mean(MSE_DEPTH),
-                np.mean(SSIM_1), np.mean(SSIM_2), steps))
+                np.mean(SSIM_1), np.mean(SSIM_2), np.mean(SSIM_DEPTH), steps))
             print('-----------------------------')
             writer.add_scalar('Eval/Loss', np.mean(losses), i)
             writer.add_scalar('Eval/MSE', np.mean(MSE), i)
             writer.add_scalar('Eval/ssim_1', np.mean(SSIM_1), i)
             writer.add_scalar('Eval/ssim_2', np.mean(SSIM_2), i)
+            writer.add_scalar('Eval/ssim_depth', np.mean(SSIM_DEPTH), i)
             writer.add_scalar('Eval/depth', np.mean(MSE_DEPTH), i)
             cv2.destroyAllWindows()
             video.release()
@@ -437,15 +419,15 @@ def train_autoencoder(
             last_obs = obs
             total_reward += reward
 
-        print('Collected Data for {} steps'.format(count))
         losses = []
         MSE = []
         MSE_DEPTH = []
         SSIM_1 = []
         SSIM_2 = []
+        SSIM_DEPTH = []
 
         # Model Update
-        for _ in tqdm(range(count)):
+        for _ in range(count):
             rollout = buff.sample(batch_size)
             scale_1 = rollout.observations['scale_1']
             scale_2 = rollout.observations['scale_2']
@@ -454,11 +436,6 @@ def train_autoencoder(
             ], 1).float() / 255
 
             gt_depth = rollout.observations['depth']
-            ref = torch.repeat_interleave(
-                rollout.observations['position'][:, :1],
-                params['max_seq_len'] - 1,
-                1
-            )
 
             # Prediction
             _, [gen_image, depth] = model(gt_image.contiguous())
@@ -470,23 +447,22 @@ def train_autoencoder(
             MSE_DEPTH.append(l1_depth.item())
 
             # SSIM computation
-            ssim_scale_1 = []
-            ssim_scale_2 = []
-            
-            for j in range(params['max_seq_len']):
-                ssim_scale_1.append(1 - ssim(
-                    gt_image[:, :3, j], gen_image[:, :3, j],
-                    data_range=1, size_average=True
-                ))
-                ssim_scale_2.append(1 - ssim(
-                    gt_image[:, 3:, j], gen_image[:, 3:, j],
-                    data_range=1, size_average=True
-                ))
-            ssim_1 = sum(ssim_scale_1)
-            ssim_2 = sum(ssim_scale_2)
-            SSIM_1.append(ssim_1.item())
-            SSIM_2.append(ssim_2.item())
-            loss = l1_depth + l1_gen_image + ssim_1 + ssim_2
+            ssim_scale_1 = 1 - ssim(
+                gt_image[:, :3], gen_image[:, :3],
+                data_range=1, size_average=True
+            )
+            ssim_scale_2 = 1 - ssim(
+                gt_image[:, 3:], gen_image[:, 3:],
+                data_range=1, size_average=True
+            )
+            ssim_depth = 1 - ssim(
+                gt_depth, depth,
+                data_range=1, size_average=True
+            )
+            SSIM_1.append(ssim_scale_1.item())
+            SSIM_2.append(ssim_scale_2.item())
+            SSIM_DEPTH.append(ssim_depth.item())
+            loss = l1_depth + l1_gen_image + ssim_scale_1 + ssim_scale_2 + ssim_depth
 
             optim.zero_grad()
             loss.backward()
@@ -500,11 +476,12 @@ def train_autoencoder(
         writer.add_scalar('Train/MSE', np.mean(MSE), i)
         writer.add_scalar('Train/ssim_1', np.mean(SSIM_1), i)
         writer.add_scalar('Train/ssim_2', np.mean(SSIM_2), i)
+        writer.add_scalar('Train/ssim_depth', np.mean(SSIM_DEPTH), i)
         writer.add_scalar('Train/depth', np.mean(MSE_DEPTH), i)
         writer.add_scalar('Train/learning_rate', scheduler.get_last_lr()[0], i)
-        print('Epoch {} Learning Rate {:.6f} Total Reward {:.4f} Loss {:.4f} MSE {:.4f} MSE depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f}'.format(
+        print('Epoch {} Learning Rate {:.6f} Total Reward {:.4f} Loss {:.4f} MSE {:.4f} MSE depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} SSIM_DEPTH {:.4f} steps {}'.format(
             i, scheduler.get_last_lr()[0], total_reward[0], np.mean(losses), np.mean(MSE), np.mean(MSE_DEPTH),
-            np.mean(SSIM_1), np.mean(SSIM_2)))
+            np.mean(SSIM_1), np.mean(SSIM_2), np.mean(SSIM_DEPTH), count))
 
         # Save Model
         if i % save_freq == 0:

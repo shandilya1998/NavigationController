@@ -1,4 +1,4 @@
-from utils.rtd3 import RTD3, RTD3Policy, DictReplayBuffer, TimeDistributedFeaturesExtractor
+from utils.rtd3 import RTD3, RTD3Policy, RecurrentDictReplayBuffer, TimeDistributedFeaturesExtractor
 from utils.td3 import FeaturesExtractor
 from constants import params
 from simulations.maze_env import MazeEnv
@@ -105,36 +105,11 @@ def evaluate_policy(
     current_rewards = np.zeros(n_envs)
     current_lengths = np.zeros(n_envs, dtype="int")
     observations = env.reset()
-
-    OBS = []
-    if isinstance(observations, np.ndarray):
-        OBS = [np.zeros_like(observations)] * (params['max_seq_len'] * params['seq_sample_freq'] - 1)
-    elif isinstance(observations, dict):
-        OBS = [{
-            key: np.zeros_like(ob) for key, ob in observations.items()
-        }] * (params['max_seq_len'] * params['seq_sample_freq'] - 1)
-        KEYS = list(OBS[-1].keys())
-
-    OBS.append(observations)
-
-    def get_obs():
-        indices = np.arange(-params['max_seq_len'] * params['seq_sample_freq'], 0, params['seq_sample_freq'])
-        if isinstance(OBS[-1], np.ndarray):
-            return np.stack([OBS[i] for i in indices], 2)
-        elif isinstance(OBS[-1], dict):
-            return {
-                key: np.stack([
-                    OBS[i][key] for i in indices
-                ], 2) for key in KEYS
-            }
-        else:
-            raise ValueError
-
+    states = [np.zeros((1, ) + spec[0], dtype = spec[1]) for spec in model.state_spec]
     while (episode_counts < episode_count_targets).any():
-        obs = get_obs()
-        [actions, [gen_image, depth]], states = model.predict(obs, deterministic=deterministic)
+        obs = {key: np.expand_dims(ob, 1) for key, ob in observations.items()}
+        [actions, [gen_image, depth]], states = model.predict(obs, state=states, deterministic=deterministic)
         observations, rewards, dones, infos = env.step(actions)
-        OBS.append(observations)
         current_rewards += rewards
         current_lengths += 1
         for i in range(n_envs):
@@ -149,6 +124,7 @@ def evaluate_policy(
                     callback(locals(), globals())
 
                 if dones[i]:
+                    states = [np.zeros((1, ) + spec[0], dtype = spec[1]) for spec in model.state_spec]
                     if is_monitor_wrapped:
                         # Atari wrapper can send a "done" signal when
                         # the agent loses a life, but it does not correspond
@@ -165,20 +141,8 @@ def evaluate_policy(
                         episode_rewards.append(current_rewards[i])
                         episode_lengths.append(current_lengths[i])
                         episode_counts[i] += 1
-                    _OBS = []
-                    if isinstance(OBS[-1], np.ndarray):
-                        _OBS = [np.zeros_like(OBS[-1])] * (params['max_seq_len'] * params['seq_sample_freq'] - 1)
-                    elif isinstance(observations, dict):
-                        _OBS = [{
-                            key: np.zeros_like(ob) for key, ob in OBS[-1].items()
-                        }] * (params['max_seq_len'] * params['seq_sample_freq'] - 1)    
-                        KEYS = list(OBS[-1].keys())
-                    _OBS.append(OBS[-1])
-                    OBS = _OBS
                     current_rewards[i] = 0
                     current_lengths[i] = 0
-                    if states is not None:
-                        states[i] *= 0
 
         if render:
             env.render()
@@ -317,7 +281,6 @@ class Callback(sb3.common.callbacks.EventCallback):
                     """
                     Renders the environment in its current state,
                         recording the screen in the captured `screens` list
-
                     :param _locals:
                         A dictionary containing all local variables of the callback's scope
                     :param _globals:
@@ -337,11 +300,11 @@ class Callback(sb3.common.callbacks.EventCallback):
                         size
                     )
                     gen_scale_1 = cv2.resize(
-                         _locals['gen_image'][0, :3, -1].transpose(1, 2, 0) * 255,
+                         _locals['gen_image'][0, -1, :3].transpose(1, 2, 0) * 255,
                          size
                     )
                     gen_scale_2 = cv2.resize(
-                        _locals['gen_image'][0, 3:, -1].transpose(1, 2, 0) * 255,
+                        _locals['gen_image'][0, -1, 3:].transpose(1, 2, 0) * 255,
                         size
                     )
 
@@ -353,7 +316,7 @@ class Callback(sb3.common.callbacks.EventCallback):
                         depth,
                         size
                     ), cv2.COLOR_GRAY2RGB)
-                    gen_depth =  _locals['depth'][0, :, -1].transpose(1, 2, 0) * 255
+                    gen_depth =  _locals['depth'][0, -1].transpose(1, 2, 0) * 255
                     gen_depth = gen_depth.astype(np.uint8)
                     gen_depth = cv2.cvtColor(cv2.resize(
                         gen_depth,
@@ -366,7 +329,6 @@ class Callback(sb3.common.callbacks.EventCallback):
                     error = np.square(_locals['observations']['sampled_action'] - _locals['actions']).mean()
                     image = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
                     image = image.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-                    image = cv2.resize(image, size)
                     observation = np.concatenate([
                         np.concatenate([screen, image], 0),
                         np.concatenate([scale_1, gen_scale_1], 0),
@@ -461,10 +423,10 @@ if __name__ == '__main__':
     device = 'auto'
     set_seeds(params['seed'])
     logdir = '/content/drive/MyDrive/CNS/exp22'
-    pretrained_params_path = '/content/drive/MyDrive/CNS/exp22/autoencoder/exp/model_epoch_55.pt'
+    pretrained_params_path = '/content/drive/MyDrive/CNS/exp22/autoencoder/exp/model_epoch_100.pt'
     if params['debug']:
         logdir = 'assets/out/models/exp22'
-        pretrained_params_path = 'assets/out/models/autoencoder/model_epoch_55.pt'
+        pretrained_params_path = 'assets/out/models/autoencoder/model_epoch_100.pt'
 
     imitate_policy_path = '/content/drive/MyDrive/CNS/exp22/Imitate_2/il_model_300000_steps.zip'
     if params['debug']:
@@ -507,10 +469,13 @@ if __name__ == '__main__':
         'share_features_extractor' : True
     }
 
+    lstm_size = params['net_arch'][0]
+    state_spec = [((1, lstm_size), np.float32)] * 2
     replay_buffer_kwargs = {
             'max_seq_len' : params['max_seq_len'],
-            'seq_sample_freq' : params['seq_sample_freq']
-    }
+            'seq_sample_freq' : params['seq_sample_freq'],
+            'state_spec' : state_spec
+        }
 
     model = RTD3(
         policy = RTD3Policy,
@@ -524,7 +489,7 @@ if __name__ == '__main__':
         train_freq = (params['max_seq_len'] * params['seq_sample_freq'], 'step'),
         gradient_steps = -1,
         action_noise = action_noise,
-        replay_buffer_class = DictReplayBuffer,
+        replay_buffer_class = RecurrentDictReplayBuffer,
         replay_buffer_kwargs = replay_buffer_kwargs,
         optimize_memory_usage = False,
         policy_delay = params['policy_delay'],
@@ -537,6 +502,9 @@ if __name__ == '__main__':
         device = device,
         _init_setup_model = True,
         verbose = 2,
+        state_spec=state_spec,
+        max_seq_len=params['max_seq_len'],
+        seq_sample_freq=params['seq_sample_freq']
     )
 
     """

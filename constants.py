@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-debug = True
+debug = False
 
 params = {
     'input_size_low_level_control': 6,
@@ -38,7 +38,7 @@ params = {
     'render_freq'                 : int(4e4),
     'save_freq'                   : int(4e4),
     'eval_freq'                   : int(2e4),
-    'buffer_size'                 : int(2e5),
+    'buffer_size'                 : int(1e5),
     'max_episode_size'            : int(2e3),
     'max_seq_len'                 : 10,
     'seq_sample_freq'             : 5,

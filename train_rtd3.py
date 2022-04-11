@@ -329,6 +329,7 @@ class Callback(sb3.common.callbacks.EventCallback):
                     error = np.square(_locals['observations']['sampled_action'] - _locals['actions']).mean()
                     image = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
                     image = image.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+                    image = cv2.resize(image, size)
                     observation = np.concatenate([
                         np.concatenate([screen, image], 0),
                         np.concatenate([scale_1, gen_scale_1], 0),

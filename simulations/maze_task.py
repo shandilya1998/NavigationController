@@ -396,15 +396,16 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
         self.colors = []
         self.scales = []
         self.goals = []
-        for i in range(len(goals)):
+        _goals = copy.deepcopy(goals)
+        for i in range(len(_goals)):
             if i == self.goal_index:
                 self.colors.append(copy.deepcopy(RED))
                 self.scales.append(1.0)
-                goals[i].append(2.25)
+                _goals[i].append(2.25)
             else:
                 self.colors.append(copy.deepcopy(GREEN))
                 self.scales.append(1.0)
-                goals[i].append(1.5)
+                _goals[i].append(1.5)
 
         self.goals = [
             MazeVisualGoal(
@@ -412,7 +413,7 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
                     col * self.scale - torso_init[1],
                     row * self.scale - torso_init[0]
                 ]), self.scales[i], self.colors[i], threshold=threshold
-            ) for i, (row, col, threshold) in enumerate(goals)
+            ) for i, (row, col, threshold) in enumerate(_goals)
         ]
 
     def reward(self, pos: np.ndarray, inframe: bool) -> float:

@@ -163,7 +163,7 @@ class MazeEnv(gym.Env):
             eligible = []
             for neighbor in neighbors:
                 r, c = neighbor
-                if self.__check_structure_index_validity(r, c):
+                if self._check_structure_index_validity(r, c):
                     if not self._maze_structure[r][c].is_block():
                         eligible.append([r, c])
             choice = random.choice(eligible)
@@ -190,7 +190,7 @@ class MazeEnv(gym.Env):
             0.0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi]
         for neighbor in neighbors:
             r, c = neighbor
-            if self.__check_structure_index_validity(r, c):
+            if self._check_structure_index_validity(r, c):
                 if self._maze_structure[r][c].is_block():
                     x, y = self._rowcol_to_xy(row, col)
                     _x, _y = self._rowcol_to_xy(r, c)
@@ -395,16 +395,16 @@ class MazeEnv(gym.Env):
         self.actions = [np.zeros_like(action) for _ in range(self.n_steps)]
         goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
         self.goals = [goal.copy() for _ in range(self.n_steps)]
-        self.__create_maze_graph()
-        self.sampled_path = self.__sample_path()
+        self._create_maze_graph()
+        self.sampled_path = self._sample_path()
         self._current_cell = copy.deepcopy(self.sampled_path[0])
-        self.__find_all_waypoints()
-        self.__find_cubic_spline_path()
-        self.__setup_vel_control()
+        self._find_all_waypoints()
+        self._find_cubic_spline_path()
+        self._setup_vel_control()
         ob = self._get_obs()
         self._set_observation_space(ob)
 
-    def __find_all_waypoints(self):
+    def _find_all_waypoints(self):
         self.wx = []
         self.wy = []
         cells = []
@@ -432,14 +432,14 @@ class MazeEnv(gym.Env):
         self.wy.append(self._task.goals[self._task.goal_index].pos[1])
         self.final = [self.wx[-1], self.wy[-1]]
 
-    def __find_cubic_spline_path(self):
+    def _find_cubic_spline_path(self):
         self.cx, self.cy, self.cyaw, self.ck, self.s = calc_spline_course(self.wx, self.wy, params['ds'])
 
     @property
     def action_space(self):
         return self._action_space
 
-    def __setup_vel_control(self):
+    def _setup_vel_control(self):
         self.target_speed = 2
         self.state = State(
             x = self.wrapped_env.sim.data.qpos[0],
@@ -452,7 +452,7 @@ class MazeEnv(gym.Env):
         self.target_course = TargetCourse(self.cx, self.cy)
         self.target_ind, _ = self.target_course.search_target_index(self.state)
 
-    def __sample_path(self):
+    def _sample_path(self):
         robot_x, robot_y = self.wrapped_env.get_xy()
         row, col = self._xy_to_rowcol(robot_x, robot_y)
         source = self._structure_to_graph_index(row, col)
@@ -494,7 +494,7 @@ class MazeEnv(gym.Env):
     def _structure_to_graph_index(self, row, col):
         return row * len(self._maze_structure[0]) + col
 
-    def __check_structure_index_validity(self, i, j):
+    def _check_structure_index_validity(self, i, j):
         valid = [True, True]
         if i < 0:
             valid[0] = False
@@ -506,7 +506,7 @@ class MazeEnv(gym.Env):
             valid[1] = False
         return valid[0] and valid[1]
 
-    def __add_edges_to_maze_graph(self, node):
+    def _add_edges_to_maze_graph(self, node):
         neighbors = [
             (node['row'] - 1, node['col']),
             (node['row'], node['col'] - 1),
@@ -518,7 +518,7 @@ class MazeEnv(gym.Env):
             (node['row'] - 1, node['col'] - 1)
         ]
         for neighbor in neighbors:
-            if self.__check_structure_index_validity(
+            if self._check_structure_index_validity(
                 neighbor[0],
                 neighbor[1]
             ):
@@ -536,7 +536,7 @@ class MazeEnv(gym.Env):
                         )]['index']
                     )
 
-    def __create_maze_graph(self):
+    def _create_maze_graph(self):
         num_row = len(self._maze_structure)
         num_col = len(self._maze_structure[0])
         num_vertices = num_row * num_col
@@ -561,7 +561,7 @@ class MazeEnv(gym.Env):
 
         for i in range(num_row):
             for j in range(num_col):
-                self.__add_edges_to_maze_graph(self._maze_graph.nodes[
+                self._add_edges_to_maze_graph(self._maze_graph.nodes[
                     self._structure_to_graph_index(i, j)
                 ])
 
@@ -659,7 +659,7 @@ class MazeEnv(gym.Env):
             angle += 2 * np.pi
         return angle
 
-    def __get_scale_indices(self, x, y, w, h, scale, size):
+    def _get_scale_indices(self, x, y, w, h, scale, size):
         center_x, center_y = x + w // 2, y + h // 2 
         x_min = center_x - size // (scale * 2) 
         x_max = center_x + size // (scale * 2) 
@@ -702,7 +702,7 @@ class MazeEnv(gym.Env):
         
         # attention window computation
         scale = 3
-        x_min, x_max, y_min, y_max = self.__get_scale_indices(
+        x_min, x_max, y_min, y_max = self._get_scale_indices(
             x, y, w, h, scale, size
         )
         window = frame[y_min:y_max, x_min:x_max].copy()
@@ -870,7 +870,7 @@ class MazeEnv(gym.Env):
                 coords.append((j * size_scaling, i * size_scaling))
         return coords
 
-    def _objball_positions(self) -> None:
+    def _objball_positions(self):
         return [
             self.wrapped_env.get_body_com(name)[:2].copy() for name in self.object_balls
         ]
@@ -900,7 +900,6 @@ class MazeEnv(gym.Env):
             (row + 1, col),
             (row - 1, col),
         ]
-        order = ['front', 'back', 'left', 'right']
         row_frac -= 0.5
         col_frac -= 0.5
         rpos = np.array([row_frac, col_frac], dtype = np.float32)
@@ -922,7 +921,6 @@ class MazeEnv(gym.Env):
 
     def conditional_blind(self, obs, yaw, b):
         penalty = 0.0
-        collisions = np.zeros((12,), dtype = np.float32)
         for direction in b:
             if direction:
                 penalty += -1.0 * self._inner_reward_scaling
@@ -980,7 +978,7 @@ class MazeEnv(gym.Env):
         info["position"] = self.wrapped_env.get_xy()
 
         # Collision Penalty Computation
-        index = self.__get_current_cell()
+        index = self._get_current_cell()
         self._current_cell = index
         almost_collision, blind, outbound = self.check_position(next_pos)
         if almost_collision:
@@ -1012,7 +1010,7 @@ class MazeEnv(gym.Env):
         #print('step {} reward: {}'.format(self.t, reward))
         return next_obs, reward, done, info
 
-    def __get_current_cell(self):
+    def _get_current_cell(self):
         robot_x, robot_y = self.wrapped_env.get_xy()
         row, col = self._xy_to_rowcol(robot_x, robot_y)
         index = self._structure_to_graph_index(row, col)
@@ -1148,9 +1146,248 @@ class DiscreteMazeEnv(MazeEnv):
         )
 
     def _set_action_space(self):
-        return super()._set_action_space()
+        self._action_space = gym.spaces.MultiDiscrete([2, 13])
+ 
+    def discrete_vyaw(self, vyaw):
+        if vyaw < -1.375:
+            vyaw = 0
+        elif vyaw < -1.125:
+            vyaw = 1
+        elif vyaw < -0.875:
+            vyaw = 2
+        elif vyaw < -0.625:
+            vyaw = 3
+        elif vyaw < -0.375:
+            vyaw = 4
+        elif vyaw < -0.125:
+            vyaw = 5
+        elif vyaw < 0.125:
+            vyaw = 6
+        elif vyaw < 0.375:
+            vyaw = 7
+        elif vyaw < 0.625:
+            vyaw = 8
+        elif vyaw < 0.875:
+            vyaw = 9
+        elif vyaw < 1.125:
+            vyaw = 10
+        elif vyaw < 1.375:
+            vyaw = 11
+        elif vyaw > 1.375:
+            vyaw = 12
+        return vyaw
+
+    def get_action(self):
+        ai = proportional_control(self.target_speed, self.state.v)
+        di, self.target_ind = pure_pursuit_steer_control(
+            self.state, self.target_course, self.target_ind
+        )
+        #yaw = self.state.yaw +  self.state.v / self.state.WB * math.tan(di) * self.dt
+        v = self.state.v + ai * self.dt
+        vyaw = self.state.v / self.state.WB * math.tan(di)
+        #self.state.update(ai, di, self.dt)
+        #v = self.state.v
+        #yaw = self.state.yaw
+        # Refer to simulations/point PointEnv: def step() for more information
+        vyaw = self.discrete_vyaw(vyaw)
+        self.sampled_action = np.array([
+            1,
+            vyaw,
+        ], dtype = np.float32)
+        return self.sampled_action
+
+    def continuous_action(self, action):
+        move, omega = action
+        if move == 0:
+            move = 0
+        else:
+            move = self.target_speed
+        if omega == 0:
+            omega = -1.5
+        elif omega == 1:
+            omega = -1.25
+        elif omega == 2:
+            omega = -1.0
+        elif omega == 3:
+            omega = -0.75
+        elif omega == 4:
+            omega = -0.5
+        elif omega == 5:
+            omega = -0.25
+        elif omega == 6:
+            omega = 0.0
+        elif omega == 7:
+            omega = 0.25
+        elif omega == 8:
+            omega = 0.5
+        elif omega == 9:
+            omega = 0.75
+        elif omega == 10:
+            omega = 1.0
+        elif omega == 11:
+            omega = 1.25
+        elif omega == 12:
+            omega = 1.5
+        else:
+            raise ValueError
+
+        action = np.array([move, omega], dtype = np.float32)
+        return action
+
+    def _get_obs(self) -> np.ndarray:
+        obs = self.wrapped_env._get_obs()
+        #obs['front'] = cv2.resize(obs['front'], (320, 320))
+        img = obs['front'].copy()
+        #assert img.shape[0] == img.shape[1]
+        # Target Detection and Attention Window
+        bbx = self.detect_target(img)
+        window = self.get_attention_window(obs['front'], bbx)
+        inframe = True if len(bbx) > 0 else False 
+
+        # Sampled Action
+        high = self.wrapped_env.action_space.high[1]
+        sampled_action = self.get_action().astype(np.float32)
+        scaled_sampled_action = sampled_action.copy() / high
+
+        # Sensor Readings
+        ## Goal
+        goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
+        goal = np.array([
+            np.linalg.norm(goal) / np.linalg.norm(self._task.goals[self._task.goal_index].pos - self._init_pos),
+            self.check_angle(np.arctan2(goal[1], goal[0]) - self.get_ori()) / np.pi
+        ], dtype = np.float32)
+        ## Velocity
+        max_vel = np.array([
+            self.wrapped_env.VELOCITY_LIMITS,
+            self.wrapped_env.VELOCITY_LIMITS,
+            self.wrapped_env.action_space.high[0]
+        ])
+        min_vel = -max_vel
+        low = self.wrapped_env.action_space.low[1]
+        high = self.wrapped_env.action_space.high[1]
+        sensors = np.concatenate([
+            self.data.qvel.copy() / max_vel,
+            np.array([self.get_ori() / np.pi, self.t / self.max_episode_size], dtype = np.float32),
+            goal.copy()
+        ] +  [
+            (action.copy() - low) / (high - low) for action in self.actions
+        ], -1)
 
 
+        if params['debug']:
+            size = img.shape[0]
+            cv2.imshow('stream camera', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
+            cv2.imshow('stream attention window', cv2.cvtColor(cv2.resize(
+                window, (size, size)
+            ), cv2.COLOR_RGB2BGR))
+            cv2.imshow('depth stream', obs['front_depth'])
+            top = self.render('rgb_array')
+            cv2.imshow('position stream', top)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                pass
+
+        shape = window.shape[:2]
+        scale_2 = cv2.resize(obs['front'], shape)
+        depth = np.expand_dims(
+            cv2.resize(
+                obs['front_depth'].copy(), shape
+            ), 0
+        )
+
+        position = self.data.qpos[:2].copy()
+
+        _obs = {
+            'scale_1' : window.copy(),
+            'scale_2' : scale_2.copy(),
+            'sensors' : sensors,
+            'sampled_action' : sampled_action.copy(),
+            'scaled_sampled_action' : scaled_sampled_action.copy(),
+            'depth' : depth,
+            'inframe' : np.array([inframe], dtype = np.float32),
+            'position' : position
+        }
+
+        if params['add_ref_scales']:
+            ref_scale_1, ref_scale_2 = self.get_scales(obs['front'].copy(), []) 
+            ref_scale_2 = cv2.resize(ref_scale_2, shape)
+            _obs['ref_scale_1'] = ref_scale_1.copy()
+            _obs['ref_scale_2'] = ref_scale_2.copy()
+
+        return _obs
+
+
+    def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
+        # Proprocessing and Environment Update
+        assert self.action_space.contains(action)
+        action = self.continuous_action(action)
+        self.t += 1
+        self.total_steps += 1
+        info = {}
+        self.actions.pop(0)
+        self.actions.append(action.copy()[1:])
+        _, inner_reward, _, info = self.wrapped_env.step(action)
+
+        # Observation and Parameter Gathering
+        x, y = self.wrapped_env.get_xy()
+        yaw = self.get_ori()
+        v = np.linalg.norm(self.data.qvel[:2])
+        self.state.set(x, y, v, yaw)
+        next_pos = self.wrapped_env.get_xy()
+        collision_penalty = 0.0
+        next_obs = self._get_obs()
+
+        # Computing the reward in "https://ieeexplore.ieee.org/document/8398461"
+        goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
+        self.goals.pop(0)
+        self.goals.append(goal)
+        """
+        theta_t = self.check_angle(np.arctan2(goal[1], goal[0]) - self.get_ori())
+        qvel = self.wrapped_env.data.qvel.copy()
+        vyaw = qvel[self.wrapped_env.ORI_IND]
+        vmax = self.wrapped_env.VELOCITY_LIMITS * 1.4        
+        inner_reward = -1 + (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / params['max_vyaw']))
+        inner_reward = self._inner_reward_scaling * inner_reward
+        """
+
+        # Task Reward Computation
+        outer_reward = 0
+        outer_reward = self._task.reward(next_pos, bool(next_obs['inframe'][0]))
+        done = self._task.termination(self.wrapped_env.get_xy(),  bool(next_obs['inframe'][0]))
+        info["position"] = self.wrapped_env.get_xy()
+
+        # Collision Penalty Computation
+        index = self._get_current_cell()
+        self._current_cell = index
+        almost_collision, blind, outbound = self.check_position(next_pos)
+        if almost_collision:
+            collision_penalty += -1.0 * self._inner_reward_scaling
+        next_obs, penalty = self.conditional_blind(next_obs, yaw, blind)
+        collision_penalty += penalty
+
+        # Reward and Info Declaration
+        if done:
+            outer_reward += 200.0
+            info['is_success'] = True
+        else:
+            info['is_success'] = False
+        if outbound:
+            collision_penalty += -10.0 * self._inner_reward_scaling
+            next_obs['scale_1'] = np.zeros_like(obs['scale_1'])
+            next_obs['scale_2'] = np.zeros_like(obs['scale_2'])
+            done = True
+        if self.t > self.max_episode_size:
+            done = True
+        
+        if collision_penalty < -10.0:
+            done = True
+
+        reward = inner_reward + outer_reward + collision_penalty
+        info['inner_reward'] = inner_reward
+        info['outer_reward'] = outer_reward
+        info['collision_penalty'] = collision_penalty
+        #print('step {} reward: {}'.format(self.t, reward))
+        return next_obs, reward, done, info
+    
 
 def _add_object_ball(
     worldbody: ET.Element, i: str, j: str, x: float, y: float, size: float

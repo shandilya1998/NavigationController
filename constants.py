@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-debug = True
+debug = False
 
 params = {
     'input_size_low_level_control': 6,
@@ -55,7 +55,7 @@ params = {
     'OU_MEAN'                     : 0.00,
     'OU_SIGMA'                    : 0.2,
     'top_view_size'               : 50.,
-    'batch_size'                  : 2,
+    'batch_size'                  : 32,
     'lr'                          : 5e-3,
     'final_lr'                    : 1e-5,
     'n_steps'                     : 2000,

@@ -400,66 +400,32 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
             if i == self.goal_index:
                 self.colors.append(copy.deepcopy(RED))
                 self.scales.append(1.0)
+                goals[i].append(2.25)
             else:
                 self.colors.append(copy.deepcopy(GREEN))
                 self.scales.append(1.0)
+                goals[i].append(1.5)
 
         self.goals = [
             MazeVisualGoal(
                 np.array([
                     col * self.scale - torso_init[1],
                     row * self.scale - torso_init[0]
-                ]), self.scales[i], self.colors[i], 2.25
-            ) for i, (row, col) in enumerate(goals)
+                ]), self.scales[i], self.colors[i], threshold=threshold
+            ) for i, (row, col, threshold) in enumerate(goals)
         ]
-
-        """
-        self.goals = [ 
-            MazeVisualGoal(np.array([
-                np.random.uniform(3.0 - 3 * offset, 3.0 + 3 * offset),
-                -np.random.uniform(4.0 - 2 * offset, 4.0 + 2 * offset)
-            ]) * self.scale, self.scales[0], self.colors[0], 2.25),
-            MazeVisualGoal(np.array([
-                np.random.uniform(4.0 - 2 * offset, 4.0 + 2 * offset),
-                -np.random.uniform(-3.0 - 3 * offset, -3.0 + 3 * offset)
-            ]) * self.scale, self.scales[1], self.colors[1], 2.25),
-            MazeVisualGoal(np.array([
-                np.random.uniform(-4.0 - 2 * offset, -4.0 + 2 * offset),
-                -np.random.uniform(3.0 - 3 * offset, 3.0 + 3 * offset)
-            ]) * self.scale, self.scales[2], self.colors[2], 2.25),
-            MazeVisualGoal(np.array([
-                np.random.uniform(-3.0 - 3 * offset, -3.0 + 3 * offset),
-                -np.random.uniform(-4.0 - 2 * offset, -4.0 + 2 * offset) 
-            ]) * self.scale, self.scales[3], self.colors[3], 2.25),
-        ]
-        self.goals = [ 
-            MazeVisualGoal(np.array([
-                np.random.choice([1.0, 2.0, 3.0, 4.0, 5.0]) - offset,
-                -(np.random.choice([2.0, 3.0, 4.0, 5.0, 6.0]) - offset)
-            ]) * self.scale, self.scales[0], self.colors[0], 2.25),
-            MazeVisualGoal(np.array([
-                np.random.choice([2.0, 3.0, 4.0, 5.0, 6.0]) - offset,
-                -(-np.random.choice([1.0, 2.0, 3.0, 4.0, 5.0])  - offset)
-            ]) * self.scale, self.scales[1], self.colors[1], 2.25),
-            MazeVisualGoal(np.array([
-                -np.random.choice([2.0, 3.0, 4.0, 5.0, 6.0]) - offset,
-                -(np.random.choice([1.0, 2.0, 3.0, 4.0, 5.0])  - offset)
-            ]) * self.scale, self.scales[2], self.colors[2], 2.25),
-            MazeVisualGoal(np.array([
-                -np.random.choice([1.0, 2.0, 3.0, 4.0, 5.0])  - offset,
-                -(-np.random.choice([2.0, 3.0, 4.0, 5.0, 6.0]) - offset)
-            ]) * self.scale, self.scales[3], self.colors[3], 2.25),
-        ]
-        print([goal.pos for goal in self.goals])
-        """
 
     def reward(self, pos: np.ndarray, inframe: bool) -> float:
-        goal = self.goals[self.goal_index]
         reward = 0.0
-        if inframe:
-            reward += 0.5 * goal.reward_scale
-        if np.linalg.norm(pos - goal.pos) <= 2.5 * goal.threshold:
-            reward += 1.0 * goal.reward_scale
+        for i, goal in enumerate(self.goals): 
+            if i == self.goal_index:
+                if inframe:
+                    reward += 0.5 * goal.reward_scale
+                if np.linalg.norm(pos - goal.pos) <= 2.5 * goal.threshold:
+                    reward += 1.0 * goal.reward_scale
+            else:
+                if goal.neighbor(pos):
+                    reward -= 0.1 * goal.reward_scale
         return reward
 
     def termination(self, pos: np.ndarray, inframe: bool) -> bool:
@@ -470,11 +436,8 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
 class CustomGoalReward4RoomsV2(GoalReward4Rooms):
     def __init__(self,
         scale: float,
-        goal: Tuple[int, int] = (6.0, -6.0),
-        danger: List[Tuple[int, int]] = [ 
-            (0.0, -6.0),
-            (6.0, 0.0),
-        ]) -> None:
+        goal: Tuple[int, int] = (6, -6),
+        ) -> None:
         super().__init__(scale, goal)
         self.set()
 

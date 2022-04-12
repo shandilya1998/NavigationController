@@ -29,6 +29,7 @@ import copy
 from constants import params
 import math
 import cv2
+import colorsys
 
 # Directory that contains mujoco xml files.
 MODEL_DIR = os.path.join(os.getcwd(), 'assets', 'xml')
@@ -74,7 +75,7 @@ class MazeEnv(gym.Env):
         for i in range(len(self._maze_structure)):
             for j in range(len(self._maze_structure[i])):
                 if not self._maze_structure[i][j].is_wall_or_chasm():
-                    self._open_position_indices.append((i, j))
+                    self._open_position_indices.append([i, j])
 
         # Elevate the maze to allow for falling.
         self.elevated = any(maze_env_utils.MazeCell.CHASM in row for row in structure)
@@ -242,6 +243,18 @@ class MazeEnv(gym.Env):
                 size = self._maze_size_scaling * 0.5
                 if self.elevated and not struct.is_chasm():
                     # Create elevated platform.
+                    hue = random.choice(np.arange(30, 126).tolist())
+                    if hue < 94:
+                        s = np.random.randint(low = 0, high = 256)
+                        v = np.random.randint(low = 0, high = 256)
+                    else:
+                        s = np.random.randint(low = 80, high = 256)
+                        v = np.random.randint(low = 2, high = 256)
+                    hue = hue / 180
+                    s = s / 255
+                    v = v / 255
+                    r, g, b = colorsys.hsv_to_rgb(hue, s, v)
+                    rgba = "{} {} {} 1".format(r, g, b)
                     ET.SubElement(
                         worldbody,
                         "geom",
@@ -252,12 +265,24 @@ class MazeEnv(gym.Env):
                         material="MatObj",
                         contype="1",
                         conaffinity="1",
-                        rgba="0.9 0.9 0.9 1"
+                        rgba=rgba
                     )
                     self.obstacles.append(f"elevated_{i}_{j}")
                 if struct.is_block():
                     # Unmovable block.
                     # Offset all coordinates so that robot starts at the origin.
+                    hue = random.choice(np.arange(30, 126).tolist())
+                    if hue < 94:
+                        s = np.random.randint(low = 0, high = 256)
+                        v = np.random.randint(low = 0, high = 256)
+                    else:
+                        s = np.random.randint(low = 80, high = 256)
+                        v = np.random.randint(low = 2, high = 256)
+                    hue = hue / 180
+                    s = s / 255
+                    v = v / 255
+                    r, g, b = colorsys.hsv_to_rgb(hue, s, v)
+                    rgba = "{} {} {} 1".format(r, g, b)
                     ET.SubElement(
                         worldbody,
                         "geom",
@@ -268,10 +293,7 @@ class MazeEnv(gym.Env):
                         material="MatObj",
                         contype="1",
                         conaffinity="1",
-                        rgba="0.4 0.4 0.4 1".format(
-                            np.random.random(),
-                            np.random.random()
-                        ),
+                        rgba=rgba,
                     )
                     self.obstacles.append(f"block_{i}_{j}")
                 elif struct.can_move():
@@ -302,24 +324,48 @@ class MazeEnv(gym.Env):
                 raise Exception("Every geom of the torso must have a name")
 
         # Set goals
-        sampled_cells = random.sample(self._open_position_indices, 5)
+        sampled_cells = random.sample(self._open_position_indices, 15)
         agent = sampled_cells[-1]
-        goals = sampled_cells[:4]
+        goals = sampled_cells[:-1]
         self._task.set(goals, (self._init_torso_x, self._init_torso_y))
         for i, goal in enumerate(self._task.goals):
             z = goal.pos[2] if goal.dim >= 3 else 0.1 *  self._maze_size_scaling
+            site_type = 'sphere'
             if goal.custom_size is None:
                 size = f"{self._maze_size_scaling * 0.1}"
             else:
                 size = f"{goal.custom_size}"
+            rgba = goal.rgb.rgba_str()
+            if i != self._task.goal_index:
+                site_type = random.choice(['capsule', 'ellipsoid', 'cylinder', 'box', 'sphere'])
+                size = self._maze_size_scaling * 0.1
+                if site_type != 'sphere':
+                    size = "{} {} {}".format(
+                        *np.random.uniform(low = size / 2, high = size, size = (3,)).tolist()
+                    )
+                else:
+                    size = "{} {} {}".format(size, size, size)
+                h = random.choice(np.arange(30, 126).tolist())
+                if h < 94:
+                    s = np.random.randint(low = 0, high = 256)
+                    v = np.random.randint(low = 0, high = 256)
+                else:
+                    s = np.random.randint(low = 80, high = 256)
+                    v = np.random.randint(low = 2, high = 256)
+                h = h / 180
+                s = s / 255
+                v = v / 255
+                r, g, b = colorsys.hsv_to_rgb(h, s, v)
+                rgba = "{} {} {} 1".format(r, g, b)
             ET.SubElement(
                 worldbody,
                 "site",
                 name=f"goal_site{i}",
                 pos=f"{goal.pos[0]} {goal.pos[1]} {z}",
-                size=f"{self._maze_size_scaling * 0.1}",
-                rgba=goal.rgb.rgba_str(),
-                material = "MatObj"
+                size=size,
+                rgba=rgba,
+                material = "MatObj",
+                type=f"{site_type}",
             )
         
         _, file_path = tempfile.mkstemp(text=True, suffix=".xml")
@@ -1060,6 +1106,51 @@ class MazeEnv(gym.Env):
                 ] = [0, 255, 0]
 
         return np.flipud(img)
+
+
+class DiscreteMazeEnv(MazeEnv):
+    def __init__(
+        self,
+        model_cls: Type[AgentModel],
+        maze_task: Type[maze_task.MazeTask] = maze_task.MazeTask,
+        max_episode_size: int = 2000,
+        n_steps = 50,
+        include_position: bool = True,
+        maze_height: float = 0.5,
+        maze_size_scaling: float = 4.0,
+        inner_reward_scaling: float = 1.0,
+        restitution_coef: float = 0.8,
+        task_kwargs: dict = {},
+        websock_port: Optional[int] = None,
+        camera_move_x: Optional[float] = None,
+        camera_move_y: Optional[float] = None,
+        camera_zoom: Optional[float] = None,
+        image_shape: Tuple[int, int] = (600, 480),
+        **kwargs,
+    ) -> None:
+        super(DiscreteMazeEnv, self).__init__(
+            model_cls=model_cls,
+            maze_task=maze_task,
+            max_episode_size=max_episode_size,
+            n_steps=n_steps,
+            include_position=include_position,
+            maze_height=maze_height,
+            maze_size_scaling=maze_size_scaling,
+            inner_reward_scaling=inner_reward_scaling,
+            restitution_coef=restitution_coef,
+            task_kwargs=task_kwargs,
+            websock_port=websock_port,
+            camera_move_x=camera_move_x,
+            camera_move_y=camera_move_y,
+            camera_zoom=camera_zoom,
+            image_shape=image_shape,
+            **kwargs,
+        )
+
+    def _set_action_space(self):
+        return super()._set_action_space()
+
+
 
 def _add_object_ball(
     worldbody: ET.Element, i: str, j: str, x: float, y: float, size: float

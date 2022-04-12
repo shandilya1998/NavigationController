@@ -263,7 +263,7 @@ count_ball = 0
 ob = env._get_obs()
 
 if params['debug']:
-    fig, ax = plt.subplots(1,1,figsize= (5,5))
+    fig, ax = plt.subplots(1,1,figsize= (3,3))
     line, = ax.plot(REWARDS, color = 'r', linestyle = '--')
     ax.set_xlabel('steps')
     ax.set_ylabel('reward')
@@ -318,7 +318,6 @@ while not done:
         ax.clear()
         ax.plot(REWARDS, color = 'r', linestyle = '--')
         plt.pause(0.001)
-        cv2.imshow('saved video', image)
 
 video.release()
 pbar.close()

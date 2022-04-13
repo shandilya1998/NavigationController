@@ -274,5 +274,5 @@ class Autoencoder(torch.nn.Module):
     @staticmethod
     def reparameterize(mean, logvar):
         std = torch.exp(logvar / 2) # in log-space, squareroot is divide by two
-        epsilon = torch.randn_like(std)
+        epsilon = torch.normal(mean = torch.zeros_like(std), std = torch.ones_like(std))
         return epsilon * std + mean

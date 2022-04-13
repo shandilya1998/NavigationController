@@ -335,8 +335,8 @@ def train_autoencoder(
             total_reward = 0
             losses = []
             KLD = []
-            MSE = []
-            MSE_DEPTH = []
+            L1 = []
+            L1_DEPTH = []
             SSIM_1 = []
             SSIM_2 = []
             SSIM_DEPTH = []
@@ -363,11 +363,11 @@ def train_autoencoder(
                     with torch.no_grad():
                         _, [gen_image, depth], [mean, logvar] = model(gt_image.contiguous())
                     kld = torch.mean(-0.5 * torch.sum(1 + logvar - mean.pow(2) - logvar.exp(), dim = 1), dim = 0).item() * params['kld_weight']
-                    mse_gen_image = torch.nn.functional.mse_loss(gen_image, gt_image).item()
-                    mse_depth = torch.nn.functional.mse_loss(depth, gt_depth).item()
+                    l1_gen_image = torch.nn.functional.l1_loss(gen_image, gt_image).item()
+                    l1_depth = torch.nn.functional.l1_loss(depth, gt_depth).item()
                     KLD.append(kld)
-                    MSE.append(mse_gen_image)
-                    MSE_DEPTH.append(mse_depth)
+                    L1.append(l1_gen_image)
+                    L1_DEPTH.append(l1_depth)
                     scale_1, scale_2 = torch.split(gt_image, 3, dim = 1)
                     gen_scale_1, gen_scale_2 = torch.split(gen_image, 3, dim = 1)
                     # SSIM computation
@@ -386,7 +386,7 @@ def train_autoencoder(
                     SSIM_1.append(ssim_scale_1)
                     SSIM_2.append(ssim_scale_2)
                     SSIM_DEPTH.append(ssim_depth)
-                    loss = ssim_scale_1 + ssim_scale_2 + ssim_depth + mse_depth + mse_gen_image + kld
+                    loss = ssim_scale_1 + ssim_scale_2 + ssim_depth + l1_depth + l1_gen_image + kld
                     losses.append(loss)
                     
                     # Sampling last frame for writing to video
@@ -421,17 +421,17 @@ def train_autoencoder(
             # Writing Evalulation Metrics to Tensorboard
             total_reward = total_reward / 5
             print('-----------------------------')
-            print('Evaluation Total Reward {:.4f} Loss {:.4f} KLD {:.8f} MSE {:.4f} MSE depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} SSIM_DEPTH {:.4f} Steps {}'.format(
-                total_reward[0], np.mean(losses), np.mean(KLD), np.mean(MSE), np.mean(MSE_DEPTH),
+            print('Evaluation Total Reward {:.4f} Loss {:.4f} KLD {:.8f} L1 {:.4f} L1 depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} SSIM_DEPTH {:.4f} Steps {}'.format(
+                total_reward[0], np.mean(losses), np.mean(KLD), np.mean(L1), np.mean(L1_DEPTH),
                 np.mean(SSIM_1), np.mean(SSIM_2), np.mean(SSIM_DEPTH), steps))
             print('-----------------------------')
             writer.add_scalar('Eval/Loss', np.mean(losses), i)
             writer.add_scalar('Eval/KLD', np.mean(KLD), i)
-            writer.add_scalar('Eval/MSE', np.mean(MSE), i)
+            writer.add_scalar('Eval/L1', np.mean(L1), i)
             writer.add_scalar('Eval/ssim_1', np.mean(SSIM_1), i)
             writer.add_scalar('Eval/ssim_2', np.mean(SSIM_2), i)
             writer.add_scalar('Eval/ssim_depth', np.mean(SSIM_DEPTH), i)
-            writer.add_scalar('Eval/depth', np.mean(MSE_DEPTH), i)
+            writer.add_scalar('Eval/depth', np.mean(L1_DEPTH), i)
             cv2.destroyAllWindows()
             video.release()
             model.train()
@@ -458,8 +458,8 @@ def train_autoencoder(
 
         losses = []
         KLD = []
-        MSE = []
-        MSE_DEPTH = []
+        L1 = []
+        L1_DEPTH = []
         SSIM_1 = []
         SSIM_2 = []
         SSIM_DEPTH = []
@@ -480,11 +480,11 @@ def train_autoencoder(
 
             # Gradient Computatation and Optimsation
             kld = torch.mean(-0.5 * torch.sum(1 + logvar - mean.pow(2) - logvar.exp(), dim = 1), dim = 0) * params['kld_weight']
-            mse_gen_image = torch.nn.functional.mse_loss(gen_image, gt_image)
-            mse_depth = torch.nn.functional.mse_loss(depth, gt_depth)
+            l1_gen_image = torch.nn.functional.l1_loss(gen_image, gt_image)
+            l1_depth = torch.nn.functional.l1_loss(depth, gt_depth)
             KLD.append(kld.item())
-            MSE.append(mse_gen_image.item())
-            MSE_DEPTH.append(mse_depth.item())
+            L1.append(l1_gen_image.item())
+            L1_DEPTH.append(l1_depth.item())
 
             # SSIM computation
             ssim_scale_1 = 1 - ssim(
@@ -502,7 +502,7 @@ def train_autoencoder(
             SSIM_1.append(ssim_scale_1.item())
             SSIM_2.append(ssim_scale_2.item())
             SSIM_DEPTH.append(ssim_depth.item())
-            loss = mse_depth + mse_gen_image + ssim_scale_1 + ssim_scale_2 + ssim_depth + kld
+            loss = l1_depth + l1_gen_image + ssim_scale_1 + ssim_scale_2 + ssim_depth + kld
 
             optim.zero_grad()
             loss.backward()
@@ -514,14 +514,14 @@ def train_autoencoder(
         # Logging
         writer.add_scalar('Train/Loss', np.mean(losses), i)
         writer.add_scalar('Train/KLD', np.mean(KLD), i)
-        writer.add_scalar('Train/MSE', np.mean(MSE), i)
+        writer.add_scalar('Train/L1', np.mean(L1), i)
         writer.add_scalar('Train/ssim_1', np.mean(SSIM_1), i)
         writer.add_scalar('Train/ssim_2', np.mean(SSIM_2), i)
         writer.add_scalar('Train/ssim_depth', np.mean(SSIM_DEPTH), i)
-        writer.add_scalar('Train/depth', np.mean(MSE_DEPTH), i)
+        writer.add_scalar('Train/depth', np.mean(L1_DEPTH), i)
         writer.add_scalar('Train/learning_rate', scheduler.get_last_lr()[0], i)
-        print('Epoch {} Learning Rate {:.6f} Total Reward {:.4f} Loss {:.4f} KLD {:.8f} MSE {:.4f} MSE depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} SSIM_DEPTH {:.4f} steps {}'.format(
-            i, scheduler.get_last_lr()[0], total_reward[0], np.mean(losses), np.mean(KLD), np.mean(MSE), np.mean(MSE_DEPTH),
+        print('Epoch {} Learning Rate {:.6f} Total Reward {:.4f} Loss {:.4f} KLD {:.8f} L1 {:.4f} L1 depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} SSIM_DEPTH {:.4f} steps {}'.format(
+            i, scheduler.get_last_lr()[0], total_reward[0], np.mean(losses), np.mean(KLD), np.mean(L1), np.mean(L1_DEPTH),
             np.mean(SSIM_1), np.mean(SSIM_2), np.mean(SSIM_DEPTH), count))
 
         # Save Model
@@ -1480,7 +1480,7 @@ class RTD3(sb3.TD3):
             current_q_values, _ = self.critic(replay_data.observations, replay_data.actions, None)
 
             # Compute critic loss
-            critic_loss = sum([torch.nn.functional.mse_loss(current_q, target_q_values) for current_q in current_q_values])
+            critic_loss = sum([torch.nn.functional.l1_loss(current_q, target_q_values) for current_q in current_q_values])
             critic_losses.append(critic_loss.item())
 
             # Optimize the critics
@@ -1495,7 +1495,7 @@ class RTD3(sb3.TD3):
                 if self.num_timesteps < params['staging_steps']:
                     ratio = 1.0 - self.num_timesteps / params['staging_steps']
                     supervised_loss_ratios.append(ratio)
-                    supervised_loss = torch.nn.functional.mse_loss(action, replay_data.observations['scaled_sampled_action'][:, -1, :])
+                    supervised_loss = torch.nn.functional.l1_loss(action, replay_data.observations['scaled_sampled_action'][:, -1, :])
                     supervised_losses.append(supervised_loss.item())
                     q, _ = self.critic.q1_forward(replay_data.observations, action, None)
                     q_loss = -q.mean()

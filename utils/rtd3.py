@@ -363,11 +363,11 @@ def train_autoencoder(
                     with torch.no_grad():
                         _, [gen_image, depth], [mean, logvar] = model(gt_image.contiguous())
                     kld = -0.5 * torch.sum(1 + logvar - mean.pow(2) - logvar.exp()).item()
-                    l1_gen_image = torch.nn.functional.l1_loss(gen_image, gt_image).item()
-                    l1_depth = torch.nn.functional.l1_loss(depth, gt_depth).item()
+                    mse_gen_image = torch.nn.functional.mse_loss(gen_image, gt_image).item()
+                    mse_depth = torch.nn.functional.mse_loss(depth, gt_depth).item()
                     KLD.append(kld)
-                    MSE.append(l1_gen_image)
-                    MSE_DEPTH.append(l1_depth)
+                    MSE.append(mse_gen_image)
+                    MSE_DEPTH.append(mse_depth)
                     scale_1, scale_2 = torch.split(gt_image, 3, dim = 1)
                     gen_scale_1, gen_scale_2 = torch.split(gen_image, 3, dim = 1)
                     # SSIM computation
@@ -386,7 +386,7 @@ def train_autoencoder(
                     SSIM_1.append(ssim_scale_1)
                     SSIM_2.append(ssim_scale_2)
                     SSIM_DEPTH.append(ssim_depth)
-                    loss = ssim_scale_1 + ssim_scale_2 + ssim_depth + l1_depth + l1_gen_image + kld
+                    loss = ssim_scale_1 + ssim_scale_2 + ssim_depth + mse_depth + mse_gen_image + kld
                     losses.append(loss)
                     
                     # Sampling last frame for writing to video
@@ -480,11 +480,11 @@ def train_autoencoder(
 
             # Gradient Computatation and Optimsation
             kld = -0.5 * torch.sum(1 + logvar - mean.pow(2) - logvar.exp())
-            l1_gen_image = torch.nn.functional.l1_loss(gen_image, gt_image)
-            l1_depth = torch.nn.functional.l1_loss(depth, gt_depth)
+            mse_gen_image = torch.nn.functional.mse_loss(gen_image, gt_image)
+            mse_depth = torch.nn.functional.mse_loss(depth, gt_depth)
             KLD.append(kld.item())
-            MSE.append(l1_gen_image.item())
-            MSE_DEPTH.append(l1_depth.item())
+            MSE.append(mse_gen_image.item())
+            MSE_DEPTH.append(mse_depth.item())
 
             # SSIM computation
             ssim_scale_1 = 1 - ssim(
@@ -502,7 +502,7 @@ def train_autoencoder(
             SSIM_1.append(ssim_scale_1.item())
             SSIM_2.append(ssim_scale_2.item())
             SSIM_DEPTH.append(ssim_depth.item())
-            loss = l1_depth + l1_gen_image + ssim_scale_1 + ssim_scale_2 + ssim_depth + kld
+            loss = mse_depth + mse_gen_image + ssim_scale_1 + ssim_scale_2 + ssim_depth + kld
 
             optim.zero_grad()
             loss.backward()

@@ -183,6 +183,7 @@ class ResNet18EncV2(torch.nn.Module):
         )
         self.layer3 = self._make_layer(BasicBlockEnc, 256, num_Blocks[2], stride=2)
         self.layer4 = self._make_layer(BasicBlockEnc, 512, num_Blocks[3], stride=2)
+        self.linear = torch.nn.Linear(512, 2 * z_dim)
 
     def _make_layer(self, BasicBlockEnc, planes, num_Blocks, stride):
         strides = [stride] + [1]*(num_Blocks-1)
@@ -206,7 +207,12 @@ class ResNet18EncV2(torch.nn.Module):
         x = self.combiner(x)
         x = self.layer3(x)
         x = self.layer4(x)
-        return x
+        x = torch.nn.functional.adaptive_avg_pool2d(x, 1)
+        x = x.view(x.size(0), -1)
+        x = self.linear(x)
+        mu = x[:, :self.z_dim]
+        logvar = x[:, self.z_dim:]
+        return mu, logvar
 
 class ResNet18DecV2(torch.nn.Module):
 
@@ -214,7 +220,7 @@ class ResNet18DecV2(torch.nn.Module):
         super(ResNet18DecV2, self).__init__()
         self.in_planes = 512
 
-        #self.linear = torch.nn.Linear(z_dim, 2048)
+        self.linear = torch.nn.Linear(z_dim, 512)
         self.nc = nc
         #self.layer6 = ResizeConv2d(2048, 1024, kernel_size=3, scale_factor=2)
         #self.layer5 = self._make_layer(BasicBlockDec, 512, num_Blocks[3], stride=2)
@@ -237,7 +243,10 @@ class ResNet18DecV2(torch.nn.Module):
         return torch.nn.Sequential(*layers)
 
     def forward(self, z):
-        x = self.layer4(z)
+        x = self.linear(z)
+        x = x.view(z.size(0), 512, 1, 1)
+        x = torch.nn.functional.interpolate(x, scale_factor=4)
+        x = self.layer4(x)
         x = self.layer3(x)
 
         image = self.layer2(x)
@@ -257,6 +266,13 @@ class Autoencoder(torch.nn.Module):
         self.decoder = ResNet18DecV2([2 * b for b in num_Blocks], z_dim, nc)
 
     def forward(self, x):
-        z = self.encoder(x)
+        mean, logvar = self.encoder(x)
+        z = self.reparameterize(mean, logvar)
         x, depth = self.decoder(z)
         return z, [x, depth]
+
+    @staticmethod
+    def reparameterize(mean, logvar):
+        std = torch.exp(logvar / 2) # in log-space, squareroot is divide by two
+        epsilon = torch.randn_like(std)
+        return epsilon * std + mean

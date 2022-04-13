@@ -42,7 +42,7 @@ class TimeDistributedFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtra
     ):
         super(TimeDistributedFeaturesExtractor, self).__init__(observation_space, features_dim)
 
-        self.autoencoder = Autoencoder()
+        self.autoencoder = Autoencoder(num_Blocks=[1, 1, 1, 1], z_dim = params['num_ctx'])
         self.autoencoder.load_state_dict(
             torch.load(pretrained_params_path, map_location=device)['model_state_dict']
         )
@@ -311,7 +311,7 @@ def train_autoencoder(
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     # Model Initialisation
-    model = Autoencoder().to(device)
+    model = Autoencoder(num_Blocks=[1, 1, 1, 1], z_dim = params['num_ctx']).to(device)
     
     # Optimiser and Scheduler Initalisation
     optim = torch.optim.Adam(model.parameters(), lr = learning_rate)

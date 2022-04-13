@@ -362,7 +362,7 @@ def train_autoencoder(
                     # Model Evaluation
                     with torch.no_grad():
                         _, [gen_image, depth], [mean, logvar] = model(gt_image.contiguous())
-                    kld = -0.5 * torch.sum(1 + logvar - mean.pow(2) - logvar.exp()).item()
+                    kld = torch.mean(-0.5 * torch.sum(1 + logvar - mean.pow(2) - logvar.exp(), dim = 1), dim = 0).item() * params['kld_weight']
                     mse_gen_image = torch.nn.functional.mse_loss(gen_image, gt_image).item()
                     mse_depth = torch.nn.functional.mse_loss(depth, gt_depth).item()
                     KLD.append(kld)
@@ -421,7 +421,7 @@ def train_autoencoder(
             # Writing Evalulation Metrics to Tensorboard
             total_reward = total_reward / 5
             print('-----------------------------')
-            print('Evaluation Total Reward {:.4f} Loss {:.4f} KLD {:.4f} MSE {:.4f} MSE depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} SSIM_DEPTH {:.4f} Steps {}'.format(
+            print('Evaluation Total Reward {:.4f} Loss {:.4f} KLD {:.8f} MSE {:.4f} MSE depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} SSIM_DEPTH {:.4f} Steps {}'.format(
                 total_reward[0], np.mean(losses), np.mean(KLD), np.mean(MSE), np.mean(MSE_DEPTH),
                 np.mean(SSIM_1), np.mean(SSIM_2), np.mean(SSIM_DEPTH), steps))
             print('-----------------------------')
@@ -479,7 +479,7 @@ def train_autoencoder(
             _, [gen_image, depth], [mean, logvar] = model(gt_image.contiguous())
 
             # Gradient Computatation and Optimsation
-            kld = -0.5 * torch.sum(1 + logvar - mean.pow(2) - logvar.exp())
+            kld = torch.mean(-0.5 * torch.sum(1 + logvar - mean.pow(2) - logvar.exp(), dim = 1), dim = 0) * params['kld_weight']
             mse_gen_image = torch.nn.functional.mse_loss(gen_image, gt_image)
             mse_depth = torch.nn.functional.mse_loss(depth, gt_depth)
             KLD.append(kld.item())
@@ -520,7 +520,7 @@ def train_autoencoder(
         writer.add_scalar('Train/ssim_depth', np.mean(SSIM_DEPTH), i)
         writer.add_scalar('Train/depth', np.mean(MSE_DEPTH), i)
         writer.add_scalar('Train/learning_rate', scheduler.get_last_lr()[0], i)
-        print('Epoch {} Learning Rate {:.6f} Total Reward {:.4f} Loss {:.4f} KLD {:.4f} MSE {:.4f} MSE depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} SSIM_DEPTH {:.4f} steps {}'.format(
+        print('Epoch {} Learning Rate {:.6f} Total Reward {:.4f} Loss {:.4f} KLD {:.8f} MSE {:.4f} MSE depth {:.4f} SSIM_1 {:.4f} SSIM_2 {:.4f} SSIM_DEPTH {:.4f} steps {}'.format(
             i, scheduler.get_last_lr()[0], total_reward[0], np.mean(losses), np.mean(KLD), np.mean(MSE), np.mean(MSE_DEPTH),
             np.mean(SSIM_1), np.mean(SSIM_2), np.mean(SSIM_DEPTH), count))
 

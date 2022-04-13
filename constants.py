@@ -98,6 +98,7 @@ params = {
     'lstm_steps'                  : 2,
     'autoencoder_arch'            : [1, 1, 1, 1],
     'add_ref_scales'              : False,
+    'kld_weight'                  : 2.5e-4,
 }
 
 params_quadruped = {

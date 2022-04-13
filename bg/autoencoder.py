@@ -269,7 +269,7 @@ class Autoencoder(torch.nn.Module):
         mean, logvar = self.encoder(x)
         z = self.reparameterize(mean, logvar)
         x, depth = self.decoder(z)
-        return z, [x, depth]
+        return z, [x, depth], [mean, logvar]
 
     @staticmethod
     def reparameterize(mean, logvar):

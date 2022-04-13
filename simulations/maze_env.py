@@ -242,19 +242,7 @@ class MazeEnv(gym.Env):
                 h = self._maze_height / 2 * self._maze_size_scaling
                 size = self._maze_size_scaling * 0.5
                 if self.elevated and not struct.is_chasm():
-                    # Create elevated platform.
-                    hue = random.choice(np.arange(30, 126).tolist())
-                    if hue < 94:
-                        s = np.random.randint(low = 0, high = 256)
-                        v = np.random.randint(low = 0, high = 256)
-                    else:
-                        s = np.random.randint(low = 80, high = 256)
-                        v = np.random.randint(low = 2, high = 256)
-                    hue = hue / 180
-                    s = s / 255
-                    v = v / 255
-                    r, g, b = colorsys.hsv_to_rgb(hue, s, v)
-                    rgba = "{} {} {} 1".format(r, g, b)
+                    rgba = "0 0 0 1"
                     ET.SubElement(
                         worldbody,
                         "geom",
@@ -271,18 +259,7 @@ class MazeEnv(gym.Env):
                 if struct.is_block():
                     # Unmovable block.
                     # Offset all coordinates so that robot starts at the origin.
-                    hue = random.choice(np.arange(30, 126).tolist())
-                    if hue < 94:
-                        s = np.random.randint(low = 0, high = 256)
-                        v = np.random.randint(low = 0, high = 256)
-                    else:
-                        s = np.random.randint(low = 80, high = 256)
-                        v = np.random.randint(low = 2, high = 256)
-                    hue = hue / 180
-                    s = s / 255
-                    v = v / 255
-                    r, g, b = colorsys.hsv_to_rgb(hue, s, v)
-                    rgba = "{} {} {} 1".format(r, g, b)
+                    rgba = "0 0 0 1"
                     ET.SubElement(
                         worldbody,
                         "geom",

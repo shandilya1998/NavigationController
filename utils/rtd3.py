@@ -479,7 +479,7 @@ def train_autoencoder(
             _, [gen_image, depth], [mean, logvar] = model(gt_image.contiguous())
 
             # Gradient Computatation and Optimsation
-            kld = -0.5 * torch.sum(1 + logvar - mean.pow(2) - logvar.exp()).item()
+            kld = -0.5 * torch.sum(1 + logvar - mean.pow(2) - logvar.exp())
             l1_gen_image = torch.nn.functional.l1_loss(gen_image, gt_image)
             l1_depth = torch.nn.functional.l1_loss(depth, gt_depth)
             KLD.append(kld.item())

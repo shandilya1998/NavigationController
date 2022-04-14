@@ -316,6 +316,8 @@ while not done:
     REWARDS.append(reward)
     total_reward += reward
     INFO.append(info)
+    if params['debug']:
+        cv2.imshow('observations', image)
     """
     if params['debug']:
         ax.clear()

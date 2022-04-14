@@ -311,8 +311,8 @@ class MazeEnv(gym.Env):
         target_rgb = [0.7, 0.1, 0.1]
         if self.mode == 'vae':
             target_rgb = random.sample([
-                np.random.uniform(low = 0, high = 0.5),
-                np.random.uniform(low = 0, high = 0.5),
+                np.random.uniform(low = 0.1, high = 0.5),
+                np.random.uniform(low = 0.1, high = 0.5),
                 np.random.uniform(low = 0.5, high = 1),
             ], k = 3)
         target_hsv = colorsys.rgb_to_hsv(*target_rgb)
@@ -350,10 +350,10 @@ class MazeEnv(gym.Env):
                 h = sample_h()
                 if h < 94:
                     s = np.random.uniform(low = 0, high = 255)
-                    v = np.random.uniform(low = 25.5, high = 255)
+                    v = np.random.uniform(low = 51, high = 255)
                 else:
                     s = np.random.uniform(low = 80, high = 255)
-                    v = np.random.uniform(low = 25.5, high = 255)
+                    v = np.random.uniform(low = 51, high = 255)
                 h = h / 180
                 s = s / 255
                 v = v / 255

@@ -183,7 +183,7 @@ class ResNet18EncV2(torch.nn.Module):
         )
         self.layer3 = self._make_layer(BasicBlockEnc, 256, num_Blocks[2], stride=2)
         self.layer4 = self._make_layer(BasicBlockEnc, 512, num_Blocks[3], stride=2)
-        self.linear = torch.nn.Linear(512, 2 * z_dim)
+        self.linear = torch.nn.Linear(512, z_dim)
 
     def _make_layer(self, BasicBlockEnc, planes, num_Blocks, stride):
         strides = [stride] + [1]*(num_Blocks-1)
@@ -210,9 +210,7 @@ class ResNet18EncV2(torch.nn.Module):
         x = torch.nn.functional.adaptive_avg_pool2d(x, 1)
         x = x.view(x.size(0), -1)
         x = self.linear(x)
-        mu = x[:, :self.z_dim]
-        logvar = x[:, self.z_dim:]
-        return mu, logvar
+        return x
 
 class ResNet18DecV2(torch.nn.Module):
 
@@ -266,13 +264,6 @@ class Autoencoder(torch.nn.Module):
         self.decoder = ResNet18DecV2([2 * b for b in num_Blocks], z_dim, nc)
 
     def forward(self, x):
-        mean, logvar = self.encoder(x)
-        z = self.reparameterize(mean, logvar)
+        z = self.encoder(x)
         x, depth = self.decoder(z)
-        return z, [x, depth], [mean, logvar]
-
-    @staticmethod
-    def reparameterize(mean, logvar):
-        std = torch.exp(logvar / 2) # in log-space, squareroot is divide by two
-        epsilon = torch.normal(mean = torch.zeros_like(std), std = torch.ones_like(std))
-        return epsilon * std + mean
+        return z, [x, depth]

@@ -178,13 +178,14 @@ class ResNet18EncV2(torch.nn.Module):
         self.layer2_2 = self._make_layer(BasicBlockEnc, 128, num_Blocks[1], stride=2)
   
         self.combiner = torch.nn.Sequential(
-            torch.nn.Conv2d(128 * 2, 128, kernel_size = 3, padding = 1),
+            torch.nn.Conv2d(128 * 2, 256, kernel_size = 3, padding = 1),
             torch.nn.ReLU()
         )
-        self.layer3 = self._make_layer(BasicBlockEnc, 256, num_Blocks[2], stride=2)
-        self.layer4 = self._make_layer(BasicBlockEnc, 512, num_Blocks[3], stride=2)
+        self.in_planes = 256
+        self.layer3 = self._make_layer(BasicBlockEnc, 512, num_Blocks[2], stride=2)
+        self.layer4 = self._make_layer(BasicBlockEnc, 1024, num_Blocks[3], stride=2)
         self.linear = torch.nn.Sequential(
-            torch.nn.Linear(512, z_dim),
+            torch.nn.Linear(1024, z_dim),
             torch.nn.Tanh()
         )
 
@@ -219,19 +220,17 @@ class ResNet18DecV2(torch.nn.Module):
 
     def __init__(self, num_Blocks=[1,1,1,1], z_dim=10, nc=3):
         super(ResNet18DecV2, self).__init__()
-        self.in_planes = 512
+        self.in_planes = 1024
 
-        self.linear = torch.nn.Linear(z_dim, 512)
+        self.linear = torch.nn.Linear(z_dim, 1024)
         self.nc = nc
         #self.layer6 = ResizeConv2d(2048, 1024, kernel_size=3, scale_factor=2)
         #self.layer5 = self._make_layer(BasicBlockDec, 512, num_Blocks[3], stride=2)
-        self.layer4 = self._make_layer(BasicBlockDec, 256, num_Blocks[3], stride=2)
-        self.layer3 = self._make_layer(BasicBlockDec, 128, num_Blocks[2], stride=2)
-
-        self.in_planes = 128
-        self.layer2 = self._make_layer(BasicBlockDec, 64, num_Blocks[1], stride=2)
-        self.layer1 = self._make_layer(BasicBlockDec, 64, num_Blocks[0], stride=1)
-        self.conv1 = ResizeConv2d(64, 2 * nc + 1, kernel_size=3, scale_factor=2)
+        self.layer4 = self._make_layer(BasicBlockDec, 512, num_Blocks[3], stride=2)
+        self.layer3 = self._make_layer(BasicBlockDec, 256, num_Blocks[2], stride=2)
+        self.layer2 = self._make_layer(BasicBlockDec, 128, num_Blocks[1], stride=2)
+        self.layer1 = self._make_layer(BasicBlockDec, 128, num_Blocks[0], stride=1)
+        self.conv1 = ResizeConv2d(128, 2 * nc + 1, kernel_size=3, scale_factor=2)
         self.output = torch.nn.Sigmoid()
 
 
@@ -245,7 +244,7 @@ class ResNet18DecV2(torch.nn.Module):
 
     def forward(self, z):
         x = self.linear(z)
-        x = x.view(z.size(0), 512, 1, 1)
+        x = x.view(z.size(0), 1024, 1, 1)
         x = torch.nn.functional.interpolate(x, scale_factor=4)
         x = self.layer4(x)
         x = self.layer3(x)

@@ -305,8 +305,8 @@ class MazeEnv(gym.Env):
 
         # Set goals
         sampled_cells = random.sample(self._open_position_indices, 15)
-        agent = sampled_cells[-1]
-        goals = sampled_cells[:-1]
+        agent = copy.deepcopy(sampled_cells[-1])
+        goals = copy.deepcopy(sampled_cells[:-1])
         target_index = np.random.randint(0, len(goals))
         target_rgb = [0.7, 0.1, 0.1]
         if self.mode == 'vae':
@@ -346,7 +346,6 @@ class MazeEnv(gym.Env):
             if target_index == i:
                 rgb = Rgb(*target_rgb)
                 h, s, v = copy.deepcopy(target_hsv)
-                site_type = 'sphere'
             else:
                 h = sample_h()
                 if h < 94:

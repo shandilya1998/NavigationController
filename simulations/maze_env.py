@@ -359,7 +359,7 @@ class MazeEnv(gym.Env):
                 v = v / 255
                 r, g, b = colorsys.hsv_to_rgb(h, s, v)
                 rgb = Rgb(r, g, b)
-            size = self._maze_size_scaling * 0.1
+            size = self._maze_size_scaling * 0.25
             if site_type != 'sphere':
                 size = np.random.uniform(low = size / 3, high = size, size = (3,)).tolist()
             else:

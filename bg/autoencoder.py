@@ -183,7 +183,10 @@ class ResNet18EncV2(torch.nn.Module):
         )
         self.layer3 = self._make_layer(BasicBlockEnc, 256, num_Blocks[2], stride=2)
         self.layer4 = self._make_layer(BasicBlockEnc, 512, num_Blocks[3], stride=2)
-        self.linear = torch.nn.Linear(512, z_dim)
+        self.linear = torch.nn.Sequential(
+            torch.nn.Linear(512, z_dim),
+            torch.nn.Tanh()
+        )
 
     def _make_layer(self, BasicBlockEnc, planes, num_Blocks, stride):
         strides = [stride] + [1]*(num_Blocks-1)

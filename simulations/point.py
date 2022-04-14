@@ -16,7 +16,7 @@ from utils.env_utils import convert_observation_to_space
 from collections import defaultdict, OrderedDict
 import math
 import cv2
-from constants import tf_params
+from constants import image_width, image_height
 
 class RunningStats:
 
@@ -133,8 +133,8 @@ class PointEnv(AgentModel):
 
     def _get_obs(self):
         rgb1, depth1 = self.sim.render(
-            width = tf_params['image_width'],
-            height = tf_params['image_height'],
+            width = image_width,
+            height = image_height,
             camera_name = 'mtdcam1',
             depth = True 
         )

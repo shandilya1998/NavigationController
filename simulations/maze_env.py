@@ -434,6 +434,7 @@ class MazeEnv(gym.Env):
         self.wrapped_env = self.model_cls(file_path=file_path, **self.kwargs)
         self.model = self.wrapped_env.model
         self.data = self.wrapped_env.data
+        self.sim = self.wrapped_env.sim
 
         self._init_pos, self._init_ori = self._set_init(agent)
         self.wrapped_env.set_xy(self._init_pos)
@@ -793,6 +794,13 @@ class MazeEnv(gym.Env):
             cv2.rectangle(frame,(x, y),(x+w, y+h),(0, 0, 255), 1)
             bbx.extend([x, y, w, h]) 
         return bbx 
+
+    def _get_depth(self, z_buffer):
+        z_buffer = z_buffer * 0.14 + 0.86
+        extent = self.model.stat.extent
+        near = self.model.vis.map.znear * extent
+        far = self.model.vis.map.zfar * extent
+        return near / (1 - z_buffer * (1 - near / far))
 
     def _get_obs(self) -> np.ndarray:
         obs = self.wrapped_env._get_obs()

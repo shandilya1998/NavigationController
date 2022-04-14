@@ -16,6 +16,7 @@ if __name__ == '__main__':
                 CustomGoalReward4Rooms,
                 max_episode_size = params['max_episode_size'],
                 n_steps = params['max_seq_len'] * params['seq_sample_freq'],
+                mode = 'vae'
             ))
         ])
     )

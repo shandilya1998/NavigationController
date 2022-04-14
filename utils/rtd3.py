@@ -439,22 +439,23 @@ def train_autoencoder(
 
         # Data Sampling
         total_reward = 0
-        done = False
-        last_obs = env.reset()
         count = 0
-        while not done:
-            obs, reward, done, info = env.step(last_obs['sampled_action'])
-            buff.add(
-                last_obs,
-                obs,
-                last_obs['sampled_action'],
-                reward,
-                done,
-                info,
-            )
-            count += 1
-            last_obs = obs
-            total_reward += reward
+        for _ in range(3):
+            last_obs = env.reset()
+            done = False
+            while not done:
+                obs, reward, done, info = env.step(last_obs['sampled_action'])
+                buff.add(
+                    last_obs,
+                    obs,
+                    last_obs['sampled_action'],
+                    reward,
+                    done,
+                    info,
+                )
+                count += 1
+                last_obs = obs
+                total_reward += reward
 
         losses = []
         KLD = []

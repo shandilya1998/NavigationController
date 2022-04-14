@@ -2,7 +2,7 @@ from simulations.maze_env import MazeEnv, DiscreteMazeEnv
 from simulations.point import PointEnv, PointEnvV2
 from simulations.maze_task import CustomGoalReward4Rooms, \
     GoalRewardNoObstacle, GoalRewardSimple, CustomGoalReward4RoomsV2
-env = DiscreteMazeEnv(PointEnv, CustomGoalReward4Rooms)
+env = MazeEnv(PointEnv, CustomGoalReward4Rooms, mode = 'vae')
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
@@ -262,11 +262,13 @@ count_collisions = 0
 count_ball = 0
 ob = env._get_obs()
 
+"""
 if params['debug']:
     fig, ax = plt.subplots(1,1,figsize= (3,3))
     line, = ax.plot(REWARDS, color = 'r', linestyle = '--')
     ax.set_xlabel('steps')
     ax.set_ylabel('reward')
+"""
 total_reward = 0.0
 ac = env.get_action()
 top = env.render('rgb_array')
@@ -314,10 +316,12 @@ while not done:
     REWARDS.append(reward)
     total_reward += reward
     INFO.append(info)
+    """
     if params['debug']:
         ax.clear()
         ax.plot(REWARDS, color = 'r', linestyle = '--')
         plt.pause(0.001)
+    """
 
 video.release()
 pbar.close()

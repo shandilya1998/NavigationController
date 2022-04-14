@@ -319,18 +319,18 @@ class MazeVisualGoal(MazeGoal):
     def __init__(
         self,
         pos: np.ndarray,
+        characteristics: dict,
         reward_scale: float = 1.0,
-        rgb: Rgb = RED,
-        threshold: float = 1.0,
-        custom_size: Optional[float] = None,
     ):
         super(MazeVisualGoal, self).__init__(pos,
             reward_scale,
-            rgb,
-            threshold,
-            custom_size,
+            characteristics['rgb'],
+            characteristics['threshold'],
+            characteristics['size'],
         )
-        self.min_range, self.max_range = get_hsv_ranges(rgb)
+        self.site_type = characteristics['site_type']
+        self.min_range = np.array(characteristics['hsv_low'], dtype = np.float32)
+        self.max_range = np.array(characteristics['hsv_high'], dtype = np.float32)
 
     def neighbor(self, pos: np.ndarray) -> float:
         return np.linalg.norm(pos[: self.dim] - self.pos) <= self.threshold
@@ -392,37 +392,33 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
         super().__init__(scale, goal)
 
     def set(self, goals, torso_init):
-        self.goal_index = np.random.randint(low = 0, high = len(goals))
+        self.goals = []
         self.colors = []
         self.scales = []
-        self.goals = []
-        _goals = copy.deepcopy(goals)
-        for i in range(len(_goals)):
-            if i == self.goal_index:
-                self.colors.append(copy.deepcopy(RED))
-                self.scales.append(1.0)
-                _goals[i].append(2.25)
-            else:
-                self.colors.append(copy.deepcopy(GREEN))
-                self.scales.append(1.0)
-                _goals[i].append(1.5)
-
-        self.goals = [
-            MazeVisualGoal(
+        for i, goal in enumerate(goals):
+            row, col, characteristics = goal
+            if characteristics['target']:
+                self.goal_index = i
+            self.colors.append(characteristics['rgb'])
+            self.scales.append(1.0)
+            self.goals.append(MazeVisualGoal(
                 np.array([
                     col * self.scale - torso_init[1],
                     row * self.scale - torso_init[0]
-                ]), self.scales[i], self.colors[i], threshold=threshold
-            ) for i, (row, col, threshold) in enumerate(_goals)
-        ]
+                ]), characteristics, self.scales[i]
+            ))
 
     def reward(self, pos: np.ndarray, inframe: bool) -> float:
         reward = 0.0
-        goal = self.goals[self.goal_index]
-        if inframe:
-            reward += 0.5 * goal.reward_scale
-        if np.linalg.norm(pos - goal.pos) <= 2.5 * goal.threshold:
-            reward += 1.0 * goal.reward_scale
+        for i, goal in enumerate(self.goals):
+            if i == self.goal_index:
+                if inframe:
+                    reward += 0.5 * goal.reward_scale
+                if np.linalg.norm(pos - goal.pos) <= 2.5 * goal.threshold:
+                    reward += 1.0 * goal.reward_scale
+            else:
+                if goal.neighbor(pos):
+                    reward += -0.1
         return reward
 
     def termination(self, pos: np.ndarray, inframe: bool) -> bool:

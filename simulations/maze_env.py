@@ -30,6 +30,7 @@ from constants import params
 import math
 import cv2
 import colorsys
+from simulations.maze_task import Rgb
 
 # Directory that contains mujoco xml files.
 MODEL_DIR = os.path.join(os.getcwd(), 'assets', 'xml')
@@ -52,8 +53,10 @@ class MazeEnv(gym.Env):
         camera_move_y: Optional[float] = None,
         camera_zoom: Optional[float] = None,
         image_shape: Tuple[int, int] = (600, 480),
+        mode = None,
         **kwargs,
     ) -> None:
+        self.mode = mode
         self.collision_count = 0
         self.n_steps = n_steps
         self.kwargs = kwargs
@@ -304,45 +307,126 @@ class MazeEnv(gym.Env):
         sampled_cells = random.sample(self._open_position_indices, 15)
         agent = sampled_cells[-1]
         goals = sampled_cells[:-1]
-        self._task.set(goals, (self._init_torso_x, self._init_torso_y))
-        for i, goal in enumerate(self._task.goals):
-            z = goal.pos[2] if goal.dim >= 3 else 0.1 *  self._maze_size_scaling
-            site_type = 'sphere'
-            if goal.custom_size is None:
-                size = f"{self._maze_size_scaling * 0.1}"
+        target_index = np.random.randint(0, len(goals))
+        target_rgb = [0.7, 0.1, 0.1]
+        if self.mode == 'vae':
+            target_rgb = random.sample([
+                np.random.uniform(low = 0, high = 0.5),
+                np.random.uniform(low = 0, high = 0.5),
+                np.random.uniform(low = 0.5, high = 1),
+            ], k = 3)
+        target_hsv = colorsys.rgb_to_hsv(*target_rgb)
+        available_h = []
+        h = target_hsv[0] * 180
+        if h < 50:
+            available_h.append([h * 180 + 50, 180 - (50 - h)])
+        elif h < 130:
+            available_h.append([0, h - 50])
+            available_h.append([h + 50, 180])
+        else:
+            available_h.append([180 - h, h - 50])
+
+        sample_h = lambda: np.random.uniform(low = available_h[0][0], high = available_h[0][1])
+        if len(available_h) == 2:
+            prob = np.array([
+                available_h[0][1] - available_h[0][0],
+                available_h[1][1] - available_h[1][0]
+            ])
+            prob = prob / prob.sum()
+            sample_h = lambda: np.random.choice([
+                np.random.uniform(low = available_h[0][0], high = available_h[0][1]),
+                np.random.uniform(low = available_h[1][0], high = available_h[1][1])
+            ], p = prob)
+
+        for i, goal in enumerate(goals):
+            site_type = random.choice(['capsule', 'ellipsoid', 'cylinder', 'box', 'sphere'])
+            r, g, b = 0, 0, 0
+            h, s, v = 0, 0, 0
+            rgb = None
+            if target_index == i:
+                rgb = Rgb(*target_rgb)
+                h, s, v = copy.deepcopy(target_hsv)
+                site_type = 'sphere'
             else:
-                size = f"{goal.custom_size}"
-            rgba = goal.rgb.rgba_str()
-            if i != self._task.goal_index:
-                site_type = random.choice(['capsule', 'ellipsoid', 'cylinder', 'box', 'sphere'])
-                size = self._maze_size_scaling * 0.1
-                if site_type != 'sphere':
-                    size = "{} {} {}".format(
-                        *np.random.uniform(low = size / 2, high = size, size = (3,)).tolist()
-                    )
-                else:
-                    size = "{} {} {}".format(size, size, size)
-                h = random.choice(np.arange(30, 126).tolist())
+                h = sample_h()
                 if h < 94:
-                    s = np.random.randint(low = 0, high = 256)
-                    v = np.random.randint(low = 0, high = 256)
+                    s = np.random.uniform(low = 0, high = 255)
+                    v = np.random.uniform(low = 25.5, high = 255)
                 else:
-                    s = np.random.randint(low = 80, high = 256)
-                    v = np.random.randint(low = 2, high = 256)
+                    s = np.random.uniform(low = 80, high = 255)
+                    v = np.random.uniform(low = 25.5, high = 255)
                 h = h / 180
                 s = s / 255
                 v = v / 255
                 r, g, b = colorsys.hsv_to_rgb(h, s, v)
-                rgba = "{} {} {} 1".format(r, g, b)
+                rgb = Rgb(r, g, b)
+            size = self._maze_size_scaling * 0.1
+            if site_type != 'sphere':
+                size = np.random.uniform(low = size / 3, high = size, size = (3,)).tolist()
+            else:
+                size = [size, size, size]
+            hsv_low = []
+            hsv_high = []
+            if h > 10 / 180:
+                hsv_low.append(h * 180 - 10)
+            else:
+                hsv_low.append(0)
+            if h < 160 / 180:
+                hsv_high.append(h * 180 + 10)
+            else:
+                hsv_high.append(180)
+            if s > 100 / 255:
+                hsv_low.append(s * 255 - 100)
+            else:
+                hsv_low.append(0)
+            if s < 155 / 255:
+                hsv_high.append(s * 255 + 100)
+            else:
+                hsv_high.append(255)
+            hsv_low.append(0)
+            hsv_high.append(255)
+            """
+            if target_index == i:
+                print('hsv range', hsv_low, hsv_high)
+                print('hsv value', h * 180, s * 255, v * 255)
+                print('rgb, variables', r, g, b)
+                print('target rgb', target_rgb)
+                print('target_hsv', target_hsv[0] * 180, target_hsv[1] * 255, target_hsv[2] * 255)
+                print('rgb', rgb)
+            """
+            goal.append({
+                'hsv_low' : copy.deepcopy(hsv_low),
+                'hsv_high' : copy.deepcopy(hsv_high),
+                'threshold' : 2.25 if i == target_index else 1.5,
+                'target' : True if i == target_index else False,
+                'rgb' : copy.deepcopy(rgb),
+                'size' : copy.deepcopy(size),
+                'site_type' : site_type
+            })
+        self._task.set(goals, (self._init_torso_x, self._init_torso_y))
+        for i, goal in enumerate(self._task.goals):
+            z = goal.pos[2] if goal.dim >= 3 else 0.1 *  self._maze_size_scaling
+            if goal.custom_size is None:
+                size = f"{self._maze_size_scaling * 0.1}"
+            else:
+                if isinstance(goal.custom_size, list):
+                    size = ' '.join(map(str, goal.custom_size))
+                else:
+                    size = f"{goal.custom_size}"
+            """
+            if i == self._task.goal_index:
+                print(goal.rgb.red, goal.rgb.blue, goal.rgb.green)
+                print(self._task.colors[i])
+            """
             ET.SubElement(
                 worldbody,
                 "site",
                 name=f"goal_site{i}",
                 pos=f"{goal.pos[0]} {goal.pos[1]} {z}",
                 size=size,
-                rgba=rgba,
+                rgba='{} {} {} 1'.format(goal.rgb.red, goal.rgb.green, goal.rgb.blue),
                 material = "MatObj",
-                type=f"{site_type}",
+                type=f"{goal.site_type}",
             )
         
         _, file_path = tempfile.mkstemp(text=True, suffix=".xml")
@@ -370,6 +454,9 @@ class MazeEnv(gym.Env):
         self.last_wrapped_obs = self.wrapped_env._get_obs().copy()
         action = self.action_space.sample()
         self.actions = [np.zeros_like(action) for _ in range(self.n_steps)]
+        self.set_goal_path()
+
+    def set_goal_path(self):
         goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
         self.goals = [goal.copy() for _ in range(self.n_steps)]
         self._create_maze_graph()
@@ -692,11 +779,11 @@ class MazeEnv(gym.Env):
             https://answers.opencv.org/question/229620/drawing-a-rectangle-around-the-red-color-region/
         """
 
-        hsv = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
-        low, high = maze_task.get_hsv_ranges(maze_task.RED)
-        low = np.array(low, dtype = np.uint8)
-        high = np.array(high, dtype = np.uint8)
-        mask = cv2.inRange(hsv, low, high)
+        hsv = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)    
+        target = self._task.goals[self._task.goal_index]
+        mask = cv2.inRange(hsv, target.min_range , target.max_range)
+        if params['debug']:
+            cv2.imshow('mask', mask)
         contours, _ =  cv2.findContours(mask.copy(),
                            cv2.RETR_TREE,
                            cv2.CHAIN_APPROX_SIMPLE)

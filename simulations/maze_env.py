@@ -26,11 +26,12 @@ from utils.env_utils import convert_observation_to_space, \
     State, pure_pursuit_steer_control
 import random
 import copy
-from constants import params
+from constants import params, image_width, image_height
 import math
 import cv2
 import colorsys
 from simulations.maze_task import Rgb
+import open3d as o3d
 
 # Directory that contains mujoco xml files.
 MODEL_DIR = os.path.join(os.getcwd(), 'assets', 'xml')
@@ -435,6 +436,20 @@ class MazeEnv(gym.Env):
         self.model = self.wrapped_env.model
         self.data = self.wrapped_env.data
         self.sim = self.wrapped_env.sim
+        self.cam_names = list(self.model.camera_names)
+        index = self.cam_names.index('mtdcam1')
+        self.cam_body_id = self.sim.model.cam_bodyid[index]
+        fovy = math.radians(self.model.cam_fovy[index])
+        fx = fy = image_height / (2 * math.tan(fovy / 2))
+        assert image_height == image_width
+        cx = image_width / 2
+        cy = image_height / 2
+        self.cam_mat = o3d.camera.PinholeCameraIntrinsic(image_width, image_height, fx, fy, cx, cy) 
+        extent = self.model.stat.extent
+        near = self.model.vis.map.znear * extent
+        far = self.model.vis.map.zfar * extent
+
+        print(extent, near, far)
 
         self._init_pos, self._init_ori = self._set_init(agent)
         self.wrapped_env.set_xy(self._init_pos)
@@ -801,6 +816,9 @@ class MazeEnv(gym.Env):
         near = self.model.vis.map.znear * extent
         far = self.model.vis.map.zfar * extent
         return near / (1 - z_buffer * (1 - near / far))
+
+    #def _get_point_cloud(self, depth, rgb):
+
 
     def _get_obs(self) -> np.ndarray:
         obs = self.wrapped_env._get_obs()

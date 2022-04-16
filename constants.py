@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-debug = False
+debug = True
 
 params = {
     'input_size_low_level_control': 6,
@@ -32,20 +32,20 @@ params = {
     'min_simulation_time'         : 1.0,
     'show_animation'              : False,
     'dt'                          : 0.02,
-    'learning_starts'             : int(1e2),
+    'learning_starts'             : int(1e3),
     'staging_steps'               : int(1e5),
     'imitation_steps'             : int(2e5),
     'render_freq'                 : int(4e4),
     'save_freq'                   : int(4e4),
     'eval_freq'                   : int(2e4),
-    'buffer_size'                 : int(1e5),
+    'buffer_size'                 : int(3e5),
     'max_episode_size'            : int(2e3),
     'max_seq_len'                 : 10,
     'seq_sample_freq'             : 5,
     'burn_in_seq_len'             : 5,
     'total_timesteps'             : int(1e6),
     'history_steps'               : 50,
-    'net_arch'                    : [300, 200, 100],
+    'net_arch'                    : [400, 300],
     'n_critics'                   : 2,
     'ds'                          : 0.01,
     'motor_cortex'                : [256, 128],
@@ -55,14 +55,14 @@ params = {
     'OU_MEAN'                     : 0.00,
     'OU_SIGMA'                    : 0.2,
     'top_view_size'               : 50.,
-    'batch_size'                  : 32,
+    'batch_size'                  : 50,
     'lr'                          : 5e-3,
     'final_lr'                    : 1e-5,
     'n_steps'                     : 2000,
     'gamma'                       : 0.98,
     'tau'                         : 0.002, 
     'n_updates'                   : 32,
-    'num_ctx'                     : 900,
+    'num_ctx'                     : 512,
     'actor_lr'                    : 1e-3,
     'critic_lr'                   : 1e-2,
     'weight_decay'                : 1e-2,

@@ -13,57 +13,54 @@ class FeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
     def __init__(self,
         observation_space: gym.Space,
         features_dim: int,
-        pretrained_params_path = 'assets/out/models/autoencoder/model.pt',
-        device = None,
     ):
         super(FeaturesExtractor, self).__init__(observation_space, features_dim)
-        self.vc = Autoencoder(
-            [1, 1, 1, 1],
-            features_dim,
-            3
+        
+        self.cnn1 = torch.nn.Sequential(
+            torch.nn.Conv2d(6, 24, kernel_size = 8, stride = 4, padding = 4),
+            torch.nn.ReLU()
+        )
+        self.cnn2 = torch.nn.Sequential(
+            torch.nn.Conv2d(1, 8, kernel_size = 8, stride = 4),
+            torch.nn.ReLU(),
+        )
+        self.cnn3 = torch.nn.Sequential(
+            torch.nn.Conv2d(32, 64, kernel_size = 4, stride = 2, padding = 0),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(64, 64, kernel_size = 4, stride = 1),
+            torch.nn.ReLU(),
+            torch.nn.Flatten()
         )
 
-        """
-        if device is None:
-            device = 'cuda' if torch.cuda.is_available() else 'cpu'
- 
-        self.vc.load_state_dict(
-            torch.load(pretrained_params_path, map_location = torch.device(device))['model_state_dict']
-        )
-        """
+        with torch.no_grad():
+            inp = observation_space.sample()
+            scale_1 = torch.as_tensor(inp['scale_1'].astype(np.float32))[None]
+            scale_2 = torch.as_tensor(inp['scale_2'].astype(np.float32))[None]
+            img = torch.cat([scale_1, scale_2], 1)
+            ego_map = torch.as_tensor(inp['ego_map'].astype(np.float32))[None]
+            positions = torch.as_tensor(inp['positions'])[None]
+            out1 = self.cnn1(img)
+            out2 = self.cnn2(ego_map)
+            out = torch.cat([out1, out2], 1)
+            out = self.cnn3(out)
+            n_flatten = out.shape[-1] + positions.shape[-1]
 
-        self.linear = torch.nn.Sequential(
-            torch.nn.Linear(512, features_dim),
-            torch.nn.Tanh()
-        )
-
-        self.fc_sensors = torch.nn.Sequential(
-            torch.nn.Linear(
-                observation_space['sensors'].shape[-1],
-                2 * observation_space['sensors'].shape[-1]
-            ),
-            torch.nn.Tanh()
-        )
-
-        self.combine = torch.nn.Sequential(
-            torch.nn.Linear(features_dim + 2 * observation_space['sensors'].shape[-1], features_dim),
-            torch.nn.Tanh()
+        self.fc = torch.nn.Sequential(
+            torch.nn.Linear(n_flatten, features_dim),
+            torch.nn.ReLU()
         )
 
     def forward(self, observations):
         image = torch.cat([
             observations['scale_1'], observations['scale_2']
         ], 1)
-        visual, [gen_image, depth] = self.vc(image)
-        visual = torch.nn.functional.adaptive_avg_pool2d(visual, 1)
-        visual = visual.view(visual.size(0), -1)
-        visual = self.linear(visual)
-
-        sensors = self.fc_sensors(observations['sensors'])
-
-        features = torch.cat([visual, sensors], -1)
-        features = self.combine(features)
-        return features, [gen_image, depth]
+        out1 = self.cnn1(image)
+        out2 = self.cnn2(observations['ego_map'])
+        out = torch.cat([out1, out2], 1)
+        out = self.cnn3(out)
+        out = torch.cat([out, observations['positions']], -1)
+        features = self.fc(out)
+        return features
 
 class Actor(sb3.common.policies.BasePolicy):
     """

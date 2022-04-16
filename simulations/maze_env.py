@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Mujoco Maze environment.
 Based on `models`_ and `rllab`_.
@@ -17,6 +18,7 @@ import tempfile
 import xml.etree.ElementTree as ET
 from typing import Any, List, Optional, Tuple, Type
 import gym
+from networkx.algorithms.dag import transitive_closure
 import numpy as np
 import networkx as nx
 from simulations import maze_env_utils, maze_task
@@ -32,9 +34,13 @@ import cv2
 import colorsys
 from simulations.maze_task import Rgb
 import open3d as o3d
+from utils.point_cloud import rotMatList2NPRotMat, quat2Mat, posRotMat2Mat, \
+    point_cloud_2_birdseye
+import matplotlib.pyplot as plt
 
 # Directory that contains mujoco xml files.
 MODEL_DIR = os.path.join(os.getcwd(), 'assets', 'xml')
+
 
 class MazeEnv(gym.Env):
     def __init__(
@@ -440,16 +446,32 @@ class MazeEnv(gym.Env):
         index = self.cam_names.index('mtdcam1')
         self.cam_body_id = self.sim.model.cam_bodyid[index]
         fovy = math.radians(self.model.cam_fovy[index])
-        fx = fy = image_height / (2 * math.tan(fovy / 2))
+        f = image_height / (2 * math.tan(fovy / 2))
         assert image_height == image_width
         cx = image_width / 2
         cy = image_height / 2
-        self.cam_mat = o3d.camera.PinholeCameraIntrinsic(image_width, image_height, fx, fy, cx, cy) 
-        extent = self.model.stat.extent
-        near = self.model.vis.map.znear * extent
-        far = self.model.vis.map.zfar * extent
-
-        print(extent, near, far)
+        self.cam_mat = np.array([[f, 0, cx], [0, f, cy], [0, 0, 1]], dtype = np.float32) 
+        self.indices_x = np.repeat(
+            np.expand_dims(np.arange(image_height), 1),
+            image_width, 1
+        ).reshape(-1)
+        self.indices_y = np.repeat(
+            np.expand_dims(np.arange(image_width), 0),
+            image_height, 0
+        ).reshape(-1)
+        self.pcd = o3d.geometry.PointCloud()
+        self.vec = o3d.utility.Vector3dVector()
+        self.cam_pos = self.model.body_pos[self.cam_body_id]
+        mat = rotMatList2NPRotMat(self.sim.model.cam_mat0[index])
+        rot_mat = np.asarray([[1, 0, 0], [0, -1, 0], [0, 0, -1]])
+        mat = np.dot(mat, rot_mat)
+        ext = np.eye(4)
+        ext[:3, :3] = mat
+        ext[:3, 3] = self.cam_pos
+        self.ext = ext
+        min_bound = [-35, -35, -0.4]
+        max_bound = [35, 35, 1]
+        self.pc_target_bounds =  np.array([min_bound, max_bound], dtype = np.float32)
 
         self._init_pos, self._init_ori = self._set_init(agent)
         self.wrapped_env.set_xy(self._init_pos)
@@ -474,6 +496,7 @@ class MazeEnv(gym.Env):
     def set_goal_path(self):
         goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
         self.goals = [goal.copy() for _ in range(self.n_steps)]
+        self.positions = [np.zeros_like(self.data.qpos) for _ in range(self.n_steps)]
         self._create_maze_graph()
         self.sampled_path = self._sample_path()
         self._current_cell = copy.deepcopy(self.sampled_path[0])
@@ -691,11 +714,17 @@ class MazeEnv(gym.Env):
                 shape = observation['depth'].shape,
                 dtype = observation['depth'].dtype
             ),
-            'position' : gym.spaces.Box(
-                low = -np.ones((2,), dtype = np.float32) * 40,
-                high = np.ones((2,), dtype = np.float32) * 40,
-                shape = (2,),
-                dtype = np.float32
+            'positions' : gym.spaces.Box(
+                low = -np.ones_like(observation['positions']) * 40,
+                high = np.ones_like(observation['positions']) * 40,
+                shape = observation['positions'].shape,
+                dtype = observation['positions'].dtype
+            ),
+            'ego_map' : gym.spaces.Box(
+                low = np.zeros_like(observation['ego_map']),
+                high = 255 * np.ones_like(observation['ego_map']),
+                dtype = observation['ego_map'].dtype,
+                shape = observation['ego_map'].shape
             )
         }
     
@@ -811,16 +840,58 @@ class MazeEnv(gym.Env):
         return bbx 
 
     def _get_depth(self, z_buffer):
-        z_buffer = z_buffer * 0.14 + 0.86
+        z_buffer = z_buffer
         extent = self.model.stat.extent
         near = self.model.vis.map.znear * extent
         far = self.model.vis.map.zfar * extent
         return near / (1 - z_buffer * (1 - near / far))
 
-    #def _get_point_cloud(self, depth, rgb):
+    def _get_point_cloud(self, depth):
+        depth_img = self._get_depth(depth).copy()
+        depth_img = depth_img.reshape(-1)
+        points = np.zeros(depth.shape + (3,), dtype = np.float64).reshape(-1, 3)
+        points[:, 1] = (self.indices_x - self.cam_mat[0, 2]) * depth_img / self.cam_mat[0, 0]
+        points[:, 0] = (self.indices_y - self.cam_mat[1, 2]) * depth_img / self.cam_mat[1, 1]
+        points[:, 2] = depth_img
+        """
+            https://github.com/htung0101/table_dome/blob/master/table_dome_calib/utils.py
+            implement recreate scene method for faster numpy implementation of the tranformations
+        """
+        points = np.c_[points, np.ones(len(points))]
+        points = np.dot(self.ext, points.T).T
+        points = points[:, :3]
+        """
+        self.vec.clear()
+        self.vec.extend(points)
+        self.pcd.points = self.vec
+        transformed_cloud = self.pcd
+        transformed_cloud = transformed_cloud.crop(self.pc_target_bounds)
+        #transformed_cloud = self.pcd.transform(self.c2w)
+        #transformed_cloud = transformed_cloud.crop(self.pc_target_bounds)
+        #transformed_cloud.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.03, max_nn=250))
+        #transformed_cloud.orient_normals_towards_camera_location(self.cam_pos)
+        """
+        return points
 
+    def _get_bird_eye_view(self, depth):
+        """
+            Use the above method to create point instead of using o3d
+            https://github.com/htung0101/table_dome/blob/master/table_dome_calib/utils.py
+        """
+        cloud = self._get_point_cloud(depth=depth)
+        resolution = 0.1
+        image = point_cloud_2_birdseye(cloud, res = resolution, side_range = (-15, 15), fwd_range=(-15, 15), height_range=(-0.4, 1))
+        image = np.expand_dims(image[-15 * 15:-15 * 10, 15 * 15 // 2: 15 * 25 // 2], -1)
+        """
+        image = image[
+            int(-30 * (10 + 5/4) / (10 * resolution)):int(-30 * (10 - 5/4) / (10 * resolution)),
+            int(30 * (10 - 5/4) / (10 * resolution)): int(30 * (10 + 5/4) / (10 * resolution))
+        ]
+        """
+        return image
 
     def _get_obs(self) -> np.ndarray:
+        #print(self.sim.model.cam_mat0[list(self.model.camera_names).index('mtdcam1')])
         obs = self.wrapped_env._get_obs()
         #obs['front'] = cv2.resize(obs['front'], (320, 320))
         img = obs['front'].copy()
@@ -857,16 +928,17 @@ class MazeEnv(gym.Env):
             (action.copy() - self.action_space.low) / (self.action_space.high - self.action_space.low) for action in self.actions
         ], -1)
 
-
+        bird_eye_view = self._get_bird_eye_view(obs['front_depth'])
         if params['debug']:
             size = img.shape[0]
             cv2.imshow('stream camera', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
             cv2.imshow('stream attention window', cv2.cvtColor(cv2.resize(
                 window, (size, size)
             ), cv2.COLOR_RGB2BGR))
-            cv2.imshow('depth stream', obs['front_depth'])
+            cv2.imshow('depth stream', (obs['front_depth'] - 0.86) / 0.14)
             top = self.render('rgb_array')
             cv2.imshow('position stream', top)
+            cv2.imshow('bird eye view', bird_eye_view)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 pass
 
@@ -878,7 +950,7 @@ class MazeEnv(gym.Env):
             ), 0
         )
 
-        position = self.data.qpos[:2].copy()
+        positions = np.concatenate(self.positions, -1).copy()
 
         _obs = {
             'scale_1' : window.copy(),
@@ -888,7 +960,8 @@ class MazeEnv(gym.Env):
             'scaled_sampled_action' : scaled_sampled_action.copy(),
             'depth' : depth,
             'inframe' : np.array([inframe], dtype = np.float32),
-            'position' : position
+            'positions' : positions,
+            'ego_map' : bird_eye_view
         }
 
         if params['add_ref_scales']:
@@ -908,6 +981,7 @@ class MazeEnv(gym.Env):
         self.actions = [np.zeros_like(action) for i in range(self.n_steps)]
         goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
         self.goals = [goal.copy() for i in range(self.n_steps)]
+        self.positions = [np.zeros_like(self.data.qpos) for _ in range(self.n_steps)]
         obs = self._get_obs()
         return obs
 
@@ -1051,6 +1125,8 @@ class MazeEnv(gym.Env):
         goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
         self.goals.pop(0)
         self.goals.append(goal)
+        self.positions.pop(0)
+        self.positions.append(self.data.qpos.copy())
         """
         theta_t = self.check_angle(np.arctan2(goal[1], goal[0]) - self.get_ori())
         qvel = self.wrapped_env.data.qvel.copy()
@@ -1345,6 +1421,9 @@ class DiscreteMazeEnv(MazeEnv):
             np.linalg.norm(goal) / np.linalg.norm(self._task.goals[self._task.goal_index].pos - self._init_pos),
             self.check_angle(np.arctan2(goal[1], goal[0]) - self.get_ori()) / np.pi
         ], dtype = np.float32)
+        
+        positions = np.concatenate(self.positions, -1)
+
         ## Velocity
         max_vel = np.array([
             self.wrapped_env.VELOCITY_LIMITS,
@@ -1383,7 +1462,6 @@ class DiscreteMazeEnv(MazeEnv):
             ), 0
         )
 
-        position = self.data.qpos[:2].copy()
 
         _obs = {
             'scale_1' : window.copy(),
@@ -1393,7 +1471,7 @@ class DiscreteMazeEnv(MazeEnv):
             'scaled_sampled_action' : scaled_sampled_action.copy(),
             'depth' : depth,
             'inframe' : np.array([inframe], dtype = np.float32),
-            'position' : position
+            'positions' : positions
         }
 
         if params['add_ref_scales']:

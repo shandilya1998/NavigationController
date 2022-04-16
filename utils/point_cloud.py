@@ -103,7 +103,10 @@ def point_cloud_2_birdseye(points,
     
     for i in range(len(pixel_values)):
         if im[y_img[i], x_img[i]] < pixel_values[i]:
-            im[y_img[i], x_img[i]] = pixel_values[i]
+            if pixel_values[i] > 75:
+                im[y_img[i], x_img[i]] = pixel_values[i]
+            else:
+                im[y_img[i], x_img[i]] = 20
 
     return im
 

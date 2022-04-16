@@ -696,12 +696,6 @@ class MazeEnv(gym.Env):
                 dtype = observation['sensors'].dtype
             ),   
             'sampled_action' : copy.deepcopy(self._action_space),
-            'scaled_sampled_action' : gym.spaces.Box(
-                low = -np.ones_like(observation['sampled_action']),
-                high = np.ones_like(observation['sampled_action']),
-                shape = observation['sampled_action'].shape,
-                dtype = observation['sampled_action'].dtype
-            ),
             'inframe' : gym.spaces.Box(
                 low = np.zeros_like(observation['inframe']),
                 high = np.ones_like(observation['inframe']),
@@ -902,9 +896,7 @@ class MazeEnv(gym.Env):
         inframe = True if len(bbx) > 0 else False 
 
         # Sampled Action
-        high = self.action_space.high
         sampled_action = self.get_action().astype(np.float32)
-        scaled_sampled_action = sampled_action.copy() / self.action_space.high
 
         # Sensor Readings
         ## Goal
@@ -919,7 +911,6 @@ class MazeEnv(gym.Env):
             self.wrapped_env.VELOCITY_LIMITS,
             self.action_space.high[0]
         ])
-        min_vel = -max_vel
         sensors = np.concatenate([
             self.data.qvel.copy() / max_vel,
             np.array([self.get_ori() / np.pi, self.t / self.max_episode_size], dtype = np.float32),
@@ -950,18 +941,17 @@ class MazeEnv(gym.Env):
             ), 0
         )
 
-        positions = np.concatenate(self.positions, -1).copy()
+        positions = np.concatenate(self.positions + [self._task.goals[self._task.goal_index].pos], -1)
 
         _obs = {
             'scale_1' : window.copy(),
             'scale_2' : scale_2.copy(),
             'sensors' : sensors,
             'sampled_action' : sampled_action.copy(),
-            'scaled_sampled_action' : scaled_sampled_action.copy(),
             'depth' : depth,
             'inframe' : np.array([inframe], dtype = np.float32),
-            'positions' : positions,
-            'ego_map' : bird_eye_view
+            'positions' : positions.copy(),
+            'ego_map' : bird_eye_view.copy()
         }
 
         if params['add_ref_scales']:
@@ -1127,14 +1117,12 @@ class MazeEnv(gym.Env):
         self.goals.append(goal)
         self.positions.pop(0)
         self.positions.append(self.data.qpos.copy())
-        """
         theta_t = self.check_angle(np.arctan2(goal[1], goal[0]) - self.get_ori())
         qvel = self.wrapped_env.data.qvel.copy()
         vyaw = qvel[self.wrapped_env.ORI_IND]
-        vmax = self.wrapped_env.VELOCITY_LIMITS * 1.4        
+        vmax = self.target_speed
         inner_reward = -1 + (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / params['max_vyaw']))
         inner_reward = self._inner_reward_scaling * inner_reward
-        """
 
         # Task Reward Computation
         outer_reward = 0
@@ -1398,8 +1386,9 @@ class DiscreteMazeEnv(MazeEnv):
 
         action = np.array([move, omega], dtype = np.float32)
         return action
-
+    
     def _get_obs(self) -> np.ndarray:
+        #print(self.sim.model.cam_mat0[list(self.model.camera_names).index('mtdcam1')])
         obs = self.wrapped_env._get_obs()
         #obs['front'] = cv2.resize(obs['front'], (320, 320))
         img = obs['front'].copy()
@@ -1410,9 +1399,7 @@ class DiscreteMazeEnv(MazeEnv):
         inframe = True if len(bbx) > 0 else False 
 
         # Sampled Action
-        high = self.wrapped_env.action_space.high[1]
         sampled_action = self.get_action().astype(np.float32)
-        scaled_sampled_action = sampled_action.copy() / high
 
         # Sensor Readings
         ## Goal
@@ -1421,18 +1408,14 @@ class DiscreteMazeEnv(MazeEnv):
             np.linalg.norm(goal) / np.linalg.norm(self._task.goals[self._task.goal_index].pos - self._init_pos),
             self.check_angle(np.arctan2(goal[1], goal[0]) - self.get_ori()) / np.pi
         ], dtype = np.float32)
-        
-        positions = np.concatenate(self.positions, -1)
-
         ## Velocity
         max_vel = np.array([
             self.wrapped_env.VELOCITY_LIMITS,
             self.wrapped_env.VELOCITY_LIMITS,
-            self.wrapped_env.action_space.high[0]
+            self.wrapped_env.action_space.high[1]
         ])
-        min_vel = -max_vel
-        low = self.wrapped_env.action_space.low[1]
-        high = self.wrapped_env.action_space.high[1]
+        low = self.wrapped_env.action_space.low[0]
+        high = self.wrapped_env.action_space.high[0]
         sensors = np.concatenate([
             self.data.qvel.copy() / max_vel,
             np.array([self.get_ori() / np.pi, self.t / self.max_episode_size], dtype = np.float32),
@@ -1441,16 +1424,17 @@ class DiscreteMazeEnv(MazeEnv):
             (action.copy() - low) / (high - low) for action in self.actions
         ], -1)
 
-
+        bird_eye_view = self._get_bird_eye_view(obs['front_depth'])
         if params['debug']:
             size = img.shape[0]
             cv2.imshow('stream camera', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
             cv2.imshow('stream attention window', cv2.cvtColor(cv2.resize(
                 window, (size, size)
             ), cv2.COLOR_RGB2BGR))
-            cv2.imshow('depth stream', obs['front_depth'])
+            cv2.imshow('depth stream', (obs['front_depth'] - 0.86) / 0.14)
             top = self.render('rgb_array')
             cv2.imshow('position stream', top)
+            cv2.imshow('bird eye view', bird_eye_view)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 pass
 
@@ -1462,16 +1446,17 @@ class DiscreteMazeEnv(MazeEnv):
             ), 0
         )
 
-
+        positions = np.concatenate(self.positions + [self._task.goals[self._task.goal_index].pos], -1)
+        
         _obs = {
             'scale_1' : window.copy(),
             'scale_2' : scale_2.copy(),
             'sensors' : sensors,
             'sampled_action' : sampled_action.copy(),
-            'scaled_sampled_action' : scaled_sampled_action.copy(),
             'depth' : depth,
             'inframe' : np.array([inframe], dtype = np.float32),
-            'positions' : positions
+            'positions' : positions.copy(),
+            'ego_map' : bird_eye_view.copy()
         }
 
         if params['add_ref_scales']:
@@ -1481,7 +1466,6 @@ class DiscreteMazeEnv(MazeEnv):
             _obs['ref_scale_2'] = ref_scale_2.copy()
 
         return _obs
-
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         # Proprocessing and Environment Update
@@ -1507,14 +1491,14 @@ class DiscreteMazeEnv(MazeEnv):
         goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
         self.goals.pop(0)
         self.goals.append(goal)
-        """
+        self.positions.pop(0)
+        self.positions.append(self.data.qpos.copy())
         theta_t = self.check_angle(np.arctan2(goal[1], goal[0]) - self.get_ori())
         qvel = self.wrapped_env.data.qvel.copy()
         vyaw = qvel[self.wrapped_env.ORI_IND]
-        vmax = self.wrapped_env.VELOCITY_LIMITS * 1.4        
+        vmax = self.target_speed
         inner_reward = -1 + (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / params['max_vyaw']))
         inner_reward = self._inner_reward_scaling * inner_reward
-        """
 
         # Task Reward Computation
         outer_reward = 0

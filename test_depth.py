@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 env = MazeEnv(PointEnv, CustomGoalReward4Rooms)
 
-pc_gen = PointCloudGenerator(env.sim, min_bound=[-35, -35, -1], max_bound=[35, 35, 1])
+pc_gen = PointCloudGenerator(env.sim, min_bound=[-35, -35, -0.5], max_bound=[35, 35, 1])
 cloud_with_normals, np_cloud = pc_gen.generateCroppedPointCloud(save_img_dir='/home/shandilya/Desktop')
 #world_origin_axes = open3d.geometry.TriangleMesh.create_coordinate_frame()
 open3d.visualization.draw_geometries([cloud_with_normals, np_cloud])
@@ -21,7 +21,7 @@ print(cloud[:, 1].min(), cloud[:, 1].max())
 print(cloud[:, 2].min(), cloud[:, 2].max())
 
 top = env.render('rgb_array')
-image = point_cloud_2_birdseye(cloud, res = 0.1, side_range = (-30, 30), fwd_range=(-30, 30), height_range=(-1, 1))
+image = point_cloud_2_birdseye(cloud, res = 0.1, side_range = (-30, 30), fwd_range=(-30, 30), height_range=(-0.5, 1))
 image = image[:-30 * 10, 30 * 5: 30 * 15]
 
 cloud2 = np.asarray(np_cloud.points)
@@ -36,6 +36,8 @@ print(image2.shape)
 image2 = image2[:-30 * 10, 30 * 5: 30 * 15]
 print(image2.shape)
 fig, ax = plt.subplots(1, 3, figsize = (10, 5))
+print('here1', np.unique(image))
+print('here2', np.unique(image2))
 
 
 print(np.any(image != image2))

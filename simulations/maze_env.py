@@ -884,6 +884,45 @@ class MazeEnv(gym.Env):
         """
         return image
 
+    def _get_borders(self, depth, image):
+        lower = np.array([0,0,0], dtype = "uint8")
+        upper = np.array([180,255,40], dtype = "uint8") 
+        #blur = cv2.GaussianBlur(image, (5,5), 0)
+        hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+        mask = cv2.inRange(hsv, lower, upper)
+        image = cv2.bitwise_and(image, image, mask = mask)
+        masked_depth = cv2.bitwise_and(depth, depth, mask = mask)
+        masked_depth[masked_depth == 0] = 1
+        border_view = self._get_bird_eye_view(masked_depth)
+        border_view[border_view < 80] = 0 
+        return masked_depth, border_view
+
+    def _get_floor(self, depth, image):
+        lower = np.array([0,0,40], dtype = "uint8")
+        upper = np.array([180,255,60], dtype = "uint8") 
+        #blur = cv2.GaussianBlur(image, (5,5), 0)
+        hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+        mask = cv2.inRange(hsv, lower, upper)
+        image = cv2.bitwise_and(image, image, mask = mask)
+        masked_depth = cv2.bitwise_and(depth, depth, mask = mask)
+        masked_depth[masked_depth == 0] = 1
+        floor_view = self._get_bird_eye_view(masked_depth)
+        floor_view[floor_view > 80] = 0 
+        return masked_depth, floor_view
+    
+    def _get_objects(self, depth, image):
+        lower = np.array([0,50,60], dtype = "uint8")
+        upper = np.array([180,255,255], dtype = "uint8") 
+        #blur = cv2.GaussianBlur(image, (5,5), 0)
+        hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+        mask = cv2.inRange(hsv, lower, upper)
+        image = cv2.bitwise_and(image, image, mask = mask)
+        masked_depth = cv2.bitwise_and(depth, depth, mask = mask)
+        masked_depth[masked_depth == 0] = 1
+        object_view = self._get_bird_eye_view(masked_depth)
+        object_view[object_view < 50] = 0 
+        return masked_depth, object_view
+
     def _get_obs(self) -> np.ndarray:
         #print(self.sim.model.cam_mat0[list(self.model.camera_names).index('mtdcam1')])
         obs = self.wrapped_env._get_obs()
@@ -927,9 +966,18 @@ class MazeEnv(gym.Env):
                 window, (size, size)
             ), cv2.COLOR_RGB2BGR))
             cv2.imshow('depth stream', (obs['front_depth'] - 0.86) / 0.14)
-            top = self.render('rgb_array')
-            cv2.imshow('position stream', top)
+            #top = self.render('rgb_array')
+            #cv2.imshow('position stream', top)
             cv2.imshow('bird eye view', cv2.resize(bird_eye_view, (image_width, image_height)))
+            masked_depth, masked_img = self._get_borders(obs['front_depth'], obs['front'])
+            cv2.imshow('masked depth borders', masked_depth)
+            cv2.imshow('borders', cv2.resize(masked_img, (image_width, image_height)))
+            masked_depth, masked_img = self._get_floor(obs['front_depth'], obs['front'])
+            cv2.imshow('masked depth floor', masked_depth)
+            cv2.imshow('floor', cv2.resize(masked_img, (image_width, image_height)))
+            masked_depth, masked_img = self._get_objects(obs['front_depth'], obs['front'])
+            cv2.imshow('masked depth objects', masked_depth)
+            cv2.imshow('objects', cv2.resize(masked_img, (image_width, image_height)))
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 pass
 

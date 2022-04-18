@@ -28,6 +28,14 @@ def scale_to_255(a, min, max, dtype=np.uint8):
 # ==============================================================================
 #                                                         POINT_CLOUD_2_BIRDSEYE
 # ==============================================================================
+
+def sort_arrays(x, y, z):
+    indices = z.argsort()
+    z = z[indices]
+    x = x[indices]
+    y = y[indices]
+    return x, y, z
+
 def point_cloud_2_birdseye(points,
                            res=0.1,
                            side_range=(-10., 10.),  # left-most to right-most
@@ -99,14 +107,17 @@ def point_cloud_2_birdseye(points,
     y_max = 1 + int((fwd_range[1] - fwd_range[0]) / res)
     im = np.zeros([y_max, x_max], dtype=np.uint8)
 
-    # FILL PIXEL VALUES IN IMAGE ARRAY
-    
+    x_img, y_img, pixel_values = sort_arrays(x_img, y_img, pixel_values)
+
+    """
+    # FILL PIXEL VALUES IN IMAGE ARRAY 
     for i in range(len(pixel_values)):
         if im[y_img[i], x_img[i]] < pixel_values[i]:
-            if pixel_values[i] > 75:
-                im[y_img[i], x_img[i]] = pixel_values[i]
-            else:
-                im[y_img[i], x_img[i]] = 20
+            im[y_img[i], x_img[i]] = pixel_values[i]
+    """
+
+    im[y_img, x_img] = pixel_values
+    im[np.logical_and(im < 80, im > 2)] = 30
 
     return im
 

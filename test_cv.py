@@ -2,7 +2,7 @@ from simulations.maze_env import MazeEnv, DiscreteMazeEnv
 from simulations.point import PointEnv, PointEnvV2
 from simulations.maze_task import CustomGoalReward4Rooms, \
     GoalRewardNoObstacle, GoalRewardSimple, CustomGoalReward4RoomsV2
-env = DiscreteMazeEnv(PointEnv, CustomGoalReward4Rooms, mode = 'vae')
+env = MazeEnv(PointEnv, CustomGoalReward4Rooms)
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
@@ -316,10 +316,9 @@ while not done:
     REWARDS.append(reward)
     total_reward += reward
     INFO.append(info)
-    if params['debug']:
-        cv2.imshow('observations', image)
     """
     if params['debug']:
+        cv2.imshow('observations', image)
         ax.clear()
         ax.plot(REWARDS, color = 'r', linestyle = '--')
         plt.pause(0.001)

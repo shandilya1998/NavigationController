@@ -929,7 +929,7 @@ class MazeEnv(gym.Env):
             cv2.imshow('depth stream', (obs['front_depth'] - 0.86) / 0.14)
             top = self.render('rgb_array')
             cv2.imshow('position stream', top)
-            cv2.imshow('bird eye view', bird_eye_view)
+            cv2.imshow('bird eye view', cv2.resize(bird_eye_view, (image_width, image_height)))
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 pass
 
@@ -1121,7 +1121,7 @@ class MazeEnv(gym.Env):
         qvel = self.wrapped_env.data.qvel.copy()
         vyaw = qvel[self.wrapped_env.ORI_IND]
         vmax = self.target_speed
-        inner_reward = -1 + (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / params['max_vyaw']))
+        inner_reward = (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / params['max_vyaw']))
         inner_reward = self._inner_reward_scaling * inner_reward
 
         # Task Reward Computation
@@ -1434,7 +1434,7 @@ class DiscreteMazeEnv(MazeEnv):
             cv2.imshow('depth stream', (obs['front_depth'] - 0.86) / 0.14)
             top = self.render('rgb_array')
             cv2.imshow('position stream', top)
-            cv2.imshow('bird eye view', bird_eye_view)
+            cv2.imshow('bird eye view', cv2.resize(bird_eye_view, (image_width, image_height)))
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 pass
 
@@ -1497,7 +1497,7 @@ class DiscreteMazeEnv(MazeEnv):
         qvel = self.wrapped_env.data.qvel.copy()
         vyaw = qvel[self.wrapped_env.ORI_IND]
         vmax = self.target_speed
-        inner_reward = -1 + (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / params['max_vyaw']))
+        inner_reward = (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / params['max_vyaw']))
         inner_reward = self._inner_reward_scaling * inner_reward
 
         # Task Reward Computation

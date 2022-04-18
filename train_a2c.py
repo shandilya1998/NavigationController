@@ -449,10 +449,10 @@ if __name__ == '__main__':
     model = sb3.A2C(
         policy = sb3.a2c.MlpPolicy,
         env = train_env,
-        n_steps=params['max_seq_len'] * params['seq_sample_freq'],
+        n_steps=2 * params['max_seq_len'] * params['seq_sample_freq'],
         gamma = 0.99,
         vf_coef=0.25,
-        ent_coef=0.01,
+        ent_coef=0.075,
         max_grad_norm=0.5,
         learning_rate=linear_schedule(params['lr'], params['final_lr']),
         rms_prop_eps=1e-5,

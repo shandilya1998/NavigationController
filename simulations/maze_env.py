@@ -1352,32 +1352,12 @@ class DiscreteMazeEnv(MazeEnv):
         self._action_space = gym.spaces.MultiDiscrete([2, 13])
  
     def discrete_vyaw(self, vyaw):
-        if vyaw < -1.375:
+        if vyaw < -0.125:
             vyaw = 0
-        elif vyaw < -1.125:
-            vyaw = 1
-        elif vyaw < -0.875:
-            vyaw = 2
-        elif vyaw < -0.625:
-            vyaw = 3
-        elif vyaw < -0.375:
-            vyaw = 4
-        elif vyaw < -0.125:
-            vyaw = 5
         elif vyaw < 0.125:
-            vyaw = 6
-        elif vyaw < 0.375:
-            vyaw = 7
-        elif vyaw < 0.625:
-            vyaw = 8
-        elif vyaw < 0.875:
-            vyaw = 9
-        elif vyaw < 1.125:
-            vyaw = 10
-        elif vyaw < 1.375:
-            vyaw = 11
-        elif vyaw > 1.375:
-            vyaw = 12
+            vyaw = 1
+        else:
+            vyaw = 2
         return vyaw
 
     def get_action(self):
@@ -1408,35 +1388,15 @@ class DiscreteMazeEnv(MazeEnv):
         if omega == 0:
             omega = -1.5
         elif omega == 1:
-            omega = -1.25
-        elif omega == 2:
-            omega = -1.0
-        elif omega == 3:
-            omega = -0.75
-        elif omega == 4:
-            omega = -0.5
-        elif omega == 5:
-            omega = -0.25
-        elif omega == 6:
             omega = 0.0
-        elif omega == 7:
-            omega = 0.25
-        elif omega == 8:
-            omega = 0.5
-        elif omega == 9:
-            omega = 0.75
-        elif omega == 10:
-            omega = 1.0
-        elif omega == 11:
-            omega = 1.25
-        elif omega == 12:
+        elif omega == 2:
             omega = 1.5
         else:
             raise ValueError
 
         action = np.array([move, omega], dtype = np.float32)
         return action
-    
+
     def _get_obs(self) -> np.ndarray:
         #print(self.sim.model.cam_mat0[list(self.model.camera_names).index('mtdcam1')])
         obs = self.wrapped_env._get_obs()

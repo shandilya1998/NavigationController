@@ -155,6 +155,7 @@ class MazeEnv(gym.Env):
         row_frac = np.random.uniform(low = -0.4, high = 0.4)
         col_frac = np.random.uniform(low = -0.4, high = 0.4)
         pos = self._rowcol_to_xy(row + row_frac, col + col_frac)
+        self._start_pos = np.array(pos, dtype = np.float32)
         (row, row_frac), (col, col_frac), pos = self._ensure_distance_from_target(
             row, row_frac, col, col_frac, pos
         )
@@ -1175,7 +1176,7 @@ class MazeEnv(gym.Env):
 
         # Task Reward Computation
         outer_reward = 0
-        outer_reward = self._task.reward(next_pos, bool(next_obs['inframe'][0]))
+        outer_reward = self._task.reward(next_pos, bool(next_obs['inframe'][0]), self._start_pos)
         done = self._task.termination(self.wrapped_env.get_xy(),  bool(next_obs['inframe'][0]))
         info["position"] = self.wrapped_env.get_xy()
 
@@ -1552,7 +1553,7 @@ class DiscreteMazeEnv(MazeEnv):
 
         # Task Reward Computation
         outer_reward = 0
-        outer_reward = self._task.reward(next_pos, bool(next_obs['inframe'][0]))
+        outer_reward = self._task.reward(next_pos, bool(next_obs['inframe'][0]), self._start_pos)
         done = self._task.termination(self.wrapped_env.get_xy(),  bool(next_obs['inframe'][0]))
         info["position"] = self.wrapped_env.get_xy()
 

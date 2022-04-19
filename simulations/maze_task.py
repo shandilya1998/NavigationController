@@ -425,6 +425,27 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
         if self.goals[self.goal_index].neighbor(pos):
             return True
         return False
+    
+    @staticmethod
+    def create_maze() -> List[List[MazeCell]]:
+        E, B, R = MazeCell.EMPTY, MazeCell.BLOCK, MazeCell.ROBOT
+        return [
+            [B, B, B, B, B, B, B, B, B, B, B, B, B, B, B],
+            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
+            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
+            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
+            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
+            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
+            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
+            [B, E, E, E, E, E, E, R, E, E, E, E, E, E, B],
+            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
+            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
+            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
+            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
+            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
+            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
+            [B, B, B, B, B, B, B, B, B, B, B, B, B, B, B],
+        ]
 
 class CustomGoalReward4RoomsV2(GoalReward4Rooms):
     def __init__(self,

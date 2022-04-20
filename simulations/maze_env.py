@@ -55,6 +55,38 @@ def sort_arrays(x, y, z):
     y = y[indices]
     return x, y, z
 
+ANGLE_EPS = 0.001
+
+def normalize(v):
+    return v / np.linalg.norm(v)
+
+def get_r_matrix(ax_, angle):
+    ax = normalize(ax_)
+    if np.abs(angle) > ANGLE_EPS:
+        S_hat = np.array(
+            [[0.0, -ax[2], ax[1]], [ax[2], 0.0, -ax[0]], [-ax[1], ax[0], 0.0]],
+            dtype=np.float32)
+        R = np.eye(3) + np.sin(angle) * S_hat + \
+            (1 - np.cos(angle)) * (np.linalg.matrix_power(S_hat, 2))
+    else:
+        R = np.eye(3)
+    return R
+
+def transform_pose(points, current_pose):
+    """
+    Transforms the point cloud into geocentric frame to account for
+    camera position
+    Input:
+        points                  : ...x3
+        current_pose            : camera position (x, y, theta (radians))
+    Output:
+        XYZ : ...x3
+    """
+    R = get_r_matrix([0., 0., 1.], angle=current_pose[2])
+    points = np.matmul(points, R.T)
+    points[:, 0] = points[:, 0] + current_pose[0]
+    points[:, 1] = points[:, 1] + current_pose[1]
+    return points
 
 class MazeEnv(gym.Env):
     def __init__(
@@ -518,8 +550,13 @@ class MazeEnv(gym.Env):
         self._find_all_waypoints()
         self._find_cubic_spline_path()
         self._setup_vel_control()
-        self.resolution = 0.1
-        self.map = np.zeros((200, 200), dtype = np.float32)
+        self.resolution = 0.1 
+        self.allo_map_side_range = side_range = (-40, 40)
+        self.allo_map_fwd_range = fwd_range = (-40, 40)
+        self.allo_map_height_range = height_range = (0, 1.5)
+        x_max = 1 + int((side_range[1] - side_range[0]) / self.resolution)
+        y_max = 1 + int((fwd_range[1] - fwd_range[0]) / self.resolution)
+        self.map = np.zeros([y_max, x_max], dtype=np.uint8)
         ob = self._get_obs()
         self._set_observation_space(ob)
 
@@ -988,6 +1025,54 @@ class MazeEnv(gym.Env):
         )
         return complete_ego_map, border_ego_map, floor_ego_map, objects_ego_map, target_ego_map
 
+    def update_map(self,
+            depth,
+            res = 0.1,
+            side_range = (-40, 40),
+            fwd_range = (-40, 40),
+            height_range = (0, 1.5)
+        ):
+        cloud = self._get_point_cloud(depth=depth)
+        cloud = transform_pose(cloud, self.data.qpos.copy())
+        x_points = cloud[:, 0]
+        y_points = cloud[:, 1]
+        z_points = cloud[:, 2]
+        f_filt = np.logical_and((x_points > fwd_range[0]), (x_points < fwd_range[1]))
+        s_filt = np.logical_and((y_points > -side_range[1]), (y_points < -side_range[0]))
+        filter = np.logical_and(f_filt, s_filt)
+        indices = np.argwhere(filter).flatten()
+
+        # KEEPERS
+        x_points = x_points[indices]
+        y_points = y_points[indices]
+        z_points = z_points[indices]
+        x_img = (-y_points / res).astype(np.int32)
+        y_img = (-x_points / res).astype(np.int32)
+        
+        x_img -= int(np.floor(side_range[0] / res))
+        y_img += int(np.ceil(fwd_range[1] / res))
+
+        # CLIP HEIGHT VALUES - to between min and max heights
+        pixel_values = np.clip(a=z_points,
+                               a_min=height_range[0],
+                               a_max=height_range[1])
+
+        # RESCALE THE HEIGHT VALUES - to be between the range 0-255
+        pixel_values = scale_to_255(pixel_values,
+                                    min=height_range[0],
+                                    max=height_range[1])
+
+        x_img, y_img, pixel_values = sort_arrays(x_img, y_img, pixel_values)
+
+        """
+        # FILL PIXEL VALUES IN IMAGE ARRAY 
+        for i in range(len(pixel_values)):
+            if im[y_img[i], x_img[i]] < pixel_values[i]:
+                im[y_img[i], x_img[i]] = pixel_values[i]
+        """
+
+        self.map[y_img, x_img] = pixel_values
+
     def _get_borders(self, cloud, hsv):
         lower = np.array([0,0,0], dtype = "uint8")
         upper = np.array([180,40,10], dtype = "uint8") 
@@ -1040,12 +1125,6 @@ class MazeEnv(gym.Env):
         cloud = cloud[~np.all(cloud == 0, axis=1)]
         return cloud
 
-    def update_map(self, ego_map):
-        ori = self.get_ori()
-        x, y = self.wrapped_env.get_xy()
-        row = int(-y / self.resolution)
-        col = int(x / self.resolution)
-
     def _get_obs(self) -> np.ndarray:
         #print(self.sim.model.cam_mat0[list(self.model.camera_names).index('mtdcam1')])
         obs = self.wrapped_env._get_obs()
@@ -1082,6 +1161,13 @@ class MazeEnv(gym.Env):
         ], -1)
 
         complete_ego_map, border_ego_map, floor_ego_map, objects_ego_map, target_ego_map = self.get_ego_maps(obs['front_depth'], obs['front'])
+        self.update_map(
+            obs['front_depth'],
+            res = self.resolution,
+            side_range=self.allo_map_side_range,
+            fwd_range=self.allo_map_fwd_range,
+            height_range = self.allo_map_height_range
+        )
         if params['debug']:
             size = img.shape[0]
             cv2.imshow('stream camera', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
@@ -1097,6 +1183,7 @@ class MazeEnv(gym.Env):
             cv2.imshow('floor', floor_ego_map)
             cv2.imshow('objects', objects_ego_map)
             cv2.imshow('target', target_ego_map)
+            cv2.imshow('allocentric map', self.map)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 pass
 

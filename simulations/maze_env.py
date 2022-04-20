@@ -393,7 +393,7 @@ class MazeEnv(gym.Env):
             ], p = prob)
 
         for i, goal in enumerate(goals):
-            site_type = random.choice(['capsule', 'cylinder', 'box', 'ellipsoid'])
+            site_type = random.choice(['capsule', 'ellipsoid', 'sphere'])
             r, g, b = 0, 0, 0
             h, s, v = 0, 0, 0
             rgb = None
@@ -551,12 +551,15 @@ class MazeEnv(gym.Env):
         self._find_cubic_spline_path()
         self._setup_vel_control()
         self.resolution = 0.1 
+        self.ego_map_side_range = (-15, 15)
+        self.ego_map_fwd_range = (0, 30)
+        self.height_range = (0, 1.5)
         self.allo_map_side_range = side_range = (-40, 40)
         self.allo_map_fwd_range = fwd_range = (-40, 40)
         self.allo_map_height_range = height_range = (0, 1.5)
         x_max = 1 + int((side_range[1] - side_range[0]) / self.resolution)
         y_max = 1 + int((fwd_range[1] - fwd_range[0]) / self.resolution)
-        self.map = np.zeros([y_max, x_max], dtype=np.uint8)
+        self.map = np.zeros([y_max, x_max, 3], dtype=np.uint8)
         ob = self._get_obs()
         self._set_observation_space(ob)
 
@@ -876,8 +879,6 @@ class MazeEnv(gym.Env):
         hsv = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)    
         target = self._task.goals[self._task.goal_index]
         mask = cv2.inRange(hsv, target.min_range , target.max_range)
-        if params['debug']:
-            cv2.imshow('mask', mask)
         contours, _ =  cv2.findContours(mask.copy(),
                            cv2.RETR_TREE,
                            cv2.CHAIN_APPROX_SIMPLE)
@@ -923,12 +924,10 @@ class MazeEnv(gym.Env):
         """
         return points
 
-    def _cloud2ego_map(self,
+    def process_point_cloud(self,
         points,
-        res = 0.1, 
         side_range=(-10., 10.),
         fwd_range = (-10., 10.),
-        height_range=(-2., 2.),
     ):
         x_points = points[:, 0]
         y_points = points[:, 1]
@@ -946,7 +945,21 @@ class MazeEnv(gym.Env):
         x_points = x_points[indices]
         y_points = y_points[indices]
         z_points = z_points[indices]
-        
+        return x_points, y_points, z_points
+
+    def _cloud2map(self,
+        points,
+        res = 0.1, 
+        side_range=(-10., 10.),
+        fwd_range = (-10., 10.),
+        height_range=(-2., 2.),
+    ):
+       
+        x_points, y_points, z_points = self.process_point_cloud(
+            points=points,
+            side_range=side_range,
+            fwd_range=fwd_range,
+        )
         # CONVERT TO PIXEL POSITION VALUES - Based on resolution
         x_img = (-y_points / res).astype(np.int32)  # x axis is -y in LIDAR
         y_img = (-x_points / res).astype(np.int32)  # y axis is -x in LIDAR
@@ -975,103 +988,11 @@ class MazeEnv(gym.Env):
         im[y_img, x_img] = pixel_values
 
         return im
-
-    def get_ego_maps(self, depth, rgb):
-        """
-            Use the above method to create point instead of using o3d
-            https://github.com/htung0101/table_dome/blob/master/table_dome_calib/utils.py
-        """
-        cloud = self._get_point_cloud(depth=depth)
-        complete_ego_map = self._cloud2ego_map(
-            cloud,
-            res = self.resolution,
-            side_range = (-15, 15),
-            fwd_range=(0, 30),
-            height_range=(0, 1.5)
-        )
-        
-        hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV)
-        
-        borders_cloud = self._get_borders(cloud, hsv)
-        border_ego_map = self._cloud2ego_map(borders_cloud,
-            res = self.resolution,
-            side_range = (-15, 15),
-            fwd_range=(0, 30),
-            height_range=(0, 1.5)
-        )
-        
-        floor_cloud = self._get_floor(cloud, hsv)
-        floor_ego_map = self._cloud2ego_map(floor_cloud,
-            res = self.resolution,
-            side_range = (-15, 15),
-            fwd_range=(0, 30),
-            height_range=(0, 1.5)
-        )
-        floor_ego_map[floor_ego_map > 0] = 255 - floor_ego_map[floor_ego_map > 0]
-        
-        objects_cloud = self._get_objects(cloud, hsv)
-        objects_ego_map = self._cloud2ego_map(objects_cloud, 
-            res = self.resolution,
-            side_range = (-15, 15),
-            fwd_range=(0, 30),
-            height_range=(0, 1.5)
-        )
-        target_cloud = self._get_target(cloud, hsv)
-        target_ego_map = self._cloud2ego_map(target_cloud,
-            res = self.resolution,
-            side_range = (-15, 15),
-            fwd_range=(0, 30),
-            height_range=(0, 1.5)
-        )
-        return complete_ego_map, border_ego_map, floor_ego_map, objects_ego_map, target_ego_map
-
-    def update_map(self,
-            depth,
-            res = 0.1,
-            side_range = (-40, 40),
-            fwd_range = (-40, 40),
-            height_range = (0, 1.5)
-        ):
-        cloud = self._get_point_cloud(depth=depth)
-        cloud = transform_pose(cloud, self.data.qpos.copy())
-        x_points = cloud[:, 0]
-        y_points = cloud[:, 1]
-        z_points = cloud[:, 2]
-        f_filt = np.logical_and((x_points > fwd_range[0]), (x_points < fwd_range[1]))
-        s_filt = np.logical_and((y_points > -side_range[1]), (y_points < -side_range[0]))
-        filter = np.logical_and(f_filt, s_filt)
-        indices = np.argwhere(filter).flatten()
-
-        # KEEPERS
-        x_points = x_points[indices]
-        y_points = y_points[indices]
-        z_points = z_points[indices]
-        x_img = (-y_points / res).astype(np.int32)
-        y_img = (-x_points / res).astype(np.int32)
-        
-        x_img -= int(np.floor(side_range[0] / res))
-        y_img += int(np.ceil(fwd_range[1] / res))
-
-        # CLIP HEIGHT VALUES - to between min and max heights
-        pixel_values = np.clip(a=z_points,
-                               a_min=height_range[0],
-                               a_max=height_range[1])
-
-        # RESCALE THE HEIGHT VALUES - to be between the range 0-255
-        pixel_values = scale_to_255(pixel_values,
-                                    min=height_range[0],
-                                    max=height_range[1])
-
-        x_img, y_img, pixel_values = sort_arrays(x_img, y_img, pixel_values)
-
-        """
-        # FILL PIXEL VALUES IN IMAGE ARRAY 
-        for i in range(len(pixel_values)):
-            if im[y_img[i], x_img[i]] < pixel_values[i]:
-                im[y_img[i], x_img[i]] = pixel_values[i]
-        """
-
-        self.map[y_img, x_img] = pixel_values
+    
+    def get_coverage(self, allo_map):
+        explored = allo_map > 0
+        coverage = np.sum(explored) / (explored.shape[0] * explored.shape[1])
+        return coverage
 
     def _get_borders(self, cloud, hsv):
         lower = np.array([0,0,0], dtype = "uint8")
@@ -1125,6 +1046,222 @@ class MazeEnv(gym.Env):
         cloud = cloud[~np.all(cloud == 0, axis=1)]
         return cloud
 
+    def get_ego_maps(self, depth, rgb):
+        """
+            Use the above method to create point instead of using o3d
+            https://github.com/htung0101/table_dome/blob/master/table_dome_calib/utils.py
+        """
+        cloud = self._get_point_cloud(depth=depth)
+        complete_ego_map = self._cloud2map(
+            cloud,
+            res = self.resolution,
+            side_range = self.ego_map_side_range,
+            fwd_range = self.ego_map_fwd_range,
+            height_range = self.height_range
+        )
+        
+        hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV)
+        
+        borders_cloud = self._get_borders(cloud, hsv)
+        border_ego_map = self._cloud2map(borders_cloud,
+            res = self.resolution,
+            side_range = self.ego_map_side_range,
+            fwd_range = self.ego_map_fwd_range,
+            height_range = self.height_range
+        )
+        
+        floor_cloud = self._get_floor(cloud, hsv)
+        floor_ego_map = self._cloud2map(floor_cloud,
+            res = self.resolution,
+            side_range = self.ego_map_side_range,
+            fwd_range = self.ego_map_fwd_range,
+            height_range = self.height_range
+        )
+        floor_ego_map[floor_ego_map > 0] = 255 - floor_ego_map[floor_ego_map > 0]
+        
+        objects_cloud = self._get_objects(cloud, hsv)
+        objects_ego_map = self._cloud2map(objects_cloud, 
+            res = self.resolution,
+            side_range = self.ego_map_side_range,
+            fwd_range = self.ego_map_fwd_range,
+            height_range = self.height_range
+        )
+        target_cloud = self._get_target(cloud, hsv)
+        target_ego_map = self._cloud2map(target_cloud,
+            res = self.resolution,
+            side_range = self.ego_map_side_range,
+            fwd_range = self.ego_map_fwd_range,
+            height_range = self.height_range
+        )
+        return complete_ego_map, border_ego_map, floor_ego_map, objects_ego_map, target_ego_map
+
+    def get_ego_clouds(self, depth, rgb):
+        cloud = self._get_point_cloud(depth=depth)
+        xy = self.data.qpos[:2]
+        R = get_r_matrix([0., 0., 1.], angle=self.data.qpos[2])
+        hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV)
+        borders_cloud = self._get_borders(cloud, hsv)
+        borders_cloud = self.transform_cloud_pose(np.stack(self.process_point_cloud(
+            self._get_borders(cloud, hsv),
+            side_range=self.ego_map_side_range,
+            fwd_range=self.ego_map_fwd_range
+        ), -1), xy, R)
+        floor_cloud = self.transform_cloud_pose(np.stack(self.process_point_cloud(
+            self._get_floor(cloud, hsv),
+            side_range=self.ego_map_side_range,
+            fwd_range=self.ego_map_fwd_range
+        ), -1), xy, R)
+        objects_cloud = self.transform_cloud_pose(np.stack(self.process_point_cloud(
+            self._get_objects(cloud, hsv),
+            side_range=self.ego_map_side_range,
+            fwd_range=self.ego_map_fwd_range
+        ), -1), xy, R)
+        return borders_cloud, floor_cloud, objects_cloud
+
+    def get_ego_map(self, g_borders_cloud, g_floor_cloud, g_objects_cloud):
+        R = R = get_r_matrix([0., 0., 1.], angle=-self.data.qpos[2]) 
+        xy = self.data.qpos[:2]
+        borders_cloud = self.inv_transform_cloud_pose(g_borders_cloud, xy, R)
+        floor_cloud = self.inv_transform_cloud_pose(g_floor_cloud, xy, R)
+        objects_cloud = self.inv_transform_cloud_pose(g_objects_cloud, xy, R)
+        
+        border_ego_map = self._cloud2map(borders_cloud,
+            res = self.resolution,
+            side_range = self.ego_map_side_range,
+            fwd_range = self.ego_map_fwd_range,
+            height_range = self.height_range
+        )
+
+        floor_ego_map = self._cloud2map(floor_cloud,
+            res = self.resolution,
+            side_range = self.ego_map_side_range,
+            fwd_range = self.ego_map_fwd_range,
+            height_range = self.height_range
+        )
+
+        objects_ego_map = self._cloud2map(objects_cloud, 
+            res = self.resolution,
+            side_range = self.ego_map_side_range,
+            fwd_range = self.ego_map_fwd_range,
+            height_range = self.height_range
+        )
+        return np.stack([border_ego_map, floor_ego_map, objects_ego_map], -1)
+
+    def inv_transform_cloud_pose(self, points, xy, R):
+        """
+        Transforms the point cloud into geocentric frame to account for
+        camera position
+        Input:
+            points                  : ...x3
+            current_pose            : camera position (x, y, theta (radians))
+        Output:
+            XYZ : ...x3
+        """
+        points[:, 0] = points[:, 0] - xy[0]
+        points[:, 1] = points[:, 1] - xy[1]
+        points = np.matmul(points, R.T)
+        return points
+    
+    def transform_cloud_pose(self, points, xy, R):
+        """
+        Transforms the point cloud into geocentric frame to account for
+        camera position
+        Input:
+            points                  : ...x3
+            current_pose            : camera position (x, y, theta (radians))
+        Output:
+            XYZ : ...x3
+        """
+        points = np.matmul(points, R.T)
+        points[:, 0] = points[:, 0] + xy[0]
+        points[:, 1] = points[:, 1] + xy[1]
+        return points
+
+    def get_maps(self,
+            depth,
+            rgb,
+            res = 0.1,
+            side_range = (-40, 40),
+            fwd_range = (-40, 40),
+            height_range = (0, 1.5)
+        ):
+        borders_cloud, floor_cloud, objects_cloud = self.get_ego_clouds(depth, rgb)
+        x, y, ori = self.data.qpos
+
+        x_points = borders_cloud[:, 0]
+        y_points = borders_cloud[:, 1]
+        z_points = borders_cloud[:, 2]
+
+        x_img = (-y_points / res).astype(np.int32)
+        y_img = (-x_points / res).astype(np.int32)
+        
+        x_img -= int(np.floor(side_range[0] / res))
+        y_img += int(np.ceil(fwd_range[1] / res))
+
+        # CLIP HEIGHT VALUES - to between min and max heights
+        pixel_values = np.clip(a=z_points,
+                               a_min=height_range[0],
+                               a_max=height_range[1])
+
+        # RESCALE THE HEIGHT VALUES - to be between the range 0-255
+        pixel_values = scale_to_255(pixel_values,
+                                    min=height_range[0],
+                                    max=height_range[1])
+
+        x_img, y_img, pixel_values = sort_arrays(x_img, y_img, pixel_values)
+
+        self.map[y_img, x_img, 0] = pixel_values
+
+        x_points = floor_cloud[:, 0]
+        y_points = floor_cloud[:, 1]
+        z_points = floor_cloud[:, 2]
+
+        x_img = (-y_points / res).astype(np.int32)
+        y_img = (-x_points / res).astype(np.int32)
+        
+        x_img -= int(np.floor(side_range[0] / res))
+        y_img += int(np.ceil(fwd_range[1] / res))
+
+        # CLIP HEIGHT VALUES - to between min and max heights
+        pixel_values = np.clip(a=z_points,
+                               a_min=height_range[0],
+                               a_max=height_range[1])
+
+        # RESCALE THE HEIGHT VALUES - to be between the range 0-255
+        pixel_values = scale_to_255(pixel_values,
+                                    min=height_range[0],
+                                    max=height_range[1])
+
+        x_img, y_img, pixel_values = sort_arrays(x_img, y_img, pixel_values)
+
+        self.map[y_img, x_img, 1] = pixel_values
+
+        x_points = objects_cloud[:, 0]
+        y_points = objects_cloud[:, 1]
+        z_points = objects_cloud[:, 2]
+
+        x_img = (-y_points / res).astype(np.int32)
+        y_img = (-x_points / res).astype(np.int32)
+        
+        x_img -= int(np.floor(side_range[0] / res))
+        y_img += int(np.ceil(fwd_range[1] / res))
+
+        # CLIP HEIGHT VALUES - to between min and max heights
+        pixel_values = np.clip(a=z_points,
+                               a_min=height_range[0],
+                               a_max=height_range[1])
+
+        # RESCALE THE HEIGHT VALUES - to be between the range 0-255
+        pixel_values = scale_to_255(pixel_values,
+                                    min=height_range[0],
+                                    max=height_range[1])
+
+        x_img, y_img, pixel_values = sort_arrays(x_img, y_img, pixel_values)
+
+        self.map[y_img, x_img, 2] = pixel_values
+        ego_map = self.get_ego_map(borders_cloud, floor_cloud, objects_cloud)
+        return self.map, ego_map
+
     def _get_obs(self) -> np.ndarray:
         #print(self.sim.model.cam_mat0[list(self.model.camera_names).index('mtdcam1')])
         obs = self.wrapped_env._get_obs()
@@ -1160,9 +1297,10 @@ class MazeEnv(gym.Env):
             (action.copy() - self.action_space.low) / (self.action_space.high - self.action_space.low) for action in self.actions
         ], -1)
 
-        complete_ego_map, border_ego_map, floor_ego_map, objects_ego_map, target_ego_map = self.get_ego_maps(obs['front_depth'], obs['front'])
-        self.update_map(
+        #complete_ego_map, border_ego_map, floor_ego_map, objects_ego_map, target_ego_map = self.get_ego_maps(obs['front_depth'], obs['front'])
+        allo_map, ego_map = self.get_maps(
             obs['front_depth'],
+            obs['front'],
             res = self.resolution,
             side_range=self.allo_map_side_range,
             fwd_range=self.allo_map_fwd_range,
@@ -1175,15 +1313,18 @@ class MazeEnv(gym.Env):
                 window, (size, size)
             ), cv2.COLOR_RGB2BGR))
             cv2.imshow('depth stream', (obs['front_depth'] - 0.86) / 0.14)
-            #top = self.render('rgb_array')
-            #cv2.imshow('position stream', top)
+            top = self.render('rgb_array')
+            cv2.imshow('position stream', top)
             #cv2.imshow('bird eye view', cv2.resize(bird_eye_view, (image_width, image_height)))
+            """
             cv2.imshow('ego map', complete_ego_map)
             cv2.imshow('borders', border_ego_map)
             cv2.imshow('floor', floor_ego_map)
             cv2.imshow('objects', objects_ego_map)
             cv2.imshow('target', target_ego_map)
-            cv2.imshow('allocentric map', self.map)
+            """
+            cv2.imshow('allocentric map', allo_map)
+            cv2.imshow('egocentric map', ego_map)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 pass
 
@@ -1205,7 +1346,7 @@ class MazeEnv(gym.Env):
             'depth' : depth,
             'inframe' : np.array([inframe], dtype = np.float32),
             'positions' : positions.copy(),
-            'ego_map' : complete_ego_map.copy()
+            'ego_map' : ego_map.copy()
         }
 
         if params['add_ref_scales']:
@@ -1647,8 +1788,8 @@ class DiscreteMazeEnv(MazeEnv):
                 window, (size, size)
             ), cv2.COLOR_RGB2BGR))
             cv2.imshow('depth stream', (obs['front_depth'] - 0.86) / 0.14)
-            #top = self.render('rgb_array')
-            #cv2.imshow('position stream', top)
+            top = self.render('rgb_array')
+            cv2.imshow('position stream', top)
             cv2.imshow('bird eye view', cv2.resize(bird_eye_view, (image_width, image_height)))
             masked_depth, masked_img = self._get_borders(obs['front_depth'], obs['front'])
             cv2.imshow('masked depth borders', masked_depth)

@@ -1652,7 +1652,7 @@ class MazeEnv(gym.Env):
                     col - int(block_size / 10): col + int(block_size / 10)
                 ] = [0, 255, 0]
 
-        return np.flipud(img)
+        return np.rot90(np.flipud(img))
 
 
 class DiscreteMazeEnv(MazeEnv):

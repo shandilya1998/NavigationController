@@ -396,6 +396,6 @@ for x, y in zip(env.cx, env.cy):
     row, col = xy_to_imgrowcol(x, y)
     img[row - int(block_size / 50): row + int(block_size / 50), col - int(block_size / 50): col + int(block_size / 50)] = [1, 1, 1]
 
-ax.imshow(np.flipud(img))
+ax.imshow(np.rot90(np.flipud(img)))
 #fig.savefig('output.png')
 plt.show()

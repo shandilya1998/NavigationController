@@ -66,9 +66,9 @@ def point_cloud_2_birdseye(points,
         2D numpy array representing an image of the birds eye view.
     """
     # EXTRACT THE POINTS FOR EACH AXIS
-    x_points = points[:, 0]
-    y_points = points[:, 1]
-    z_points = points[:, 2]
+    x_points = points[:, 0]#.copy()
+    y_points = points[:, 1]#.copy()
+    z_points = points[:, 2]#.copy()
 
     # FILTER - To return only indices of points within desired cube
     # Three filters for: Front-to-back, side-to-side, and height ranges
@@ -117,7 +117,19 @@ def point_cloud_2_birdseye(points,
     """
 
     im[y_img, x_img] = pixel_values
-    im[np.logical_and(im < 80, im > 2)] = 30
+    im[y_img + 1, x_img] = pixel_values
+    im[y_img, x_img + 1] = pixel_values
+    im[y_img - 1, x_img] = pixel_values
+    im[y_img, x_img - 1] = pixel_values
+    im[y_img + 1, x_img + 1] = pixel_values
+    im[y_img - 1, x_img - 1] = pixel_values
+    im[y_img + 2, x_img] = pixel_values
+    im[y_img, x_img + 2] = pixel_values
+    im[y_img - 2, x_img] = pixel_values
+    im[y_img, x_img - 2] = pixel_values
+    im[y_img + 2, x_img + 2] = pixel_values
+    im[y_img - 2, x_img - 2] = pixel_values
+    #im[np.logical_and(im < 80, im > 2)] = 0
 
     return im
 
@@ -266,7 +278,7 @@ class PointCloudGenerator(object):
             o3d_cloud = o3d.geometry.PointCloud.create_from_depth_image(od_depth, od_cammat)
             # Compute world to camera transformation matrix
             cam_body_id = self.sim.model.cam_bodyid[cam_i]
-            cam_pos = self.sim.model.body_pos[cam_body_id]
+            cam_pos = self.sim.model.body_pos[cam_body_id] + np.array([0, 0, 0.5])
             c2b_r = rotMatList2NPRotMat(self.sim.model.cam_mat0[cam_i])
             # In MuJoCo, we assume that a camera is specified in XML as a body
             #    with pose p, and that that body has a camera sub-element
@@ -303,7 +315,7 @@ class PointCloudGenerator(object):
             pos = self.sim.data.cam_xpos[cam_i]
             mat = self.sim.data.cam_xmat[cam_i].reshape(3, 3)
             """
-            pos = self.sim.model.body_pos[cam_body_id]
+            pos = self.sim.model.body_pos[cam_body_id] + np.array([0, 0, 0.5])
             mat = rotMatList2NPRotMat(self.sim.model.cam_mat0[cam_i])
             rot_mat = np.asarray([[1, 0, 0], [0, -1, 0], [0, 0, -1]])
             mat = np.dot(mat, rot_mat)
@@ -314,6 +326,7 @@ class PointCloudGenerator(object):
             world_points = np.c_[points, np.ones(len(points))]
             world_points = np.dot(ext, world_points.T).T
             world_points = world_points[:, :3]
+            #world_points[:, 2] += 0.5
             """
             for i in range(depth_img.shape[0]):
                 for j in range(depth_img.shape[1]):

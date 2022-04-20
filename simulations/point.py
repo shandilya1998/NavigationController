@@ -138,8 +138,6 @@ class PointEnv(AgentModel):
             camera_name = 'mtdcam1',
             depth = True 
         )
-        depth1 = (depth1 - 0.86) / 0.14
-        depth1[depth1 < 0] = 0
         """
         #depth1 = 255 * (depth - 0.68) / 0.32
         #depth1 = 255 * depth

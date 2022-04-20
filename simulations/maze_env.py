@@ -42,6 +42,20 @@ import matplotlib.pyplot as plt
 MODEL_DIR = os.path.join(os.getcwd(), 'assets', 'xml')
 
 
+def scale_to_255(a, min, max, dtype=np.uint8):
+    """ Scales an array of values from specified min, max range to 0-255
+        Optionally specify the data type of the output (default is uint8)
+    """
+    return (((a - min) / float(max - min)) * 255).astype(dtype)
+
+def sort_arrays(x, y, z):
+    indices = z.argsort()
+    z = z[indices]
+    x = x[indices]
+    y = y[indices]
+    return x, y, z
+
+
 class MazeEnv(gym.Env):
     def __init__(
         self,
@@ -347,21 +361,21 @@ class MazeEnv(gym.Env):
             ], p = prob)
 
         for i, goal in enumerate(goals):
-            site_type = random.choice(['capsule', 'ellipsoid', 'cylinder', 'box', 'sphere'])
+            site_type = random.choice(['capsule', 'cylinder', 'box', 'ellipsoid'])
             r, g, b = 0, 0, 0
             h, s, v = 0, 0, 0
             rgb = None
             if target_index == i:
                 rgb = Rgb(*target_rgb)
                 h, s, v = copy.deepcopy(target_hsv)
+                site_type = 'sphere'
             else:
                 h = sample_h()
                 if h < 94:
-                    s = np.random.uniform(low = 0, high = 255)
-                    v = np.random.uniform(low = 51, high = 255)
+                    s = np.random.uniform(low = 60, high = 255)
                 else:
                     s = np.random.uniform(low = 80, high = 255)
-                    v = np.random.uniform(low = 51, high = 255)
+                v = np.random.uniform(low = 75, high = 255)
                 h = h / 180
                 s = s / 255
                 v = v / 255
@@ -462,7 +476,7 @@ class MazeEnv(gym.Env):
         ).reshape(-1)
         self.pcd = o3d.geometry.PointCloud()
         self.vec = o3d.utility.Vector3dVector()
-        self.cam_pos = self.model.body_pos[self.cam_body_id]
+        self.cam_pos = self.model.body_pos[self.cam_body_id] + np.array([0, 0, 0.5])
         mat = rotMatList2NPRotMat(self.sim.model.cam_mat0[index])
         rot_mat = np.asarray([[1, 0, 0], [0, -1, 0], [0, 0, -1]])
         mat = np.dot(mat, rot_mat)
@@ -470,8 +484,8 @@ class MazeEnv(gym.Env):
         ext[:3, :3] = mat
         ext[:3, 3] = self.cam_pos
         self.ext = ext
-        min_bound = [-35, -35, -0.4]
-        max_bound = [35, 35, 1]
+        min_bound = [-35, -35, 0.0]
+        max_bound = [35, 35, 1.5]
         self.pc_target_bounds =  np.array([min_bound, max_bound], dtype = np.float32)
 
         self._init_pos, self._init_ori = self._set_init(agent)
@@ -504,6 +518,8 @@ class MazeEnv(gym.Env):
         self._find_all_waypoints()
         self._find_cubic_spline_path()
         self._setup_vel_control()
+        self.resolution = 0.1
+        self.map = np.zeros((200, 200), dtype = np.float32)
         ob = self._get_obs()
         self._set_observation_space(ob)
 
@@ -577,13 +593,15 @@ class MazeEnv(gym.Env):
         #yaw = self.state.yaw +  self.state.v / self.state.WB * math.tan(di) * self.dt
         v = self.state.v + ai * self.dt
         vyaw = self.state.v / self.state.WB * math.tan(di)
-        #self.state.update(ai, di, self.dt)
-        #v = self.state.v
-        #yaw = self.state.yaw
+        """
+        self.state.update(ai, di, self.dt)
+        v = self.state.v
+        yaw = self.state.yaw
         # Refer to simulations/point PointEnv: def step() for more information
         yaw = self.check_angle(self.state.yaw + vyaw * self.dt)
         vx = v * np.cos(yaw)
         vy = v * np.sin(yaw)
+        """
         self.sampled_action = np.array([
             vyaw,
         ], dtype = np.float32)
@@ -830,7 +848,7 @@ class MazeEnv(gym.Env):
         if len(contours):
             red_area = max(contours, key=cv2.contourArea)
             x, y, w, h = cv2.boundingRect(red_area)
-            cv2.rectangle(frame,(x, y),(x+w, y+h),(0, 0, 255), 1)
+            #cv2.rectangle(frame,(x, y),(x+w, y+h),(0, 0, 255), 1)
             bbx.extend([x, y, w, h]) 
         return bbx 
 
@@ -842,7 +860,7 @@ class MazeEnv(gym.Env):
         return near / (1 - z_buffer * (1 - near / far))
 
     def _get_point_cloud(self, depth):
-        depth_img = self._get_depth(depth).copy()
+        depth_img = self._get_depth(depth)
         depth_img = depth_img.reshape(-1)
         points = np.zeros(depth.shape + (3,), dtype = np.float64).reshape(-1, 3)
         points[:, 1] = (self.indices_x - self.cam_mat[0, 2]) * depth_img / self.cam_mat[0, 0]
@@ -868,61 +886,165 @@ class MazeEnv(gym.Env):
         """
         return points
 
-    def _get_bird_eye_view(self, depth):
+    def _cloud2ego_map(self,
+        points,
+        res = 0.1, 
+        side_range=(-10., 10.),
+        fwd_range = (-10., 10.),
+        height_range=(-2., 2.),
+    ):
+        x_points = points[:, 0]
+        y_points = points[:, 1]
+        z_points = points[:, 2]
+
+        # FILTER - To return only indices of points within desired cube
+        # Three filters for: Front-to-back, side-to-side, and height ranges
+        # Note left side is positive y axis in LIDAR coordinates
+        f_filt = np.logical_and((x_points > fwd_range[0]), (x_points < fwd_range[1]))
+        s_filt = np.logical_and((y_points > -side_range[1]), (y_points < -side_range[0]))
+        filter = np.logical_and(f_filt, s_filt)
+        indices = np.argwhere(filter).flatten()
+
+        # KEEPERS
+        x_points = x_points[indices]
+        y_points = y_points[indices]
+        z_points = z_points[indices]
+        
+        # CONVERT TO PIXEL POSITION VALUES - Based on resolution
+        x_img = (-y_points / res).astype(np.int32)  # x axis is -y in LIDAR
+        y_img = (-x_points / res).astype(np.int32)  # y axis is -x in LIDAR
+
+        # SHIFT PIXELS TO HAVE MINIMUM BE (0,0)
+        # floor & ceil used to prevent anything being rounded to below 0 after shift
+        x_img -= int(np.floor(side_range[0] / res))
+        y_img += int(np.ceil(fwd_range[1] / res))
+
+        # CLIP HEIGHT VALUES - to between min and max heights
+        pixel_values = np.clip(a=z_points,
+                               a_min=height_range[0],
+                               a_max=height_range[1])
+
+        # RESCALE THE HEIGHT VALUES - to be between the range 0-255
+        pixel_values = scale_to_255(pixel_values,
+                                    min=height_range[0],
+                                    max=height_range[1])
+
+        # INITIALIZE EMPTY ARRAY - of the dimensions we want
+        x_max = 1 + int((side_range[1] - side_range[0]) / res)
+        y_max = 1 + int((fwd_range[1] - fwd_range[0]) / res)
+        im = np.zeros([y_max, x_max], dtype=np.uint8)
+
+        x_img, y_img, pixel_values = sort_arrays(x_img, y_img, pixel_values)
+        im[y_img, x_img] = pixel_values
+
+        return im
+
+    def get_ego_maps(self, depth, rgb):
         """
             Use the above method to create point instead of using o3d
             https://github.com/htung0101/table_dome/blob/master/table_dome_calib/utils.py
         """
         cloud = self._get_point_cloud(depth=depth)
-        resolution = 0.1
-        image = point_cloud_2_birdseye(cloud, res = resolution, side_range = (-15, 15), fwd_range=(-15, 15), height_range=(-0.4, 1))
-        image = np.expand_dims(image[-15 * 15:-15 * 10, 15 * 15 // 2: 15 * 25 // 2], -1)
-        """
-        image = image[
-            int(-30 * (10 + 5/4) / (10 * resolution)):int(-30 * (10 - 5/4) / (10 * resolution)),
-            int(30 * (10 - 5/4) / (10 * resolution)): int(30 * (10 + 5/4) / (10 * resolution))
-        ]
-        """
-        return image
+        complete_ego_map = self._cloud2ego_map(
+            cloud,
+            res = self.resolution,
+            side_range = (-15, 15),
+            fwd_range=(0, 30),
+            height_range=(0, 1.5)
+        )
+        
+        hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV)
+        
+        borders_cloud = self._get_borders(cloud, hsv)
+        border_ego_map = self._cloud2ego_map(borders_cloud,
+            res = self.resolution,
+            side_range = (-15, 15),
+            fwd_range=(0, 30),
+            height_range=(0, 1.5)
+        )
+        
+        floor_cloud = self._get_floor(cloud, hsv)
+        floor_ego_map = self._cloud2ego_map(floor_cloud,
+            res = self.resolution,
+            side_range = (-15, 15),
+            fwd_range=(0, 30),
+            height_range=(0, 1.5)
+        )
+        floor_ego_map[floor_ego_map > 0] = 255 - floor_ego_map[floor_ego_map > 0]
+        
+        objects_cloud = self._get_objects(cloud, hsv)
+        objects_ego_map = self._cloud2ego_map(objects_cloud, 
+            res = self.resolution,
+            side_range = (-15, 15),
+            fwd_range=(0, 30),
+            height_range=(0, 1.5)
+        )
+        target_cloud = self._get_target(cloud, hsv)
+        target_ego_map = self._cloud2ego_map(target_cloud,
+            res = self.resolution,
+            side_range = (-15, 15),
+            fwd_range=(0, 30),
+            height_range=(0, 1.5)
+        )
+        return complete_ego_map, border_ego_map, floor_ego_map, objects_ego_map, target_ego_map
 
-    def _get_borders(self, depth, image):
+    def _get_borders(self, cloud, hsv):
         lower = np.array([0,0,0], dtype = "uint8")
-        upper = np.array([180,255,40], dtype = "uint8") 
+        upper = np.array([180,40,10], dtype = "uint8") 
         #blur = cv2.GaussianBlur(image, (5,5), 0)
-        hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
-        mask = cv2.inRange(hsv, lower, upper)
-        image = cv2.bitwise_and(image, image, mask = mask)
-        masked_depth = cv2.bitwise_and(depth, depth, mask = mask)
-        masked_depth[masked_depth == 0] = 1
-        border_view = self._get_bird_eye_view(masked_depth)
-        border_view[border_view < 80] = 0 
-        return masked_depth, border_view
+        mask = np.repeat(
+            np.expand_dims(
+                cv2.inRange(hsv, lower, upper).reshape(-1), -1
+            ), cloud.shape[-1], -1
+        )
+        cloud = cv2.bitwise_and(cloud, cloud, mask = mask)
+        cloud = cloud[~np.all(cloud == 0, axis=1)]
+        return cloud
 
-    def _get_floor(self, depth, image):
-        lower = np.array([0,0,40], dtype = "uint8")
-        upper = np.array([180,255,60], dtype = "uint8") 
+    def _get_floor(self, cloud, hsv):
+        lower = np.array([0,0,10], dtype = "uint8")
+        upper = np.array([180, 40,60], dtype = "uint8") 
         #blur = cv2.GaussianBlur(image, (5,5), 0)
-        hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
-        mask = cv2.inRange(hsv, lower, upper)
-        image = cv2.bitwise_and(image, image, mask = mask)
-        masked_depth = cv2.bitwise_and(depth, depth, mask = mask)
-        masked_depth[masked_depth == 0] = 1
-        floor_view = self._get_bird_eye_view(masked_depth)
-        floor_view[floor_view > 80] = 0 
-        return masked_depth, floor_view
+        mask = np.repeat(
+            np.expand_dims(
+                cv2.inRange(hsv, lower, upper).reshape(-1), -1
+            ), cloud.shape[-1], -1
+        )
+        cloud = cv2.bitwise_and(cloud, cloud, mask = mask)
+        cloud = cloud[~np.all(cloud == 0, axis=1)]
+        return cloud
     
-    def _get_objects(self, depth, image):
-        lower = np.array([0,50,60], dtype = "uint8")
+    def _get_objects(self, cloud, hsv):
+        lower = np.array([0,40,60], dtype = "uint8")
         upper = np.array([180,255,255], dtype = "uint8") 
         #blur = cv2.GaussianBlur(image, (5,5), 0)
-        hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
-        mask = cv2.inRange(hsv, lower, upper)
-        image = cv2.bitwise_and(image, image, mask = mask)
-        masked_depth = cv2.bitwise_and(depth, depth, mask = mask)
-        masked_depth[masked_depth == 0] = 1
-        object_view = self._get_bird_eye_view(masked_depth)
-        object_view[object_view < 50] = 0 
-        return masked_depth, object_view
+        mask = np.repeat(
+            np.expand_dims(
+                cv2.inRange(hsv, lower, upper).reshape(-1), -1
+            ), cloud.shape[-1], -1
+        )
+        cloud = cv2.bitwise_and(cloud, cloud, mask = mask)
+        cloud = cloud[~np.all(cloud == 0, axis=1)]
+        return cloud
+
+    def _get_target(self, cloud, hsv):
+        target = self._task.goals[self._task.goal_index] 
+        lower = target.min_range
+        upper = target.max_range
+        mask = np.repeat(
+            np.expand_dims(
+                cv2.inRange(hsv, lower, upper).reshape(-1), -1
+            ), cloud.shape[-1], -1
+        )
+        cloud = cv2.bitwise_and(cloud, cloud, mask = mask)
+        cloud = cloud[~np.all(cloud == 0, axis=1)]
+        return cloud
+
+    def update_map(self, ego_map):
+        ori = self.get_ori()
+        x, y = self.wrapped_env.get_xy()
+        row = int(-y / self.resolution)
+        col = int(x / self.resolution)
 
     def _get_obs(self) -> np.ndarray:
         #print(self.sim.model.cam_mat0[list(self.model.camera_names).index('mtdcam1')])
@@ -959,7 +1081,7 @@ class MazeEnv(gym.Env):
             (action.copy() - self.action_space.low) / (self.action_space.high - self.action_space.low) for action in self.actions
         ], -1)
 
-        bird_eye_view = self._get_bird_eye_view(obs['front_depth'])
+        complete_ego_map, border_ego_map, floor_ego_map, objects_ego_map, target_ego_map = self.get_ego_maps(obs['front_depth'], obs['front'])
         if params['debug']:
             size = img.shape[0]
             cv2.imshow('stream camera', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
@@ -969,16 +1091,12 @@ class MazeEnv(gym.Env):
             cv2.imshow('depth stream', (obs['front_depth'] - 0.86) / 0.14)
             #top = self.render('rgb_array')
             #cv2.imshow('position stream', top)
-            cv2.imshow('bird eye view', cv2.resize(bird_eye_view, (image_width, image_height)))
-            masked_depth, masked_img = self._get_borders(obs['front_depth'], obs['front'])
-            cv2.imshow('masked depth borders', masked_depth)
-            cv2.imshow('borders', cv2.resize(masked_img, (image_width, image_height)))
-            masked_depth, masked_img = self._get_floor(obs['front_depth'], obs['front'])
-            cv2.imshow('masked depth floor', masked_depth)
-            cv2.imshow('floor', cv2.resize(masked_img, (image_width, image_height)))
-            masked_depth, masked_img = self._get_objects(obs['front_depth'], obs['front'])
-            cv2.imshow('masked depth objects', masked_depth)
-            cv2.imshow('objects', cv2.resize(masked_img, (image_width, image_height)))
+            #cv2.imshow('bird eye view', cv2.resize(bird_eye_view, (image_width, image_height)))
+            cv2.imshow('ego map', complete_ego_map)
+            cv2.imshow('borders', border_ego_map)
+            cv2.imshow('floor', floor_ego_map)
+            cv2.imshow('objects', objects_ego_map)
+            cv2.imshow('target', target_ego_map)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 pass
 
@@ -1000,7 +1118,7 @@ class MazeEnv(gym.Env):
             'depth' : depth,
             'inframe' : np.array([inframe], dtype = np.float32),
             'positions' : positions.copy(),
-            'ego_map' : bird_eye_view.copy()
+            'ego_map' : complete_ego_map.copy()
         }
 
         if params['add_ref_scales']:
@@ -1442,9 +1560,18 @@ class DiscreteMazeEnv(MazeEnv):
                 window, (size, size)
             ), cv2.COLOR_RGB2BGR))
             cv2.imshow('depth stream', (obs['front_depth'] - 0.86) / 0.14)
-            top = self.render('rgb_array')
-            cv2.imshow('position stream', top)
+            #top = self.render('rgb_array')
+            #cv2.imshow('position stream', top)
             cv2.imshow('bird eye view', cv2.resize(bird_eye_view, (image_width, image_height)))
+            masked_depth, masked_img = self._get_borders(obs['front_depth'], obs['front'])
+            cv2.imshow('masked depth borders', masked_depth)
+            cv2.imshow('borders', cv2.resize(masked_img, (image_width, image_height)))
+            masked_depth, masked_img = self._get_floor(obs['front_depth'], obs['front'])
+            cv2.imshow('masked depth floor', masked_depth)
+            cv2.imshow('floor', cv2.resize(masked_img, (image_width, image_height)))
+            masked_depth, masked_img = self._get_objects(obs['front_depth'], obs['front'])
+            cv2.imshow('masked depth objects', masked_depth)
+            cv2.imshow('objects', cv2.resize(masked_img, (image_width, image_height)))
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 pass
 

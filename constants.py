@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-debug = True
+debug = False
 
 params = {
     'input_size_low_level_control': 6,
@@ -116,8 +116,8 @@ params_quadruped = {
 
 params.update(params_quadruped)
 
-image_height = 192
-image_width = 192
+image_height = 200
+image_width = 200
 image_channels = 3
 n_history_steps = 5
 action_dim = 2

@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-debug = False
+debug = True
 
 params = {
     'input_size_low_level_control': 6,
@@ -55,7 +55,7 @@ params = {
     'OU_MEAN'                     : 0.00,
     'OU_SIGMA'                    : 0.2,
     'top_view_size'               : 50.,
-    'batch_size'                  : 2,
+    'batch_size'                  : 50,
     'lr'                          : 5e-4,
     'final_lr'                    : 1e-5,
     'n_steps'                     : 2000,
@@ -116,8 +116,8 @@ params_quadruped = {
 
 params.update(params_quadruped)
 
-image_height = 200
-image_width = 200
+image_height = 270
+image_width = 270
 image_channels = 3
 n_history_steps = 5
 action_dim = 2

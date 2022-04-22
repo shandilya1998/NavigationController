@@ -1,4 +1,4 @@
-from utils.rtd3 import RTD3, RTD3Policy, RecurrentDictReplayBuffer, TimeDistributedFeaturesExtractor
+from utils.rtd3 import RTD3, RTD3Policy, DictReplayBuffer, TimeDistributedFeaturesExtractor
 from utils.td3 import FeaturesExtractor
 from constants import params
 from simulations.maze_env import MazeEnv
@@ -105,10 +105,13 @@ def evaluate_policy(
     current_rewards = np.zeros(n_envs)
     current_lengths = np.zeros(n_envs, dtype="int")
     observations = env.reset()
-    states = [np.zeros((1, ) + spec[0], dtype = spec[1]) for spec in model.state_spec]
+    states = [
+        np.zeros((model.state_spec[0], 1, model.state_spec[1]), dtype = np.float32),
+        np.zeros((model.state_spec[0], 1, model.state_spec[1]), dtype = np.float32)
+    ]
     while (episode_counts < episode_count_targets).any():
         obs = {key: np.expand_dims(ob, 1) for key, ob in observations.items()}
-        [actions, [gen_image, depth]], states = model.predict(obs, state=states, deterministic=deterministic)
+        actions, states = model.predict(obs, state=states, deterministic=deterministic)
         observations, rewards, dones, infos = env.step(actions)
         current_rewards += rewards
         current_lengths += 1
@@ -124,7 +127,10 @@ def evaluate_policy(
                     callback(locals(), globals())
 
                 if dones[i]:
-                    states = [np.zeros((1, ) + spec[0], dtype = spec[1]) for spec in model.state_spec]
+                    states = [
+                        np.zeros((model.state_spec[0], 1, model.state_spec[1]), dtype = np.float32),
+                        np.zeros((model.state_spec[0], 1, model.state_spec[1]), dtype = np.float32)
+                    ]
                     if is_monitor_wrapped:
                         # Atari wrapper can send a "done" signal when
                         # the agent loses a life, but it does not correspond
@@ -268,7 +274,7 @@ class Callback(sb3.common.callbacks.EventCallback):
                 )
                 REWARDS = []
                 ACTION_ERROR = []
-                fig, ax = plt.subplots(1,1, figsize = (6.5,6.5))
+                fig, ax = plt.subplots(1,1, figsize = (6.5,3.25))
                 canvas = FigureCanvas(fig)
                 ax.set_xlabel('steps')
                 ax.set_ylabel('reward')
@@ -299,42 +305,33 @@ class Callback(sb3.common.callbacks.EventCallback):
                         _locals['observations']['scale_2'][0, :3].transpose(1, 2, 0),
                         size
                     )
-                    gen_scale_1 = cv2.resize(
-                         _locals['gen_image'][0, -1, :3].transpose(1, 2, 0) * 255,
-                         size
+                    ego_map = cv2.resize(
+                        _locals['observations']['ego_map'][0].transpose(1, 2, 0),
+                        size
                     )
-                    gen_scale_2 = cv2.resize(
-                        _locals['gen_image'][0, -1, 3:].transpose(1, 2, 0) * 255,
+                    loc_map = cv2.resize(
+                        _locals['observations']['loc_map'][0].transpose(1, 2, 0),
                         size
                     )
 
-                    gen_scale_1 = gen_scale_1.astype(np.uint8)
-                    gen_scale_2 = gen_scale_2.astype(np.uint8)
-                    depth = _locals['observations']['depth'][0].transpose(1, 2, 0) * 255
+                    depth = (_locals['observations']['depth'][0].transpose(1, 2, 0) - 0.87) * 255 / 0.13
                     depth = depth.astype(np.uint8)
                     depth = cv2.cvtColor(cv2.resize(
                         depth,
-                        size
-                    ), cv2.COLOR_GRAY2RGB)
-                    gen_depth =  _locals['depth'][0, -1].transpose(1, 2, 0) * 255
-                    gen_depth = gen_depth.astype(np.uint8)
-                    gen_depth = cv2.cvtColor(cv2.resize(
-                        gen_depth,
                         size
                     ), cv2.COLOR_GRAY2RGB)
 
                     ax.clear()
                     ax.plot(REWARDS, color = 'r', linestyle = '--')
                     canvas.draw()
-                    error = np.square(_locals['observations']['sampled_action'] - _locals['actions']).mean()
                     image = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
                     image = image.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-                    image = cv2.resize(image, size)
+                    image = cv2.resize(image, (size[0] * 2, size[0]))
                     observation = np.concatenate([
-                        np.concatenate([screen, image], 0),
-                        np.concatenate([scale_1, gen_scale_1], 0),
-                        np.concatenate([scale_2, gen_scale_2], 0),
-                        np.concatenate([depth, gen_depth], 0)
+                        np.concatenate([screen, depth], 0),
+                        np.concatenate([scale_1, scale_2], 0),
+                        np.concatenate([image[:, :size[0], :], loc_map], 0),
+                        np.concatenate([image[:, size[0]:, :], ego_map], 0)
                     ], 1).astype(np.uint8)
                     observation = cv2.cvtColor(observation, cv2.COLOR_RGB2BGR)
 
@@ -470,13 +467,7 @@ if __name__ == '__main__':
         'share_features_extractor' : True
     }
 
-    lstm_size = params['net_arch'][0]
-    state_spec = [((1, lstm_size), np.float32)] * 2
-    replay_buffer_kwargs = {
-            'max_seq_len' : params['max_seq_len'],
-            'seq_sample_freq' : params['seq_sample_freq'],
-            'state_spec' : state_spec
-        }
+    state_spec = (1, params['num_ctx'])
 
     model = RTD3(
         policy = RTD3Policy,
@@ -487,11 +478,10 @@ if __name__ == '__main__':
         batch_size = params['batch_size'],
         tau = params['tau'],
         gamma = params['gamma'],
-        train_freq = (params['max_seq_len'] * params['seq_sample_freq'], 'step'),
+        train_freq = (params['max_seq_len'], 'step'),
         gradient_steps = -1,
         action_noise = action_noise,
-        replay_buffer_class = RecurrentDictReplayBuffer,
-        replay_buffer_kwargs = replay_buffer_kwargs,
+        replay_buffer_class = DictReplayBuffer,
         optimize_memory_usage = False,
         policy_delay = params['policy_delay'],
         target_policy_noise = 0.2,
@@ -505,7 +495,6 @@ if __name__ == '__main__':
         verbose = 2,
         state_spec=state_spec,
         max_seq_len=params['max_seq_len'],
-        seq_sample_freq=params['seq_sample_freq']
     )
 
     """

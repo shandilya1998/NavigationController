@@ -755,6 +755,12 @@ class MazeEnv(gym.Env):
                 dtype = observation['sensors'].dtype
             ),   
             'sampled_action' : copy.deepcopy(self._action_space),
+            'scaled_sampled_action' : gym.spaces.Box(
+                low = -np.ones_like(observation['scaled_sampled_action']),
+                high = np.ones_like(observation['scaled_sampled_action']),
+                shape = observation['scaled_sampled_action'].shape,
+                dtype = observation['scaled_sampled_action'].dtype
+            ),
             'inframe' : gym.spaces.Box(
                 low = np.zeros_like(observation['inframe']),
                 high = np.ones_like(observation['inframe']),
@@ -784,7 +790,13 @@ class MazeEnv(gym.Env):
                 high = 255 * np.ones_like(observation['loc_map']),
                 dtype = observation['loc_map'].dtype,
                 shape = observation['loc_map'].shape
-            )
+            ),
+            'bbx' : gym.spaces.Box(
+                low = np.zeros_like(observation['bbx']),
+                high = np.ones_like(observation['bbx']) * np.array([image_width, image_height, image_width, image_height], dtype = np.float32),
+                shape = observation['bbx'].shape,
+                dtype = observation['bbx'].dtype
+            ),
         }
     
         if params['add_ref_scales']:
@@ -858,13 +870,15 @@ class MazeEnv(gym.Env):
 
         if len(bbx) > 0:
             x, y, w, h = bbx
+            bbx = np.array(bbx).copy()
         else:
             # Need to keep eye sight in the upper part of the image
             x = size // 2 - size // 4
             y = size // 2 - size // 4
             w = size // 2
             h = size // 2
-        
+            bbx = np.array([x, y, w, h]).copy()
+
         #print(x + w // 2, y + h // 2)
         
         # attention window computation
@@ -873,7 +887,7 @@ class MazeEnv(gym.Env):
             x, y, w, h, scale, size
         )
         window = frame[y_min:y_max, x_min:x_max].copy()
-        return window
+        return window, bbx
 
     def detect_target(self, frame):
         
@@ -1339,11 +1353,14 @@ class MazeEnv(gym.Env):
         #assert img.shape[0] == img.shape[1]
         # Target Detection and Attention Window
         bbx = self.detect_target(img)
-        window = self.get_attention_window(obs['front'], bbx)
+        window, bbx = self.get_attention_window(obs['front'], bbx)
         inframe = True if len(bbx) > 0 else False 
 
         # Sampled Action
         sampled_action = self.get_action().astype(np.float32)
+        low = self.action_space.low
+        high = self.action_space.high
+        scaled_sampled_action = (sampled_action - low) / (high - low)
 
         # Sensor Readings
         ## Goal
@@ -1413,11 +1430,13 @@ class MazeEnv(gym.Env):
             'scale_2' : scale_2.copy(),
             'sensors' : sensors,
             'sampled_action' : sampled_action.copy(),
+            'scaled_sampled_action' : scaled_sampled_action.copy(),
             'depth' : depth,
             'inframe' : np.array([inframe], dtype = np.float32),
             'positions' : positions.copy(),
             'ego_map' : ego_map.copy(),
-            'loc_map' : loc_map.copy()
+            'loc_map' : loc_map.copy(),
+            'bbx' : bbx.copy()
         }
 
         if params['add_ref_scales']:

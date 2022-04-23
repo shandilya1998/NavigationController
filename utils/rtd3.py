@@ -820,8 +820,8 @@ class Actor(sb3.td3.policies.Actor):
             activation_fn,
             normalize_images
         )
-        torch.nn.init.uniform_(self.mu[-1].weight, -3e-3, 3e-3)
-        torch.nn.init.uniform_(self.mu[-1].bias, -3e-4, 3e-4)
+        torch.nn.init.uniform_(self.mu[-2].weight, -3e-3, 3e-3)
+        torch.nn.init.uniform_(self.mu[-2].bias, -3e-4, 3e-4)
 
     def extract_features(self,
             obs: (torch.Tensor, TensorDict),

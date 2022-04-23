@@ -1302,7 +1302,7 @@ class RTD3(sb3.TD3):
             The two differs when the action space is not normalized (bounds are not [-1, 1]).
         """
         # Select action randomly or according to policy
-        if self.num_timesteps < learning_starts and not (self.use_sde and self.use_sde_at_warmup):
+        if self.num_timesteps < params['imitation_steps'] and not (self.use_sde and self.use_sde_at_warmup):
             # Pretraining Phase
             unscaled_action = self._last_obs['sampled_action']
         else:

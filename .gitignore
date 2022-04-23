@@ -6,6 +6,7 @@
 *.pyc
 *__pycache__*
 *swp
+*avi
 key.json
 assets/plots/tests/
 assets/

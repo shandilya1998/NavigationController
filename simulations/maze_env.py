@@ -18,7 +18,6 @@ import tempfile
 import xml.etree.ElementTree as ET
 from typing import Any, List, Optional, Tuple, Type
 import gym
-from networkx.algorithms.dag import transitive_closure
 import numpy as np
 import networkx as nx
 from simulations import maze_env_utils, maze_task
@@ -34,9 +33,8 @@ import cv2
 import colorsys
 from simulations.maze_task import Rgb
 import open3d as o3d
-from utils.point_cloud import rotMatList2NPRotMat, quat2Mat, posRotMat2Mat, \
-    point_cloud_2_birdseye
-import matplotlib.pyplot as plt
+from utils.point_cloud import rotMatList2NPRotMat
+from simulations.maze_env_utils import MazeCell
 
 # Directory that contains mujoco xml files.
 MODEL_DIR = os.path.join(os.getcwd(), 'assets', 'xml')
@@ -124,19 +122,11 @@ class MazeEnv(gym.Env):
         self._maze_size_scaling = size_scaling = maze_size_scaling
         self._inner_reward_scaling = inner_reward_scaling
         self._put_spin_near_agent = self._task.PUT_SPIN_NEAR_AGENT
+        
+        self.set_structure() 
+
         # Observe other objectives
         self._restitution_coef = restitution_coef
-
-        if self.mode == 'train' or self.mode == 'eval':
-            self._maze_structure = self._task.create_simple_maze()
-        else:
-            self._maze_structure = self._task.create_maze()
-
-        structure = self._maze_structure
-        # Elevate the maze to allow for falling.
-        self.elevated = any(maze_env_utils.MazeCell.CHASM in row for row in structure)
-        # Are there any movable blocks?
-        self.blocks = any(any(r.can_move() for r in row) for row in structure)
         torso_x, torso_y = self._find_robot()
         self._init_torso_x = torso_x
         self._init_torso_y = torso_y
@@ -265,15 +255,48 @@ class MazeEnv(gym.Env):
             ori = ori + 2 * np.pi
 
         return pos, ori
+    
+    def _sample_maze_structure(self, scale):
+        structure = self._task.create_maze()
+        block_positions = []
+        for i in range(1, len(structure) -1):
+            for j in range(1, len(structure[i]) - 1):
+                if structure[i][j].is_wall_or_chasm():
+                    block_positions.append((i, j))
+        num_sampled = math.floor(len(block_positions) * scale)
+        sampled_positions = random.sample(block_positions, num_sampled)
+        _maze_structure = self._task.create_simple_maze()
+        B = MazeCell.BLOCK
+        for i, j in sampled_positions:
+            _maze_structure[i][j] = B
+        return _maze_structure
+    
+    def set_structure(self):
+        threshold_steps = (params['total_timesteps'] // 4) * 3
+        threshold_eps = 5 * threshold_steps // params['eval_freq']
+        if self.mode == 'train' and self.total_steps < threshold_steps:
+            scale = self.total_steps / threshold_steps
+            self._maze_structure = self._sample_maze_structure(scale)
+        elif self.mode == 'eval' and self.total_eps < threshold_eps:
+            scale = self.total_eps / threshold_eps
+            self._maze_structure = self._sample_maze_structure(scale)
+        else:
+            self._maze_structure = self._task.create_maze()
 
-    def set_env(self):
-        
+        structure = self._maze_structure
+        # Elevate the maze to allow for falling.
+        self.elevated = any(maze_env_utils.MazeCell.CHASM in row for row in structure)
+        # Are there any movable blocks?
+        self.blocks = any(any(r.can_move() for r in row) for row in structure)
+
         self._open_position_indices = []
         for i in range(len(self._maze_structure)):
             for j in range(len(self._maze_structure[i])):
                 if not self._maze_structure[i][j].is_wall_or_chasm():
                     self._open_position_indices.append([i, j])
 
+
+    def set_env(self):
         xml_path = os.path.join(MODEL_DIR, self.model_cls.FILE)
         tree = ET.parse(xml_path)
         worldbody = tree.find(".//worldbody")
@@ -445,15 +468,6 @@ class MazeEnv(gym.Env):
                 hsv_high.append(255)
             hsv_low.append(0)
             hsv_high.append(255)
-            """
-            if target_index == i:
-                print('hsv range', hsv_low, hsv_high)
-                print('hsv value', h * 180, s * 255, v * 255)
-                print('rgb, variables', r, g, b)
-                print('target rgb', target_rgb)
-                print('target_hsv', target_hsv[0] * 180, target_hsv[1] * 255, target_hsv[2] * 255)
-                print('rgb', rgb)
-            """
             goal.append({
                 'hsv_low' : copy.deepcopy(hsv_low),
                 'hsv_high' : copy.deepcopy(hsv_high),
@@ -473,11 +487,6 @@ class MazeEnv(gym.Env):
                     size = ' '.join(map(str, goal.custom_size))
                 else:
                     size = f"{goal.custom_size}"
-            """
-            if i == self._task.goal_index:
-                print(goal.rgb.red, goal.rgb.blue, goal.rgb.green)
-                print(self._task.colors[i])
-            """
             ET.SubElement(
                 worldbody,
                 "site",
@@ -885,9 +894,7 @@ class MazeEnv(gym.Env):
             w = size // 2
             h = size // 2
             bbx = np.array([x, y, w, h]).copy()
-
-        #print(x + w // 2, y + h // 2)
-        
+ 
         # attention window computation
         scale = 3
         x_min, x_max, y_min, y_max = self._get_scale_indices(
@@ -1223,7 +1230,6 @@ class MazeEnv(gym.Env):
                x_end <= ego_map.shape[0] and y_end <= ego_map.shape[1]
         ego_map[x_start: x_end, y_start: y_end] = self.map
         center = (half_size, half_size)
-        #print(ego_map.shape, xy)
         ori = -ori
         if ori < np.pi:
             ori += 2 * np.pi
@@ -1321,7 +1327,6 @@ class MazeEnv(gym.Env):
             floor_y_img,
             floor_pixel_values
         )
-        #print(np.unique(pixel_values), len(pixel_values))
         #floor_pixel_values[:] = 10
         self.map[floor_y_img, floor_x_img, 1] = floor_pixel_values
 
@@ -1353,7 +1358,6 @@ class MazeEnv(gym.Env):
         return loc_map, ego_map
 
     def _get_obs(self) -> np.ndarray:
-        #print(self.sim.model.cam_mat0[list(self.model.camera_names).index('mtdcam1')])
         obs = self.wrapped_env._get_obs()
         #obs['front'] = cv2.resize(obs['front'], (320, 320))
         img = obs['front'].copy()
@@ -1399,7 +1403,6 @@ class MazeEnv(gym.Env):
             fwd_range=self.allo_map_fwd_range,
             height_range = self.allo_map_height_range
         )
-        #print(allo_map.shape, ego_map.shape)
         if params['debug']:
             size = img.shape[0]
             cv2.imshow('stream camera', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
@@ -1407,8 +1410,8 @@ class MazeEnv(gym.Env):
                 window, (size, size)
             ), cv2.COLOR_RGB2BGR))
             cv2.imshow('depth stream', (obs['front_depth'] - 0.86) / 0.14)
-            #top = self.render('rgb_array')
-            #cv2.imshow('position stream', top)
+            top = self.render('rgb_array')
+            cv2.imshow('position stream', top)
             #cv2.imshow('bird eye view', cv2.resize(bird_eye_view, (image_width, image_height)))
             """
             cv2.imshow('ego map', complete_ego_map)
@@ -1455,10 +1458,7 @@ class MazeEnv(gym.Env):
         return _obs
 
     def reset(self) -> np.ndarray:
-        if self.mode == 'train' and self.total_steps > params['imitation_steps']:
-            self._maze_structure = self._task.create_maze()
-        elif self.mode == 'eval' and self.total_eps > 5 * params['imitation_steps'] / params['eval_freq']:
-            self._maze_structure = self._task.create_maze()
+        self.set_structure()
         self.collision_count = 0
         self.t = 0
         self.total_eps += 1
@@ -1566,7 +1566,6 @@ class MazeEnv(gym.Env):
                         blind[i] = True
         else:
             outbound = True
-        #print('almost collision: {}, blind: {}'.format(collision, blind))
         return collision, blind, outbound
 
     def conditional_blind(self, obs, yaw, b):
@@ -1576,7 +1575,6 @@ class MazeEnv(gym.Env):
                 penalty += -1.0 * self._inner_reward_scaling
         
         if self._is_in_collision():
-            #print('collision')
             penalty += -50.0 * self._inner_reward_scaling
             self.collision_count += 1
             obs['scale_1'] = np.zeros_like(obs['scale_1'])
@@ -1662,7 +1660,6 @@ class MazeEnv(gym.Env):
         info['outer_reward'] = outer_reward
         info['collision_penalty'] = collision_penalty
         info['coverage_reward'] = coverage_reward
-        #print('step {} reward: {}'.format(self.t, reward))
         return next_obs, reward, done, info
 
     def _get_current_cell(self):
@@ -1850,7 +1847,6 @@ class DiscreteMazeEnv(MazeEnv):
         return action
 
     def _get_obs(self) -> np.ndarray:
-        #print(self.sim.model.cam_mat0[list(self.model.camera_names).index('mtdcam1')])
         obs = self.wrapped_env._get_obs()
         #obs['front'] = cv2.resize(obs['front'], (320, 320))
         img = obs['front'].copy()
@@ -1895,7 +1891,6 @@ class DiscreteMazeEnv(MazeEnv):
             fwd_range=self.allo_map_fwd_range,
             height_range = self.allo_map_height_range
         )
-        #print(allo_map.shape, ego_map.shape)
         if params['debug']:
             size = img.shape[0]
             cv2.imshow('stream camera', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
@@ -2022,7 +2017,6 @@ class DiscreteMazeEnv(MazeEnv):
         info['outer_reward'] = outer_reward
         info['collision_penalty'] = collision_penalty
         info['coverage_reward'] = coverage_reward
-        #print('step {} reward: {}'.format(self.t, reward))
         return next_obs, reward, done, info
 
 def _add_object_ball(

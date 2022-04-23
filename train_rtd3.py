@@ -529,7 +529,7 @@ if __name__ == '__main__':
             callback_on_new_best = None,
             n_eval_episodes = params['n_eval_episodes'],
             eval_freq = params['eval_freq'],
-            render_every = 2,
+            render_every = 1,
             image_size = image_size,
             log_path = logdir,
             best_model_save_path = None,

@@ -116,6 +116,7 @@ class MazeEnv(gym.Env):
         self.top_view_size = params['top_view_size']
         self.t = 0  # time steps
         self.total_steps = 0 
+        self.total_eps = 0
         self.ep = 0
         self.max_episode_size = max_episode_size
         self._task = maze_task(maze_size_scaling, **task_kwargs)
@@ -126,13 +127,12 @@ class MazeEnv(gym.Env):
         # Observe other objectives
         self._restitution_coef = restitution_coef
 
-        self._maze_structure = structure = self._task.create_maze()
-        self._open_position_indices = []
-        for i in range(len(self._maze_structure)):
-            for j in range(len(self._maze_structure[i])):
-                if not self._maze_structure[i][j].is_wall_or_chasm():
-                    self._open_position_indices.append([i, j])
+        if self.mode == 'train' or self.mode == 'eval':
+            self._maze_structure = self._task.create_simple_maze()
+        else:
+            self._maze_structure = self._task.create_maze()
 
+        structure = self._maze_structure
         # Elevate the maze to allow for falling.
         self.elevated = any(maze_env_utils.MazeCell.CHASM in row for row in structure)
         # Are there any movable blocks?
@@ -267,6 +267,13 @@ class MazeEnv(gym.Env):
         return pos, ori
 
     def set_env(self):
+        
+        self._open_position_indices = []
+        for i in range(len(self._maze_structure)):
+            for j in range(len(self._maze_structure[i])):
+                if not self._maze_structure[i][j].is_wall_or_chasm():
+                    self._open_position_indices.append([i, j])
+
         xml_path = os.path.join(MODEL_DIR, self.model_cls.FILE)
         tree = ET.parse(xml_path)
         worldbody = tree.find(".//worldbody")
@@ -1448,8 +1455,13 @@ class MazeEnv(gym.Env):
         return _obs
 
     def reset(self) -> np.ndarray:
+        if self.mode == 'train' and self.total_steps > params['imitation_steps']:
+            self._maze_structure = self._task.create_maze()
+        elif self.mode == 'eval' and self.total_eps > 5 * params['imitation_steps'] / params['eval_freq']:
+            self._maze_structure = self._task.create_maze()
         self.collision_count = 0
         self.t = 0
+        self.total_eps += 1
         self.close()
         self.set_env()
         action = self.actions[0]

@@ -434,7 +434,8 @@ if __name__ == '__main__':
         PointEnv, CustomGoalReward4Rooms, 
         params['max_episode_size'],
         params['history_steps'],
-        params['max_seq_len'] * params['seq_sample_freq']
+        params['max_seq_len'] * params['seq_sample_freq'],
+        mode = 'train'
     )
 
     train_env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
@@ -508,6 +509,7 @@ if __name__ == '__main__':
         params['max_episode_size'],
         params['history_steps'],
         params['max_seq_len'] * params['seq_sample_freq'],
+        mode = 'eval'
     )
     image_size = ( 
         int(4 * env.top_view_size * len(env._maze_structure[0])),
@@ -525,7 +527,7 @@ if __name__ == '__main__':
             eval_env = eval_env,
             logdir = logdir,
             callback_on_new_best = None,
-            n_eval_episodes = 5,
+            n_eval_episodes = params['n_eval_episodes'],
             eval_freq = params['eval_freq'],
             render_every = 2,
             image_size = image_size,

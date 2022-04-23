@@ -426,9 +426,8 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
             return True
         return False
 
-"""
     @staticmethod
-    def create_maze() -> List[List[MazeCell]]:
+    def create_simple_maze() -> List[List[MazeCell]]:
         E, B, R = MazeCell.EMPTY, MazeCell.BLOCK, MazeCell.ROBOT
         return [
             [B, B, B, B, B, B, B, B, B, B, B, B, B, B, B],
@@ -447,7 +446,6 @@ class CustomGoalReward4Rooms(GoalReward4Rooms):
             [B, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
             [B, B, B, B, B, B, B, B, B, B, B, B, B, B, B],
         ]
-"""
 
 
 class CustomGoalReward4RoomsV2(GoalReward4Rooms):

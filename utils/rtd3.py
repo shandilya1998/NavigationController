@@ -1548,13 +1548,13 @@ class RTD3(sb3.TD3):
                     supervised_loss_ratios.append(ratio)
                     supervised_loss = torch.nn.functional.l1_loss(action, replay_data.observations['scaled_sampled_action'][:, -1, :])
                     supervised_losses.append(supervised_loss.item())
-                    q, _ = self.critic.q1_forward(replay_data.observations, action, replay_data.states)
+                    q = self.critic.q1_forward(replay_data.observations, action, replay_data.states)
                     q_loss = -q.mean()
                     actor_losses.append(q_loss.item())
                     actor_loss = supervised_loss * ratio + q_loss * (1 - ratio)
                 else:
                     supervised_loss_ratios.append(0.0)
-                    q, _ = self.critic.q1_forward(replay_data.observations, action, replay_data.states)
+                    q = self.critic.q1_forward(replay_data.observations, action, replay_data.states)
                     actor_loss = -q.mean()
                     actor_losses.append(actor_loss.item())
 

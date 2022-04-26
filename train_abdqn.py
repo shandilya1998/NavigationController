@@ -1,7 +1,5 @@
-from utils.rtd3 import RTD3, RTD3Policy, DictReplayBuffer, TimeDistributedFeaturesExtractor
-from utils.td3 import FeaturesExtractor
 from constants import params
-from simulations.maze_env import MazeEnv
+from simulations.maze_env import DiscreteMazeEnv, MazeEnv
 from simulations.point import PointEnv
 from simulations.maze_task import CustomGoalReward4Rooms
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
@@ -13,6 +11,7 @@ import stable_baselines3 as sb3
 import numpy as np
 import torch
 from utils import set_seeds
+from utils.abdqn import ABDQN, DQNPolicy, FeaturesExtractor
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import matplotlib.pyplot as plt
 
@@ -105,13 +104,9 @@ def evaluate_policy(
     current_rewards = np.zeros(n_envs)
     current_lengths = np.zeros(n_envs, dtype="int")
     observations = env.reset()
-    states = [
-        np.zeros((model.state_spec[0], 1, model.state_spec[1]), dtype = np.float32),
-        np.zeros((model.state_spec[0], 1, model.state_spec[1]), dtype = np.float32)
-    ]
+    states = None
     while (episode_counts < episode_count_targets).any():
-        obs = {key: np.expand_dims(ob, 1) for key, ob in observations.items()}
-        actions, states = model.predict(obs, state=states, deterministic=deterministic)
+        actions, states = model.predict(observations, state=states, deterministic=deterministic)
         observations, rewards, dones, infos = env.step(actions)
         current_rewards += rewards
         current_lengths += 1
@@ -127,10 +122,6 @@ def evaluate_policy(
                     callback(locals(), globals())
 
                 if dones[i]:
-                    states = [
-                        np.zeros((model.state_spec[0], 1, model.state_spec[1]), dtype = np.float32),
-                        np.zeros((model.state_spec[0], 1, model.state_spec[1]), dtype = np.float32)
-                    ]
                     if is_monitor_wrapped:
                         # Atari wrapper can send a "done" signal when
                         # the agent loses a life, but it does not correspond
@@ -149,6 +140,8 @@ def evaluate_policy(
                         episode_counts[i] += 1
                     current_rewards[i] = 0
                     current_lengths[i] = 0
+                    if states is not None:
+                        states[i] *= 0
 
         if render:
             env.render()
@@ -160,6 +153,7 @@ def evaluate_policy(
     if return_episode_rewards:
         return episode_rewards, episode_lengths
     return mean_reward, std_reward
+
 
 class Callback(sb3.common.callbacks.EventCallback):
     """
@@ -416,26 +410,18 @@ class Callback(sb3.common.callbacks.EventCallback):
         if self.callback:
             self.callback.update_locals(locals_)
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     device = 'auto'
     set_seeds(params['seed'])
     logdir = '/content/drive/MyDrive/CNS/exp22'
-    pretrained_params_path = '/content/drive/MyDrive/CNS/exp22/autoencoder/exp/model_epoch_100.pt'
     if params['debug']:
         logdir = 'assets/out/models/exp22'
-        pretrained_params_path = 'assets/out/models/autoencoder/model_epoch_100.pt'
-
-    imitate_policy_path = '/content/drive/MyDrive/CNS/exp22/Imitate_2/il_model_300000_steps.zip'
-    if params['debug']:
-        imitate_policy_path = 'assets/out/models/imitate/il_model_300000_steps.zip'
     
-    _env = MazeEnv(
+    _env = DiscreteMazeEnv(
         PointEnv, CustomGoalReward4Rooms, 
         params['max_episode_size'],
-        params['history_steps'],
-        params['max_seq_len'] * params['seq_sample_freq'],
-        mode = 'train'
+        params['history_steps']
     )
 
     train_env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
@@ -445,35 +431,22 @@ if __name__ == '__main__':
             )
         ])
     )
-    n_actions = train_env.action_space.sample().shape[-1]
-    action_noise = sb3.common.noise.OrnsteinUhlenbeckActionNoise(
-        params['OU_MEAN'] * np.ones(n_actions),
-        params['OU_SIGMA'] * np.ones(n_actions),
-        dt = params['dt']
-    )
 
-    activation_fn = torch.nn.ReLU
     policy_kwargs = {
-        'net_arch' : params['net_arch'],
-        'activation_fn' : activation_fn,
-        'features_extractor_class' :  TimeDistributedFeaturesExtractor,
+        'net_arch' : [params['net_arch']] * (len(train_env.action_space.nvec) + 1),
+        'activation_fn' : torch.nn.ReLU,
+        'features_extractor_class' : FeaturesExtractor,
         'features_extractor_kwargs' : {
-            'activation_fn' : activation_fn,
             'features_dim' : params['num_ctx'],
-            'pretrained_params_path' : pretrained_params_path,
-            'device' : 'cuda' if torch.cuda.is_available() else 'cpu'
+            'activation_fn' : torch.nn.ReLU
         },
         'normalize_images' : True,
         'optimizer_class' : torch.optim.Adam,
         'optimizer_kwargs' : None,
-        'n_critics' : params['n_critics'],
-        'share_features_extractor' : True
     }
 
-    state_spec = (2, params['num_ctx'])
-
-    model = RTD3(
-        policy = RTD3Policy,
+    model = ABDQN(
+        policy = DQNPolicy,
         env = train_env,
         learning_rate = linear_schedule(params['lr'], params['final_lr']),
         buffer_size = params['buffer_size'],
@@ -481,37 +454,28 @@ if __name__ == '__main__':
         batch_size = params['batch_size'],
         tau = params['tau'],
         gamma = params['gamma'],
-        train_freq = (params['max_seq_len'], 'step'),
+        train_freq = (1, 'episode'),
         gradient_steps = -1,
-        action_noise = action_noise,
-        replay_buffer_class = DictReplayBuffer,
-        optimize_memory_usage = False,
-        policy_delay = params['policy_delay'],
-        target_policy_noise = 0.2,
-        target_noise_clip = 0.5,
+        replay_buffer_class = sb3.common.buffers.DictReplayBuffer,
+        replay_buffer_kwargs = None,
+        target_update_interval = 1000,
+        exploration_fraction = 0.2,
+        exploration_initial_eps = 1.0,
+        exploration_final_eps = 0.05,
+        max_grad_norm = 10,
         tensorboard_log = logdir,
         create_eval_env = False,
         policy_kwargs = policy_kwargs,
+        verbose = 2,
         seed = params['seed'],
         device = device,
         _init_setup_model = True,
-        verbose = 2,
-        state_spec=state_spec,
-        max_seq_len=params['max_seq_len'],
     )
 
-    """
-    model.set_parameters(
-        imitate_policy_path
-    )
-    """
-
-    env = MazeEnv(
+    env = DiscreteMazeEnv(
         PointEnv, CustomGoalReward4Rooms,
         params['max_episode_size'],
         params['history_steps'],
-        params['max_seq_len'] * params['seq_sample_freq'],
-        mode = 'eval'
     )
     image_size = ( 
         int(4 * env.top_view_size * len(env._maze_structure[0])),
@@ -529,9 +493,9 @@ if __name__ == '__main__':
             eval_env = eval_env,
             logdir = logdir,
             callback_on_new_best = None,
-            n_eval_episodes = params['n_eval_episodes'],
+            n_eval_episodes = 5,
             eval_freq = params['eval_freq'],
-            render_every = 1,
+            render_every = 2,
             image_size = image_size,
             log_path = logdir,
             best_model_save_path = None,
@@ -550,8 +514,7 @@ if __name__ == '__main__':
 
     model.learn(
         total_timesteps = params['total_timesteps'],
-        callback = callbacks,
-        tb_log_name = 'RTD3'
+        callback = callbacks
     )
 
     print('Training Done.')

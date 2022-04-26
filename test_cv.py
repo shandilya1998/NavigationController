@@ -2,7 +2,7 @@ from simulations.maze_env import MazeEnv, DiscreteMazeEnv
 from simulations.point import PointEnv, PointEnvV2
 from simulations.maze_task import CustomGoalReward4Rooms, \
     GoalRewardNoObstacle, GoalRewardSimple, CustomGoalReward4RoomsV2
-env = MazeEnv(PointEnv, CustomGoalReward4Rooms)
+env = DiscreteMazeEnv(PointEnv, CustomGoalReward4Rooms)
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
@@ -269,6 +269,7 @@ if params['debug']:
     ax.set_xlabel('steps')
     ax.set_ylabel('reward')
 """
+
 total_reward = 0.0
 ac = env.get_action()
 top = env.render('rgb_array')
@@ -278,8 +279,12 @@ video = cv2.VideoWriter(
     cv2.VideoWriter_fourcc(*"MJPG"), 10, image_size, isColor = True
 )
 
+speed = []
+angular = []
 while not done:
     ob, reward, done, info = env.step(ob['sampled_action'])
+    speed.append(np.sqrt(env.data.qvel[0] ** 2 + env.data.qvel[1] ** 2))
+    angular.append(env.data.qvel[2])
     top = env.render('rgb_array')
     top = cv2.cvtColor(
         top,
@@ -335,8 +340,14 @@ pbar.close()
 print('Ideal Path:')
 print('collision counts: {}'.format(count_collisions))
 print('total_reward:     {}'.format(total_reward))
+
 block_size = 50
-fig2, ax = plt.subplots(1,1)
+fig2, ax = plt.subplots(1,3, figsize = (9, 3))
+ax[0].set_xlabel('steps')
+ax[0].set_ylabel('speed')
+ax[1].set_xlabel('steps')
+ax[1].set_ylabel('angular velocity')
+
 def xy_to_imgrowcol(x, y):
     (row, row_frac), (col, col_frac) = env._xy_to_rowcol_v2(x, y)
     row = block_size * row + int((row_frac) * block_size)
@@ -401,6 +412,8 @@ for x, y in zip(env.cx, env.cy):
     row, col = xy_to_imgrowcol(x, y)
     img[row - int(block_size / 50): row + int(block_size / 50), col - int(block_size / 50): col + int(block_size / 50)] = [1, 1, 1]
 
-ax.imshow(np.rot90(np.flipud(img)))
+ax[0].imshow(np.rot90(np.flipud(img)))
+ax[1].plot(speed)
+ax[2].plot(angular)
 #fig.savefig('output.png')
 plt.show()

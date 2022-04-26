@@ -576,6 +576,7 @@ class MazeEnv(gym.Env):
         x_max = 1 + int((side_range[1] - side_range[0]) / self.resolution)
         y_max = 1 + int((fwd_range[1] - fwd_range[0]) / self.resolution)
         self.map = np.zeros([y_max, x_max, 3], dtype=np.uint8)
+        self.reward = 0.0
         ob = self._get_obs()
         self._set_observation_space(ob)
 
@@ -1257,12 +1258,10 @@ class MazeEnv(gym.Env):
 
     def get_local_map_v2(self):
         xy = self.data.qpos[:2]
-        ori = self.data.qpos[2]
         x_img = int(-xy[1] / self.resolution)
         y_img = int(-xy[0] / self.resolution)
         x_img -= int(np.floor(self.allo_map_side_range[0] / self.resolution))
         y_img += int(np.ceil(self.allo_map_fwd_range[1] / self.resolution))
-
 
     def get_maps(self,
             depth,
@@ -1388,9 +1387,9 @@ class MazeEnv(gym.Env):
         ])
         sensors = np.concatenate([
             self.data.qvel.copy() / max_vel,
-            np.array([self.get_ori() / np.pi, self.t / self.max_episode_size], dtype = np.float32),
-            goal.copy()
-        ] +  [
+            np.array([self.get_ori()], dtype = np.float32),
+            np.array([self.reward]).copy()
+        ] + [
             (action.copy() - self.action_space.low) / (self.action_space.high - self.action_space.low) for action in self.actions
         ], -1)
 
@@ -1646,8 +1645,8 @@ class MazeEnv(gym.Env):
             info['is_success'] = False
         if outbound:
             collision_penalty += -10.0 * self._inner_reward_scaling
-            next_obs['scale_1'] = np.zeros_like(obs['scale_1'])
-            next_obs['scale_2'] = np.zeros_like(obs['scale_2'])
+            next_obs['scale_1'] = np.zeros_like(next_obs['scale_1'])
+            next_obs['scale_2'] = np.zeros_like(next_obs['scale_2'])
             done = True
         if self.t > self.max_episode_size:
             done = True
@@ -1656,6 +1655,7 @@ class MazeEnv(gym.Env):
             done = True
 
         reward = inner_reward + outer_reward + collision_penalty + coverage_reward
+        self.reward = reward
         info['inner_reward'] = inner_reward
         info['outer_reward'] = outer_reward
         info['collision_penalty'] = collision_penalty
@@ -1798,7 +1798,7 @@ class DiscreteMazeEnv(MazeEnv):
         )
 
     def _set_action_space(self):
-        self._action_space = gym.spaces.MultiDiscrete([2, 13])
+        self._action_space = gym.spaces.MultiDiscrete([2, 3])
  
     def discrete_vyaw(self, vyaw):
         if vyaw < -0.125:
@@ -1853,7 +1853,7 @@ class DiscreteMazeEnv(MazeEnv):
         #assert img.shape[0] == img.shape[1]
         # Target Detection and Attention Window
         bbx = self.detect_target(img)
-        window = self.get_attention_window(obs['front'], bbx)
+        window, bbx = self.get_attention_window(obs['front'], bbx)
         inframe = True if len(bbx) > 0 else False 
 
         # Sampled Action
@@ -1872,13 +1872,13 @@ class DiscreteMazeEnv(MazeEnv):
             self.wrapped_env.VELOCITY_LIMITS,
             self.wrapped_env.action_space.high[1]
         ])
-        low = self.wrapped_env.action_space.low[0]
-        high = self.wrapped_env.action_space.high[0]
+        high = self.wrapped_env.action_space.high[1]
+        low = self.wrapped_env.action_space.low[1]
         sensors = np.concatenate([
             self.data.qvel.copy() / max_vel,
-            np.array([self.get_ori() / np.pi, self.t / self.max_episode_size], dtype = np.float32),
-            goal.copy()
-        ] +  [
+            np.array([self.get_ori() / np.pi], dtype = np.float32),
+            np.array([self.reward]).copy()
+        ] + [
             (action.copy() - low) / (high - low) for action in self.actions
         ], -1)
 
@@ -1898,8 +1898,8 @@ class DiscreteMazeEnv(MazeEnv):
                 window, (size, size)
             ), cv2.COLOR_RGB2BGR))
             cv2.imshow('depth stream', (obs['front_depth'] - 0.86) / 0.14)
-            #top = self.render('rgb_array')
-            #cv2.imshow('position stream', top)
+            top = self.render('rgb_array')
+            cv2.imshow('position stream', top)
             #cv2.imshow('bird eye view', cv2.resize(bird_eye_view, (image_width, image_height)))
             """
             cv2.imshow('ego map', complete_ego_map)
@@ -1928,11 +1928,13 @@ class DiscreteMazeEnv(MazeEnv):
             'scale_2' : scale_2.copy(),
             'sensors' : sensors,
             'sampled_action' : sampled_action.copy(),
+            'scaled_sampled_action' : sampled_action.copy(),
             'depth' : depth,
             'inframe' : np.array([inframe], dtype = np.float32),
             'positions' : positions.copy(),
             'ego_map' : ego_map.copy(),
-            'loc_map' : loc_map.copy()
+            'loc_map' : loc_map.copy(),
+            'bbx' : bbx.copy()
         }
 
         if params['add_ref_scales']:
@@ -1951,7 +1953,7 @@ class DiscreteMazeEnv(MazeEnv):
         self.total_steps += 1
         info = {}
         self.actions.pop(0)
-        self.actions.append(action.copy()[1:])
+        self.actions.append(action.copy())
         coverage = self.get_coverage(self.map)
         _, inner_reward, _, info = self.wrapped_env.step(action)
 
@@ -2013,6 +2015,7 @@ class DiscreteMazeEnv(MazeEnv):
             done = True
 
         reward = inner_reward + outer_reward + collision_penalty + coverage_reward
+        self.reward = reward
         info['inner_reward'] = inner_reward
         info['outer_reward'] = outer_reward
         info['collision_penalty'] = collision_penalty

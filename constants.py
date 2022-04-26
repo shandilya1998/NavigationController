@@ -45,7 +45,7 @@ params = {
     'burn_in_seq_len'             : 5,
     'total_timesteps'             : int(1e6),
     'history_steps'               : 50,
-    'net_arch'                    : [300, 150, 75],
+    'net_arch'                    : [300, 75],
     'n_critics'                   : 2,
     'ds'                          : 0.01,
     'motor_cortex'                : [256, 128],

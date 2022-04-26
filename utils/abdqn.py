@@ -388,7 +388,7 @@ class ABDQN(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         This method is called in ``collect_rollouts()`` after each step in the environment.
         """
         if self.num_timesteps % self.target_update_interval == 0:
-            polyak_update(self.q_net.parameters(), self.q_net_target.parameters(), self.tau)
+            sb3.common.utils.polyak_update(self.q_net.parameters(), self.q_net_target.parameters(), self.tau)
 
         self.exploration_rate = self.exploration_schedule(self._current_progress_remaining)
         self.logger.record("rollout/exploration rate", self.exploration_rate)

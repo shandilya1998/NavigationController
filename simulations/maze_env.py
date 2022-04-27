@@ -1796,15 +1796,16 @@ class DiscreteMazeEnv(MazeEnv):
             image_shape=image_shape,
             **kwargs,
         )
+        self.target_speed = 4
 
     def _set_action_space(self):
-        self._action_space = gym.spaces.MultiDiscrete([2, 11])
+        self._action_space = gym.spaces.MultiDiscrete([6, 11])
 
     def discrete_v(self, v):
         if v < self.target_speed / 8:
             v = 0
         else:
-            v = 1
+            v = 3
         return v
 
     def discrete_vyaw(self, vyaw):
@@ -1847,7 +1848,7 @@ class DiscreteMazeEnv(MazeEnv):
         vyaw = self.discrete_vyaw(vyaw)
         v = self.discrete_v(v)
         self.sampled_action = np.array([
-            1,
+            3,
             vyaw,
         ], dtype = np.float32)
         return self.sampled_action
@@ -1857,7 +1858,15 @@ class DiscreteMazeEnv(MazeEnv):
         if move == 0:
             move = 0
         elif move == 1:
+            move = self.target_speed / 8
+        elif move == 2:
+            move = self.target_speed / 4
+        elif move == 3:
+            move = self.target_speed / 2
+        elif move == 4:
             move = self.target_speed
+        elif move == 5:
+            move = -self.target_speed / 4
         else:
             raise ValueError
 
@@ -1896,8 +1905,8 @@ class DiscreteMazeEnv(MazeEnv):
         #assert img.shape[0] == img.shape[1]
         # Target Detection and Attention Window
         bbx = self.detect_target(img)
-        window, bbx = self.get_attention_window(obs['front'], bbx)
         inframe = True if len(bbx) > 0 else False 
+        window, bbx = self.get_attention_window(obs['front'], bbx)
 
         # Sampled Action
         sampled_action = self.get_action().astype(np.float32)
@@ -1965,6 +1974,7 @@ class DiscreteMazeEnv(MazeEnv):
         )
 
         positions = np.concatenate(self.positions + [self._task.goals[self._task.goal_index].pos], -1)
+
 
         _obs = {
             'scale_1' : window.copy(),
@@ -2058,6 +2068,7 @@ class DiscreteMazeEnv(MazeEnv):
             done = True
 
         reward = inner_reward + outer_reward + collision_penalty + coverage_reward
+
         self.reward = reward
         info['inner_reward'] = inner_reward
         info['outer_reward'] = outer_reward

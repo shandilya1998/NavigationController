@@ -1571,10 +1571,10 @@ class MazeEnv(gym.Env):
         penalty = 0.0
         for direction in b:
             if direction:
-                penalty += -1.0 * self._inner_reward_scaling
+                penalty += -0.005 * self._inner_reward_scaling
         
         if self._is_in_collision():
-            penalty += -50.0 * self._inner_reward_scaling
+            penalty += -0.25 * self._inner_reward_scaling
             self.collision_count += 1
             obs['scale_1'] = np.zeros_like(obs['scale_1'])
             obs['scale_2'] = np.zeros_like(obs['scale_2'])
@@ -1606,7 +1606,7 @@ class MazeEnv(gym.Env):
         collision_penalty = 0.0
         next_obs = self._get_obs()
         next_coverage = self.get_coverage(self.map)
-        coverage_reward = next_coverage - coverage
+        coverage_reward = (next_coverage - coverage) * 0.005
 
         # Computing the reward in "https://ieeexplore.ieee.org/document/8398461"
         goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
@@ -1619,12 +1619,12 @@ class MazeEnv(gym.Env):
         vyaw = qvel[self.wrapped_env.ORI_IND]
         vmax = self.target_speed
         if bool(next_obs['inframe'][0]):
-            inner_reward = (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / params['max_vyaw']))
+            inner_reward = (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / params['max_vyaw'])) * 0.005
             inner_reward = self._inner_reward_scaling * inner_reward
 
         # Task Reward Computation
         outer_reward = 0
-        outer_reward = self._task.reward(next_pos, bool(next_obs['inframe'][0]), self._start_pos)
+        outer_reward = self._task.reward(next_pos, bool(next_obs['inframe'][0]), self._start_pos) * 0.005
         done = self._task.termination(self.wrapped_env.get_xy(),  bool(next_obs['inframe'][0]))
         info["position"] = self.wrapped_env.get_xy()
 
@@ -1633,25 +1633,25 @@ class MazeEnv(gym.Env):
         self._current_cell = index
         almost_collision, blind, outbound = self.check_position(next_pos)
         if almost_collision:
-            collision_penalty += -1.0 * self._inner_reward_scaling
+            collision_penalty += -0.005 * self._inner_reward_scaling
         next_obs, penalty = self.conditional_blind(next_obs, yaw, blind)
         collision_penalty += penalty
 
         # Reward and Info Declaration
         if done:
-            outer_reward += 200.0
+            outer_reward += 1.0
             info['is_success'] = True
         else:
             info['is_success'] = False
         if outbound:
-            collision_penalty += -10.0 * self._inner_reward_scaling
+            collision_penalty += -0.05 * self._inner_reward_scaling
             next_obs['scale_1'] = np.zeros_like(next_obs['scale_1'])
             next_obs['scale_2'] = np.zeros_like(next_obs['scale_2'])
             done = True
         if self.t > self.max_episode_size:
             done = True
         
-        if collision_penalty < -10.0:
+        if collision_penalty < -0.05:
             done = True
 
         reward = inner_reward + outer_reward + collision_penalty + coverage_reward
@@ -1798,15 +1798,38 @@ class DiscreteMazeEnv(MazeEnv):
         )
 
     def _set_action_space(self):
-        self._action_space = gym.spaces.MultiDiscrete([2, 3])
- 
-    def discrete_vyaw(self, vyaw):
-        if vyaw < -0.125:
-            vyaw = 0
-        elif vyaw < 0.125:
-            vyaw = 1
+        self._action_space = gym.spaces.MultiDiscrete([2, 11])
+
+    def discrete_v(self, v):
+        if v < self.target_speed / 8:
+            v = 0
         else:
+            v = 1
+        return v
+
+    def discrete_vyaw(self, vyaw):
+        if vyaw < -1.125:
+            vyaw = 0
+        elif vyaw < -0.5625:
+            vyaw = 1
+        elif vyaw < -0.28125:
             vyaw = 2
+        elif vyaw < -0.140625:
+            vyaw = 3
+        elif vyaw < -0.046875:
+            vyaw = 4
+        elif vyaw < 0.046875:
+            vyaw = 5
+        elif vyaw < 0.140625:
+            vyaw = 6
+        elif vyaw < 0.28125:
+            vyaw = 7
+        elif vyaw < 0.5625:
+            vyaw = 8
+        elif vyaw < 1.125:
+            vyaw = 9
+        else:
+            vyaw = 10
         return vyaw
 
     def get_action(self):
@@ -1822,6 +1845,7 @@ class DiscreteMazeEnv(MazeEnv):
         #yaw = self.state.yaw
         # Refer to simulations/point PointEnv: def step() for more information
         vyaw = self.discrete_vyaw(vyaw)
+        v = self.discrete_v(v)
         self.sampled_action = np.array([
             1,
             vyaw,
@@ -1832,13 +1856,32 @@ class DiscreteMazeEnv(MazeEnv):
         move, omega = action
         if move == 0:
             move = 0
-        else:
+        elif move == 1:
             move = self.target_speed
+        else:
+            raise ValueError
+
         if omega == 0:
             omega = -1.5
         elif omega == 1:
-            omega = 0.0
+            omega = -0.75
         elif omega == 2:
+            omega = -0.375
+        elif omega == 3:
+            omega = -0.1875
+        elif omega == 4:
+            omega = -0.092375
+        elif omega == 5:
+            omega = 0.0
+        elif omega == 6:
+            omega = 0.092375
+        elif omega == 7:
+            omega = 0.1875
+        elif omega == 8:
+            omega = 0.375
+        elif omega == 9:
+            omega = 0.75
+        elif omega == 10:
             omega = 1.5
         else:
             raise ValueError
@@ -1966,7 +2009,7 @@ class DiscreteMazeEnv(MazeEnv):
         collision_penalty = 0.0
         next_obs = self._get_obs()
         next_coverage = self.get_coverage(self.map)
-        coverage_reward = next_coverage - coverage
+        coverage_reward = (next_coverage - coverage) * 0.005
 
         # Computing the reward in "https://ieeexplore.ieee.org/document/8398461"
         goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
@@ -1979,12 +2022,12 @@ class DiscreteMazeEnv(MazeEnv):
         vyaw = qvel[self.wrapped_env.ORI_IND]
         vmax = self.target_speed
         if bool(next_obs['inframe'][0]):
-            inner_reward = (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / params['max_vyaw']))
+            inner_reward = (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / params['max_vyaw'])) * 0.005
             inner_reward = self._inner_reward_scaling * inner_reward
 
         # Task Reward Computation
         outer_reward = 0
-        outer_reward = self._task.reward(next_pos, bool(next_obs['inframe'][0]), self._start_pos)
+        outer_reward = self._task.reward(next_pos, bool(next_obs['inframe'][0]), self._start_pos) * 0.005
         done = self._task.termination(self.wrapped_env.get_xy(),  bool(next_obs['inframe'][0]))
         info["position"] = self.wrapped_env.get_xy()
 
@@ -1993,25 +2036,25 @@ class DiscreteMazeEnv(MazeEnv):
         self._current_cell = index
         almost_collision, blind, outbound = self.check_position(next_pos)
         if almost_collision:
-            collision_penalty += -1.0 * self._inner_reward_scaling
+            collision_penalty += -0.005 * self._inner_reward_scaling
         next_obs, penalty = self.conditional_blind(next_obs, yaw, blind)
         collision_penalty += penalty
 
         # Reward and Info Declaration
         if done:
-            outer_reward += 200.0
+            outer_reward += 1.0
             info['is_success'] = True
         else:
             info['is_success'] = False
         if outbound:
-            collision_penalty += -10.0 * self._inner_reward_scaling
-            next_obs['scale_1'] = np.zeros_like(obs['scale_1'])
-            next_obs['scale_2'] = np.zeros_like(obs['scale_2'])
+            collision_penalty += -0.05 * self._inner_reward_scaling
+            next_obs['scale_1'] = np.zeros_like(next_obs['scale_1'])
+            next_obs['scale_2'] = np.zeros_like(next_obs['scale_2'])
             done = True
         if self.t > self.max_episode_size:
             done = True
         
-        if collision_penalty < -10.0:
+        if collision_penalty < -0.05:
             done = True
 
         reward = inner_reward + outer_reward + collision_penalty + coverage_reward

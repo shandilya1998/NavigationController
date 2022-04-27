@@ -342,11 +342,13 @@ print('collision counts: {}'.format(count_collisions))
 print('total_reward:     {}'.format(total_reward))
 
 block_size = 50
-fig2, ax = plt.subplots(1,3, figsize = (9, 3))
-ax[0].set_xlabel('steps')
-ax[0].set_ylabel('speed')
-ax[1].set_xlabel('steps')
-ax[1].set_ylabel('angular velocity')
+fig2, ax = plt.subplots(2,2, figsize = (6, 6))
+ax[0][1].set_xlabel('steps')
+ax[0][1].set_ylabel('speed')
+ax[1][0].set_xlabel('steps')
+ax[1][0].set_ylabel('angular velocity')
+ax[1][1].set_xlabel('steps')
+ax[1][1].set_ylabel('reward')
 
 def xy_to_imgrowcol(x, y):
     (row, row_frac), (col, col_frac) = env._xy_to_rowcol_v2(x, y)
@@ -412,8 +414,9 @@ for x, y in zip(env.cx, env.cy):
     row, col = xy_to_imgrowcol(x, y)
     img[row - int(block_size / 50): row + int(block_size / 50), col - int(block_size / 50): col + int(block_size / 50)] = [1, 1, 1]
 
-ax[0].imshow(np.rot90(np.flipud(img)))
-ax[1].plot(speed)
-ax[2].plot(angular)
+ax[0][0].imshow(np.rot90(np.flipud(img)))
+ax[0][1].plot(speed)
+ax[1][0].plot(angular)
+ax[1][1].plot(REWARDS[:-1])
 #fig.savefig('output.png')
 plt.show()

@@ -421,7 +421,8 @@ if __name__ == '__main__':
     _env = DiscreteMazeEnv(
         PointEnv, CustomGoalReward4Rooms, 
         params['max_episode_size'],
-        params['history_steps']
+        params['history_steps'],
+        mode = 'train'
     )
 
     train_env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
@@ -476,6 +477,7 @@ if __name__ == '__main__':
         PointEnv, CustomGoalReward4Rooms,
         params['max_episode_size'],
         params['history_steps'],
+        mode = 'eval'
     )
     image_size = ( 
         int(4 * env.top_view_size * len(env._maze_structure[0])),

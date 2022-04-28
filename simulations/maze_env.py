@@ -576,9 +576,9 @@ class MazeEnv(gym.Env):
         x_max = 1 + int((side_range[1] - side_range[0]) / self.resolution)
         y_max = 1 + int((fwd_range[1] - fwd_range[0]) / self.resolution)
         self.map = np.zeros([y_max, x_max, 3], dtype=np.uint8)
+        self.maps = [self.map.copy()] * self.n_steps
         self.reward = 0.0
-        self.loc_map = [self.get_local_map().copy()] * self.n_steps
-        self.coverage = [self.get_coverage(self.map)] * self.n_steps
+        self.loc_map = [self.get_local_map(self.map).copy()] * self.n_steps
         ob = self._get_obs()
         self._set_observation_space(ob)
 
@@ -1216,8 +1216,8 @@ class MazeEnv(gym.Env):
         points[:, 1] = points[:, 1] + xy[1]
         return points
 
-    def get_local_map(self):
-        half_size = max(self.map.shape[0], self.map.shape[1])
+    def get_local_map(self, global_map):
+        half_size = max(global_map.shape[0], global_map.shape[1])
         ego_map = np.zeros((half_size * 2, half_size * 2, 3), dtype = np.uint8)
         xy = self.data.qpos[:2]
         ori = self.data.qpos[2]
@@ -1226,12 +1226,12 @@ class MazeEnv(gym.Env):
         x_img -= int(np.floor(self.allo_map_side_range[0] / self.resolution))
         y_img += int(np.ceil(self.allo_map_fwd_range[1] / self.resolution))
         x_start = half_size - y_img
-        x_end = x_start + self.map.shape[1]
+        x_end = x_start + global_map.shape[1]
         y_start = half_size - x_img
-        y_end = y_start + self.map.shape[0]
+        y_end = y_start + global_map.shape[0]
         assert x_start >= 0 and y_start >= 0 and \
                x_end <= ego_map.shape[0] and y_end <= ego_map.shape[1]
-        ego_map[x_start: x_end, y_start: y_end] = self.map
+        ego_map[x_start: x_end, y_start: y_end] = global_map
         center = (half_size, half_size)
         ori = -ori
         if ori < np.pi:
@@ -1347,9 +1347,12 @@ class MazeEnv(gym.Env):
         objects_x_img, objects_y_img, objects_pixel_values = sort_arrays(objects_x_img, objects_y_img, objects_pixel_values)
 
         self.map[objects_y_img, objects_x_img, 2] = objects_pixel_values
-        ego_map = self.get_ego_map(borders_cloud, floor_cloud, objects_cloud)
-        loc_map = self.get_local_map()
-        return loc_map, ego_map
+
+        self.maps.pop(0)
+        self.maps.append(self.map.copy())
+        #ego_map = self.get_ego_map(borders_cloud, floor_cloud, objects_cloud)
+        loc_map = self.get_local_map(self.map)
+        return loc_map
 
     def _get_obs(self) -> np.ndarray:
         obs = self.wrapped_env._get_obs()
@@ -1389,7 +1392,7 @@ class MazeEnv(gym.Env):
         ], -1)
 
         #complete_ego_map, border_ego_map, floor_ego_map, objects_ego_map, target_ego_map = self.get_ego_maps(obs['front_depth'], obs['front'])
-        loc_map, ego_map = self.get_maps(
+        loc_map = self.get_maps(
             obs['front_depth'],
             obs['front'],
             res = self.resolution,
@@ -1414,9 +1417,9 @@ class MazeEnv(gym.Env):
             cv2.imshow('objects', objects_ego_map)
             cv2.imshow('target', target_ego_map)
             """
-            cv2.imshow('allocentric map', cv2.resize(loc_map, (image_width, image_height)))
-            cv2.imshow('previous allocentric map', cv2.resize(self.loc_map[0], (image_width, image_height)))
-            cv2.imshow('egocentric map', cv2.resize(ego_map, (image_width, image_height)))
+            cv2.imshow('global egoocentric map', cv2.resize(loc_map[:, :, :3], (image_width, image_height)))
+            cv2.imshow('previous global egocentric map', cv2.resize(self.loc_map[0][:, :, :3], (image_width, image_height)))
+            #cv2.imshow('egocentric map', cv2.resize(ego_map, (image_width, image_height)))
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 pass
 
@@ -1573,7 +1576,7 @@ class MazeEnv(gym.Env):
                 penalty += -0.005 * self._inner_reward_scaling
         
         if self._is_in_collision():
-            penalty += -0.25 * self._inner_reward_scaling
+            penalty += -0.99 * self._inner_reward_scaling
             self.collision_count += 1
             obs['scale_1'] = np.zeros_like(obs['scale_1'])
             obs['scale_2'] = np.zeros_like(obs['scale_2'])
@@ -1603,9 +1606,9 @@ class MazeEnv(gym.Env):
         next_pos = self.wrapped_env.get_xy()
         collision_penalty = 0.0
         next_obs = self._get_obs()
-        self.coverage.pop(0)
-        self.coverage.append(self.get_coverage(self.map))
-        coverage_reward = (self.coverage[-1] - self.coverage[0]) * 0.1
+        last_coverage = self.get_coverage(self.maps[0])
+        coverage = self.get_coverage(self.maps[-1])
+        coverage_reward = (coverage - last_coverage) * 0.05
 
         # Computing the reward in "https://ieeexplore.ieee.org/document/8398461"
         goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
@@ -1802,9 +1805,9 @@ class DiscreteMazeEnv(MazeEnv):
 
     def discrete_v(self, v):
         if v < self.target_speed / 8:
-            v = 0
+            v = 4
         else:
-            v = 3
+            v = 0
         return v
 
     def discrete_vyaw(self, vyaw):
@@ -1847,7 +1850,7 @@ class DiscreteMazeEnv(MazeEnv):
         vyaw = self.discrete_vyaw(vyaw)
         v = self.discrete_v(v)
         self.sampled_action = np.array([
-            3,
+            0,
             vyaw,
         ], dtype = np.float32)
         return self.sampled_action
@@ -1855,7 +1858,7 @@ class DiscreteMazeEnv(MazeEnv):
     def continuous_action(self, action):
         move, omega = action
         if move == 0:
-            move = 0
+            move = self.target_speed
         elif move == 1:
             move = self.target_speed / 8
         elif move == 2:
@@ -1863,7 +1866,7 @@ class DiscreteMazeEnv(MazeEnv):
         elif move == 3:
             move = self.target_speed / 2
         elif move == 4:
-            move = self.target_speed
+            move = 0
         elif move == 5:
             move = -self.target_speed / 4
         else:
@@ -1934,7 +1937,7 @@ class DiscreteMazeEnv(MazeEnv):
         ], -1)
 
         #complete_ego_map, border_ego_map, floor_ego_map, objects_ego_map, target_ego_map = self.get_ego_maps(obs['front_depth'], obs['front'])
-        loc_map, ego_map = self.get_maps(
+        loc_map = self.get_maps(
             obs['front_depth'],
             obs['front'],
             res = self.resolution,
@@ -1959,9 +1962,9 @@ class DiscreteMazeEnv(MazeEnv):
             cv2.imshow('objects', objects_ego_map)
             cv2.imshow('target', target_ego_map)
             """
-            cv2.imshow('allocentric map', cv2.resize(loc_map, (image_width, image_height)))
-            cv2.imshow('previous allocentric map', cv2.resize(self.loc_map[0], (image_width, image_height)))
-            cv2.imshow('egocentric map', cv2.resize(ego_map, (image_width, image_height)))
+            cv2.imshow('global egoocentric map', cv2.resize(loc_map[:, :, :3], (image_width, image_height)))
+            cv2.imshow('previous global egocentric map', cv2.resize(self.loc_map[0][:, :, :3], (image_width, image_height)))
+            #cv2.imshow('egocentric map', cv2.resize(ego_map, (image_width, image_height)))
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 pass
 
@@ -1975,7 +1978,6 @@ class DiscreteMazeEnv(MazeEnv):
 
         positions = np.concatenate(self.positions + [self._task.goals[self._task.goal_index].pos], -1)
 
-
         _obs = {
             'scale_1' : window.copy(),
             'scale_2' : scale_2.copy(),
@@ -1986,7 +1988,7 @@ class DiscreteMazeEnv(MazeEnv):
             'inframe' : np.array([inframe], dtype = np.float32),
             'positions' : positions.copy(),
             'loc_map' : loc_map.copy(),
-            'prev_loc_map': self.loc_map[0].copy(),
+            'prev_loc_map' : self.loc_map[0].copy(),
             'bbx' : bbx.copy()
         }
 
@@ -2020,9 +2022,9 @@ class DiscreteMazeEnv(MazeEnv):
         next_pos = self.wrapped_env.get_xy()
         collision_penalty = 0.0
         next_obs = self._get_obs()
-        self.coverage.pop(0)
-        self.coverage.append(self.get_coverage(self.map))
-        coverage_reward = (self.coverage[-1] - self.coverage[0]) * 0.1
+        last_coverage = self.get_coverage(self.maps[0])
+        coverage = self.get_coverage(self.maps[-1])
+        coverage_reward = (coverage - last_coverage) * 0.05
 
         # Computing the reward in "https://ieeexplore.ieee.org/document/8398461"
         goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()

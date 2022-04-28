@@ -388,7 +388,7 @@ class MazeEnv(gym.Env):
                 raise Exception("Every geom of the torso must have a name")
 
         # Set goals
-        sampled_cells = random.sample(self._open_position_indices, 15)
+        sampled_cells = random.sample(self._open_position_indices, 10)
         agent = copy.deepcopy(sampled_cells[-1])
         goals = copy.deepcopy(sampled_cells[:-1])
         target_index = np.random.randint(0, len(goals))
@@ -577,6 +577,8 @@ class MazeEnv(gym.Env):
         y_max = 1 + int((fwd_range[1] - fwd_range[0]) / self.resolution)
         self.map = np.zeros([y_max, x_max, 3], dtype=np.uint8)
         self.reward = 0.0
+        self.loc_map = [self.get_local_map().copy()] * self.n_steps
+        self.coverage = [self.get_coverage(self.map)] * self.n_steps
         ob = self._get_obs()
         self._set_observation_space(ob)
 
@@ -796,17 +798,17 @@ class MazeEnv(gym.Env):
                 shape = observation['positions'].shape,
                 dtype = observation['positions'].dtype
             ),
-            'ego_map' : gym.spaces.Box(
-                low = np.zeros_like(observation['ego_map']),
-                high = 255 * np.ones_like(observation['ego_map']),
-                dtype = observation['ego_map'].dtype,
-                shape = observation['ego_map'].shape
-            ),
             'loc_map' : gym.spaces.Box(
                 low = np.zeros_like(observation['loc_map']),
                 high = 255 * np.ones_like(observation['loc_map']),
                 dtype = observation['loc_map'].dtype,
                 shape = observation['loc_map'].shape
+            ),
+            'prev_loc_map' : gym.spaces.Box(
+                low = np.zeros_like(observation['prev_loc_map']),
+                high = 255 * np.ones_like(observation['prev_loc_map']),
+                dtype = observation['prev_loc_map'].dtype,
+                shape = observation['prev_loc_map'].shape
             ),
             'bbx' : gym.spaces.Box(
                 low = np.zeros_like(observation['bbx']),
@@ -1256,13 +1258,6 @@ class MazeEnv(gym.Env):
         loc_map = ego_map[start: end, start: end]
         return loc_map
 
-    def get_local_map_v2(self):
-        xy = self.data.qpos[:2]
-        x_img = int(-xy[1] / self.resolution)
-        y_img = int(-xy[0] / self.resolution)
-        x_img -= int(np.floor(self.allo_map_side_range[0] / self.resolution))
-        y_img += int(np.ceil(self.allo_map_fwd_range[1] / self.resolution))
-
     def get_maps(self,
             depth,
             rgb,
@@ -1420,6 +1415,7 @@ class MazeEnv(gym.Env):
             cv2.imshow('target', target_ego_map)
             """
             cv2.imshow('allocentric map', cv2.resize(loc_map, (image_width, image_height)))
+            cv2.imshow('previous allocentric map', cv2.resize(self.loc_map[0], (image_width, image_height)))
             cv2.imshow('egocentric map', cv2.resize(ego_map, (image_width, image_height)))
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 pass
@@ -1443,10 +1439,13 @@ class MazeEnv(gym.Env):
             'depth' : depth,
             'inframe' : np.array([inframe], dtype = np.float32),
             'positions' : positions.copy(),
-            'ego_map' : ego_map.copy(),
             'loc_map' : loc_map.copy(),
+            'prev_loc_map' : self.loc_map[0].copy(),
             'bbx' : bbx.copy()
         }
+
+        self.loc_map.pop(0)
+        self.loc_map.append(loc_map.copy())
 
         if params['add_ref_scales']:
             ref_scale_1, ref_scale_2 = self.get_scales(obs['front'].copy(), []) 
@@ -1594,7 +1593,6 @@ class MazeEnv(gym.Env):
         info = {}
         self.actions.pop(0)
         self.actions.append(action.copy()[1:])
-        coverage = self.get_coverage(self.map)
         _, inner_reward, _, info = self.wrapped_env.step(action)
 
         # Observation and Parameter Gathering
@@ -1605,8 +1603,9 @@ class MazeEnv(gym.Env):
         next_pos = self.wrapped_env.get_xy()
         collision_penalty = 0.0
         next_obs = self._get_obs()
-        next_coverage = self.get_coverage(self.map)
-        coverage_reward = (next_coverage - coverage) * 0.005
+        self.coverage.pop(0)
+        self.coverage.append(self.get_coverage(self.map))
+        coverage_reward = (self.coverage[-1] - self.coverage[0]) * 0.1
 
         # Computing the reward in "https://ieeexplore.ieee.org/document/8398461"
         goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
@@ -1961,6 +1960,7 @@ class DiscreteMazeEnv(MazeEnv):
             cv2.imshow('target', target_ego_map)
             """
             cv2.imshow('allocentric map', cv2.resize(loc_map, (image_width, image_height)))
+            cv2.imshow('previous allocentric map', cv2.resize(self.loc_map[0], (image_width, image_height)))
             cv2.imshow('egocentric map', cv2.resize(ego_map, (image_width, image_height)))
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 pass
@@ -1985,10 +1985,13 @@ class DiscreteMazeEnv(MazeEnv):
             'depth' : depth,
             'inframe' : np.array([inframe], dtype = np.float32),
             'positions' : positions.copy(),
-            'ego_map' : ego_map.copy(),
             'loc_map' : loc_map.copy(),
+            'prev_loc_map': self.loc_map[0].copy(),
             'bbx' : bbx.copy()
         }
+
+        self.loc_map.pop(0)
+        self.loc_map.append(loc_map.copy())
 
         if params['add_ref_scales']:
             ref_scale_1, ref_scale_2 = self.get_scales(obs['front'].copy(), []) 
@@ -2007,7 +2010,6 @@ class DiscreteMazeEnv(MazeEnv):
         info = {}
         self.actions.pop(0)
         self.actions.append(action.copy())
-        coverage = self.get_coverage(self.map)
         _, inner_reward, _, info = self.wrapped_env.step(action)
 
         # Observation and Parameter Gathering
@@ -2018,8 +2020,9 @@ class DiscreteMazeEnv(MazeEnv):
         next_pos = self.wrapped_env.get_xy()
         collision_penalty = 0.0
         next_obs = self._get_obs()
-        next_coverage = self.get_coverage(self.map)
-        coverage_reward = (next_coverage - coverage) * 0.005
+        self.coverage.pop(0)
+        self.coverage.append(self.get_coverage(self.map))
+        coverage_reward = (self.coverage[-1] - self.coverage[0]) * 0.1
 
         # Computing the reward in "https://ieeexplore.ieee.org/document/8398461"
         goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()

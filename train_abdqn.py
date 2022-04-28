@@ -299,8 +299,8 @@ class Callback(sb3.common.callbacks.EventCallback):
                         _locals['observations']['scale_2'][0, :3].transpose(1, 2, 0),
                         size
                     )
-                    ego_map = cv2.resize(
-                        _locals['observations']['ego_map'][0].transpose(1, 2, 0),
+                    prev_loc_map = cv2.resize(
+                        _locals['observations']['prev_loc_map'][0].transpose(1, 2, 0),
                         size
                     )
                     loc_map = cv2.resize(
@@ -325,7 +325,7 @@ class Callback(sb3.common.callbacks.EventCallback):
                         np.concatenate([screen, depth], 0),
                         np.concatenate([scale_1, scale_2], 0),
                         np.concatenate([image[:, :size[0], :], loc_map], 0),
-                        np.concatenate([image[:, size[0]:, :], ego_map], 0)
+                        np.concatenate([image[:, size[0]:, :], prev_loc_map], 0)
                     ], 1).astype(np.uint8)
                     observation = cv2.cvtColor(observation, cv2.COLOR_RGB2BGR)
 

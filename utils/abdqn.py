@@ -16,15 +16,11 @@ class FeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
             torch.nn.Conv2d(3, 16, kernel_size = 4, stride = 2, padding = 1),
             activation_fn()
         )
-        self.cnn2 = torch.nn.Sequential(
-            torch.nn.Conv2d(3, 8, kernel_size = 4, stride = 1, padding = 1),
-            activation_fn()
-        )
 
         self.encoder = ResNet18Enc([1, 1, 1, 1], nc = 3, activation_fn = activation_fn)
 
         self.cnn3 = torch.nn.Sequential(
-            torch.nn.Conv2d(24, 48, kernel_size = 3, stride = 2, padding = 1),
+            torch.nn.Conv2d(32, 48, kernel_size = 3, stride = 2, padding = 1),
             activation_fn()
         )
 
@@ -52,12 +48,12 @@ class FeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
 
     def forward(self, observations):
         loc_map = observations['loc_map']
-        ego_map = observations['ego_map']
+        prev_loc_map = observations['prev_loc_map']
         scale_1 = observations['scale_1']
         scale_2 = observations['scale_2']
         loc_map = self.cnn1(loc_map)
-        ego_map = self.cnn2(ego_map)
-        features = self.cnn3(torch.cat([loc_map, ego_map], 1))
+        prev_loc_map = self.cnn1(prev_loc_map)
+        features = self.cnn3(torch.cat([loc_map, prev_loc_map], 1))
         features = torch.cat([self.encoder(torch.cat([
             scale_1, scale_2
         ], 1)), features], 1)

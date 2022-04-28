@@ -11,6 +11,7 @@ import shutil
 import os
 from typing import Dict, List, NamedTuple, Optional, Tuple, Type
 from constants import params
+import copy
 
 class Rgb(NamedTuple):
     red: float
@@ -294,8 +295,8 @@ while not done:
     scale_2 = cv2.resize(ob['scale_2'], top.shape[:2])
     depth = np.repeat(ob['depth'].transpose(1, 2, 0), 3, 2) * 255
     depth = cv2.resize(depth, top.shape[:2])
-    ego_map = cv2.resize(ob['ego_map'], top.shape[:2])
     loc_map = cv2.resize(ob['loc_map'], top.shape[:2])
+    prev_loc_map = cv2.resize(ob['prev_loc_map'], top.shape[:2])
 
     image = np.concatenate([
         np.concatenate([
@@ -305,7 +306,7 @@ while not done:
             depth, top
         ], 0),
         np.concatenate([
-            ego_map, loc_map
+            prev_loc_map, loc_map
         ], 0)
     ], 1).astype(np.uint8)
 
@@ -325,7 +326,7 @@ while not done:
     OBS.append(ob.copy())
     REWARDS.append(reward)
     total_reward += reward
-    INFO.append(info)
+    INFO.append(copy.deepcopy(info))
     """
     if params['debug']:
         cv2.imshow('observations', image)
@@ -342,13 +343,86 @@ print('collision counts: {}'.format(count_collisions))
 print('total_reward:     {}'.format(total_reward))
 
 block_size = 50
-fig2, ax = plt.subplots(2,2, figsize = (6, 6))
+_REWARDS = copy.deepcopy(REWARDS)
+REWARDS = np.array(REWARDS, dtype = np.float32)
+REWARDS = np.clip(REWARDS, a_min = -0.020, a_max = 0.020)
+fig2, ax = plt.subplots(4,4, figsize = (24, 24))
 ax[0][1].set_xlabel('steps')
 ax[0][1].set_ylabel('speed')
 ax[1][0].set_xlabel('steps')
 ax[1][0].set_ylabel('angular velocity')
 ax[1][1].set_xlabel('steps')
 ax[1][1].set_ylabel('reward')
+ax[0][2].set_xlabel('steps')
+ax[0][2].set_ylabel('coverage reward')
+coverage_reward = np.array([
+    info['coverage_reward'] for info in INFO
+], dtype = np.float32)
+coverage_reward = np.clip(coverage_reward, a_min = -0.020, a_max = 0.020)
+ax[0][2].plot(coverage_reward)
+ax[0][3].set_xlabel('steps')
+ax[0][3].set_ylabel('inner reward')
+inner_reward = np.array([
+    info['inner_reward'] for info in INFO
+], dtype = np.float32)
+inner_reward = np.clip(inner_reward, a_min = -0.020, a_max = 0.020)
+ax[0][3].plot(inner_reward)
+ax[1][2].set_xlabel('steps')
+ax[1][2].set_ylabel('collision penalty')
+collision_penalty = np.array([
+    info['collision_penalty'] for info in INFO
+], dtype = np.float32)
+collision_penalty = np.clip(collision_penalty, a_min = -0.020, a_max = 0.020)
+ax[1][2].plot(collision_penalty)
+ax[1][3].set_xlabel('steps')
+ax[1][3].set_ylabel('outer reward')
+outer_reward = np.array([
+    info['outer_reward'] for info in INFO
+], dtype = np.float32)
+outer_reward = np.clip(outer_reward, a_min = -0.020, a_max = 0.020)
+ax[1][3].plot(outer_reward)
+ax[2][0].set_xlabel('steps')
+ax[2][0].set_ylabel('reward - coverage reward')
+items = REWARDS - coverage_reward
+ax[2][0].plot(items)
+ax[2][1].set_xlabel('steps')
+ax[2][1].set_ylabel('reward - inner reward')
+items = REWARDS - inner_reward
+ax[2][1].plot(items)
+ax[2][2].set_xlabel('steps')
+ax[2][2].set_ylabel('reward - collision penalty')
+items = REWARDS - collision_penalty
+ax[2][2].plot(items)
+ax[2][3].set_xlabel('steps')
+ax[2][3].set_ylabel('reward - outer reward')
+items = REWARDS - outer_reward
+ax[2][3].plot(items)
+ax[3][0].set_xlabel('steps')
+ax[3][0].set_ylabel('coverage, inner reward')
+ax[3][0].plot(coverage_reward, label = 'coverage reward')
+ax[3][0].plot(inner_reward, label = 'inner reward')
+ax[3][0].legend()
+ax[3][0].set_xlabel('steps')
+ax[3][1].set_ylabel('coverage, outer reward')
+ax[3][1].plot(coverage_reward, label = 'coverage reward')
+ax[3][1].plot(outer_reward, label = 'outer reward')
+ax[3][1].legend()
+ax[3][2].set_xlabel('steps')
+ax[3][2].set_ylabel('inner, outer reward')
+ax[3][2].plot(inner_reward, label = 'inner reward')
+ax[3][2].plot(outer_reward, label = 'outer reward')
+ax[3][2].legend()
+ax[3][3].set_xlabel('steps')
+ax[3][3].set_ylabel('q value')
+q = []
+_REWARDS = np.array(_REWARDS, dtype = np.float32)
+for i in range(len(REWARDS)):
+    gamma = np.arange(len(_REWARDS) - i)
+    gamma = params['gamma'] ** gamma
+    q.append(np.sum(_REWARDS[i:] * gamma))
+q = np.array(q, dtype = np.float32)
+ax[3][3].plot(q)
+
 
 def xy_to_imgrowcol(x, y):
     (row, row_frac), (col, col_frac) = env._xy_to_rowcol_v2(x, y)
@@ -414,9 +488,12 @@ for x, y in zip(env.cx, env.cy):
     row, col = xy_to_imgrowcol(x, y)
     img[row - int(block_size / 50): row + int(block_size / 50), col - int(block_size / 50): col + int(block_size / 50)] = [1, 1, 1]
 
+
+
 ax[0][0].imshow(np.rot90(np.flipud(img)))
 ax[0][1].plot(speed)
 ax[1][0].plot(angular)
-ax[1][1].plot(REWARDS[:-1])
-#fig.savefig('output.png')
+ax[1][1].plot(REWARDS)
+plt.tight_layout()
+fig2.savefig('output.png')
 plt.show()

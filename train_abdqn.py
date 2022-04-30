@@ -11,7 +11,7 @@ import stable_baselines3 as sb3
 import numpy as np
 import torch
 from utils import set_seeds
-from utils.abdqn import ABDQN, DQNPolicy, FeaturesExtractor
+from utils.abdqn import ABDQN, DQNPolicy, FeaturesExtractor, PrioritizedDictReplayBuffer
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import matplotlib.pyplot as plt
 
@@ -457,8 +457,8 @@ if __name__ == '__main__':
         gamma = params['gamma'],
         train_freq = (1, 'step'),
         gradient_steps = -1,
-        replay_buffer_class = sb3.common.buffers.DictReplayBuffer,
-        replay_buffer_kwargs = None,
+        replay_buffer_class = PrioritizedDictReplayBuffer,
+        replay_buffer_kwargs = {'alpha' : 0.6},
         target_update_interval = 1000,
         exploration_fraction = 0.4,
         exploration_initial_eps = 1.0,

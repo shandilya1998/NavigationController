@@ -2,8 +2,29 @@ import torch
 import numpy as np
 import gym
 import stable_baselines3 as sb3
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Tuple, Type, Union, NamedTuple
 from bg.autoencoder import ResNet18Enc
+from utils.per import SumSegmentTree, MinSegmentTree
+
+TensorDict = Dict[Union[str, int], torch.Tensor]
+
+class PrioritizedReplayBufferSamples(NamedTuple):
+    observations: torch.Tensor
+    actions: torch.Tensor
+    next_observations: torch.Tensor
+    dones: torch.Tensor
+    rewards: torch.Tensor
+    idx: torch.Tensor
+    weights: torch.Tensor
+
+class PrioritizedDictReplayBufferSamples(PrioritizedReplayBufferSamples):
+    observations: TensorDict
+    actions: torch.Tensor
+    next_observations: TensorDict
+    dones: torch.Tensor
+    rewards: torch.Tensor
+    idx: torch.Tensor
+    weights: torch.Tensor
 
 class FeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
     def __init__(self, 
@@ -252,6 +273,239 @@ class DQNPolicy(sb3.common.policies.BasePolicy):
         )
         return data
 
+class PrioritizedReplayBuffer(sb3.common.buffers.ReplayBuffer):
+    def __init__(
+        self,
+        buffer_size: int,
+        observation_space: gym.spaces.Space,
+        action_space: gym.spaces.Space,
+        device: Union[torch.device, str] = "cpu",
+        n_envs: int = 1,
+        optimize_memory_usage: bool = False,
+        handle_timeout_termination: bool = True,
+        alpha: float = 0.6,
+    ):
+        assert alpha > 0.0
+        self._alpha = alpha
+        it_capacity = 1
+        while it_capacity < buffer_size:
+            it_capacity *= 2
+        self._it_sum = SumSegmentTree(it_capacity)
+        self._it_min = MinSegmentTree(it_capacity)
+        self._max_priority = 1.0
+
+        super(PrioritizedReplayBuffer, self).__init__(
+            buffer_size,
+            observation_space,
+            action_space,
+            device,
+            n_envs=n_envs,
+            optimize_memory_usage=optimize_memory_usage,
+            handle_timeout_termination=handle_timeout_termination
+        )
+        
+    def add(
+        self,
+        obs: np.ndarray,
+        next_obs: np.ndarray,
+        action: np.ndarray,
+        reward: np.ndarray,
+        done: np.ndarray,
+        infos: List[Dict[str, Any]],
+    ) -> None:
+        super().add(
+            obs,
+            next_obs,
+            action,
+            reward,
+            done,
+            infos
+        )
+        self._it_sum[self.pos] = self._max_priority ** self._alpha
+        self._it_min[self.pos] = self._max_priority ** self._alpha
+
+    def sample(self, batch_size: int, beta: float, env: Optional[sb3.common.vec_env.VecNormalize] = None) -> PrioritizedReplayBufferSamples:
+        """
+        Sample elements from the replay buffer.
+        Custom sampling when using memory efficient variant,
+        as we should not sample the element with index `self.pos`
+        See https://github.com/DLR-RM/stable-baselines3/pull/28#issuecomment-637559274
+        :param batch_size: Number of element to sample
+        :param env: associated gym VecEnv
+            to normalize the observations/rewards when sampling
+        :return:
+        """
+        assert beta > 0.0
+        size = self.buffer_size - 1 if self.full else self.pos
+        mass = []
+        total = self._it_sum.sum(0, size)
+        mass = np.random.random(size=batch_size) * total
+        batch_inds = self._it_sum.find_prefixsum_idx(mass)
+        return self._get_samples(batch_inds, beta, env=env)
+
+    def _get_samples(self, batch_inds: np.ndarray, beta: float, env: Optional[sb3.common.vec_env.VecNormalize] = None) -> PrioritizedReplayBufferSamples:
+
+        if self.optimize_memory_usage:
+            next_obs = self._normalize_obs(self.observations[(batch_inds + 1) % self.buffer_size, 0, :], env)
+        else:
+            next_obs = self._normalize_obs(self.next_observations[batch_inds, 0, :], env)
+        
+        size = self.buffer_size if self.full else self.pos + 1
+       
+        p_min = self._it_min.min() / self._it_sum.sum()
+        max_weight = (p_min * size) ** (-beta)
+        p_sample = self._it_sum[batch_inds] / self._it_sum.sum()
+        weights = (p_sample * size) ** (-beta) / max_weight 
+
+        data = (
+            self._normalize_obs(self.observations[batch_inds, 0, :], env),
+            self.actions[batch_inds, 0, :],
+            next_obs,
+            # Only use dones that are not due to timeouts
+            # deactivated by default (timeouts is initialized as an array of False)
+            self.dones[batch_inds] * (1 - self.timeouts[batch_inds]),
+            self._normalize_reward(self.rewards[batch_inds], env),
+            batch_inds,
+            weights
+        )
+        return PrioritizedReplayBufferSamples(*tuple(map(self.to_torch, data)))
+
+    def update_priorities(self, idxes, priorities):
+        """
+        Update priorities of sampled transitions.
+        sets priority of transition at index idxes[i] in buffer
+        to priorities[i].
+        :param idxes: ([int]) List of idxes of sampled transitions
+        :param priorities: ([float]) List of updated priorities corresponding to transitions at the sampled idxes
+            denoted by variable `idxes`.
+        """
+
+        size = self.buffer_size - 1 if self.full else self.pos
+        assert len(idxes) == len(priorities)
+        assert np.min(priorities) > 0
+        assert np.min(idxes) >= 0
+        assert np.max(idxes) < size
+        self._it_sum[idxes] = priorities ** self._alpha
+        self._it_min[idxes] = priorities ** self._alpha
+        self._max_priority = max(self._max_priority, np.max(priorities))
+
+
+class PrioritizedDictReplayBuffer(sb3.common.buffers.DictReplayBuffer):
+    def __init__(
+        self,
+        buffer_size: int,
+        observation_space: gym.spaces.Space,
+        action_space: gym.spaces.Space,
+        device: Union[torch.device, str] = "cpu",
+        n_envs: int = 1,
+        optimize_memory_usage: bool = False,
+        handle_timeout_termination: bool = True,
+        alpha: float = 0.6,
+    ):
+        assert alpha > 0.0
+        self._alpha = alpha
+        it_capacity = 1
+        while it_capacity < buffer_size:
+            it_capacity *= 2
+        self._it_sum = SumSegmentTree(it_capacity)
+        self._it_min = MinSegmentTree(it_capacity)
+        self._max_priority = 1.0
+
+        super(PrioritizedDictReplayBuffer, self).__init__(
+            buffer_size,
+            observation_space,
+            action_space,
+            device,
+            n_envs=n_envs,
+            optimize_memory_usage=optimize_memory_usage,
+            handle_timeout_termination=handle_timeout_termination
+        )
+        
+    def add(
+        self,
+        obs: np.ndarray,
+        next_obs: np.ndarray,
+        action: np.ndarray,
+        reward: np.ndarray,
+        done: np.ndarray,
+        infos: List[Dict[str, Any]],
+    ) -> None:
+        super().add(
+            obs,
+            next_obs,
+            action,
+            reward,
+            done,
+            infos
+        )
+        self._it_sum[self.pos] = self._max_priority ** self._alpha
+        self._it_min[self.pos] = self._max_priority ** self._alpha
+
+    def sample(self, batch_size: int, beta: float, env: Optional[sb3.common.vec_env.VecNormalize] = None) -> PrioritizedDictReplayBufferSamples:
+        """
+        Sample elements from the replay buffer.
+        Custom sampling when using memory efficient variant,
+        as we should not sample the element with index `self.pos`
+        See https://github.com/DLR-RM/stable-baselines3/pull/28#issuecomment-637559274
+        :param batch_size: Number of element to sample
+        :param env: associated gym VecEnv
+            to normalize the observations/rewards when sampling
+        :return:
+        """
+        assert beta > 0.0
+        size = self.buffer_size - 1 if self.full else self.pos
+        mass = []
+        total = self._it_sum.sum(0, size)
+        mass = np.random.random(size=batch_size) * total
+        batch_inds = self._it_sum.find_prefixsum_idx(mass)
+        return self._get_samples(batch_inds, beta, env=env)
+
+    def _get_samples(self, batch_inds: np.ndarray, beta: float, env: Optional[sb3.common.vec_env.VecNormalize] = None) -> PrioritizedDictReplayBufferSamples:
+
+        obs_ = self._normalize_obs({key: obs[batch_inds, 0, :] for key, obs in self.observations.items()})
+        next_obs_ = self._normalize_obs({key: obs[batch_inds, 0, :] for key, obs in self.next_observations.items()})
+
+        # Convert to torch tensor
+        observations = {key: self.to_torch(obs) for key, obs in obs_.items()}
+        next_observations = {key: self.to_torch(obs) for key, obs in next_obs_.items()}
+
+        size = self.buffer_size if self.full else self.pos + 1
+       
+        p_min = self._it_min.min() / self._it_sum.sum()
+        max_weight = (p_min * size) ** (-beta)
+        p_sample = self._it_sum[batch_inds] / self._it_sum.sum()
+        weights = (p_sample * size) ** (-beta) / max_weight 
+
+        return PrioritizedDictReplayBufferSamples(
+            observations=observations,
+            actions=self.to_torch(self.actions[batch_inds]),
+            next_observations=next_observations,
+            # Only use dones that are not due to timeouts
+            # deactivated by default (timeouts is initialized as an array of False)
+            dones=self.to_torch(self.dones[batch_inds] * (1 - self.timeouts[batch_inds])),
+            rewards=self.to_torch(self._normalize_reward(self.rewards[batch_inds], env)),
+            idx = self.to_torch(batch_inds),
+            weights = self.to_torch(weights)
+        )
+
+    def update_priorities(self, idxes, priorities):
+        """
+        Update priorities of sampled transitions.
+        sets priority of transition at index idxes[i] in buffer
+        to priorities[i].
+        :param idxes: ([int]) List of idxes of sampled transitions
+        :param priorities: ([float]) List of updated priorities corresponding to transitions at the sampled idxes
+            denoted by variable `idxes`.
+        """ 
+        size = self.buffer_size if self.full else self.pos + 1
+        assert len(idxes) == len(priorities)
+        assert np.min(priorities) > 0
+        assert np.min(idxes) >= 0
+        assert np.max(idxes) < size
+        self._it_sum[idxes] = priorities ** self._alpha
+        self._it_min[idxes] = priorities ** self._alpha
+        self._max_priority = max(self._max_priority, np.max(priorities))
+
 
 class ABDQN(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
     """
@@ -306,6 +560,8 @@ class ABDQN(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         batch_size: Optional[int] = 32,
         tau: float = 1.0,
         gamma: float = 0.99,
+        prioritized_replay_beta: float = 0.4,
+        prioritized_replay_eps: float = 1e-6,
         train_freq: Union[int, Tuple[int, str]] = 4,
         gradient_steps: int = 1,
         replay_buffer_class: Optional[sb3.common.buffers.ReplayBuffer] = None,
@@ -360,6 +616,14 @@ class ABDQN(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         self.exploration_rate = 0.0
         # Linear schedule will be defined in `_setup_model()`
         self.exploration_schedule = None
+        self.prioritized_replay_beta = None
+        self.prioritized_replay_eps = None
+        if replay_buffer_class == PrioritizedReplayBuffer or replay_buffer_class == PrioritizedDictReplayBuffer:
+            self.beta = 0.0
+            self.beta_schedule = None
+            self.prioritized_replay_beta = prioritized_replay_beta
+            self.prioritized_replay_eps = prioritized_replay_eps
+            self.prioritized_replay = True
         self.q_net, self.q_net_target = None, None
 
         if _init_setup_model:
@@ -374,6 +638,14 @@ class ABDQN(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             self.exploration_fraction,
         )
 
+        if self.prioritized_replay:
+            assert self.prioritized_replay_beta is not None
+            self.beta_schedule = sb3.common.utils.get_linear_fn(
+                start = self.prioritized_replay_beta,
+                end = 1.0,
+                end_fraction = 1.0
+            )
+
     def _create_aliases(self) -> None:
         self.q_net = self.policy.q_net
         self.q_net_target = self.policy.q_net_target
@@ -387,6 +659,9 @@ class ABDQN(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             sb3.common.utils.polyak_update(self.q_net.parameters(), self.q_net_target.parameters(), self.tau)
 
         self.exploration_rate = self.exploration_schedule(self._current_progress_remaining)
+        if self.prioritized_replay:
+            self.beta = self.beta_schedule(self._current_progress_remaining)
+            self.logger.record("rollout/beta", self.beta)
         self.logger.record("rollout/exploration rate", self.exploration_rate)
 
     def train(self, gradient_steps: int, batch_size: int = 100) -> None:
@@ -396,7 +671,11 @@ class ABDQN(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
         losses = []
         for _ in range(gradient_steps):
             # Sample replay buffer
-            replay_data = self.replay_buffer.sample(batch_size, env=self._vec_normalize_env)
+            replay_data = None
+            if self.prioritized_replay:
+                replay_data = self.replay_buffer.sample(batch_size, beta = self.beta, env=self._vec_normalize_env)
+            else:
+                replay_data = self.replay_buffer.sample(batch_size, env=self._vec_normalize_env)
 
             with torch.no_grad():
                 # Compute the next Q-values using the target network
@@ -405,11 +684,11 @@ class ABDQN(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
                 temp_q_values = self.q_net(replay_data.next_observations)
                 max_actions = torch.stack([torch.argmax(q_val, dim=1) for q_val in temp_q_values], -1)
                 next_q_values = sum([
-                        torch.gather(
-                            q_val,
-                            dim=1,
-                            index=max_actions[:, i].unsqueeze(-1)
-                        ) for i, q_val in enumerate(next_q_values)
+                    torch.gather(
+                        q_val,
+                        dim=1,
+                        index=max_actions[:, i].unsqueeze(-1)
+                    ) for i, q_val in enumerate(next_q_values)
                 ]) / len(next_q_values)
                 # Avoid potential broadcast issue
                 next_q_values = next_q_values.reshape(-1, 1)
@@ -420,19 +699,26 @@ class ABDQN(sb3.common.off_policy_algorithm.OffPolicyAlgorithm):
             current_q_values = self.q_net(replay_data.observations)
 
             # Retrieve the q-values for the actions from the replay buffer
-            current_q_values = [
+            current_q_values = sum([
                 torch.gather(
                     q_val,
                     dim=1,
                     index=replay_data.actions[:, i].long().unsqueeze(-1)
                 ) for i, q_val in enumerate(current_q_values)
-            ]
+            ]) / len(current_q_values)
 
             # Compute Huber loss (less sensitive to outliers)
-            loss = sum([torch.nn.functional.mse_loss(
-                q_val,
-                target_q_values
-            ) for q_val in current_q_values])
+            delta = torch.abs(target_q_values - current_q_values)
+            threshold = 1.0
+            mask = delta < threshold
+            loss = (0.5 * mask * (delta ** 2)) + ~mask * (threshold * (delta - 0.5 * threshold))
+
+            if self.prioritized_replay:
+                loss = torch.mean(loss * replay_data.weights)
+                priorities = delta.squeeze(-1) + self.prioritized_replay_eps
+                self.replay_buffer.update_priorities(replay_data.idx.cpu().detach().numpy(), priorities.cpu().detach().numpy())
+            else:
+                loss = torch.mean(loss)
             losses.append(loss.item())
 
             # Optimize the policy

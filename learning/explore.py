@@ -1,27 +1,23 @@
 import torch
 import numpy as np
-from simulations.maze_env import MazeEnv
-from simulations.point import PointEnv
-from simulations.maze_task import CustomGoalReward4Rooms, \
+from neurorobotics.simulations.maze_env import MazeEnv
+from neurorobotics.simulations.point import PointEnv
+from neurorobotics.simulations.maze_task import CustomGoalReward4Rooms, \
     GoalRewardNoObstacle, GoalRewardSimple
 import stable_baselines3 as sb3
-from utils.td3_utils import TD3BG, TD3BGPolicy, \
-    DictReplayBuffer, TD3BGPolicyV2, \
-    MultiModalFeaturesExtractor, NStepReplayBuffer, \
+from neurorobotics.utils.td3 import NStepReplayBuffer, \
     NStepDictReplayBuffer, TD3Lambda, \
     NStepLambdaDictReplayBuffer, NStepLambdaReplayBuffer, \
-    MultiModalHistoryFeaturesExtractor, NStepHistoryReplayBuffer, \
-    NStepHistoryDictReplayBuffer, TD3History, TD3HistoryPolicy, \
-    NStepHistoryVecTransposeImage, MultiModalFeaturesExtractorV2, \
+    MultiModalFeaturesExtractorV2, \
     TD3SS
-from utils.rtd3_utils import RTD3, RecurrentTD3Policy, EpisodicReplayBuffer, \
+from neurorobotics.utils.rtd3_utils import RTD3, RecurrentTD3Policy, EpisodicReplayBuffer, \
     EpisodicDictReplayBuffer
-from constants import params
-from utils.callbacks import CustomCallback, CheckpointCallback, EvalCallback
+from neurorobotics.constants import params
+from neurorobotics.utils.callbacks import CustomCallback, CheckpointCallback, EvalCallback
 import os
 import shutil
 import gym
-from utils import set_seeds
+from neurorobotics.utils import set_seeds
 
 torch.autograd.set_detect_anomaly(True)
 

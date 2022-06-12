@@ -1,16 +1,21 @@
 """
 Mujoco Maze
-----------
+-----------
 
 A maze environment using mujoco that supports custom tasks and robots.
 """
 
 
 import gym
-
-from simulations.ant import AntEnv
-from simulations.maze_task import TaskRegistry
-from simulations.point import PointEnv
+from neurorobotics.simulations import maze_env
+from neurorobotics.simulations import point
+from neurorobotics.simulations import maze_task
+from neurorobotics.simulations import maze_env_utils
+from neurorobotics.simulations import agent_model
+from neurorobotics.simulations.ant import AntEnv
+from neurorobotics.simulations.maze_task import TaskRegistry
+from neurorobotics.simulations.point import PointEnv
+from neurorobotics.simulations.maze_env import MazeEnv
 
 for maze_id in TaskRegistry.keys():
     for i, task_cls in enumerate(TaskRegistry.tasks(maze_id)):

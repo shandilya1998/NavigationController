@@ -1,6 +1,6 @@
 import numpy as np
-from reward.support_plane import SupportPlane
-from reward.dynamics import QuadrupedDynamics, KneeFourBarDynamics
+from neurorobotics.reward.mebot.support_plane import SupportPlane
+from neurorobotics.reward.mebot.dynamics import QuadrupedDynamics, KneeFourBarDynamics
 
 class AxisTransformation:
     def __init__(self, Tb = 1000):

@@ -1,7 +1,7 @@
-from utils.point_cloud import PointCloudGenerator, point_cloud_2_birdseye
-from simulations.maze_env import MazeEnv
-from simulations.point import PointEnv
-from simulations.maze_task import CustomGoalReward4Rooms
+from neurorobotics.utils.point_cloud import PointCloudGenerator, point_cloud_2_birdseye
+from neurorobotics.simulations.maze_env import MazeEnv
+from neurorobotics.simulations.point import PointEnv
+from neurorobotics.simulations.maze_task import CustomGoalReward4Rooms
 import open3d
 import numpy as np
 import matplotlib.pyplot as plt

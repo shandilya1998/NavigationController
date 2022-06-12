@@ -1,6 +1,6 @@
-from simulations.maze_env import MazeEnv, DiscreteMazeEnv
-from simulations.point import PointEnv, PointEnvV2
-from simulations.maze_task import CustomGoalReward4Rooms, \
+from neurorobotics.simulations.maze_env import MazeEnv, DiscreteMazeEnv
+from neurorobotics.simulations.point import PointEnv, PointEnvV2
+from neurorobotics.simulations.maze_task import CustomGoalReward4Rooms, \
     GoalRewardNoObstacle, GoalRewardSimple, CustomGoalReward4RoomsV2
 env = DiscreteMazeEnv(PointEnv, CustomGoalReward4Rooms)
 import numpy as np
@@ -10,7 +10,7 @@ from tqdm import tqdm
 import shutil
 import os
 from typing import Dict, List, NamedTuple, Optional, Tuple, Type
-from constants import params
+from neurorobotics.constants import params
 import copy
 
 class Rgb(NamedTuple):

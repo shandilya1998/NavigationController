@@ -1,4 +1,4 @@
-from bg.models import BasalGanglia, ControlNetwork
+from neurorobotics.bg.models import BasalGanglia, ControlNetwork
 from torchviz import make_dot
 import hiddenlayer as hl
 import torch

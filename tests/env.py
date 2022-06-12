@@ -1,7 +1,7 @@
-from simulations.maze_env import MazeEnv
-from simulations.collision_env import CollisionEnv
-from simulations.point import PointEnv
-from simulations.maze_task import CustomGoalReward4Rooms, \
+from neurorobotics.simulations.maze_env import MazeEnv
+from neurorobotics.simulations.collision_env import CollisionEnv
+from neurorobotics.simulations.point import PointEnv
+from neurorobotics.simulations.maze_task import CustomGoalReward4Rooms, \
     GoalRewardNoObstacle, GoalRewardSimple
 env = MazeEnv(PointEnv, GoalRewardSimple)
 import numpy as np

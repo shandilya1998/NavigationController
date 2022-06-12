@@ -1,8 +1,7 @@
-import numpy as np
 import torch
 import stable_baselines3 as sb3
 import gym
-from bg.autoencoder import Autoencoder
+from neurorobotics.bg.autoencoder import Autoencoder
 
 class TimeDistributedFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
     def __init__(self,

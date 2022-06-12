@@ -1,5 +1,5 @@
-from learning.imitate import Imitate
-from learning.explore import Explore
+from neurorobotics.learning.imitate import Imitate
+from neurorobotics.learning.explore import Explore
 import argparse
 
 if __name__ == '__main__':

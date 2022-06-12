@@ -1,6 +1,5 @@
 import torch
-from torch.nn.modules import activation
-from constants import image_width, image_height
+from neurorobotics.constants import image_width, image_height
 
 class ResizeConv2d(torch.nn.Module):
 

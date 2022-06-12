@@ -1,0 +1,530 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module maze_env</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>maze_env</strong></big></big></font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/home/shandilya/Desktop/Projects/NavigationController/simulations/maze_env.py">/home/shandilya/Desktop/Projects/NavigationController/simulations/maze_env.py</a></font></td></tr></table>
+    <p><tt>Mujoco&nbsp;Maze&nbsp;environment.<br>
+Based&nbsp;on&nbsp;`models`_&nbsp;and&nbsp;`rllab`_.<br>
+&nbsp;<br>
+..&nbsp;_models:&nbsp;https://github.com/tensorflow/models/tree/master/research/efficient-hrl<br>
+..&nbsp;_rllab:&nbsp;https://github.com/rll/rllab<br>
+REFER&nbsp;TO&nbsp;THE&nbsp;FOLLOWING&nbsp;FOR&nbsp;GEOM&nbsp;AND&nbsp;BODY&nbsp;NAMES&nbsp;IN&nbsp;MODEL:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;https://github.com/openai/mujoco-py/blob/9dd6d3e8263ba42bfd9499a988b36abc6b8954e9/mujoco_py/generated/wrappers.pxi</tt></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="xml.etree.ElementTree.html">xml.etree.ElementTree</a><br>
+<a href="colorsys.html">colorsys</a><br>
+<a href="copy.html">copy</a><br>
+<a href="cv2.cv2.html">cv2.cv2</a><br>
+</td><td width="25%" valign=top><a href="gym.html">gym</a><br>
+<a href="itertools.html">itertools</a><br>
+<a href="math.html">math</a><br>
+<a href="simulations.maze_env_utils.html">simulations.maze_env_utils</a><br>
+</td><td width="25%" valign=top><a href="simulations.maze_task.html">simulations.maze_task</a><br>
+<a href="numpy.html">numpy</a><br>
+<a href="networkx.html">networkx</a><br>
+<a href="open3d.html">open3d</a><br>
+</td><td width="25%" valign=top><a href="os.html">os</a><br>
+<a href="random.html">random</a><br>
+<a href="tempfile.html">tempfile</a><br>
+</td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ee77aa">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Classes</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#ee77aa"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl>
+<dt><font face="helvetica, arial"><a href="gym.core.html#Env">gym.core.Env</a>(<a href="builtins.html#object">builtins.object</a>)
+</font></dt><dd>
+<dl>
+<dt><font face="helvetica, arial"><a href="maze_env.html#MazeEnv">MazeEnv</a>
+</font></dt><dd>
+<dl>
+<dt><font face="helvetica, arial"><a href="maze_env.html#DiscreteMazeEnv">DiscreteMazeEnv</a>
+</font></dt></dl>
+</dd>
+</dl>
+</dd>
+</dl>
+ <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="DiscreteMazeEnv">class <strong>DiscreteMazeEnv</strong></a>(<a href="maze_env.html#MazeEnv">MazeEnv</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>Base&nbsp;Class&nbsp;for&nbsp;spawning&nbsp;and&nbsp;configuring&nbsp;any&nbsp;maze&nbsp;environment.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%"><dl><dt>Method resolution order:</dt>
+<dd><a href="maze_env.html#DiscreteMazeEnv">DiscreteMazeEnv</a></dd>
+<dd><a href="maze_env.html#MazeEnv">MazeEnv</a></dd>
+<dd><a href="gym.core.html#Env">gym.core.Env</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="DiscreteMazeEnv-__init__"><strong>__init__</strong></a>(self, model_cls:Type[simulations.agent_model.AgentModel], maze_task:Type[simulations.maze_task.MazeTask]=&lt;class 'simulations.maze_task.MazeTask'&gt;, max_episode_size:int=2000, n_steps=50, include_position:bool=True, maze_height:float=0.5, maze_size_scaling:float=4.0, inner_reward_scaling:float=1.0, restitution_coef:float=0.8, task_kwargs:dict={}, websock_port:Union[int, NoneType]=None, camera_move_x:Union[float, NoneType]=None, camera_move_y:Union[float, NoneType]=None, camera_zoom:Union[float, NoneType]=None, image_shape:Tuple[int, int]=(600, 480), **kwargs) -&gt; None</dt><dd><tt>INITIALIZE.<br>
+inputs:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;model_cls&nbsp;:&nbsp;Type[AgentModel]&nbsp;object.&nbsp;Choice&nbsp;of&nbsp;agent&nbsp;to&nbsp;be&nbsp;spawned<br>
+&nbsp;&nbsp;&nbsp;&nbsp;maze_task&nbsp;:&nbsp;Type[maze_task.MazeTask]&nbsp;object.&nbsp;Choice&nbsp;of&nbsp;maze&nbsp;architecture&nbsp;and&nbsp;reward<br>
+&nbsp;&nbsp;&nbsp;&nbsp;max_episode_size&nbsp;:&nbsp;number&nbsp;of&nbsp;maximum&nbsp;steps&nbsp;in&nbsp;an&nbsp;episode<br>
+&nbsp;&nbsp;&nbsp;&nbsp;n_steps&nbsp;:&nbsp;size&nbsp;of&nbsp;episode&nbsp;history&nbsp;tracked<br>
+&nbsp;&nbsp;&nbsp;&nbsp;include_position&nbsp;:&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;maze_height&nbsp;:&nbsp;height&nbsp;of&nbsp;maze&nbsp;walls<br>
+&nbsp;&nbsp;&nbsp;&nbsp;maze_size_scaling&nbsp;:&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;inner_reward_scaling&nbsp;:&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;restitution_coef&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;task_kwargs:&nbsp;dict.&nbsp;Maze&nbsp;architecture&nbsp;and&nbsp;reward&nbsp;config<br>
+&nbsp;&nbsp;&nbsp;&nbsp;websock_port&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;camera_move_x&nbsp;:&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;camera_move_y&nbsp;:&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;camera_zoom&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;image_shape&nbsp;:&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;mode<br>
+outputs:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;None</tt></dd></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-continuous_action"><strong>continuous_action</strong></a>(self, action)</dt></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-discrete_v"><strong>discrete_v</strong></a>(self, v)</dt></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-discrete_vyaw"><strong>discrete_vyaw</strong></a>(self, vyaw)</dt></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-get_action"><strong>get_action</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-step"><strong>step</strong></a>(self, action:numpy.ndarray) -&gt; Tuple[numpy.ndarray, float, bool, dict]</dt><dd><tt>Run&nbsp;one&nbsp;timestep&nbsp;of&nbsp;the&nbsp;environment's&nbsp;dynamics.&nbsp;When&nbsp;end&nbsp;of<br>
+episode&nbsp;is&nbsp;reached,&nbsp;you&nbsp;are&nbsp;responsible&nbsp;for&nbsp;calling&nbsp;`<a href="#DiscreteMazeEnv-reset">reset</a>()`<br>
+to&nbsp;reset&nbsp;this&nbsp;environment's&nbsp;state.<br>
+&nbsp;<br>
+Accepts&nbsp;an&nbsp;action&nbsp;and&nbsp;returns&nbsp;a&nbsp;tuple&nbsp;(observation,&nbsp;reward,&nbsp;done,&nbsp;info).<br>
+&nbsp;<br>
+Args:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;action&nbsp;(object):&nbsp;an&nbsp;action&nbsp;provided&nbsp;by&nbsp;the&nbsp;agent<br>
+&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;observation&nbsp;(object):&nbsp;agent's&nbsp;observation&nbsp;of&nbsp;the&nbsp;current&nbsp;environment<br>
+&nbsp;&nbsp;&nbsp;&nbsp;reward&nbsp;(float)&nbsp;:&nbsp;amount&nbsp;of&nbsp;reward&nbsp;returned&nbsp;after&nbsp;previous&nbsp;action<br>
+&nbsp;&nbsp;&nbsp;&nbsp;done&nbsp;(bool):&nbsp;whether&nbsp;the&nbsp;episode&nbsp;has&nbsp;ended,&nbsp;in&nbsp;which&nbsp;case&nbsp;further&nbsp;<a href="#DiscreteMazeEnv-step">step</a>()&nbsp;calls&nbsp;will&nbsp;return&nbsp;undefined&nbsp;results<br>
+&nbsp;&nbsp;&nbsp;&nbsp;info&nbsp;(dict):&nbsp;contains&nbsp;auxiliary&nbsp;diagnostic&nbsp;information&nbsp;(helpful&nbsp;for&nbsp;debugging,&nbsp;and&nbsp;sometimes&nbsp;learning)</tt></dd></dl>
+
+<hr>
+Methods inherited from <a href="maze_env.html#MazeEnv">MazeEnv</a>:<br>
+<dl><dt><a name="DiscreteMazeEnv-check_angle"><strong>check_angle</strong></a>(self, angle)</dt></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-check_position"><strong>check_position</strong></a>(self, pos)</dt></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-close"><strong>close</strong></a>(self) -&gt; None</dt><dd><tt>Override&nbsp;close&nbsp;in&nbsp;your&nbsp;subclass&nbsp;to&nbsp;perform&nbsp;any&nbsp;necessary&nbsp;cleanup.<br>
+&nbsp;<br>
+Environments&nbsp;will&nbsp;automatically&nbsp;<a href="#DiscreteMazeEnv-close">close</a>()&nbsp;themselves&nbsp;when<br>
+garbage&nbsp;collected&nbsp;or&nbsp;when&nbsp;the&nbsp;program&nbsp;exits.</tt></dd></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-conditional_blind"><strong>conditional_blind</strong></a>(self, obs, yaw, b)</dt></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-detect_target"><strong>detect_target</strong></a>(self, frame)</dt><dd><tt>Refer&nbsp;to&nbsp;the&nbsp;following&nbsp;link&nbsp;for&nbsp;reference&nbsp;to&nbsp;openCV&nbsp;code:<br>
+https://answers.opencv.org/question/229620/drawing-a-rectangle-around-the-red-color-region/</tt></dd></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-get_attention_window"><strong>get_attention_window</strong></a>(self, frame, bbx)</dt></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-get_coverage"><strong>get_coverage</strong></a>(self, allo_map)</dt></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-get_ego_clouds"><strong>get_ego_clouds</strong></a>(self, depth, rgb)</dt></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-get_ego_map"><strong>get_ego_map</strong></a>(self, g_borders_cloud, g_floor_cloud, g_objects_cloud)</dt></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-get_ego_maps"><strong>get_ego_maps</strong></a>(self, depth, rgb)</dt><dd><tt>Use&nbsp;the&nbsp;above&nbsp;method&nbsp;to&nbsp;create&nbsp;point&nbsp;instead&nbsp;of&nbsp;using&nbsp;o3d<br>
+https://github.com/htung0101/table_dome/blob/master/table_dome_calib/utils.py</tt></dd></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-get_local_map"><strong>get_local_map</strong></a>(self, global_map)</dt></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-get_maps"><strong>get_maps</strong></a>(self, depth, rgb, res=0.1, side_range=(-40, 40), fwd_range=(-40, 40), height_range=(0, 1.5))</dt></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-get_ori"><strong>get_ori</strong></a>(self) -&gt; float</dt></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-get_top_view"><strong>get_top_view</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-inv_transform_cloud_pose"><strong>inv_transform_cloud_pose</strong></a>(self, points, xy, R)</dt><dd><tt>Transforms&nbsp;the&nbsp;point&nbsp;cloud&nbsp;into&nbsp;geocentric&nbsp;frame&nbsp;to&nbsp;account&nbsp;for<br>
+camera&nbsp;position<br>
+Input:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;points&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:&nbsp;...x3<br>
+&nbsp;&nbsp;&nbsp;&nbsp;current_pose&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:&nbsp;camera&nbsp;position&nbsp;(x,&nbsp;y,&nbsp;theta&nbsp;(radians))<br>
+Output:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;XYZ&nbsp;:&nbsp;...x3</tt></dd></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-process_point_cloud"><strong>process_point_cloud</strong></a>(self, points, side_range=(-10.0, 10.0), fwd_range=(-10.0, 10.0))</dt></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-render"><strong>render</strong></a>(self, mode='human', **kwargs)</dt><dd><tt>Renders&nbsp;the&nbsp;environment.<br>
+&nbsp;<br>
+The&nbsp;set&nbsp;of&nbsp;supported&nbsp;modes&nbsp;varies&nbsp;per&nbsp;environment.&nbsp;(And&nbsp;some<br>
+environments&nbsp;do&nbsp;not&nbsp;support&nbsp;rendering&nbsp;at&nbsp;all.)&nbsp;By&nbsp;convention,<br>
+if&nbsp;mode&nbsp;is:<br>
+&nbsp;<br>
+-&nbsp;human:&nbsp;render&nbsp;to&nbsp;the&nbsp;current&nbsp;display&nbsp;or&nbsp;terminal&nbsp;and<br>
+&nbsp;&nbsp;return&nbsp;nothing.&nbsp;Usually&nbsp;for&nbsp;human&nbsp;consumption.<br>
+-&nbsp;rgb_array:&nbsp;Return&nbsp;an&nbsp;numpy.ndarray&nbsp;with&nbsp;shape&nbsp;(x,&nbsp;y,&nbsp;3),<br>
+&nbsp;&nbsp;representing&nbsp;RGB&nbsp;values&nbsp;for&nbsp;an&nbsp;x-by-y&nbsp;pixel&nbsp;image,&nbsp;suitable<br>
+&nbsp;&nbsp;for&nbsp;turning&nbsp;into&nbsp;a&nbsp;video.<br>
+-&nbsp;ansi:&nbsp;Return&nbsp;a&nbsp;string&nbsp;(str)&nbsp;or&nbsp;StringIO.StringIO&nbsp;containing&nbsp;a<br>
+&nbsp;&nbsp;terminal-style&nbsp;text&nbsp;representation.&nbsp;The&nbsp;text&nbsp;can&nbsp;include&nbsp;newlines<br>
+&nbsp;&nbsp;and&nbsp;ANSI&nbsp;escape&nbsp;sequences&nbsp;(e.g.&nbsp;for&nbsp;colors).<br>
+&nbsp;<br>
+Note:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Make&nbsp;sure&nbsp;that&nbsp;your&nbsp;class's&nbsp;metadata&nbsp;'render.modes'&nbsp;key&nbsp;includes<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;list&nbsp;of&nbsp;supported&nbsp;modes.&nbsp;It's&nbsp;recommended&nbsp;to&nbsp;call&nbsp;super()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;in&nbsp;implementations&nbsp;to&nbsp;use&nbsp;the&nbsp;functionality&nbsp;of&nbsp;this&nbsp;method.<br>
+&nbsp;<br>
+Args:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;mode&nbsp;(str):&nbsp;the&nbsp;mode&nbsp;to&nbsp;render&nbsp;with<br>
+&nbsp;<br>
+Example:<br>
+&nbsp;<br>
+class&nbsp;MyEnv(<a href="gym.core.html#Env">Env</a>):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;metadata&nbsp;=&nbsp;{'render.modes':&nbsp;['human',&nbsp;'rgb_array']}<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;def&nbsp;<a href="#DiscreteMazeEnv-render">render</a>(self,&nbsp;mode='human'):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;mode&nbsp;==&nbsp;'rgb_array':<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;np.array(...)&nbsp;#&nbsp;return&nbsp;RGB&nbsp;frame&nbsp;suitable&nbsp;for&nbsp;video<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elif&nbsp;mode&nbsp;==&nbsp;'human':<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;...&nbsp;#&nbsp;pop&nbsp;up&nbsp;a&nbsp;window&nbsp;and&nbsp;render<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;super(MyEnv,&nbsp;self).<a href="#DiscreteMazeEnv-render">render</a>(mode=mode)&nbsp;#&nbsp;just&nbsp;raise&nbsp;an&nbsp;exception</tt></dd></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-reset"><strong>reset</strong></a>(self) -&gt; numpy.ndarray</dt><dd><tt>Resets&nbsp;the&nbsp;environment&nbsp;to&nbsp;an&nbsp;initial&nbsp;state&nbsp;and&nbsp;returns&nbsp;an&nbsp;initial<br>
+observation.<br>
+&nbsp;<br>
+Note&nbsp;that&nbsp;this&nbsp;function&nbsp;should&nbsp;not&nbsp;reset&nbsp;the&nbsp;environment's&nbsp;random<br>
+number&nbsp;generator(s);&nbsp;random&nbsp;variables&nbsp;in&nbsp;the&nbsp;environment's&nbsp;state&nbsp;should<br>
+be&nbsp;sampled&nbsp;independently&nbsp;between&nbsp;multiple&nbsp;calls&nbsp;to&nbsp;`<a href="#DiscreteMazeEnv-reset">reset</a>()`.&nbsp;In&nbsp;other<br>
+words,&nbsp;each&nbsp;call&nbsp;of&nbsp;`<a href="#DiscreteMazeEnv-reset">reset</a>()`&nbsp;should&nbsp;yield&nbsp;an&nbsp;environment&nbsp;suitable&nbsp;for<br>
+a&nbsp;new&nbsp;episode,&nbsp;independent&nbsp;of&nbsp;previous&nbsp;episodes.<br>
+&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;observation&nbsp;(object):&nbsp;the&nbsp;initial&nbsp;observation.</tt></dd></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-set_env"><strong>set_env</strong></a>(self)</dt><dd><tt>Configure&nbsp;and&nbsp;spawn&nbsp;environment.</tt></dd></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-set_goal_path"><strong>set_goal_path</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-set_structure"><strong>set_structure</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-transform_cloud_pose"><strong>transform_cloud_pose</strong></a>(self, points, xy, R)</dt><dd><tt>Transforms&nbsp;the&nbsp;point&nbsp;cloud&nbsp;into&nbsp;geocentric&nbsp;frame&nbsp;to&nbsp;account&nbsp;for<br>
+camera&nbsp;position<br>
+Input:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;points&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:&nbsp;...x3<br>
+&nbsp;&nbsp;&nbsp;&nbsp;current_pose&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:&nbsp;camera&nbsp;position&nbsp;(x,&nbsp;y,&nbsp;theta&nbsp;(radians))<br>
+Output:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;XYZ&nbsp;:&nbsp;...x3</tt></dd></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-xy_to_imgrowcol"><strong>xy_to_imgrowcol</strong></a>(self, x, y)</dt></dl>
+
+<hr>
+Data descriptors inherited from <a href="maze_env.html#MazeEnv">MazeEnv</a>:<br>
+<dl><dt><strong>action_space</strong></dt>
+</dl>
+<dl><dt><strong>viewer</strong></dt>
+</dl>
+<hr>
+Methods inherited from <a href="gym.core.html#Env">gym.core.Env</a>:<br>
+<dl><dt><a name="DiscreteMazeEnv-__enter__"><strong>__enter__</strong></a>(self)</dt><dd><tt>Support&nbsp;with-statement&nbsp;for&nbsp;the&nbsp;environment.</tt></dd></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-__exit__"><strong>__exit__</strong></a>(self, *args)</dt><dd><tt>Support&nbsp;with-statement&nbsp;for&nbsp;the&nbsp;environment.</tt></dd></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-__str__"><strong>__str__</strong></a>(self)</dt><dd><tt>Return&nbsp;str(self).</tt></dd></dl>
+
+<dl><dt><a name="DiscreteMazeEnv-seed"><strong>seed</strong></a>(self, seed=None)</dt><dd><tt>Sets&nbsp;the&nbsp;seed&nbsp;for&nbsp;this&nbsp;env's&nbsp;random&nbsp;number&nbsp;generator(s).<br>
+&nbsp;<br>
+Note:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Some&nbsp;environments&nbsp;use&nbsp;multiple&nbsp;pseudorandom&nbsp;number&nbsp;generators.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;We&nbsp;want&nbsp;to&nbsp;capture&nbsp;all&nbsp;such&nbsp;seeds&nbsp;used&nbsp;in&nbsp;order&nbsp;to&nbsp;ensure&nbsp;that<br>
+&nbsp;&nbsp;&nbsp;&nbsp;there&nbsp;aren't&nbsp;accidental&nbsp;correlations&nbsp;between&nbsp;multiple&nbsp;generators.<br>
+&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;list&lt;bigint&gt;:&nbsp;Returns&nbsp;the&nbsp;list&nbsp;of&nbsp;seeds&nbsp;used&nbsp;in&nbsp;this&nbsp;env's&nbsp;random<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;number&nbsp;generators.&nbsp;The&nbsp;first&nbsp;value&nbsp;in&nbsp;the&nbsp;list&nbsp;should&nbsp;be&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"main"&nbsp;seed,&nbsp;or&nbsp;the&nbsp;value&nbsp;which&nbsp;a&nbsp;reproducer&nbsp;should&nbsp;pass&nbsp;to<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'seed'.&nbsp;Often,&nbsp;the&nbsp;main&nbsp;seed&nbsp;equals&nbsp;the&nbsp;provided&nbsp;'seed',&nbsp;but<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this&nbsp;won't&nbsp;be&nbsp;true&nbsp;if&nbsp;seed=None,&nbsp;for&nbsp;example.</tt></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="gym.core.html#Env">gym.core.Env</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><tt>dictionary&nbsp;for&nbsp;instance&nbsp;variables&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><tt>list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<dl><dt><strong>unwrapped</strong></dt>
+<dd><tt>Completely&nbsp;unwrap&nbsp;this&nbsp;env.<br>
+&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;gym.Env:&nbsp;The&nbsp;base&nbsp;non-wrapped&nbsp;gym.Env&nbsp;instance</tt></dd>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="gym.core.html#Env">gym.core.Env</a>:<br>
+<dl><dt><strong>metadata</strong> = {'render.modes': []}</dl>
+
+<dl><dt><strong>observation_space</strong> = None</dl>
+
+<dl><dt><strong>reward_range</strong> = (-inf, inf)</dl>
+
+<dl><dt><strong>spec</strong> = None</dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="MazeEnv">class <strong>MazeEnv</strong></a>(<a href="gym.core.html#Env">gym.core.Env</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>Base&nbsp;Class&nbsp;for&nbsp;spawning&nbsp;and&nbsp;configuring&nbsp;any&nbsp;maze&nbsp;environment.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%"><dl><dt>Method resolution order:</dt>
+<dd><a href="maze_env.html#MazeEnv">MazeEnv</a></dd>
+<dd><a href="gym.core.html#Env">gym.core.Env</a></dd>
+<dd><a href="builtins.html#object">builtins.object</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="MazeEnv-__init__"><strong>__init__</strong></a>(self, model_cls:Type[simulations.agent_model.AgentModel], maze_task:Type[simulations.maze_task.MazeTask]=&lt;class 'simulations.maze_task.MazeTask'&gt;, max_episode_size:int=2000, n_steps=50, maze_height:float=0.5, maze_size_scaling:float=4.0, inner_reward_scaling:float=1.0, restitution_coef:float=0.8, task_kwargs:dict={}, websock_port:Union[int, NoneType]=None, camera_move_x:Union[float, NoneType]=None, camera_move_y:Union[float, NoneType]=None, camera_zoom:Union[float, NoneType]=None, image_shape:Tuple[int, int]=(600, 480), mode=None, **kwargs) -&gt; None</dt><dd><tt>INITIALIZE.<br>
+inputs:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;model_cls&nbsp;:&nbsp;Type[AgentModel]&nbsp;object.&nbsp;Choice&nbsp;of&nbsp;agent&nbsp;to&nbsp;be&nbsp;spawned<br>
+&nbsp;&nbsp;&nbsp;&nbsp;maze_task&nbsp;:&nbsp;Type[maze_task.MazeTask]&nbsp;object.&nbsp;Choice&nbsp;of&nbsp;maze&nbsp;architecture&nbsp;and&nbsp;reward<br>
+&nbsp;&nbsp;&nbsp;&nbsp;max_episode_size&nbsp;:&nbsp;number&nbsp;of&nbsp;maximum&nbsp;steps&nbsp;in&nbsp;an&nbsp;episode<br>
+&nbsp;&nbsp;&nbsp;&nbsp;n_steps&nbsp;:&nbsp;size&nbsp;of&nbsp;episode&nbsp;history&nbsp;tracked<br>
+&nbsp;&nbsp;&nbsp;&nbsp;include_position&nbsp;:&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;maze_height&nbsp;:&nbsp;height&nbsp;of&nbsp;maze&nbsp;walls<br>
+&nbsp;&nbsp;&nbsp;&nbsp;maze_size_scaling&nbsp;:&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;inner_reward_scaling&nbsp;:&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;restitution_coef&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;task_kwargs:&nbsp;dict.&nbsp;Maze&nbsp;architecture&nbsp;and&nbsp;reward&nbsp;config<br>
+&nbsp;&nbsp;&nbsp;&nbsp;websock_port&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;camera_move_x&nbsp;:&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;camera_move_y&nbsp;:&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;camera_zoom&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;image_shape&nbsp;:&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;mode<br>
+outputs:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;None</tt></dd></dl>
+
+<dl><dt><a name="MazeEnv-check_angle"><strong>check_angle</strong></a>(self, angle)</dt></dl>
+
+<dl><dt><a name="MazeEnv-check_position"><strong>check_position</strong></a>(self, pos)</dt></dl>
+
+<dl><dt><a name="MazeEnv-close"><strong>close</strong></a>(self) -&gt; None</dt><dd><tt>Override&nbsp;close&nbsp;in&nbsp;your&nbsp;subclass&nbsp;to&nbsp;perform&nbsp;any&nbsp;necessary&nbsp;cleanup.<br>
+&nbsp;<br>
+Environments&nbsp;will&nbsp;automatically&nbsp;<a href="#MazeEnv-close">close</a>()&nbsp;themselves&nbsp;when<br>
+garbage&nbsp;collected&nbsp;or&nbsp;when&nbsp;the&nbsp;program&nbsp;exits.</tt></dd></dl>
+
+<dl><dt><a name="MazeEnv-conditional_blind"><strong>conditional_blind</strong></a>(self, obs, yaw, b)</dt></dl>
+
+<dl><dt><a name="MazeEnv-detect_target"><strong>detect_target</strong></a>(self, frame)</dt><dd><tt>Refer&nbsp;to&nbsp;the&nbsp;following&nbsp;link&nbsp;for&nbsp;reference&nbsp;to&nbsp;openCV&nbsp;code:<br>
+https://answers.opencv.org/question/229620/drawing-a-rectangle-around-the-red-color-region/</tt></dd></dl>
+
+<dl><dt><a name="MazeEnv-get_action"><strong>get_action</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="MazeEnv-get_attention_window"><strong>get_attention_window</strong></a>(self, frame, bbx)</dt></dl>
+
+<dl><dt><a name="MazeEnv-get_coverage"><strong>get_coverage</strong></a>(self, allo_map)</dt></dl>
+
+<dl><dt><a name="MazeEnv-get_ego_clouds"><strong>get_ego_clouds</strong></a>(self, depth, rgb)</dt></dl>
+
+<dl><dt><a name="MazeEnv-get_ego_map"><strong>get_ego_map</strong></a>(self, g_borders_cloud, g_floor_cloud, g_objects_cloud)</dt></dl>
+
+<dl><dt><a name="MazeEnv-get_ego_maps"><strong>get_ego_maps</strong></a>(self, depth, rgb)</dt><dd><tt>Use&nbsp;the&nbsp;above&nbsp;method&nbsp;to&nbsp;create&nbsp;point&nbsp;instead&nbsp;of&nbsp;using&nbsp;o3d<br>
+https://github.com/htung0101/table_dome/blob/master/table_dome_calib/utils.py</tt></dd></dl>
+
+<dl><dt><a name="MazeEnv-get_local_map"><strong>get_local_map</strong></a>(self, global_map)</dt></dl>
+
+<dl><dt><a name="MazeEnv-get_maps"><strong>get_maps</strong></a>(self, depth, rgb, res=0.1, side_range=(-40, 40), fwd_range=(-40, 40), height_range=(0, 1.5))</dt></dl>
+
+<dl><dt><a name="MazeEnv-get_ori"><strong>get_ori</strong></a>(self) -&gt; float</dt></dl>
+
+<dl><dt><a name="MazeEnv-get_top_view"><strong>get_top_view</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="MazeEnv-inv_transform_cloud_pose"><strong>inv_transform_cloud_pose</strong></a>(self, points, xy, R)</dt><dd><tt>Transforms&nbsp;the&nbsp;point&nbsp;cloud&nbsp;into&nbsp;geocentric&nbsp;frame&nbsp;to&nbsp;account&nbsp;for<br>
+camera&nbsp;position<br>
+Input:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;points&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:&nbsp;...x3<br>
+&nbsp;&nbsp;&nbsp;&nbsp;current_pose&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:&nbsp;camera&nbsp;position&nbsp;(x,&nbsp;y,&nbsp;theta&nbsp;(radians))<br>
+Output:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;XYZ&nbsp;:&nbsp;...x3</tt></dd></dl>
+
+<dl><dt><a name="MazeEnv-process_point_cloud"><strong>process_point_cloud</strong></a>(self, points, side_range=(-10.0, 10.0), fwd_range=(-10.0, 10.0))</dt></dl>
+
+<dl><dt><a name="MazeEnv-render"><strong>render</strong></a>(self, mode='human', **kwargs)</dt><dd><tt>Renders&nbsp;the&nbsp;environment.<br>
+&nbsp;<br>
+The&nbsp;set&nbsp;of&nbsp;supported&nbsp;modes&nbsp;varies&nbsp;per&nbsp;environment.&nbsp;(And&nbsp;some<br>
+environments&nbsp;do&nbsp;not&nbsp;support&nbsp;rendering&nbsp;at&nbsp;all.)&nbsp;By&nbsp;convention,<br>
+if&nbsp;mode&nbsp;is:<br>
+&nbsp;<br>
+-&nbsp;human:&nbsp;render&nbsp;to&nbsp;the&nbsp;current&nbsp;display&nbsp;or&nbsp;terminal&nbsp;and<br>
+&nbsp;&nbsp;return&nbsp;nothing.&nbsp;Usually&nbsp;for&nbsp;human&nbsp;consumption.<br>
+-&nbsp;rgb_array:&nbsp;Return&nbsp;an&nbsp;numpy.ndarray&nbsp;with&nbsp;shape&nbsp;(x,&nbsp;y,&nbsp;3),<br>
+&nbsp;&nbsp;representing&nbsp;RGB&nbsp;values&nbsp;for&nbsp;an&nbsp;x-by-y&nbsp;pixel&nbsp;image,&nbsp;suitable<br>
+&nbsp;&nbsp;for&nbsp;turning&nbsp;into&nbsp;a&nbsp;video.<br>
+-&nbsp;ansi:&nbsp;Return&nbsp;a&nbsp;string&nbsp;(str)&nbsp;or&nbsp;StringIO.StringIO&nbsp;containing&nbsp;a<br>
+&nbsp;&nbsp;terminal-style&nbsp;text&nbsp;representation.&nbsp;The&nbsp;text&nbsp;can&nbsp;include&nbsp;newlines<br>
+&nbsp;&nbsp;and&nbsp;ANSI&nbsp;escape&nbsp;sequences&nbsp;(e.g.&nbsp;for&nbsp;colors).<br>
+&nbsp;<br>
+Note:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Make&nbsp;sure&nbsp;that&nbsp;your&nbsp;class's&nbsp;metadata&nbsp;'render.modes'&nbsp;key&nbsp;includes<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;list&nbsp;of&nbsp;supported&nbsp;modes.&nbsp;It's&nbsp;recommended&nbsp;to&nbsp;call&nbsp;super()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;in&nbsp;implementations&nbsp;to&nbsp;use&nbsp;the&nbsp;functionality&nbsp;of&nbsp;this&nbsp;method.<br>
+&nbsp;<br>
+Args:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;mode&nbsp;(str):&nbsp;the&nbsp;mode&nbsp;to&nbsp;render&nbsp;with<br>
+&nbsp;<br>
+Example:<br>
+&nbsp;<br>
+class&nbsp;MyEnv(<a href="gym.core.html#Env">Env</a>):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;metadata&nbsp;=&nbsp;{'render.modes':&nbsp;['human',&nbsp;'rgb_array']}<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;def&nbsp;<a href="#MazeEnv-render">render</a>(self,&nbsp;mode='human'):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;mode&nbsp;==&nbsp;'rgb_array':<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;np.array(...)&nbsp;#&nbsp;return&nbsp;RGB&nbsp;frame&nbsp;suitable&nbsp;for&nbsp;video<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elif&nbsp;mode&nbsp;==&nbsp;'human':<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;...&nbsp;#&nbsp;pop&nbsp;up&nbsp;a&nbsp;window&nbsp;and&nbsp;render<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;super(MyEnv,&nbsp;self).<a href="#MazeEnv-render">render</a>(mode=mode)&nbsp;#&nbsp;just&nbsp;raise&nbsp;an&nbsp;exception</tt></dd></dl>
+
+<dl><dt><a name="MazeEnv-reset"><strong>reset</strong></a>(self) -&gt; numpy.ndarray</dt><dd><tt>Resets&nbsp;the&nbsp;environment&nbsp;to&nbsp;an&nbsp;initial&nbsp;state&nbsp;and&nbsp;returns&nbsp;an&nbsp;initial<br>
+observation.<br>
+&nbsp;<br>
+Note&nbsp;that&nbsp;this&nbsp;function&nbsp;should&nbsp;not&nbsp;reset&nbsp;the&nbsp;environment's&nbsp;random<br>
+number&nbsp;generator(s);&nbsp;random&nbsp;variables&nbsp;in&nbsp;the&nbsp;environment's&nbsp;state&nbsp;should<br>
+be&nbsp;sampled&nbsp;independently&nbsp;between&nbsp;multiple&nbsp;calls&nbsp;to&nbsp;`<a href="#MazeEnv-reset">reset</a>()`.&nbsp;In&nbsp;other<br>
+words,&nbsp;each&nbsp;call&nbsp;of&nbsp;`<a href="#MazeEnv-reset">reset</a>()`&nbsp;should&nbsp;yield&nbsp;an&nbsp;environment&nbsp;suitable&nbsp;for<br>
+a&nbsp;new&nbsp;episode,&nbsp;independent&nbsp;of&nbsp;previous&nbsp;episodes.<br>
+&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;observation&nbsp;(object):&nbsp;the&nbsp;initial&nbsp;observation.</tt></dd></dl>
+
+<dl><dt><a name="MazeEnv-set_env"><strong>set_env</strong></a>(self)</dt><dd><tt>Configure&nbsp;and&nbsp;spawn&nbsp;environment.</tt></dd></dl>
+
+<dl><dt><a name="MazeEnv-set_goal_path"><strong>set_goal_path</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="MazeEnv-set_structure"><strong>set_structure</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="MazeEnv-step"><strong>step</strong></a>(self, action:numpy.ndarray) -&gt; Tuple[numpy.ndarray, float, bool, dict]</dt><dd><tt>Run&nbsp;one&nbsp;timestep&nbsp;of&nbsp;the&nbsp;environment's&nbsp;dynamics.&nbsp;When&nbsp;end&nbsp;of<br>
+episode&nbsp;is&nbsp;reached,&nbsp;you&nbsp;are&nbsp;responsible&nbsp;for&nbsp;calling&nbsp;`<a href="#MazeEnv-reset">reset</a>()`<br>
+to&nbsp;reset&nbsp;this&nbsp;environment's&nbsp;state.<br>
+&nbsp;<br>
+Accepts&nbsp;an&nbsp;action&nbsp;and&nbsp;returns&nbsp;a&nbsp;tuple&nbsp;(observation,&nbsp;reward,&nbsp;done,&nbsp;info).<br>
+&nbsp;<br>
+Args:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;action&nbsp;(object):&nbsp;an&nbsp;action&nbsp;provided&nbsp;by&nbsp;the&nbsp;agent<br>
+&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;observation&nbsp;(object):&nbsp;agent's&nbsp;observation&nbsp;of&nbsp;the&nbsp;current&nbsp;environment<br>
+&nbsp;&nbsp;&nbsp;&nbsp;reward&nbsp;(float)&nbsp;:&nbsp;amount&nbsp;of&nbsp;reward&nbsp;returned&nbsp;after&nbsp;previous&nbsp;action<br>
+&nbsp;&nbsp;&nbsp;&nbsp;done&nbsp;(bool):&nbsp;whether&nbsp;the&nbsp;episode&nbsp;has&nbsp;ended,&nbsp;in&nbsp;which&nbsp;case&nbsp;further&nbsp;<a href="#MazeEnv-step">step</a>()&nbsp;calls&nbsp;will&nbsp;return&nbsp;undefined&nbsp;results<br>
+&nbsp;&nbsp;&nbsp;&nbsp;info&nbsp;(dict):&nbsp;contains&nbsp;auxiliary&nbsp;diagnostic&nbsp;information&nbsp;(helpful&nbsp;for&nbsp;debugging,&nbsp;and&nbsp;sometimes&nbsp;learning)</tt></dd></dl>
+
+<dl><dt><a name="MazeEnv-transform_cloud_pose"><strong>transform_cloud_pose</strong></a>(self, points, xy, R)</dt><dd><tt>Transforms&nbsp;the&nbsp;point&nbsp;cloud&nbsp;into&nbsp;geocentric&nbsp;frame&nbsp;to&nbsp;account&nbsp;for<br>
+camera&nbsp;position<br>
+Input:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;points&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:&nbsp;...x3<br>
+&nbsp;&nbsp;&nbsp;&nbsp;current_pose&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:&nbsp;camera&nbsp;position&nbsp;(x,&nbsp;y,&nbsp;theta&nbsp;(radians))<br>
+Output:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;XYZ&nbsp;:&nbsp;...x3</tt></dd></dl>
+
+<dl><dt><a name="MazeEnv-xy_to_imgrowcol"><strong>xy_to_imgrowcol</strong></a>(self, x, y)</dt></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>action_space</strong></dt>
+</dl>
+<dl><dt><strong>viewer</strong></dt>
+</dl>
+<hr>
+Methods inherited from <a href="gym.core.html#Env">gym.core.Env</a>:<br>
+<dl><dt><a name="MazeEnv-__enter__"><strong>__enter__</strong></a>(self)</dt><dd><tt>Support&nbsp;with-statement&nbsp;for&nbsp;the&nbsp;environment.</tt></dd></dl>
+
+<dl><dt><a name="MazeEnv-__exit__"><strong>__exit__</strong></a>(self, *args)</dt><dd><tt>Support&nbsp;with-statement&nbsp;for&nbsp;the&nbsp;environment.</tt></dd></dl>
+
+<dl><dt><a name="MazeEnv-__str__"><strong>__str__</strong></a>(self)</dt><dd><tt>Return&nbsp;str(self).</tt></dd></dl>
+
+<dl><dt><a name="MazeEnv-seed"><strong>seed</strong></a>(self, seed=None)</dt><dd><tt>Sets&nbsp;the&nbsp;seed&nbsp;for&nbsp;this&nbsp;env's&nbsp;random&nbsp;number&nbsp;generator(s).<br>
+&nbsp;<br>
+Note:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Some&nbsp;environments&nbsp;use&nbsp;multiple&nbsp;pseudorandom&nbsp;number&nbsp;generators.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;We&nbsp;want&nbsp;to&nbsp;capture&nbsp;all&nbsp;such&nbsp;seeds&nbsp;used&nbsp;in&nbsp;order&nbsp;to&nbsp;ensure&nbsp;that<br>
+&nbsp;&nbsp;&nbsp;&nbsp;there&nbsp;aren't&nbsp;accidental&nbsp;correlations&nbsp;between&nbsp;multiple&nbsp;generators.<br>
+&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;list&lt;bigint&gt;:&nbsp;Returns&nbsp;the&nbsp;list&nbsp;of&nbsp;seeds&nbsp;used&nbsp;in&nbsp;this&nbsp;env's&nbsp;random<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;number&nbsp;generators.&nbsp;The&nbsp;first&nbsp;value&nbsp;in&nbsp;the&nbsp;list&nbsp;should&nbsp;be&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"main"&nbsp;seed,&nbsp;or&nbsp;the&nbsp;value&nbsp;which&nbsp;a&nbsp;reproducer&nbsp;should&nbsp;pass&nbsp;to<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'seed'.&nbsp;Often,&nbsp;the&nbsp;main&nbsp;seed&nbsp;equals&nbsp;the&nbsp;provided&nbsp;'seed',&nbsp;but<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this&nbsp;won't&nbsp;be&nbsp;true&nbsp;if&nbsp;seed=None,&nbsp;for&nbsp;example.</tt></dd></dl>
+
+<hr>
+Data descriptors inherited from <a href="gym.core.html#Env">gym.core.Env</a>:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><tt>dictionary&nbsp;for&nbsp;instance&nbsp;variables&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><tt>list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<dl><dt><strong>unwrapped</strong></dt>
+<dd><tt>Completely&nbsp;unwrap&nbsp;this&nbsp;env.<br>
+&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;gym.Env:&nbsp;The&nbsp;base&nbsp;non-wrapped&nbsp;gym.Env&nbsp;instance</tt></dd>
+</dl>
+<hr>
+Data and other attributes inherited from <a href="gym.core.html#Env">gym.core.Env</a>:<br>
+<dl><dt><strong>metadata</strong> = {'render.modes': []}</dl>
+
+<dl><dt><strong>observation_space</strong> = None</dl>
+
+<dl><dt><strong>reward_range</strong> = (-inf, inf)</dl>
+
+<dl><dt><strong>spec</strong> = None</dl>
+
+</td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#eeaa77">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt><a name="-get_r_matrix"><strong>get_r_matrix</strong></a>(ax_, angle)</dt><dd><tt>NEED&nbsp;TO&nbsp;WRITE&nbsp;DOCSTRING.</tt></dd></dl>
+ <dl><dt><a name="-normalize"><strong>normalize</strong></a>(v)</dt><dd><tt>Performs&nbsp;normalisation&nbsp;(|v|=1)&nbsp;of&nbsp;v.</tt></dd></dl>
+ <dl><dt><a name="-scale_to_255"><strong>scale_to_255</strong></a>(a, min, max, dtype=&lt;class 'numpy.uint8'&gt;)</dt><dd><tt>Scales&nbsp;an&nbsp;array&nbsp;of&nbsp;values&nbsp;from&nbsp;specified&nbsp;min,&nbsp;max&nbsp;range&nbsp;to&nbsp;0-255<br>
+Optionally&nbsp;specify&nbsp;the&nbsp;data&nbsp;type&nbsp;of&nbsp;the&nbsp;output&nbsp;(default&nbsp;is&nbsp;uint8)</tt></dd></dl>
+ <dl><dt><a name="-sort_arrays"><strong>sort_arrays</strong></a>(x, y, z)</dt><dd><tt>Sorts&nbsp;x,&nbsp;y&nbsp;and&nbsp;z&nbsp;according&nbsp;to&nbsp;the&nbsp;indices&nbsp;of&nbsp;z.</tt></dd></dl>
+ <dl><dt><a name="-transform_pose"><strong>transform_pose</strong></a>(points, current_pose)</dt><dd><tt>Transforms&nbsp;the&nbsp;point&nbsp;cloud&nbsp;into&nbsp;geocentric&nbsp;frame&nbsp;to&nbsp;account&nbsp;for<br>
+camera&nbsp;position<br>
+Input:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;points&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:&nbsp;...x3<br>
+&nbsp;&nbsp;&nbsp;&nbsp;current_pose&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:&nbsp;camera&nbsp;position&nbsp;(x,&nbsp;y,&nbsp;theta&nbsp;(radians))<br>
+Output:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;XYZ&nbsp;:&nbsp;...x3</tt></dd></dl>
+</td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#55aa55">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Data</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#55aa55"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><strong>ANGLE_EPS</strong> = 0.001<br>
+<strong>Any</strong> = typing.Any<br>
+<strong>MODEL_DIR</strong> = '/home/shandilya/Desktop/Projects/NavigationController/assets/xml'<br>
+<strong>Optional</strong> = typing.Optional<br>
+<strong>image_height</strong> = 270<br>
+<strong>image_width</strong> = 270<br>
+<strong>params</strong> = {'INIT_HEIGHT': 0.05, 'INIT_JOINT_POS': array([ 0.,  0.,  1.,  0.,  0., -1.,  0.,  0., -1.,  0.,  0.,  1.],
+      dtype=float32), 'OU_MEAN': 0.0, 'OU_SIGMA': 0.2, 'actor_lr': 0.001, 'add_ref_scales': False, 'af': [256, 1], 'alpha': 0.6, 'autoencoder_arch': [1, 1, 1, 1], 'batch_size': 128, ...}</td></tr></table>
+</body></html>

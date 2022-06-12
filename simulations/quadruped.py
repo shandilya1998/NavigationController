@@ -1,7 +1,7 @@
 import argparse
 import gym
 import numpy as np
-from constants import params
+from neurobotics.constants import params
 from gym.envs.mujoco import mujoco_env
 import random
 from gym import error
@@ -9,9 +9,9 @@ import os
 import mujoco_py
 from collections import OrderedDict
 from tempfile import TemporaryFile
-from utils.env_utils import convert_observation_to_space
-from oscillator import hopf_mod_step
-from reward import FitnessFunctionV2
+from neurobotics.utils.env_utils import convert_observation_to_space
+from neurobotics.oscillator import hopf_mod_step
+from neurobotics.reward import FitnessFunctionV2
 import copy
 import xml.etree.ElementTree as ET
 import tempfile
@@ -364,7 +364,7 @@ class Quadruped(gym.GoalEnv, gym.utils.EzPickle):
         I_v_b = v_b
         b_v_b = v_b
 
-        ob = 
+        ob = {}
         
         return ob
 

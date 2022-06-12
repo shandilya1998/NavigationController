@@ -3,8 +3,8 @@ import numpy as np
 import gym
 import stable_baselines3 as sb3
 from typing import Any, Dict, List, Optional, Tuple, Type, Union, NamedTuple
-from bg.autoencoder import ResNet18Enc
-from utils.per import SumSegmentTree, MinSegmentTree
+from neurorobotics.bg.autoencoder import ResNet18Enc
+from neurorobotics.utils.per import SumSegmentTree, MinSegmentTree
 
 TensorDict = Dict[Union[str, int], torch.Tensor]
 

@@ -1,17 +1,16 @@
-from constants import params
-from simulations.maze_env import DiscreteMazeEnv, MazeEnv
-from simulations.point import PointEnv
-from simulations.maze_task import CustomGoalReward4Rooms
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from neurorobotics.utils.td3 import Pretrain, FeaturesExtractor, TD3Policy
+from neurorobotics.constants import params
+from neurorobotics.simulations.maze_env import MazeEnv
+from neurorobotics.simulations.point import PointEnv
+from neurorobotics.simulations.maze_task import CustomGoalReward4Rooms
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union, NamedTuple
 import os
-import warnings
 import cv2
 import gym
 import stable_baselines3 as sb3
 import numpy as np
 import torch
-from utils import set_seeds
-from utils.abdqn import ABDQN, DQNPolicy, FeaturesExtractor, PrioritizedDictReplayBuffer
+from neurorobotics.utils import set_seeds
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import matplotlib.pyplot as plt
 
@@ -106,7 +105,7 @@ def evaluate_policy(
     observations = env.reset()
     states = None
     while (episode_counts < episode_count_targets).any():
-        actions, states = model.predict(observations, state=states, deterministic=deterministic)
+        [actions, [gen_image, depth]], states = model.predict(observations, state=states, deterministic=deterministic)
         observations, rewards, dones, infos = env.step(actions)
         current_rewards += rewards
         current_lengths += 1
@@ -153,7 +152,6 @@ def evaluate_policy(
     if return_episode_rewards:
         return episode_rewards, episode_lengths
     return mean_reward, std_reward
-
 
 class Callback(sb3.common.callbacks.EventCallback):
     """
@@ -268,7 +266,7 @@ class Callback(sb3.common.callbacks.EventCallback):
                 )
                 REWARDS = []
                 ACTION_ERROR = []
-                fig, ax = plt.subplots(1,1, figsize = (6.5,3.25))
+                fig, ax = plt.subplots(1,1, figsize = (6.5,6.5))
                 canvas = FigureCanvas(fig)
                 ax.set_xlabel('steps')
                 ax.set_ylabel('reward')
@@ -281,6 +279,7 @@ class Callback(sb3.common.callbacks.EventCallback):
                     """
                     Renders the environment in its current state,
                         recording the screen in the captured `screens` list
+
                     :param _locals:
                         A dictionary containing all local variables of the callback's scope
                     :param _globals:
@@ -299,33 +298,44 @@ class Callback(sb3.common.callbacks.EventCallback):
                         _locals['observations']['scale_2'][0, :3].transpose(1, 2, 0),
                         size
                     )
-                    prev_loc_map = cv2.resize(
-                        _locals['observations']['prev_loc_map'][0].transpose(1, 2, 0),
-                        size
+                    #print(_locals['gen_image'].shape)
+                    gen_scale_1 = cv2.resize(
+                         _locals['gen_image'][0, :3].transpose(1, 2, 0) * 255,
+                         size
                     )
-                    loc_map = cv2.resize(
-                        _locals['observations']['loc_map'][0].transpose(1, 2, 0),
+                    gen_scale_2 = cv2.resize(
+                        _locals['gen_image'][0, 3:].transpose(1, 2, 0) * 255,
                         size
                     )
 
-                    depth = (_locals['observations']['depth'][0].transpose(1, 2, 0) - 0.87) * 255 / 0.13
+                    gen_scale_1 = gen_scale_1.astype(np.uint8)
+                    gen_scale_2 = gen_scale_2.astype(np.uint8)
+
+                    depth = _locals['observations']['depth'][0].transpose(1, 2, 0) * 255
                     depth = depth.astype(np.uint8)
                     depth = cv2.cvtColor(cv2.resize(
                         depth,
                         size
                     ), cv2.COLOR_GRAY2RGB)
 
+                    gen_depth =  _locals['depth'][0].transpose(1, 2, 0) * 255
+                    gen_depth = gen_depth.astype(np.uint8)
+                    gen_depth = cv2.cvtColor(cv2.resize(
+                        gen_depth,
+                        size
+                    ), cv2.COLOR_GRAY2RGB)
+
                     ax.clear()
                     ax.plot(REWARDS, color = 'r', linestyle = '--')
                     canvas.draw()
+                    error = np.square(_locals['observations']['sampled_action'] - _locals['actions']).mean()
                     image = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
                     image = image.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-                    image = cv2.resize(image, (size[0] * 2, size[0]))
                     observation = np.concatenate([
-                        np.concatenate([screen, depth], 0),
-                        np.concatenate([scale_1, scale_2], 0),
-                        np.concatenate([image[:, :size[0], :], loc_map], 0),
-                        np.concatenate([image[:, size[0]:, :], prev_loc_map], 0)
+                        np.concatenate([screen, image], 0),
+                        np.concatenate([scale_1, gen_scale_1], 0),
+                        np.concatenate([scale_2, gen_scale_2], 0),
+                        np.concatenate([depth, gen_depth], 0)
                     ], 1).astype(np.uint8)
                     observation = cv2.cvtColor(observation, cv2.COLOR_RGB2BGR)
 
@@ -410,19 +420,25 @@ class Callback(sb3.common.callbacks.EventCallback):
         if self.callback:
             self.callback.update_locals(locals_)
 
-
 if __name__ == '__main__':
+
     device = 'auto'
     set_seeds(params['seed'])
     logdir = '/content/drive/MyDrive/CNS/exp22'
+    pretrained_params_path = '/content/drive/MyDrive/CNS/exp22/autoencoder/exp/model_epoch_150.pt'
     if params['debug']:
         logdir = 'assets/out/models/exp22'
+        pretrained_params_path = 'assets/out/models/autoencoder/model.pt'
+
+    imitate_policy_path = '/content/drive/MyDrive/CNS/exp22/Imitate_1/il_model_30000_steps.zip'
+    if params['debug']:
+        imitate_policy_path = 'assets/out/models/imitate/rl_model_90000_steps.zip'
     
-    _env = DiscreteMazeEnv(
+    _env = MazeEnv(
         PointEnv, CustomGoalReward4Rooms, 
         params['max_episode_size'],
         params['history_steps'],
-        mode = 'train'
+        mode = 'imitate'
     )
 
     train_env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
@@ -432,22 +448,31 @@ if __name__ == '__main__':
             )
         ])
     )
+    n_actions = train_env.action_space.sample().shape[-1]
+    action_noise = sb3.common.noise.OrnsteinUhlenbeckActionNoise(
+        params['OU_MEAN'] * np.ones(n_actions),
+        params['OU_SIGMA'] * np.ones(n_actions),
+        dt = params['dt']
+    )
 
     policy_kwargs = {
-        'net_arch' : [params['net_arch']] * (len(train_env.action_space.nvec) + 1),
-        'activation_fn' : torch.nn.ReLU,
+        'net_arch' : params['net_arch'],
+        'activation_fn' : torch.nn.Tanh,
         'features_extractor_class' : FeaturesExtractor,
         'features_extractor_kwargs' : {
             'features_dim' : params['num_ctx'],
-            'activation_fn' : torch.nn.ReLU
+            'pretrained_params_path' : pretrained_params_path,
+            'device' : None
         },
         'normalize_images' : True,
         'optimizer_class' : torch.optim.Adam,
         'optimizer_kwargs' : None,
+        'n_critics' : params['n_critics'],
+        'share_features_extractor' : True
     }
 
-    model = ABDQN(
-        policy = DQNPolicy,
+    model = Pretrain(
+        policy = TD3Policy,
         env = train_env,
         learning_rate = linear_schedule(params['lr'], params['final_lr']),
         buffer_size = params['buffer_size'],
@@ -455,29 +480,35 @@ if __name__ == '__main__':
         batch_size = params['batch_size'],
         tau = params['tau'],
         gamma = params['gamma'],
-        train_freq = (1, 'step'),
+        train_freq = (1, 'episode'),
         gradient_steps = -1,
-        replay_buffer_class = PrioritizedDictReplayBuffer,
-        replay_buffer_kwargs = {'alpha' : 0.6},
-        target_update_interval = 1000,
-        exploration_fraction = 0.4,
-        exploration_initial_eps = 1.0,
-        exploration_final_eps = 0.1,
-        max_grad_norm = 10,
+        action_noise = action_noise,
+        replay_buffer_class = sb3.common.buffers.DictReplayBuffer,
+        replay_buffer_kwargs = None,
+        optimize_memory_usage = False,
+        policy_delay = params['policy_delay'],
+        target_policy_noise = 0.2,
+        target_noise_clip = 0.5,
         tensorboard_log = logdir,
         create_eval_env = False,
         policy_kwargs = policy_kwargs,
-        verbose = 2,
         seed = params['seed'],
         device = device,
         _init_setup_model = True,
+        verbose = 2,
     )
+    
+    """
+    model.set_parameters(
+        imitate_policy_path
+    )
+    """
 
-    env = DiscreteMazeEnv(
+    env = MazeEnv(
         PointEnv, CustomGoalReward4Rooms,
         params['max_episode_size'],
         params['history_steps'],
-        mode = 'eval'
+        mode = 'imitate'
     )
     image_size = ( 
         int(4 * env.top_view_size * len(env._maze_structure[0])),
@@ -509,14 +540,15 @@ if __name__ == '__main__':
         sb3.common.callbacks.CheckpointCallback(
             save_freq = params['save_freq'],
             save_path = logdir,
-            name_prefix = 'rl_model',
+            name_prefix = 'il_model',
             verbose = 2
         )
     ])
 
     model.learn(
-        total_timesteps = params['total_timesteps'],
-        callback = callbacks
+        total_timesteps = 3 * params['imitation_steps'],
+        callback = callbacks,
+        tb_log_name = 'Imitate'
     )
 
     print('Training Done.')

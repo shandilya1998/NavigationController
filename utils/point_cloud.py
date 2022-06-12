@@ -6,7 +6,7 @@ import numpy as np
 from PIL import Image as PIL_Image
 
 import open3d as o3d
-from constants import image_height, image_width
+from neurorobotics.constants import image_height, image_width
 
 import numpy as np
 

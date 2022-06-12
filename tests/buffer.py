@@ -1,9 +1,9 @@
-from simulations.maze_env import MazeEnv
-from simulations.maze_task import CustomGoalReward4Rooms
-from simulations.point import PointEnv
-from constants import params
+from neurorobotics.simulations.maze_env import MazeEnv
+from neurorobotics.simulations.maze_task import CustomGoalReward4Rooms
+from neurorobotics.simulations.point import PointEnv
+from neurorobotics.constants import params
 import stable_baselines3 as sb3
-from utils.rtd3 import DictReplayBuffer
+from neurorobotics.utils.rtd3 import DictReplayBuffer
 import torch
 import numpy as np
 from tqdm import tqdm

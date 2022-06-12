@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from constants import params
+from neurorobotics.constants import params
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 

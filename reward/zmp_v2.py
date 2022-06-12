@@ -1,4 +1,4 @@
-from reward.support_plane_v2 import SupportPlane
+from neurorobotics.reward.support_plane_v2 import SupportPlane
 import numpy as np
 
 class ZMP:

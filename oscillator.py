@@ -1,11 +1,11 @@
 import numpy as np
 import os
 import matplotlib.pyplot as plt
-from constants import params
+from neurorobotics.constants import params
 import argparse
 import shutil
 from tqdm import tqdm
-from utils.cpg_utils import test_cpg_entrainment
+from neurorobotics.utils.cpg_utils import test_cpg_entrainment
 
 def hopf_simple_step(omega, mu, z, dt = 0.001):
     x, y = np.split(z, 2, -1)

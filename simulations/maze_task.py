@@ -4,10 +4,10 @@ import cv2
 from abc import ABC, abstractmethod
 from typing import Dict, List, NamedTuple, Optional, Tuple, Type
 import numpy as np
-from utils.cv_utils import blob_detect
-from simulations.maze_env_utils import MazeCell
+from neurorobotics.utils.cv_utils import blob_detect
+from neurorobotics.simulations.maze_env_utils import MazeCell
 import copy
-from constants import params
+from neurorobotics.constants import params
 
 class Rgb(NamedTuple):
     red: float

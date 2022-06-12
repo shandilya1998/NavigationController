@@ -20,33 +20,49 @@ from typing import Any, List, Optional, Tuple, Type
 import gym
 import numpy as np
 import networkx as nx
-from simulations import maze_env_utils, maze_task
-from simulations.agent_model import AgentModel
-from utils.env_utils import convert_observation_to_space, \
-    calc_spline_course, TargetCourse, proportional_control, \
+from neurorobotics.simulations import maze_env_utils, maze_task
+from neurorobotics.simulations.agent_model import AgentModel
+from neurorobotics.utils.env_utils import calc_spline_course, TargetCourse, proportional_control, \
     State, pure_pursuit_steer_control
 import random
 import copy
-from constants import params, image_width, image_height
+from neurorobotics.constants import params, image_width, image_height
 import math
 import cv2
 import colorsys
-from simulations.maze_task import Rgb
+from neurorobotics.simulations.maze_task import Rgb
 import open3d as o3d
-from utils.point_cloud import rotMatList2NPRotMat
-from simulations.maze_env_utils import MazeCell
+from neurorobotics.utils.point_cloud import rotMatList2NPRotMat
+from neurorobotics.simulations.maze_env_utils import MazeCell
 
 # Directory that contains mujoco xml files.
 MODEL_DIR = os.path.join(os.getcwd(), 'assets', 'xml')
 
 
-def scale_to_255(a, min, max, dtype=np.uint8):
+def scale_to_255(a, mininum, maximum, dtype=np.uint8):
     """ Scales an array of values from specified min, max range to 0-255
-        Optionally specify the data type of the output (default is uint8)
+    
+    :param mininum: mininum of range to normalize
+    :type mininum: int or float or uint8
+    :param maximum: maximum of range to normalize
+    :type maximum: int or float or uint8
+    :param dtype: data type of data (default is uint8)
+    :type dtype: np.dtype
     """
-    return (((a - min) / float(max - min)) * 255).astype(dtype)
+    return (((a - min) / float(maximum - mininum)) * 255).astype(dtype)
 
 def sort_arrays(x, y, z):
+    """Sorts x and y according to index of z.
+    
+    :param x: first input
+    :type x: np.ndarray
+    :param y: second input
+    :type y: np.ndarray
+    :param z: array to sort
+    :type z: np.ndarray
+    :return: (x, y, z)
+    :rtype: Tuple[Type[np.ndarray]]
+    """
     indices = z.argsort()
     z = z[indices]
     x = x[indices]
@@ -56,9 +72,22 @@ def sort_arrays(x, y, z):
 ANGLE_EPS = 0.001
 
 def normalize(v):
+    """Normalize array.
+    
+    :param v: 
+    """
     return v / np.linalg.norm(v)
 
 def get_r_matrix(ax_, angle):
+    """ Description.
+    
+    :param ax_:
+    :type ax_:
+    :param angle:
+    :type angle:
+    :return:
+    :rtype: np.ndarray
+    """
     ax = normalize(ax_)
     if np.abs(angle) > ANGLE_EPS:
         S_hat = np.array(
@@ -71,14 +100,14 @@ def get_r_matrix(ax_, angle):
     return R
 
 def transform_pose(points, current_pose):
-    """
-    Transforms the point cloud into geocentric frame to account for
-    camera position
-    Input:
-        points                  : ...x3
-        current_pose            : camera position (x, y, theta (radians))
-    Output:
-        XYZ : ...x3
+    """Transforms the point cloud into geocentric frame to account for camera position.
+    
+    :param points: (x, y, z)
+    :type points: np.ndarray
+    :param current_pose: camera_pose (x, y, theta, radians))
+    :type current_pose: np.ndarray
+    :return: transformed pose (x, y, z)
+    :rtype: np.ndarray
     """
     R = get_r_matrix([0., 0., 1.], angle=current_pose[2])
     points = np.matmul(points, R.T)
@@ -87,6 +116,41 @@ def transform_pose(points, current_pose):
     return points
 
 class MazeEnv(gym.Env):
+    """Base Class for a stochastic maze environment.
+    
+    :param model_cls: Class of agent to spawn
+    :type model_cls: Type[AgentModel]
+    :param maze_task: Class of maze task to spawn
+    :type maze_task: Type[maze_task.MazeTask] = maze_task.MazeTask,
+    :param max_episode_size: maximum number of steps permissible in an episode
+    :type max_episode_size: int = 2000,
+    :param n_steps: number of steps in the past to store state for
+    :type n_steps: int = 50,
+    :param include_position: 
+    :type include_position: bool = True,
+    :param maze_height: height of maze in simulations 
+    :type maze_height: float = 0.5,
+    :param maze_size_scaling: 
+    :type maze_size_scaling: float = 4.0,
+    :param inner_reward_scaling: 
+    :type inner_reward_scaling: float = 1.0,
+    :param restitution_coef: 
+    :type restitution_coef: float = 0.8,
+    :param task_kwargs: 
+    :type task_kwargs: dict = {},
+    :param websock_port: 
+    :type websock_port: Optional[int] = None,
+    :param camera_move_x: 
+    :type camera_move_x: Optional[float] = None,
+    :param camera_move_y: 
+    :type camera_move_y: Optional[float] = None,
+    :param camera_zoom: 
+    :type camera_zoom: Optional[float] = None,
+    :param image_shape: 
+    :type image_shape: Tuple[int, int] = (600, 480),
+    :param mode: 
+    :type mode: Optional[int]= None,
+    """
     def __init__(
         self,
         model_cls: Type[AgentModel],
@@ -107,6 +171,8 @@ class MazeEnv(gym.Env):
         mode = None,
         **kwargs,
     ) -> None:
+        """INITIALIZE.
+        """
         self.mode = mode
         self.collision_count = 0
         self.n_steps = n_steps
@@ -174,6 +240,8 @@ class MazeEnv(gym.Env):
         self.set_env()
 
     def _ensure_distance_from_target(self, row, row_frac, col, col_frac, pos):
+        """
+        """
         target_pos = self._task.goals[self._task.goal_index].pos
         (pos_row, _), (pos_col, _) = self._xy_to_rowcol_v2(target_pos[0], target_pos[1])
         if [pos_row, pos_col] == [row, col]:

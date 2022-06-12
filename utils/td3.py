@@ -1,13 +1,13 @@
 from typing import Any, Dict, List, Optional, Type, Union, Tuple
 
 import stable_baselines3 as sb3
-from bg.autoencoder import Autoencoder
+from neurorobotics.bg.autoencoder import Autoencoder
 import torch
 import gym
 import numpy as np
 from pytorch_msssim import ssim, ms_ssim
 import copy
-from constants import params
+from neurorobotics.constants import params
 
 class FeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
     def __init__(self,
@@ -68,12 +68,10 @@ class Actor(sb3.common.policies.BasePolicy):
     :param observation_space: Obervation space
     :param action_space: Action space
     :param net_arch: Network architecture
-    :param features_extractor: Network to extract features
-        (a CNN when using images, a torch.nn.Flatten() layer otherwise)
+    :param features_extractor: Network to extract features (a CNN when using images, a torch.nn.Flatten() layer otherwise)
     :param features_dim: Number of features
     :param activation_fn: Activation function
-    :param normalize_images: Whether to normalize images or not,
-         dividing by 255.0 (True by default)
+    :param normalize_images: Whether to normalize images or not, dividing by 255.0 (True by default)
     """
 
     def __init__(
@@ -216,15 +214,12 @@ class ContinuousCritic(sb3.common.policies.BaseModel):
     :param observation_space: Obervation space
     :param action_space: Action space
     :param net_arch: Network architecture
-    :param features_extractor: Network to extract features
-        (a CNN when using images, a nn.Flatten() layer otherwise)
+    :param features_extractor: Network to extract features (a CNN when using images, a nn.Flatten() layer otherwise)
     :param features_dim: Number of features
     :param activation_fn: Activation function
-    :param normalize_images: Whether to normalize images or not,
-         dividing by 255.0 (True by default)
+    :param normalize_images: Whether to normalize images or not, dividing by 255.0 (True by default)
     :param n_critics: Number of critic networks to create.
-    :param share_features_extractor: Whether the features extractor is shared or not
-        between the actor and the critic (this saves computation time)
+    :param share_features_extractor: Whether the features extractor is shared or not between the actor and the critic (this saves computation time)
     """
 
     def __init__(
@@ -284,17 +279,12 @@ class TD3Policy(sb3.common.policies.BasePolicy):
     :param net_arch: The specification of the policy and value networks.
     :param activation_fn: Activation function
     :param features_extractor_class: Features extractor to use.
-    :param features_extractor_kwargs: Keyword arguments
-        to pass to the features extractor.
-    :param normalize_images: Whether to normalize images or not,
-         dividing by 255.0 (True by default)
-    :param optimizer_class: The optimizer to use,
-        ``torch.optim.Adam`` by default
-    :param optimizer_kwargs: Additional keyword arguments,
-        excluding the learning rate, to pass to the optimizer
+    :param features_extractor_kwargs: Keyword arguments to pass to the features extractor.
+    :param normalize_images: Whether to normalize images or not dividing by 255.0 (True by default)
+    :param optimizer_class: The optimizer to use, ``torch.optim.Adam`` by default
+    :param optimizer_kwargs: Additional keyword arguments, excluding the learning rate, to pass to the optimizer
     :param n_critics: Number of critic networks to create.
-    :param share_features_extractor: Whether to share or not the features extractor
-        between the actor and the critic (this saves computation time)
+    :param share_features_extractor: Whether to share or not the features extractor between the actor and the critic (this saves computation time)
     """
 
     def __init__(

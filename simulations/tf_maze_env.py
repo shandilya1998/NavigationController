@@ -19,14 +19,14 @@ from typing import Any, List, Optional, Tuple, Type
 import gym
 import numpy as np
 import networkx as nx
-from simulations import maze_env_utils, maze_task
-from simulations.agent_model import AgentModel
-from utils.env_utils import convert_observation_to_space, \
+from neurorobotics.simulations import maze_env_utils, maze_task
+from neurorobotics.simulations.agent_model import AgentModel
+from neurorobotics.utils.env_utils import convert_observation_to_space, \
     calc_spline_course, TargetCourse, proportional_control, \
     State, pure_pursuit_steer_control
 import random
 import copy
-from constants import params
+from neurorobotics.constants import params
 import math
 import cv2
 import tf_agents as tfa

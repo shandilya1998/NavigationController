@@ -1,8 +1,9 @@
+from typing import Any, Dict, List, Optional, Tuple, Type
 import numpy as np
 import stable_baselines3 as sb3
 import gym
 import torch
-from utils.rtd3 import TimeDistributedFeaturesExtractor
+from neurorobotics.utils.rtd3 import TimeDistributedFeaturesExtractor
 
 class Network(torch.nn.Module):
     def __init__(
@@ -96,7 +97,7 @@ class QNetwork(sb3.common.policies.BasePolicy):
         q_net = create_mlp(self.features_dim, action_dim, self.net_arch, self.activation_fn)
         self.q_net = torch.nn.Sequential(*q_net)
 
-    def forward(self, obs: th.Tensor) -> th.Tensor:
+    def forward(self, obs: torch.Tensor) -> torch.Tensor:
         """
         Predict the q-values.
         :param obs: Observation
@@ -104,7 +105,7 @@ class QNetwork(sb3.common.policies.BasePolicy):
         """
         return self.q_net(self.extract_features(obs))
 
-    def _predict(self, observation: th.Tensor, deterministic: bool = True) -> th.Tensor:
+    def _predict(self, observation: torch.Tensor, deterministic: bool = True) -> torch.Tensor:
         q_values = self.forward(observation)
         # Greedy action
         action = q_values.argmax(dim=1).reshape(-1)
@@ -124,7 +125,7 @@ class QNetwork(sb3.common.policies.BasePolicy):
         return data
 
 
-class DQNPolicy(BasePolicy):
+class DQNPolicy(sb3.common.policies.BasePolicy):
     """
     Policy class with Q-Value Net and target net for DQN
     :param observation_space: Observation space
@@ -138,7 +139,7 @@ class DQNPolicy(BasePolicy):
     :param normalize_images: Whether to normalize images or not,
          dividing by 255.0 (True by default)
     :param optimizer_class: The optimizer to use,
-        ``th.optim.Adam`` by default
+        ``torch.optim.Adam`` by default
     :param optimizer_kwargs: Additional keyword arguments,
         excluding the learning rate, to pass to the optimizer
     """
@@ -147,13 +148,13 @@ class DQNPolicy(BasePolicy):
         self,
         observation_space: gym.spaces.Space,
         action_space: gym.spaces.Space,
-        lr_schedule: Schedule,
+        lr_schedule: sb3.common.type_aliases.Schedule,
         net_arch: Optional[List[int]] = None,
-        activation_fn: Type[nn.Module] = nn.ReLU,
-        features_extractor_class: Type[BaseFeaturesExtractor] = FlattenExtractor,
+        activation_fn: Type[torch.nn.Module] = torch.nn.ReLU,
+        features_extractor_class: Type[sb3.common.torch_layers.BaseFeaturesExtractor] = sb3.common.torch_layers.FlattenExtractor,
         features_extractor_kwargs: Optional[Dict[str, Any]] = None,
         normalize_images: bool = True,
-        optimizer_class: Type[th.optim.Optimizer] = th.optim.Adam,
+        optimizer_class: Type[torch.optim.Optimizer] = torch.optim.Adam,
         optimizer_kwargs: Optional[Dict[str, Any]] = None,
     ):
         super(DQNPolicy, self).__init__(
@@ -186,7 +187,7 @@ class DQNPolicy(BasePolicy):
         self.q_net, self.q_net_target = None, None
         self._build(lr_schedule)
 
-    def _build(self, lr_schedule: Schedule) -> None:
+    def _build(self, lr_schedule: sb3.common.type_aliases.Schedule) -> None:
         """
         Create the network and the optimizer.
         :param lr_schedule: Learning rate schedule
@@ -205,10 +206,10 @@ class DQNPolicy(BasePolicy):
         net_args = self._update_features_extractor(self.net_args, features_extractor=None)
         return QNetwork(**net_args).to(self.device)
 
-    def forward(self, obs: th.Tensor, deterministic: bool = True) -> th.Tensor:
+    def forward(self, obs: torch.Tensor, deterministic: bool = True) -> torch.Tensor:
         return self._predict(obs, deterministic=deterministic)
 
-    def _predict(self, obs: th.Tensor, deterministic: bool = True) -> th.Tensor:
+    def _predict(self, obs: torch.Tensor, deterministic: bool = True) -> torch.Tensor:
         return self.q_net._predict(obs, deterministic=deterministic)
 
     def _get_constructor_parameters(self) -> Dict[str, Any]:

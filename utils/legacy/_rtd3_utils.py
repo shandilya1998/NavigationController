@@ -162,27 +162,7 @@ class EpisodicReplayBuffer(sb3.common.buffers.BaseBuffer):
             Refer to EpisodicDictReplayBuffer
         """
         raise NotImplementedError
-        size = self.episode_lengths[batch_inds].max()
-        if self.optimize_memory_usage:
-            obs = self._normalize_obs(self.observations[batch_inds, :-1, 0, :], env)
-            next_obs = self._normalize_obs(self.observations[batch_inds, 1: 0, :], env)
-        else:
-            obs = self._normalize_obs(self.observations[batch_inds, :, 0, :], env)
-            next_obs = self._normalize_obs(self.next_observations[batch_inds, :, 0, :], env)
-        obs = obs[:, :size]
-        next_obs = next_obs[:, :size]
-        actions = self.actions[batch_inds, :size, 0, :]
-        dones = self.dones[batch_inds, :size] * (1 - self.timeouts[batch_inds, :size])
-        rewards = self._normalize_reward(self.rewards[batch_inds, :size], env)
 
-        data = (
-            obs,
-            actions,
-            next_obs,
-            dones,
-            rewards,
-        )
-        return sb3.common.type_aliases.ReplayBufferSamples(*tuple(map(self.to_torch, data)))
 
 class EpisodicDictReplayBuffer(sb3.common.buffers.BaseBuffer):
     """ 

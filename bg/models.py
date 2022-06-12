@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import torchvision as tv
-from constants import params
+from neurorobotics.constants import params
 import stable_baselines3 as sb3
 import gym
 from typing import NamedTuple, Any, Dict, List, Optional, Tuple, Type, Union

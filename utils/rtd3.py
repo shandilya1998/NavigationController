@@ -8,13 +8,13 @@ from typing import NamedTuple, Any, Dict, List, Optional, Tuple, Union, Type
 import torch
 import psutil
 import copy
-from bg.autoencoder import ResNet18Enc
-from constants import params
+from neurorobotics.bg.autoencoder import ResNet18Enc
+from neurorobotics.constants import params
 from pytorch_msssim import ssim
 from torch.utils.tensorboard import SummaryWriter
 import cv2
 import os
-from utils.td3 import Actor, ContinuousCritic
+from neurorobotics.utils.td3 import Actor, ContinuousCritic
 from stable_baselines3.common.buffers import DictReplayBuffer
 """
 Idea of burn in comes from the following paper:
@@ -112,11 +112,8 @@ class DictReplayBuffer(sb3.common.buffers.ReplayBuffer):
     :param action_space: Action space
     :param device:
     :param n_envs: Number of parallel environments
-    :param optimize_memory_usage: Enable a memory efficient variant
-        Disabled for now (see https://github.com/DLR-RM/stable-baselines3/pull/243#discussion_r531535702)
-    :param handle_timeout_termination: Handle timeout termination (due to timelimit)
-        separately and treat the task as infinite horizon task.
-        https://github.com/DLR-RM/stable-baselines3/issues/284
+    :param optimize_memory_usage: Enable a memory efficient variant Disabled for now (see https://github.com/DLR-RM/stable-baselines3/pull/243#discussion_r531535702)
+    :param handle_timeout_termination: Handle timeout termination (due to timelimit) separately and treat the task as infinite horizon task. https://github.com/DLR-RM/stable-baselines3/issues/284
     """
 
     def __init__(
@@ -272,8 +269,7 @@ class DictReplayBuffer(sb3.common.buffers.ReplayBuffer):
         """
         Sample elements from the replay buffer.
         :param batch_size: Number of element to sample
-        :param env: associated gym VecEnv
-            to normalize the observations/rewards when sampling
+        :param env: associated gym VecEnv to normalize the observations/rewards when sampling
         :return:
         """
         return super(sb3.common.buffers.ReplayBuffer, self).sample(batch_size=batch_size, env=env)
@@ -574,11 +570,8 @@ class HerReplayBuffer(sb3.common.buffers.ReplayBuffer):
     :param action_space: Action space
     :param device:
     :param n_envs: Number of parallel environments
-    :param optimize_memory_usage: Enable a memory efficient variant
-        Disabled for now (see https://github.com/DLR-RM/stable-baselines3/pull/243#discussion_r531535702)
-    :param handle_timeout_termination: Handle timeout termination (due to timelimit)
-        separately and treat the task as infinite horizon task.
-        https://github.com/DLR-RM/stable-baselines3/issues/284
+    :param optimize_memory_usage: Enable a memory efficient variant Disabled for now (see https://github.com/DLR-RM/stable-baselines3/pull/243#discussion_r531535702)
+    :param handle_timeout_termination: Handle timeout termination (due to timelimit) separately and treat the task as infinite horizon task. https://github.com/DLR-RM/stable-baselines3/issues/284
     """
 
     def __init__(
@@ -716,8 +709,7 @@ class HerReplayBuffer(sb3.common.buffers.ReplayBuffer):
         """
         Sample elements from the replay buffer.
         :param batch_size: Number of element to sample
-        :param env: associated gym VecEnv
-            to normalize the observations/rewards when sampling
+        :param env: associated gym VecEnv to normalize the observations/rewards when sampling
         :return:
         """
         return super(sb3.common.buffers.ReplayBuffer, self).sample(batch_size=batch_size, env=env)
@@ -793,12 +785,10 @@ class Actor(sb3.td3.policies.Actor):
     :param observation_space: Obervation space
     :param action_space: Action space
     :param net_arch: Network architecture
-    :param features_extractor: Network to extract features
-        (a CNN when using images, a torch.nn.Flatten() layer otherwise)
+    :param features_extractor: Network to extract features (a CNN when using images, a torch.nn.Flatten() layer otherwise)
     :param features_dim: Number of features
     :param activation_fn: Activation function
-    :param normalize_images: Whether to normalize images or not,
-         dividing by 255.0 (True by default)
+    :param normalize_images: Whether to normalize images or not, dividing by 255.0 (True by default)
     """
 
     def __init__(
@@ -917,15 +907,12 @@ class ContinuousCritic(sb3.common.policies.ContinuousCritic):
     :param observation_space: Obervation space
     :param action_space: Action space
     :param net_arch: Network architecture
-    :param features_extractor: Network to extract features
-        (a CNN when using images, a torch.nn.Flatten() layer otherwise)
+    :param features_extractor: Network to extract features (a CNN when using images, a torch.nn.Flatten() layer otherwise)
     :param features_dim: Number of features
     :param activation_fn: Activation function
-    :param normalize_images: Whether to normalize images or not,
-         dividing by 255.0 (True by default)
+    :param normalize_images: Whether to normalize images or not, dividing by 255.0 (True by default)
     :param n_critics: Number of critic networks to create.
-    :param share_features_extractor: Whether the features extractor is shared or not
-        between the actor and the critic (this saves computation time)
+    :param share_features_extractor: Whether the features extractor is shared or not between the actor and the critic (this saves computation time)
     """
 
     def __init__(
@@ -997,17 +984,12 @@ class RTD3Policy(sb3.td3.policies.TD3Policy):
     :param net_arch: The specification of the policy and value networks.
     :param activation_fn: Activation function
     :param features_extractor_class: Features extractor to use.
-    :param features_extractor_kwargs: Keyword arguments
-        to pass to the features extractor.
-    :param normalize_images: Whether to normalize images or not,
-         dividing by 255.0 (True by default)
-    :param optimizer_class: The optimizer to use,
-        ``torch.optim.Adam`` by default
-    :param optimizer_kwargs: Additional keyword arguments,
-        excluding the learning rate, to pass to the optimizer
+    :param features_extractor_kwargs: Keyword arguments to pass to the features extractor.
+    :param normalize_images: Whether to normalize images or not, dividing by 255.0 (True by default)
+    :param optimizer_class: The optimizer to use, ``torch.optim.Adam`` by default
+    :param optimizer_kwargs: Additional keyword arguments, excluding the learning rate, to pass to the optimizer
     :param n_critics: Number of critic networks to create.
-    :param share_features_extractor: Whether to share or not the features extractor
-        between the actor and the critic (this saves computation time)
+    :param share_features_extractor: Whether to share or not the features extractor between the actor and the critic (this saves computation time)
     """
 
     def __init__(
@@ -1278,8 +1260,7 @@ class RTD3(sb3.TD3):
         :param state: The last states (can be None, used in recurrent policies)
         :param mask: The last masks (can be None, used in recurrent policies)
         :param deterministic: Whether or not to return deterministic actions.
-        :return: the model's action and the next state
-            (used in recurrent policies)
+        :return: the model's action and the next state (used in recurrent policies)
         """
         return self.policy.predict(observation, state, mask, deterministic)
     
@@ -1295,13 +1276,9 @@ class RTD3(sb3.TD3):
         This is either done by sampling the probability distribution of the policy,
         or sampling a random action (from a uniform distribution over the action space)
         or by adding noise to the deterministic output.
-        :param action_noise: Action noise that will be used for exploration
-            Required for deterministic policy (e.g. TD3). This can also be used
-            in addition to the stochastic policy for SAC.
+        :param action_noise: Action noise that will be used for exploration Required for deterministic policy (e.g. TD3). This can also be used in addition to the stochastic policy for SAC.
         :param learning_starts: Number of steps before learning for the warm-up phase.
-        :return: action to take in the environment
-            and scaled action that will be stored in the replay buffer.
-            The two differs when the action space is not normalized (bounds are not [-1, 1]).
+        :return: action to take in the environment and scaled action that will be stored in the replay buffer. The two differs when the action space is not normalized (bounds are not [-1, 1]).
         """
         # Select action randomly or according to policy
         if self.num_timesteps < params['imitation_steps'] and not (self.use_sde and self.use_sde_at_warmup):
@@ -1350,12 +1327,10 @@ class RTD3(sb3.TD3):
         It also handles terminal observations (because VecEnv resets automatically).
         :param replay_buffer: Replay buffer object where to store the transition.
         :param buffer_action: normalized action
-        :param new_obs: next observation in the current episode
-            or first observation of the episode (when done is True)
+        :param new_obs: next observation in the current episode or first observation of the episode (when done is True)
         :param reward: reward for the current transition
         :param done: Termination signal
-        :param infos: List of additional information about the transition.
-            It may contain the terminal observations and information about timeout.
+        :param infos: List of additional information about the transition. It may contain the terminal observations and information about timeout.
         """
         # Store only the unnormalized version
         if self._vec_normalize_env is not None:
@@ -1404,16 +1379,9 @@ class RTD3(sb3.TD3):
         """
         Collect experiences and store them into a ``ReplayBuffer``.
         :param env: The training environment
-        :param callback: Callback that will be called at each step
-            (and at the beginning and end of the rollout)
-        :param train_freq: How much experience to collect
-            by doing rollouts of current policy.
-            Either ``TrainFreq(<n>, TrainFrequencyUnit.STEP)``
-            or ``TrainFreq(<n>, TrainFrequencyUnit.EPISODE)``
-            with ``<n>`` being an integer greater than 0.
-        :param action_noise: Action noise that will be used for exploration
-            Required for deterministic policy (e.g. TD3). This can also be used
-            in addition to the stochastic policy for SAC.
+        :param callback: Callback that will be called at each step (and at the beginning and end of the rollout)
+        :param train_freq: How much experience to collect by doing rollouts of current policy. Either ``TrainFreq(<n>, TrainFrequencyUnit.STEP)`` or ``TrainFreq(<n>, TrainFrequencyUnit.EPISODE)`` with ``<n>`` being an integer greater than 0.
+        :param action_noise: Action noise that will be used for exploration Required for deterministic policy (e.g. TD3). This can also be used in addition to the stochastic policy for SAC.
         :param learning_starts: Number of steps before learning for the warm-up phase.
         :param replay_buffer:
         :param log_interval: Log data every ``log_interval`` episodes

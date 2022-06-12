@@ -1,5 +1,5 @@
 import numpy as np
-from reward import mod_zmp
+from neurorobotics.reward.mebot import mod_zmp
 
 class FitnessFunction:
     def __init__(self, M, g, T, Bt, fr, mu, m1, m2, m3, L0, L1, L2, L3):

@@ -25,4 +25,12 @@ env = MazeEnv(PointEnv, CustomRewardGoal4Rooms)
 - Run `sh train.sh` in terminal for debugging. Run `nohup sh train.sh >> assets/out/models/train.log &` in terminal for GPU execution.
 - Commit and Push to Github. Update local `experiments_log`
 
+## Installation on docker
+
+- Run `docker build -t neuroengineering-tools ./docker/cpu/` in the root folder of the repository.
+- Run `docker run -dit --name sample neuroengineering-tools` to spawn  a new container.
+- Run desired command with the tools in the container.
+- Run `docker stop neuroengineering-tools` to stop running container.
+
+
 

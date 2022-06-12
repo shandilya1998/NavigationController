@@ -9,7 +9,7 @@ Based on `models`_ and `gym`_ (both ant and ant-v3).
 from typing import Callable, Tuple
 import numpy as np
 import os
-from simulations.agent_model import AgentModel
+from neurorobotics.simulations.agent_model import AgentModel
 
 ForwardRewardFn = Callable[[float, float], float]
 

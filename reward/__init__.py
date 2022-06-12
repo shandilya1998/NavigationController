@@ -1,4 +1,4 @@
-from reward.zmp import ZMP
+from neurorobotics.reward.zmp import ZMP
 import numpy as np
 
 class FitnessFunction:
@@ -108,7 +108,7 @@ class FitnessFunction:
         motion = np.dot(pos - last_pos, desired_motion[:3])
         return motion
 
-from reward.zmp_v2 import ZMP
+from neurorobotics.reward.zmp_v2 import ZMP
 
 class FitnessFunctionV2:
     def __init__(self, params):

@@ -1,5 +1,5 @@
 import numpy as np
-from reward.kinematics import KneeFourBarKinematics
+from neurorobotics.reward.mebot.kinematics import KneeFourBarKinematics
 
 class KneeFourBarDynamics:
     def __init__(self, m1, m2, m3, L0, L1, L2, L3, g):

@@ -1,6 +1,6 @@
-from simulations.maze_env import MazeEnv
-from simulations.point import PointEnv
-from simulations.maze_task import CustomGoalReward4Rooms
+from neurorobotics.simulations.maze_env import MazeEnv
+from neurorobotics.simulations.point import PointEnv
+from neurorobotics.simulations.maze_task import CustomGoalReward4Rooms
 import matplotlib.pyplot as plt
 
 env = MazeEnv(PointEnv, CustomGoalReward4Rooms)

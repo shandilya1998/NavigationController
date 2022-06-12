@@ -10,13 +10,13 @@ from typing import Optional, Tuple
 import gym
 import numpy as np
 import os
-from simulations.agent_model import AgentModel
-from constants import params
-from utils.env_utils import convert_observation_to_space
+from neurorobotics.simulations.agent_model import AgentModel
+from neurorobotics.constants import params
+from neurorobotics.utils.env_utils import convert_observation_to_space
 from collections import defaultdict, OrderedDict
 import math
 import cv2
-from constants import image_width, image_height
+from neurorobotics.constants import image_width, image_height
 
 class RunningStats:
 

@@ -1,10 +1,10 @@
-from utils.rtd3 import train_autoencoder
-from simulations.maze_env import MazeEnv
-from simulations.point import PointEnv
-from simulations.maze_task import CustomGoalReward4Rooms
+from neurorobotics.utils.rtd3 import train_autoencoder
+from neurorobotics.simulations.maze_env import MazeEnv
+from neurorobotics.simulations.point import PointEnv
+from neurorobotics.simulations.maze_task import CustomGoalReward4Rooms
 import stable_baselines3 as sb3
-from utils import set_seeds
-from constants import params
+from neurorobotics.utils import set_seeds
+from neurorobotics.constants import params
 
 if __name__ == '__main__':
     set_seeds(117)

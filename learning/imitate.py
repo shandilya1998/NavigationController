@@ -1,16 +1,16 @@
 import torch
 import numpy as np
-from simulations.maze_env import MazeEnv
-from simulations.point import PointEnv
-from simulations.maze_task import CustomGoalReward4Rooms
+from neurorobotics.simulations.maze_env import MazeEnv
+from neurorobotics.simulations.point import PointEnv
+from neurorobotics.simulations.maze_task import CustomGoalReward4Rooms
 import stable_baselines3 as sb3
-from utils.td3_utils import TD3BGPolicy
-from utils.il_utils import ImitationLearning
-from constants import params
-from utils.callbacks import CustomCallback, CheckpointCallback, EvalCallback
+from neurorobotics.utils.td3_utils import TD3BGPolicy
+from neurorobotics.utils.il_utils import ImitationLearning
+from neurorobotics.constants import params
+from neurorobotics.utils.callbacks import CustomCallback, CheckpointCallback, EvalCallback
 import os
 import shutil
-from constants import params
+from neurorobotics.constants import params
 
 torch.autograd.set_detect_anomaly(True)
 

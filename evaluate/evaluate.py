@@ -3,17 +3,17 @@ import stable_baselines3 as sb3
 import torch
 import gym
 import argparse
-from utils.callbacks import evaluate_policy
-from simulations.maze_env import MazeEnv
-from simulations.point import PointEnv
-from simulations.maze_task import CustomGoalReward4Rooms, GoalRewardNoObstacle
+from neurorobotics.utils.callbacks import evaluate_policy
+from neurorobotics.simulations.maze_env import MazeEnv
+from neurorobotics.simulations.point import PointEnv
+from neurorobotics.simulations.maze_task import CustomGoalReward4Rooms, GoalRewardNoObstacle
 import os
-from utils.td3_utils import TD3BG
+from neurorobotics.utils.td3_utils import TD3BG
 import cv2
 import skvideo.io as skv
 import numpy as np
-from constants import params
-from utils.rtd3_utils import RTD3
+from neurorobotics.constants import params
+from neurorobotics.utils.rtd3_utils import RTD3
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

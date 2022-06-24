@@ -1,0 +1,30 @@
+Traceback (most recent call last):
+  File "/usr/bin/../lib/google-cloud-sdk/lib/gcloud.py", line 104, in <module>
+    main()
+  File "/usr/bin/../lib/google-cloud-sdk/lib/gcloud.py", line 76, in main
+    gcloud_main = _import_gcloud_main()
+  File "/usr/bin/../lib/google-cloud-sdk/lib/gcloud.py", line 56, in _import_gcloud_main
+    import googlecloudsdk.gcloud_main
+  File "/usr/lib/google-cloud-sdk/lib/googlecloudsdk/gcloud_main.py", line 34, in <module>
+    from googlecloudsdk.calliope import base
+  File "/usr/lib/google-cloud-sdk/lib/googlecloudsdk/calliope/base.py", line 31, in <module>
+    from googlecloudsdk.calliope import arg_parsers
+  File "/usr/lib/google-cloud-sdk/lib/googlecloudsdk/calliope/arg_parsers.py", line 63, in <module>
+    from googlecloudsdk.core import log
+  File "/usr/lib/google-cloud-sdk/lib/googlecloudsdk/core/log.py", line 32, in <module>
+    from googlecloudsdk.core import properties
+  File "/usr/lib/google-cloud-sdk/lib/googlecloudsdk/core/properties.py", line 33, in <module>
+    from googlecloudsdk.core.feature_flags import config as feature_flags_config
+  File "/usr/lib/google-cloud-sdk/lib/googlecloudsdk/core/feature_flags/config.py", line 29, in <module>
+    from googlecloudsdk.core import yaml
+  File "/usr/lib/google-cloud-sdk/lib/googlecloudsdk/core/yaml.py", line 31, in <module>
+    from googlecloudsdk.core import yaml_location_value
+  File "/usr/lib/google-cloud-sdk/lib/googlecloudsdk/core/yaml_location_value.py", line 39, in <module>
+    from ruamel import yaml
+  File "/usr/bin/../lib/google-cloud-sdk/lib/third_party/ruamel/yaml/__init__.py", line 85, in <module>
+    from ruamel.yaml.main import *  # NOQA
+  File "/usr/bin/../lib/google-cloud-sdk/lib/third_party/ruamel/yaml/main.py", line 19, in <module>
+    from ruamel.yaml.loader import BaseLoader, SafeLoader, Loader, RoundTripLoader  # NOQA
+  File "/usr/bin/../lib/google-cloud-sdk/lib/third_party/ruamel/yaml/loader.py", line 8, in <module>
+    from ruamel.yaml.parser import Parser, RoundTripParser
+KeyboardInterrupt

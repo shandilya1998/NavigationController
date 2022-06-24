@@ -1,19 +1,23 @@
-from neurorobotics.simulations.maze_env import MazeEnv
-from neurorobotics.simulations.collision_env import CollisionEnv
-from neurorobotics.simulations.point import PointEnv
+from neurorobotics.simulations.maze_env import MazeEnv, DiscreteMazeEnv
+from neurorobotics.simulations.point import PointEnv, PointEnvV2
 from neurorobotics.simulations.maze_task import CustomGoalReward4Rooms, \
-    GoalRewardNoObstacle, GoalRewardSimple
-env = MazeEnv(PointEnv, GoalRewardSimple)
+    GoalRewardNoObstacle, GoalRewardSimple, CustomGoalReward4RoomsV2
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 from tqdm import tqdm
 import shutil
 import os
+from typing import Dict, List, NamedTuple, Optional, Tuple, Type
+from neurorobotics.constants import params
+import copy
+from neurorobotics.utils.cv_utils import *
 
-if os.path.exists(os.path.join('assets', 'plots', 'tests')):
-    shutil.rmtree(os.path.join('assets', 'plots', 'tests'))
-os.mkdir(os.path.join('assets', 'plots', 'tests'))
+env = DiscreteMazeEnv(PointEnv, CustomGoalReward4Rooms)
+
+if os.path.exists(os.path.join('neurorobotics', 'assets', 'plots', 'tests')):
+    shutil.rmtree(os.path.join('neurorobotics', 'assets', 'plots', 'tests'))
+os.mkdir(os.path.join('neurorobotics', 'assets', 'plots', 'tests'))
 
 img = np.zeros(
     (200 * len(env._maze_structure), 200 * len(env._maze_structure[0])),
@@ -32,52 +36,158 @@ pbar = tqdm()
 count = 0
 count_collisions = 0
 count_ball = 0
-ob = env.reset()
+ob = env._get_obs()
 
-fig, ax = plt.subplots(1,1,figsize= (5,5))
-line, = ax.plot(REWARDS, color = 'r', linestyle = '--')
-ax.set_xlabel('steps')
-ax.set_ylabel('reward')
 total_reward = 0.0
+ac = env.get_action()
+top = env.render('rgb_array')
+image_size = (3 * top.shape[0] , 2 * top.shape[1])
+video = cv2.VideoWriter(
+    'test_env.avi',
+    cv2.VideoWriter_fourcc(*"MJPG"), 10, image_size, isColor = True
+)
+
+speed = []
+angular = []
 while not done:
     ob, reward, done, info = env.step(ob['sampled_action'])
+    speed.append(np.sqrt(env.data.qvel[0] ** 2 + env.data.qvel[1] ** 2))
+    angular.append(env.data.qvel[2])
+    top = env.render('rgb_array')
+    top = cv2.cvtColor(
+        top,
+        cv2.COLOR_RGB2BGR
+    )
+    scale_1 = cv2.resize(ob['scale_1'], top.shape[:2])
+    scale_2 = cv2.resize(ob['scale_2'], top.shape[:2])
+    depth = np.repeat(ob['depth'].transpose(1, 2, 0), 3, 2) * 255
+    depth = cv2.resize(depth, top.shape[:2])
+    loc_map = cv2.resize(ob['loc_map'], top.shape[:2])
+    prev_loc_map = cv2.resize(ob['prev_loc_map'], top.shape[:2])
+
+    image = np.concatenate([
+        np.concatenate([
+            scale_1, scale_2
+        ], 0),
+        np.concatenate([
+            depth, top
+        ], 0),
+        np.concatenate([
+            prev_loc_map, loc_map
+        ], 0)
+    ], 1).astype(np.uint8)
+
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    video.write(image)
+
+    #ob, reward, done, info = env.step(env.action_space.sample())
+    ac = env.get_action()
     if reward != 0.0:
         count += 1
     if info['collision_penalty'] != 0:
         count_collisions += 1
-    if info['outer_reward'] > 0:
-        count_ball += 1
     pbar.update(1)
     steps += 1
     pos = env.wrapped_env.sim.data.qpos.copy()    
-    img = cv2.cvtColor(ob['observation'], cv2.COLOR_RGB2BGR)
-    cv2.imwrite(os.path.join('assets', 'plots', 'tests', 'test_image_{}.png'.format(steps)), img)
-    IMAGES.append(img)
-    top = env.render('rgb_array')
-    cv2.imshow('camera stream', img)
-    cv2.imshow('position stream', top)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
     POS.append(pos.copy())
     OBS.append(ob.copy())
     REWARDS.append(reward)
     total_reward += reward
-    INFO.append(info)
-    ax.clear()
-    ax.plot(REWARDS, color = 'r', linestyle = '--')
-    plt.pause(0.1)
+    INFO.append(copy.deepcopy(info))
+
+video.release()
 pbar.close()
+#plt.close()
 print('Ideal Path:')
-print('total count:      {}'.format(count))
 print('collision counts: {}'.format(count_collisions))
-print('ball counts:      {}'.format(count_ball))
 print('total_reward:     {}'.format(total_reward))
+
 block_size = 50
-fig2, ax = plt.subplots(1,1)
+_REWARDS = copy.deepcopy(REWARDS)
+REWARDS = np.array(REWARDS, dtype = np.float32)
+REWARDS = np.clip(REWARDS, a_min = -0.020, a_max = 0.020)
+fig2, ax = plt.subplots(4,4, figsize = (24, 24))
+ax[0][1].set_xlabel('steps')
+ax[0][1].set_ylabel('speed')
+ax[1][0].set_xlabel('steps')
+ax[1][0].set_ylabel('angular velocity')
+ax[1][1].set_xlabel('steps')
+ax[1][1].set_ylabel('reward')
+ax[0][2].set_xlabel('steps')
+ax[0][2].set_ylabel('coverage reward')
+coverage_reward = np.array([
+    info['coverage_reward'] for info in INFO
+], dtype = np.float32)
+coverage_reward = np.clip(coverage_reward, a_min = -0.020, a_max = 0.020)
+ax[0][2].plot(coverage_reward)
+ax[0][3].set_xlabel('steps')
+ax[0][3].set_ylabel('inner reward')
+inner_reward = np.array([
+    info['inner_reward'] for info in INFO
+], dtype = np.float32)
+inner_reward = np.clip(inner_reward, a_min = -0.020, a_max = 0.020)
+ax[0][3].plot(inner_reward)
+ax[1][2].set_xlabel('steps')
+ax[1][2].set_ylabel('collision penalty')
+collision_penalty = np.array([
+    info['collision_penalty'] for info in INFO
+], dtype = np.float32)
+collision_penalty = np.clip(collision_penalty, a_min = -0.020, a_max = 0.020)
+ax[1][2].plot(collision_penalty)
+ax[1][3].set_xlabel('steps')
+ax[1][3].set_ylabel('outer reward')
+outer_reward = np.array([
+    info['outer_reward'] for info in INFO
+], dtype = np.float32)
+outer_reward = np.clip(outer_reward, a_min = -0.020, a_max = 0.020)
+ax[1][3].plot(outer_reward)
+ax[2][0].set_xlabel('steps')
+ax[2][0].set_ylabel('reward - coverage reward')
+items = REWARDS - coverage_reward
+ax[2][0].plot(items)
+ax[2][1].set_xlabel('steps')
+ax[2][1].set_ylabel('reward - inner reward')
+items = REWARDS - inner_reward
+ax[2][1].plot(items)
+ax[2][2].set_xlabel('steps')
+ax[2][2].set_ylabel('reward - collision penalty')
+items = REWARDS - collision_penalty
+ax[2][2].plot(items)
+ax[2][3].set_xlabel('steps')
+ax[2][3].set_ylabel('reward - outer reward')
+items = REWARDS - outer_reward
+ax[2][3].plot(items)
+ax[3][0].set_xlabel('steps')
+ax[3][0].set_ylabel('coverage, inner reward')
+ax[3][0].plot(coverage_reward, label = 'coverage reward')
+ax[3][0].plot(inner_reward, label = 'inner reward')
+ax[3][0].legend()
+ax[3][0].set_xlabel('steps')
+ax[3][1].set_ylabel('coverage, outer reward')
+ax[3][1].plot(coverage_reward, label = 'coverage reward')
+ax[3][1].plot(outer_reward, label = 'outer reward')
+ax[3][1].legend()
+ax[3][2].set_xlabel('steps')
+ax[3][2].set_ylabel('inner, outer reward')
+ax[3][2].plot(inner_reward, label = 'inner reward')
+ax[3][2].plot(outer_reward, label = 'outer reward')
+ax[3][2].legend()
+ax[3][3].set_xlabel('steps')
+ax[3][3].set_ylabel('q value')
+q = []
+_REWARDS = np.array(_REWARDS, dtype = np.float32)
+for i in range(len(REWARDS)):
+    gamma = np.arange(len(_REWARDS) - i)
+    gamma = params['gamma'] ** gamma
+    q.append(np.sum(_REWARDS[i:] * gamma))
+q = np.array(q, dtype = np.float32)
+ax[3][3].plot(q)
+
+
 def xy_to_imgrowcol(x, y):
     (row, row_frac), (col, col_frac) = env._xy_to_rowcol_v2(x, y)
-    row = block_size * row + int((row_frac) * block_size) + int(block_size / 2)
-    col = block_size * col + int((col_frac) * block_size) + int(block_size / 2)
+    row = block_size * row + int((row_frac) * block_size)
+    col = block_size * col + int((col_frac) * block_size)
     return int(row), int(col)
 
 img = np.zeros(
@@ -91,6 +201,10 @@ for i in range(len(env._maze_structure)):
                 block_size * i: block_size * (i + 1),
                 block_size * j: block_size * (j + 1)
             ] = 0.5
+
+for wx, wy in zip(env.wx, env.wy):
+    row, col = xy_to_imgrowcol(wx, wy) 
+    img[row - int(block_size / 10): row + int(block_size / 10), col - int(block_size / 10): col + int(block_size / 10)] = [1, 1, 0]
 
 for i, goal in enumerate(env._task.goals):
     pos = goal.pos
@@ -130,6 +244,16 @@ for pos in POS:
     row, col = xy_to_imgrowcol(pos[0], pos[1])
     img[row - int(block_size / 50): row + int(block_size / 50), col - int(block_size / 50): col + int(block_size / 50)] = [0, 0, 1]
 
-ax.imshow(np.flipud(img))
-fig.savefig('output.png')
+for x, y in zip(env.cx, env.cy):
+    row, col = xy_to_imgrowcol(x, y)
+    img[row - int(block_size / 50): row + int(block_size / 50), col - int(block_size / 50): col + int(block_size / 50)] = [1, 1, 1]
+
+
+
+ax[0][0].imshow(np.rot90(np.flipud(img)))
+ax[0][1].plot(speed)
+ax[1][0].plot(angular)
+ax[1][1].plot(REWARDS)
+plt.tight_layout()
+fig2.savefig('output.png')
 plt.show()

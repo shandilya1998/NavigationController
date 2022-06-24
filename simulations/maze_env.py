@@ -36,10 +36,10 @@ from neurorobotics.utils.point_cloud import rotMatList2NPRotMat
 from neurorobotics.simulations.maze_env_utils import MazeCell
 
 # Directory that contains mujoco xml files.
-MODEL_DIR = os.path.join(os.getcwd(), 'assets', 'xml')
+MODEL_DIR = os.path.join(os.getcwd(), 'neurorobotics/assets', 'xml')
 
 
-def scale_to_255(a, mininum, maximum, dtype=np.uint8):
+def scale_to_255(a, minimum, maximum, dtype=np.uint8):
     """ Scales an array of values from specified min, max range to 0-255
     
     :param mininum: mininum of range to normalize
@@ -49,7 +49,7 @@ def scale_to_255(a, mininum, maximum, dtype=np.uint8):
     :param dtype: data type of data (default is uint8)
     :type dtype: np.dtype
     """
-    return (((a - min) / float(maximum - mininum)) * 255).astype(dtype)
+    return (((a - minimum) / float(maximum - minimum)) * 255).astype(dtype)
 
 def sort_arrays(x, y, z):
     """Sorts x and y according to index of z.
@@ -183,6 +183,7 @@ class MazeEnv(gym.Env):
         self.total_eps = 0
         self.ep = 0
         self.max_episode_size = max_episode_size
+        print(maze_task)
         self._task = maze_task(maze_size_scaling, **task_kwargs)
         self._maze_height = height = maze_height
         self._maze_size_scaling = size_scaling = maze_size_scaling
@@ -1081,8 +1082,8 @@ class MazeEnv(gym.Env):
 
         # RESCALE THE HEIGHT VALUES - to be between the range 0-255
         pixel_values = scale_to_255(pixel_values,
-                                    min=height_range[0],
-                                    max=height_range[1])
+                                    mininum=height_range[0],
+                                    maximum=height_range[1])
 
         # INITIALIZE EMPTY ARRAY - of the dimensions we want
         x_max = 1 + int((side_range[1] - side_range[0]) / res)
@@ -1353,8 +1354,8 @@ class MazeEnv(gym.Env):
 
         # RESCALE THE HEIGHT VALUES - to be between the range 0-255
         border_pixel_values = scale_to_255(border_pixel_values,
-                                    min=height_range[0],
-                                    max=height_range[1])
+                                    minimum=height_range[0],
+                                    maximum=height_range[1])
 
         border_x_img, border_y_img, border_pixel_values = sort_arrays(
             border_x_img,
@@ -1381,8 +1382,8 @@ class MazeEnv(gym.Env):
 
         # RESCALE THE HEIGHT VALUES - to be between the range 0-255
         floor_pixel_values = scale_to_255(floor_pixel_values,
-                                    min=height_range[0],
-                                    max=height_range[1])
+                                    minimum=height_range[0],
+                                    maximum=height_range[1])
 
         floor_x_img, floor_y_img, floor_pixel_values = sort_arrays(
             floor_x_img,
@@ -1409,8 +1410,8 @@ class MazeEnv(gym.Env):
 
         # RESCALE THE HEIGHT VALUES - to be between the range 0-255
         objects_pixel_values = scale_to_255(objects_pixel_values,
-                                    min=height_range[0],
-                                    max=height_range[1])
+                                    minimum=height_range[0],
+                                    maximum=height_range[1])
 
         objects_x_img, objects_y_img, objects_pixel_values = sort_arrays(objects_x_img, objects_y_img, objects_pixel_values)
 

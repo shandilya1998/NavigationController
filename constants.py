@@ -117,7 +117,19 @@ params_quadruped = {
     'delta'                       : 0.05,
 }
 
+params_environment = {
+    "available_rgb"               : [
+                                        [0.1, 0.1, 0.7],
+                                        [0.1, 0.7, 0.1],
+                                        [0.1, 0.1, 0.1],
+                                        [0.1, 0.7, 0.7]
+                                    ],
+    'available_shapes'            : ['capsule', 'ellipsoid', 'sphere'],
+    'target_shape'                : 'sphere'
+}
+
 params.update(params_quadruped)
+params.update(params_environment)
 
 image_height = 270
 image_width = 270

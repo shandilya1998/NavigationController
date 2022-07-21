@@ -37,7 +37,7 @@ def train(
     if os.path.exists(logdir):
         shutil.rmtree(logdir)
     
-    os.mkdir(logdir)
+    os.makedirs(logdir)
     os.mkdir(os.path.join(logdir, 'models'))
     os.mkdir(os.path.join(logdir, 'plots'))
     os.mkdir(os.path.join(logdir, 'videos'))

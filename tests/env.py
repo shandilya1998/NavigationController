@@ -13,7 +13,7 @@ from neurorobotics.constants import params
 import copy
 from neurorobotics.utils.cv_utils import *
 
-env = DiscreteMazeEnv(PointEnv, CustomGoalReward4Rooms)
+env = MazeEnv(PointEnv, CustomGoalReward4Rooms)
 
 if os.path.exists(os.path.join('neurorobotics', 'assets', 'plots', 'tests')):
     shutil.rmtree(os.path.join('neurorobotics', 'assets', 'plots', 'tests'))

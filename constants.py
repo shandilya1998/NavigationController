@@ -125,7 +125,8 @@ params_environment = {
                                         [0.1, 0.7, 0.7]
                                     ],
     'available_shapes'            : ['capsule', 'ellipsoid', 'sphere'],
-    'target_shape'                : 'sphere'
+    'target_shape'                : 'sphere',
+    'target_rgb'                  : [0.7, 0.1, 0.1]
 }
 
 params.update(params_quadruped)

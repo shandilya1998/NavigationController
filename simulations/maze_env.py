@@ -560,7 +560,9 @@ class MazeEnv(gym.Env):
         assert image_height == image_width
         cx = image_width / 2
         cy = image_height / 2
-        self.cam_mat = np.array([[f, 0, cx], [0, f, cy], [0, 0, 1]], dtype = np.float32) 
+        self.cam_mat = np.array(
+                [[f, 0, cx], [0, f, cy], [0, 0, 1]],
+                dtype=np.float32) 
         self.indices_x = np.repeat(
             np.expand_dims(np.arange(image_height), 1),
             image_width, 1
@@ -581,7 +583,7 @@ class MazeEnv(gym.Env):
         self.ext = ext
         min_bound = [-35, -35, 0.0]
         max_bound = [35, 35, 1.5]
-        self.pc_target_bounds =  np.array([min_bound, max_bound], dtype = np.float32)
+        self.pc_target_bounds = np.array([min_bound, max_bound], dtype=np.float32)
 
         self._init_pos, self._init_ori = self._set_init(agent)
         self.wrapped_env.set_xy(self._init_pos)
@@ -619,7 +621,7 @@ class MazeEnv(gym.Env):
         self.height_range = (0, 1.5)
         self.allo_map_side_range = side_range = (-40, 40)
         self.allo_map_fwd_range = fwd_range = (-40, 40)
-        self.allo_map_height_range = height_range = (0, 1.5)
+        self.allo_map_height_range = (0, 1.5)
         x_max = 1 + int((side_range[1] - side_range[0]) / self.resolution)
         y_max = 1 + int((fwd_range[1] - fwd_range[0]) / self.resolution)
         self.map = np.zeros([y_max, x_max, 3], dtype=np.uint8)
@@ -646,7 +648,6 @@ class MazeEnv(gym.Env):
                     elif self._maze_structure[row][col + d_c].is_block():
                         cells.append([row + d_r, col])
 
-
         for row, col in cells:
             x, y = self._rowcol_to_xy(row, col)
             self.wx.append(copy.deepcopy(x))
@@ -667,11 +668,11 @@ class MazeEnv(gym.Env):
     def _setup_vel_control(self):
         self.target_speed = 2
         self.state = State(
-            x = self.wrapped_env.sim.data.qpos[0],
-            y = self.wrapped_env.sim.data.qpos[1],
-            yaw = self.wrapped_env.sim.data.qpos[2],
-            v = np.linalg.norm(self.wrapped_env.sim.data.qvel[:2]),
-            WB = 0.2 * self._maze_size_scaling,
+            x=self.wrapped_env.sim.data.qpos[0],
+            y=self.wrapped_env.sim.data.qpos[1],
+            yaw=self.wrapped_env.sim.data.qpos[2],
+            v=np.linalg.norm(self.wrapped_env.sim.data.qvel[:2]),
+            WB=0.2 * self._maze_size_scaling,
         )
         self.last_idx = len(self.cx) - 1
         self.target_course = TargetCourse(self.cx, self.cy)
@@ -692,12 +693,10 @@ class MazeEnv(gym.Env):
         return paths[0]
 
     def get_action(self):
-        ai = proportional_control(self.target_speed, self.state.v)
         di, self.target_ind = pure_pursuit_steer_control(
             self.state, self.target_course, self.target_ind
         )
-        #yaw = self.state.yaw +  self.state.v / self.state.WB * math.tan(di) * self.dt
-        v = self.state.v + ai * self.dt
+        # yaw = self.state.yaw +  self.state.v / self.state.WB * math.tan(di) * self.dt
         vyaw = self.state.v / self.state.WB * math.tan(di)
         """
         self.state.update(ai, di, self.dt)
@@ -710,7 +709,7 @@ class MazeEnv(gym.Env):
         """
         self.sampled_action = np.array([
             vyaw,
-        ], dtype = np.float32)
+        ], dtype=np.float32)
         return self.sampled_action
 
     def _graph_to_structure_index(self, index):
@@ -960,19 +959,20 @@ class MazeEnv(gym.Env):
             https://answers.opencv.org/question/229620/drawing-a-rectangle-around-the-red-color-region/
         """
 
-        hsv = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)    
+        hsv = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
         target = self._task.goals[self._task.goal_index]
-        mask = cv2.inRange(hsv, target.min_range , target.max_range)
-        contours, _ =  cv2.findContours(mask.copy(),
-                           cv2.RETR_TREE,
-                           cv2.CHAIN_APPROX_SIMPLE)
+        mask = cv2.inRange(hsv, target.min_range, target.max_range)
+        contours, _ = cv2.findContours(
+                mask.copy(),
+                cv2.RETR_TREE,
+                cv2.CHAIN_APPROX_SIMPLE)
         bbx = []
         if len(contours):
             red_area = max(contours, key=cv2.contourArea)
             x, y, w, h = cv2.boundingRect(red_area)
-            #cv2.rectangle(frame,(x, y),(x+w, y+h),(0, 0, 255), 1)
-            bbx.extend([x, y, w, h]) 
-        return bbx 
+            # cv2.rectangle(frame,(x, y),(x+w, y+h),(0, 0, 255), 1)
+            bbx.extend([x, y, w, h])
+        return bbx
 
     def _get_depth(self, z_buffer):
         z_buffer = z_buffer
@@ -1400,6 +1400,14 @@ class MazeEnv(gym.Env):
         #ego_map = self.get_ego_map(borders_cloud, floor_cloud, objects_cloud)
         loc_map = self.get_local_map(self.map)
         return loc_map
+
+    def get_known_blobs(self,
+            frame: np.ndarray) -> List[np.ndarray]:
+        """Detects All known blobs in a given image
+        :param frame: Visual Perception Input
+        :type frame: np.ndarray
+        """
+        raise NotImplementedError
 
     def _get_obs(self) -> np.ndarray:
         obs = self.wrapped_env._get_obs()

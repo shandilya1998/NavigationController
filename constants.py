@@ -39,7 +39,7 @@ params = {
     'save_freq'                   : int(4e2),
     'eval_freq'                   : int(2e2),
     'buffer_size'                 : int(5e2),
-    'max_episode_size'            : int(2e2),
+    'max_episode_size'            : int(2e3),
     'max_seq_len'                 : 5,
     'seq_sample_freq'             : 5,
     'burn_in_seq_len'             : 5,
@@ -121,8 +121,11 @@ params_environment = {
     "available_rgb"               : [
                                         [0.1, 0.1, 0.7],
                                         [0.1, 0.7, 0.1],
-                                        [0.1, 0.1, 0.1],
-                                        [0.1, 0.7, 0.7]
+                                        [0.1, 0.7, 0.7],
+                                        [0.7, 0.7, 0.1],
+                                        [0.7, 0.1, 0.7],
+                                        [0.1, 0.4, 1.0],
+                                        [0.1, 1.0, 0.4]
                                     ],
     'available_shapes'            : ['sphere'],
     'target_shape'                : 'sphere',

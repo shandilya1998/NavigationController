@@ -183,7 +183,6 @@ class MazeEnv(gym.Env):
         self.total_eps = 0
         self.ep = 0
         self.max_episode_size = max_episode_size
-        print(maze_task)
         self._task = maze_task(maze_size_scaling, **task_kwargs)
         self._maze_height = height = maze_height
         self._maze_size_scaling = size_scaling = maze_size_scaling
@@ -461,7 +460,6 @@ class MazeEnv(gym.Env):
         agent = copy.deepcopy(sampled_cells[-1])
         goals = copy.deepcopy(sampled_cells[:-1])
         target_index = np.random.randint(0, len(goals))
-        target_rgb = [0.7, 0.1, 0.1]
 
         available_hsv = [
                 colorsys.rgb_to_hsv(*rgb) for rgb in params['available_rgb']
@@ -469,6 +467,7 @@ class MazeEnv(gym.Env):
         available_shapes = params['available_shapes']
         target_shape = params['target_shape']
         target_hsv = colorsys.rgb_to_hsv(*params['target_rgb'])
+        target_rgb = params['target_rgb']
 
         for i, goal in enumerate(goals):
             site_type = random.choice(available_shapes)
@@ -482,9 +481,6 @@ class MazeEnv(gym.Env):
             else:
                 object_hsv = random.choice(available_hsv)
                 h, s, v = object_hsv
-                h = h / 180
-                s = s / 255
-                v = v / 255
                 r, g, b = colorsys.hsv_to_rgb(h, s, v)
                 rgb = Rgb(r, g, b)
             size = self._maze_size_scaling * 0.25
@@ -951,6 +947,91 @@ class MazeEnv(gym.Env):
         )
         window = frame[y_min:y_max, x_min:x_max].copy()
         return window, bbx
+
+
+    def detect_color(
+            self,
+            frame: np.ndarray,
+            display: bool = False
+            ):
+        """Localize and classify color objects in scene.
+        :param frame: Visual Perception Input
+        :type frame: np.ndarray
+        :param display: Switch to display frames for debugging
+        :type display: bool
+        """
+        boxes = []
+        info = []
+        boxes = []
+        results = None
+        masks = {}
+        rgbs = params['available_rgb'] + [params['target_rgb']]
+        for i, rgb in enumerate(rgbs):
+            h, s, _ = colorsys.rgb_to_hsv(*rgb)
+            hsv_low = []
+            hsv_high = []
+            if h > 10 / 180:
+                hsv_low.append(h * 180 - 10)
+            else:
+                hsv_low.append(0)
+            if h < 160 / 180:
+                hsv_high.append(h * 180 + 10)
+            else:
+                hsv_high.append(180)
+            if s > 100 / 255:
+                hsv_low.append(s * 255 - 100)
+            else:
+                hsv_low.append(0)
+            if s < 155 / 255:
+                hsv_high.append(s * 255 + 100)
+            else:
+                hsv_high.append(255)
+            hsv_low.append(0)
+            hsv_high.append(255)
+            hsv_frame = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
+            mask = cv2.inRange(
+                    hsv_frame,
+                    np.array(hsv_low, dtype=np.int32),
+                    np.array(hsv_high, dtype=np.int32))
+            if display:
+                masks['r: {:.2f}, g: {:.2f}, b: {:.2f}'.format(
+                        rgb[0],
+                        rgb[1],
+                        rgb[2]
+                        )] = mask.copy()
+                if results is None:
+                    results = mask
+                else:
+                    results += mask
+            contours, _ = cv2.findContours(
+                    mask.copy(),
+                    cv2.RETR_TREE,
+                    cv2.CHAIN_APPROX_SIMPLE)
+            bbx = []
+            if len(contours):
+                color_area = max(contours, key=cv2.contourArea)
+                x, y, w, h = cv2.boundingRect(color_area)
+                if display:
+                    cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 0, 255), 1)
+                    cv2.putText(
+                            frame,
+                            "class: {}".format(i),
+                            (x + w, y + h + 10),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            1, (0, 0, 255), 1, cv2.LINE_AA)
+                bbx.extend([x, y, w, h])
+                boxes.append(bbx)
+                info.append(i)
+
+        if display:
+            results = np.clip(results, 0, 255).astype(np.uint8)
+            cv2.imshow('frame', cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+            cv2.imshow('mask', results)
+            """
+            for key, mask in masks.items():
+                cv2.imshow(key, mask)
+            """
+        return boxes, info
 
     def detect_target(self, frame):
         

@@ -4,16 +4,12 @@ from neurorobotics.simulations.maze_task import CustomGoalReward4Rooms
 import cv2
 import os
 import shutil
+from tqdm import tqdm
 
-def detect_objects(
-        frame: np.ndarray):
-    boxes = None
-    infos = None
-    return boxes, infos
 
 def generate_data(
         datapath: str = 'neurorobotics/data/images',
-        episodes: int = 100,
+        episodes: int = 2,
         max_episode_size: int = 2000):
     """Generates Object Detection Data in COCO format using `MazeEnv`.
 
@@ -32,13 +28,24 @@ def generate_data(
     env = MazeEnv(
         model_cls=PointEnv,
         maze_task=CustomGoalReward4Rooms,
-        max_episode_size=max_episode_size
+        max_episode_size=max_episode_size,
         mode='datagen')
 
-    for ep in range(max_episode_size):
+    for ep in tqdm(range(episodes), position = 1):
         obs = env.reset()
         done = False
+        step = 0
+        bar = tqdm(total = max_episode_size, position = 0)
         while not done:
             obs, reward, done, info = env.step(obs['sampled_action'])
-        frame = obs['scale_1']
-        
+            frame = cv2.cvtColor(obs['scale_1'], cv2.COLOR_BGR2RGB)
+            #boxes, info = env.detect_color(frame, False)
+            cv2.imwrite(os.path.join(
+                    datapath,
+                    'image_ep_{}_step_{}.png'.format(ep, step)), frame)
+            step += 1
+            bar.update(1)
+        bar.close()
+
+if __name__ == '__main__':
+    generate_data()

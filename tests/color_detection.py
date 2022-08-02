@@ -95,7 +95,7 @@ if __name__ == '__main__':
     done = False
     while not done:
         ob, reward, done, info = env.step(ob['sampled_action'])
-        boxes, info = detect_color(ob['scale_1'])
+        boxes, info = detect_color(ob['scale_1'], True)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 

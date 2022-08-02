@@ -1937,9 +1937,17 @@ class DiscreteMazeEnv(MazeEnv):
         self.target_speed = 4
 
     def _set_action_space(self):
+        """Set class attribute `_action_space`.
+        """
         self._action_space = gym.spaces.MultiDiscrete([6, 11])
 
     def discrete_v(self, v):
+        """Discretize velocity.
+        :param v: Input Velocity
+        :type v: Union[float, np.ndarray]
+        :return: Discretized Velocity
+        :rtype: float
+        """
         if v < self.target_speed / 8:
             v = 4
         else:
@@ -1947,6 +1955,12 @@ class DiscreteMazeEnv(MazeEnv):
         return v
 
     def discrete_vyaw(self, vyaw):
+        """Discretize yaw velocity.
+        :param v: Input Velocity
+        :type v: Union[float, np.ndarray]
+        :return: Discretized Velocity
+        :rtype: float
+        """
         if vyaw < -1.125:
             vyaw = 0
         elif vyaw < -0.5625:
@@ -1972,6 +1986,10 @@ class DiscreteMazeEnv(MazeEnv):
         return vyaw
 
     def get_action(self):
+        """Sample appropriate action from the predefined algorithm.
+        :return: Sampled Action
+        :rtype: np.ndarray
+        """
         ai = proportional_control(self.target_speed, self.state.v)
         di, self.target_ind = pure_pursuit_steer_control(
             self.state, self.target_course, self.target_ind
@@ -1992,6 +2010,13 @@ class DiscreteMazeEnv(MazeEnv):
         return self.sampled_action
 
     def continuous_action(self, action):
+        """Convert discrete action to continuous action.
+        :param action: Discrete action
+        :type action: np.ndarray
+        :return: Continunous action
+        :rtype: np.ndarraiy
+        :raises ValueError: Error raised when discrete actions are out of bounds.
+        """
         move, omega = action
         if move == 0:
             move = self.target_speed
@@ -2037,6 +2062,10 @@ class DiscreteMazeEnv(MazeEnv):
         return action
 
     def _get_obs(self) -> np.ndarray:
+        """Internal method for processing the observation for downstream tasks. Needs to be reimplemented for every new environment.
+        :return: Environment Observation.
+        :rtype: Union[Dict[str, np.ndarray], np.ndarray]
+        """
         obs = self.wrapped_env._get_obs()
         #obs['front'] = cv2.resize(obs['front'], (320, 320))
         img = obs['front'].copy()
@@ -2081,6 +2110,9 @@ class DiscreteMazeEnv(MazeEnv):
             fwd_range=self.allo_map_fwd_range,
             height_range = self.allo_map_height_range
         )
+
+        """DEBUGGING CODE. NEEDS TO BE REMOVED.
+        """
         if params['debug']:
             size = img.shape[0]
             cv2.imshow('stream camera', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
@@ -2140,6 +2172,8 @@ class DiscreteMazeEnv(MazeEnv):
         return _obs
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
+        """
+        """
         # Proprocessing and Environment Update
         assert self.action_space.contains(action)
         action = self.continuous_action(action)

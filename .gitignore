@@ -12,3 +12,4 @@ assets/plots/tests/
 assets/
 Python*
 nvidia-container-runtime-script.sh
+data/images/

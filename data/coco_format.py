@@ -39,9 +39,9 @@ def generate_data(
         done = False
         step = 0
         while not done:
-            obs, reward, done, info = env.step(obs['sampled_action'])
+            obs, reward, done, _ = env.step(obs['sampled_action'])
             frame = cv2.cvtColor(obs['scale_1'], cv2.COLOR_BGR2RGB)
-            #boxes, info = env.detect_color(frame, False)
+            boxes, infos = env.detect_color(frame, False)
             top = env.render('rgb_array')
             top = cv2.cvtColor(
                 top,
@@ -54,6 +54,17 @@ def generate_data(
                 cv2.imwrite(os.path.join(
                         datapath,
                         'top/image_ep_{}_step_{}.png'.format(ep, step)), top)
+
+            f = open(os.path.join(
+                    datapath,
+                    'image_ep_{}_step_{}.txt'.format(ep + 1, step)), 'w')
+            for box, info in zip(boxes, infos):
+                data = '{} {:.4f} {:.4f} {:.4f} {:.4f}\n'.format(
+                    info, box[0], box[1], box[2], box[3]
+                )
+                f.write(data)
+            f.close()
+
             step += 1
         print("Episode {} Steps Done {}".format(ep, step))
 

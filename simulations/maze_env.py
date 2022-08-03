@@ -959,7 +959,10 @@ class MazeEnv(gym.Env):
         :type frame: np.ndarray
         :param display: Switch to display frames for debugging
         :type display: bool
+        :return: Bounding boxes and their classes detected in the frame
+        :rtype: Tuple[List[List], List[int]]
         """
+        Y, X, _ = frame.shape
         boxes = []
         info = []
         boxes = []
@@ -1011,6 +1014,10 @@ class MazeEnv(gym.Env):
             if len(contours):
                 color_area = max(contours, key=cv2.contourArea)
                 x, y, w, h = cv2.boundingRect(color_area)
+                x = (x + w / 2) / X
+                y = (y + h / 2) / Y
+                w = w / X
+                h = h / Y
                 if display:
                     cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 0, 255), 1)
                     cv2.putText(

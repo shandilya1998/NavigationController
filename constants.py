@@ -135,8 +135,8 @@ params_environment = {
 params.update(params_quadruped)
 params.update(params_environment)
 
-image_height = 270
-image_width = 270
+image_height = 298
+image_width = 298
 image_channels = 3
 n_history_steps = 5
 action_dim = 2

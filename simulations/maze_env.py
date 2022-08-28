@@ -925,8 +925,8 @@ class MazeEnv(gym.Env):
 
     def get_attention_window(self, frame, bbx):
         size = frame.shape[0]
-        #assert frame.shape[0] == frame.shape[1]
-        #window = frame.copy()
+        # assert frame.shape[0] == frame.shape[1]
+        # window = frame.copy()
         x, y, w, h = None, None, None, None
 
         if len(bbx) > 0:
@@ -938,8 +938,7 @@ class MazeEnv(gym.Env):
             y = size // 2 - size // 4
             w = size // 2
             h = size // 2
-            bbx = np.array([x, y, w, h]).copy()
- 
+            bbx = np.array([x, y, w, h]).copy() 
         # attention window computation
         scale = 3
         x_min, x_max, y_min, y_max = self._get_scale_indices(
@@ -948,13 +947,13 @@ class MazeEnv(gym.Env):
         window = frame[y_min:y_max, x_min:x_max].copy()
         return window, bbx
 
-
     def detect_color(
             self,
             frame: np.ndarray,
             display: bool = False
             ):
         """Localize and classify color objects in scene.
+        
         :param frame: Visual Perception Input
         :type frame: np.ndarray
         :param display: Switch to display frames for debugging

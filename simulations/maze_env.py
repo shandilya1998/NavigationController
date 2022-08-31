@@ -363,7 +363,6 @@ class MazeEnv(gym.Env):
                 if not self._maze_structure[i][j].is_wall_or_chasm():
                     self._open_position_indices.append([i, j])
 
-
     def set_env(self):
         xml_path = os.path.join(MODEL_DIR, self.model_cls.FILE)
         tree = ET.parse(xml_path)
@@ -1484,23 +1483,38 @@ class MazeEnv(gym.Env):
 
         self.maps.pop(0)
         self.maps.append(self.map.copy())
-        #ego_map = self.get_ego_map(borders_cloud, floor_cloud, objects_cloud)
+        # ego_map = self.get_ego_map(borders_cloud, floor_cloud, objects_cloud)
         loc_map = self.get_local_map(self.map)
         return loc_map
 
-    def get_known_blobs(self,
-            frame: np.ndarray) -> List[np.ndarray]:
+    def get_known_blobs(
+            self,
+            frame: np.ndarray
+    ) -> List[np.ndarray]:
         """Detects All known blobs in a given image
+
         :param frame: Visual Perception Input
         :type frame: np.ndarray
         """
         raise NotImplementedError
 
     def _get_obs(self) -> np.ndarray:
+        """Getter method for current observations.
+
+        The following are the mandatory components of the observation `dict`:
+        * Current Visual Observation `frame_t`
+        * Current Propreceptive Observation `sensors`
+        * Current Estimated Position in global frame of reference `pos`
+        * Start Position of the agent in the global frame of reference `start_pos`
+        * Information if the target object is present in the frame or not `inframe`
+
+        :return: Current Observations.
+        :rtype: Union[np.ndarray, Dict[str, np.ndarray]]
+        """
         obs = self.wrapped_env._get_obs()
-        #obs['front'] = cv2.resize(obs['front'], (320, 320))
+        # obs['front'] = cv2.resize(obs['front'], (320, 320))
         img = obs['front'].copy()
-        #assert img.shape[0] == img.shape[1]
+        # assert img.shape[0] == img.shape[1]
         # Target Detection and Attention Window
         bbx = self.detect_target(img)
         window, bbx = self.get_attention_window(obs['front'], bbx)
@@ -1533,7 +1547,7 @@ class MazeEnv(gym.Env):
             (action.copy() - self.action_space.low) / (self.action_space.high - self.action_space.low) for action in self.actions
         ], -1)
 
-        #complete_ego_map, border_ego_map, floor_ego_map, objects_ego_map, target_ego_map = self.get_ego_maps(obs['front_depth'], obs['front'])
+        # complete_ego_map, border_ego_map, floor_ego_map, objects_ego_map, target_ego_map = self.get_ego_maps(obs['front_depth'], obs['front'])
         loc_map = self.get_maps(
             obs['front_depth'],
             obs['front'],
@@ -1630,11 +1644,13 @@ class MazeEnv(gym.Env):
             dtype=np.uint8,
         )
 
+    """
     def _render_image(self) -> np.ndarray:
         self._mj_offscreen_viewer._set_mujoco_buffers()
         self._mj_offscreen_viewer.render(*self._image_shape)
         pixels = self._mj_offscreen_viewer.read_pixels(*self._image_shape, depth=False)
         return np.asarray(pixels[::-1, :, :], dtype=np.uint8)
+    """
 
     def _maybe_move_camera(self, viewer: Any) -> None:
         from mujoco_py import const

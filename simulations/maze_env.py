@@ -16,7 +16,7 @@ import itertools as it
 import os
 import tempfile
 import xml.etree.ElementTree as ET
-from typing import Any, List, Optional, Tuple, Type
+from typing import Any, List, Optional, Tuple, Type, Callable
 import gym
 import numpy as np
 import networkx as nx
@@ -120,7 +120,7 @@ class MazeEnv(gym.Env):
     
     :param model_cls: Class of agent to spawn
     :type model_cls: Type[AgentModel]
-    :param maze_task: Class of maze task to spawn
+    :param maze_task_generator: generator method for sampling a random a maze task
     :type maze_task: Type[maze_task.MazeTask] = maze_task.MazeTask,
     :param max_episode_size: maximum number of steps permissible in an episode
     :type max_episode_size: int = 2000,
@@ -154,7 +154,7 @@ class MazeEnv(gym.Env):
     def __init__(
         self,
         model_cls: Type[AgentModel],
-        maze_task: Type[maze_task.MazeTask] = maze_task.MazeTask,
+        maze_task_generator: Callable,
         max_episode_size: int = 2000,
         n_steps = 50,
         include_position: bool = True,
@@ -168,7 +168,7 @@ class MazeEnv(gym.Env):
         camera_move_y: Optional[float] = None,
         camera_zoom: Optional[float] = None,
         image_shape: Tuple[int, int] = (600, 480),
-        mode = None,
+        mode=None,
         **kwargs,
     ) -> None:
         """INITIALIZE.
@@ -179,18 +179,19 @@ class MazeEnv(gym.Env):
         self.kwargs = kwargs
         self.top_view_size = params['top_view_size']
         self.t = 0  # time steps
-        self.total_steps = 0 
+        self.total_steps = 0
         self.total_eps = 0
         self.ep = 0
         self.max_episode_size = max_episode_size
-        self._task = maze_task(maze_size_scaling, **task_kwargs)
-        self._maze_height = height = maze_height
+        self._maze_task_generator = maze_task_generator
+        self._task_kwargs = task_kwargs
+        self.elevated = any(maze_env_utils.MazeCell.CHASM in row for row in self._maze_structure)
+        # Are there any movable blocks?
+        self.blocks = any(any(r.can_move() for r in row) for row in self._maze_structure)
+        self._maze_height = maze_height
         self._maze_size_scaling = size_scaling = maze_size_scaling
         self._inner_reward_scaling = inner_reward_scaling
-        self._put_spin_near_agent = self._task.PUT_SPIN_NEAR_AGENT
         
-        self.set_structure() 
-
         # Observe other objectives
         self._restitution_coef = restitution_coef
         torso_x, torso_y = self._find_robot()
@@ -242,7 +243,7 @@ class MazeEnv(gym.Env):
     def _ensure_distance_from_target(self, row, row_frac, col, col_frac, pos):
         """
         """
-        target_pos = self._task.goals[self._task.goal_index].pos
+        target_pos = self._task.objects[self._task.goal_index].pos
         (pos_row, _), (pos_col, _) = self._xy_to_rowcol_v2(target_pos[0], target_pos[1])
         if [pos_row, pos_col] == [row, col]:
             row, col = random.choice(self._open_position_indices)
@@ -324,45 +325,6 @@ class MazeEnv(gym.Env):
 
         return pos, ori
     
-    def _sample_maze_structure(self, scale):
-        structure = self._task.create_maze()
-        block_positions = []
-        for i in range(1, len(structure) -1):
-            for j in range(1, len(structure[i]) - 1):
-                if structure[i][j].is_wall_or_chasm():
-                    block_positions.append((i, j))
-        num_sampled = math.floor(len(block_positions) * scale)
-        sampled_positions = random.sample(block_positions, num_sampled)
-        _maze_structure = self._task.create_simple_maze()
-        B = MazeCell.BLOCK
-        for i, j in sampled_positions:
-            _maze_structure[i][j] = B
-        return _maze_structure
-    
-    def set_structure(self):
-        threshold_steps = (params['total_timesteps'] // 4) * 3
-        threshold_eps = 5 * threshold_steps // params['eval_freq']
-        if self.mode == 'train' and self.total_steps < threshold_steps:
-            scale = self.total_steps / threshold_steps
-            self._maze_structure = self._sample_maze_structure(scale)
-        elif self.mode == 'eval' and self.total_eps < threshold_eps:
-            scale = self.total_eps / threshold_eps
-            self._maze_structure = self._sample_maze_structure(scale)
-        else:
-            self._maze_structure = self._task.create_maze()
-
-        structure = self._maze_structure
-        # Elevate the maze to allow for falling.
-        self.elevated = any(maze_env_utils.MazeCell.CHASM in row for row in structure)
-        # Are there any movable blocks?
-        self.blocks = any(any(r.can_move() for r in row) for row in structure)
-
-        self._open_position_indices = []
-        for i in range(len(self._maze_structure)):
-            for j in range(len(self._maze_structure[i])):
-                if not self._maze_structure[i][j].is_wall_or_chasm():
-                    self._open_position_indices.append([i, j])
-
     def set_env(self):
         xml_path = os.path.join(MODEL_DIR, self.model_cls.FILE)
         tree = ET.parse(xml_path)
@@ -390,7 +352,7 @@ class MazeEnv(gym.Env):
         for i in range(len(self._maze_structure)):
             for j in range(len(self._maze_structure[0])):
                 struct = self._maze_structure[i][j]
-                if struct.is_robot() and self._put_spin_near_agent:
+                if struct.is_robot():
                     struct = maze_env_utils.MazeCell.SPIN
                 x, y = j * self._maze_size_scaling - torso_x, i * self._maze_size_scaling - torso_y
                 h = self._maze_height / 2 * self._maze_size_scaling
@@ -454,73 +416,8 @@ class MazeEnv(gym.Env):
             if "name" not in geom.attrib:
                 raise Exception("Every geom of the torso must have a name")
 
-        # Set goals
-        sampled_cells = random.sample(self._open_position_indices, 10)
-        agent = copy.deepcopy(sampled_cells[-1])
-        goals = copy.deepcopy(sampled_cells[:-1])
-        target_index = np.random.randint(0, len(goals))
-
-        available_hsv = [
-                colorsys.rgb_to_hsv(*rgb) for rgb in params['available_rgb']
-        ]
-        available_shapes = params['available_shapes']
-        target_shape = params['target_shape']
-        target_hsv = colorsys.rgb_to_hsv(*params['target_rgb'])
-        target_rgb = params['target_rgb']
-
-        for i, goal in enumerate(goals):
-            site_type = random.choice(available_shapes)
-            r, g, b = 0, 0, 0
-            h, s, v = 0, 0, 0
-            rgb = None
-            if target_index == i:
-                rgb = Rgb(*target_rgb)
-                h, s, v = copy.deepcopy(target_hsv)
-                site_type = target_shape
-            else:
-                object_hsv = random.choice(available_hsv)
-                h, s, v = object_hsv
-                r, g, b = colorsys.hsv_to_rgb(h, s, v)
-                rgb = Rgb(r, g, b)
-            size = self._maze_size_scaling * 0.25
-            if site_type != 'sphere':
-                size = np.random.uniform(
-                        low=size / 3,
-                        high=size,
-                        size=(3,)).tolist()
-            else:
-                size = [size, size, size]
-            hsv_low = []
-            hsv_high = []
-            if h > 10 / 180:
-                hsv_low.append(h * 180 - 10)
-            else:
-                hsv_low.append(0)
-            if h < 160 / 180:
-                hsv_high.append(h * 180 + 10)
-            else:
-                hsv_high.append(180)
-            if s > 100 / 255:
-                hsv_low.append(s * 255 - 100)
-            else:
-                hsv_low.append(0)
-            if s < 155 / 255:
-                hsv_high.append(s * 255 + 100)
-            else:
-                hsv_high.append(255)
-            hsv_low.append(0)
-            hsv_high.append(255)
-            goal.append({
-                'hsv_low': copy.deepcopy(hsv_low),
-                'hsv_high': copy.deepcopy(hsv_high),
-                'threshold': 2.25 if i == target_index else 1.5,
-                'target': True if i == target_index else False,
-                'rgb': copy.deepcopy(rgb),
-                'size': copy.deepcopy(size),
-                'site_type': site_type
-            })
-        self._task.set(goals, (self._init_torso_x, self._init_torso_y))
-        for i, goal in enumerate(self._task.goals):
+        self._task, self._maze_structure, self._open_position_indices = self._maze_task_generator(self._maze_size_scaling, **self._task_kwargs)
+        for i, goal in enumerate(self._task.objects):
             z = goal.pos[2] if goal.dim >= 3 else 0.1*self._maze_size_scaling
             if goal.custom_size is None:
                 size = f"{self._maze_size_scaling * 0.1}"
@@ -601,7 +498,7 @@ class MazeEnv(gym.Env):
         self.set_goal_path()
 
     def set_goal_path(self):
-        goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
+        goal = self._task.objects[self._task.goal_index].pos - self.wrapped_env.get_xy()
         self.goals = [goal.copy() for _ in range(self.n_steps)]
         self.positions = [np.zeros_like(self.data.qpos) for _ in range(self.n_steps)]
         self._create_maze_graph()
@@ -649,8 +546,8 @@ class MazeEnv(gym.Env):
             self.wy.append(copy.deepcopy(y))
         self.wx.pop()
         self.wy.pop()
-        self.wx.append(self._task.goals[self._task.goal_index].pos[0])
-        self.wy.append(self._task.goals[self._task.goal_index].pos[1])
+        self.wx.append(self._task.objects[self._task.goal_index].pos[0])
+        self.wy.append(self._task.objects[self._task.goal_index].pos[1])
         self.final = [self.wx[-1], self.wy[-1]]
 
     def _find_cubic_spline_path(self):
@@ -677,7 +574,7 @@ class MazeEnv(gym.Env):
         robot_x, robot_y = self.wrapped_env.get_xy()
         row, col = self._xy_to_rowcol(robot_x, robot_y)
         source = self._structure_to_graph_index(row, col)
-        goal_pos = self._task.goals[self._task.goal_index].pos[:2]
+        goal_pos = self._task.objects[self._task.goal_index].pos[:2]
         row, col = self._xy_to_rowcol(goal_pos[0], goal_pos[1])
         target = self._structure_to_graph_index(row, col)
         paths = list(nx.algorithms.shortest_paths.generic.all_shortest_paths(
@@ -1046,7 +943,7 @@ class MazeEnv(gym.Env):
         """
 
         hsv = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
-        target = self._task.goals[self._task.goal_index]
+        target = self._task.objects[self._task.goal_index]
         mask = cv2.inRange(hsv, target.min_range, target.max_range)
         contours, _ = cv2.findContours(
                 mask.copy(),
@@ -1206,7 +1103,7 @@ class MazeEnv(gym.Env):
         return cloud
 
     def _get_target(self, cloud, hsv):
-        target = self._task.goals[self._task.goal_index] 
+        target = self._task.objects[self._task.goal_index] 
         lower = target.min_range
         upper = target.max_range
         mask = np.repeat(
@@ -1528,9 +1425,9 @@ class MazeEnv(gym.Env):
 
         # Sensor Readings
         ## Goal
-        goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
+        goal = self._task.objects[self._task.goal_index].pos - self.wrapped_env.get_xy()
         goal = np.array([
-            np.linalg.norm(goal) / np.linalg.norm(self._task.goals[self._task.goal_index].pos - self._init_pos),
+            np.linalg.norm(goal) / np.linalg.norm(self._task.objects[self._task.goal_index].pos - self._init_pos),
             self.check_angle(np.arctan2(goal[1], goal[0]) - self.get_ori()) / np.pi
         ], dtype = np.float32)
         ## Velocity
@@ -1587,7 +1484,7 @@ class MazeEnv(gym.Env):
             ), 0
         )
 
-        positions = np.concatenate(self.positions + [self._task.goals[self._task.goal_index].pos], -1)
+        positions = np.concatenate(self.positions + [self._task.objects[self._task.goal_index].pos], -1)
 
         _obs = {
             'scale_1' : window.copy(),
@@ -1623,7 +1520,7 @@ class MazeEnv(gym.Env):
         self.set_env()
         action = self.actions[0]
         self.actions = [np.zeros_like(action) for i in range(self.n_steps)]
-        goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
+        goal = self._task.objects[self._task.goal_index].pos - self.wrapped_env.get_xy()
         self.goals = [goal.copy() for i in range(self.n_steps)]
         self.positions = [np.zeros_like(self.data.qpos) for _ in range(self.n_steps)]
         obs = self._get_obs()
@@ -1769,7 +1666,7 @@ class MazeEnv(gym.Env):
         coverage_reward = (coverage - last_coverage) * 0.05
 
         # Computing the reward in "https://ieeexplore.ieee.org/document/8398461"
-        goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
+        goal = self._task.objects[self._task.goal_index].pos - self.wrapped_env.get_xy()
         self.goals.pop(0)
         self.goals.append(goal)
         self.positions.pop(0)
@@ -1901,7 +1798,7 @@ class MazeEnv(gym.Env):
         cv2.drawContours(img, [triangle_cnt], 0, (255,255,255), -1)
 
         #img[row - int(block_size / 10): row + int(block_size / 20), col - int(block_size / 20): col + int(block_size / 20)] = [255, 255, 255]
-        for i, goal in enumerate(self._task.goals):
+        for i, goal in enumerate(self._task.objects):
             pos = goal.pos
             row, col = xy_to_imgrowcol(pos[0], pos[1])
             if i == self._task.goal_index:
@@ -2102,9 +1999,9 @@ class DiscreteMazeEnv(MazeEnv):
 
         # Sensor Readings
         ## Goal
-        goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
+        goal = self._task.objects[self._task.goal_index].pos - self.wrapped_env.get_xy()
         goal = np.array([
-            np.linalg.norm(goal) / np.linalg.norm(self._task.goals[self._task.goal_index].pos - self._init_pos),
+            np.linalg.norm(goal) / np.linalg.norm(self._task.objects[self._task.goal_index].pos - self._init_pos),
             self.check_angle(np.arctan2(goal[1], goal[0]) - self.get_ori()) / np.pi
         ], dtype = np.float32)
         ## Velocity
@@ -2144,7 +2041,7 @@ class DiscreteMazeEnv(MazeEnv):
             cv2.imshow('depth stream', (obs['front_depth'] - 0.86) / 0.14)
             top = self.render('rgb_array')
             cv2.imshow('position stream', top)
-            #cv2.imshow('bird eye view', cv2.resize(bird_eye_view, (image_width, image_height)))
+            # cv2.imshow('bird eye view', cv2.resize(bird_eye_view, (image_width, image_height)))
             """
             cv2.imshow('ego map', complete_ego_map)
             cv2.imshow('borders', border_ego_map)
@@ -2154,7 +2051,7 @@ class DiscreteMazeEnv(MazeEnv):
             """
             cv2.imshow('global egoocentric map', cv2.resize(loc_map[:, :, :3], (image_width, image_height)))
             cv2.imshow('previous global egocentric map', cv2.resize(self.loc_map[0][:, :, :3], (image_width, image_height)))
-            #cv2.imshow('egocentric map', cv2.resize(ego_map, (image_width, image_height)))
+            # cv2.imshow('egocentric map', cv2.resize(ego_map, (image_width, image_height)))
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 pass
 
@@ -2166,20 +2063,20 @@ class DiscreteMazeEnv(MazeEnv):
             ), 0
         )
 
-        positions = np.concatenate(self.positions + [self._task.goals[self._task.goal_index].pos], -1)
+        positions = np.concatenate(self.positions + [self._task.objects[self._task.goal_index].pos], -1)
 
         _obs = {
-            'scale_1' : window.copy(),
-            'scale_2' : scale_2.copy(),
-            'sensors' : sensors,
-            'sampled_action' : sampled_action.copy(),
-            'scaled_sampled_action' : sampled_action.copy(),
-            'depth' : depth,
-            'inframe' : np.array([inframe], dtype = np.float32),
-            'positions' : positions.copy(),
-            'loc_map' : loc_map.copy(),
-            'prev_loc_map' : self.loc_map[0].copy(),
-            'bbx' : bbx.copy()
+            'scale_1': window.copy(),
+            'scale_2': scale_2.copy(),
+            'sensors': sensors,
+            'sampled_action': sampled_action.copy(),
+            'scaled_sampled_action': sampled_action.copy(),
+            'depth': depth,
+            'inframe': np.array([inframe], dtype=np.float32),
+            'positions': positions.copy(),
+            'loc_map': loc_map.copy(),
+            'prev_loc_map': self.loc_map[0].copy(),
+            'bbx': bbx.copy()
         }
 
         self.loc_map.pop(0)
@@ -2219,7 +2116,7 @@ class DiscreteMazeEnv(MazeEnv):
         coverage_reward = (coverage - last_coverage) * 0.05
 
         # Computing the reward in "https://ieeexplore.ieee.org/document/8398461"
-        goal = self._task.goals[self._task.goal_index].pos - self.wrapped_env.get_xy()
+        goal = self._task.objects[self._task.goal_index].pos - self.wrapped_env.get_xy()
         self.goals.pop(0)
         self.goals.append(goal)
         self.positions.pop(0)

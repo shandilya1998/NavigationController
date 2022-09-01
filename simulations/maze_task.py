@@ -4,10 +4,14 @@ import cv2
 from abc import ABC, abstractmethod
 from typing import Dict, List, NamedTuple, Optional, Tuple, Type, Union
 import numpy as np
-from numpy.core.defchararray import lower
 from neurorobotics.utils.cv_utils import blob_detect
 from neurorobotics.simulations.maze_env_utils import MazeCell
 import copy
+from neurorobotics.constants import params
+import colorsys
+import random
+import itertools
+
 
 E, B, C, R, M = MazeCell.EMPTY, MazeCell.BLOCK, MazeCell.CHASM, MazeCell.ROBOT, MazeCell.XY_BLOCK
 
@@ -188,19 +192,94 @@ MAPS = {
 }
 
 
-def create_simple_room_maze():
+def find_robot(structure, size_scaling):
+    for i, j in it.product(range(len(structure)), range(len(structure[0]))):
+        if structure[i][j].is_robot():
+            return j * size_scaling, i * size_scaling
+    raise ValueError("No robot in maze specification.")
+
+def create_simple_room_maze(
+        maze_size_scaling: float = 4.0,
+        **kwargs
+):
     structure = MAPS['simple_room']
+    torso_init = find_robot(structure, maze_size_scaling)
     objects = []
     _open_position_indices = []
     for i in range(len(structure)):
         for j in range(len(structure[i])):
             if not structure[i][j].is_wall_or_chasm():
                 _open_position_indices.append([i, j])
-    object_structure_indices = random.sample(_open_position_indices, 2)
-    
-
-
+    object_structure_indices = random.sample(_open_position_indices, 2)    
     goal_index = np.random.randint(low=0, high=len(objects))
+
+    available_hsv = [
+            colorsys.rgb_to_hsv(*rgb) for rgb in params['available_rgb']
+    ]
+    available_shapes = params['available_shapes']
+    target_shape = params['target_shape']
+    target_hsv = colorsys.rgb_to_hsv(*params['target_rgb'])
+    target_rgb = params['target_rgb']
+    objects = []
+
+    for i, [row, col] in enumerate(object_structure_indices):
+        site_type = random.choice(available_shapes)
+        r, g, b = 0, 0, 0
+        h, s, v = 0, 0, 0
+        rgb = None
+        if goal_index == i:
+            rgb = Rgb(*target_rgb)
+            h, s, v = copy.deepcopy(target_hsv)
+            site_type = target_shape
+        else:
+            object_hsv = random.choice(available_hsv)
+            h, s, v = object_hsv
+            r, g, b = colorsys.hsv_to_rgb(h, s, v)
+            rgb = Rgb(r, g, b)
+        size = maze_size_scaling * 0.25
+        if site_type != 'sphere':
+            size = np.random.uniform(
+                    low=size / 3,
+                    high=size,
+                    size=(3,)).tolist()
+        else:
+            size = [size, size, size]
+        hsv_low = []
+        hsv_high = []
+        if h > 10 / 180:
+            hsv_low.append(h * 180 - 10)
+        else:
+            hsv_low.append(0)
+        if h < 160 / 180:
+            hsv_high.append(h * 180 + 10)
+        else:
+            hsv_high.append(180)
+        if s > 100 / 255:
+            hsv_low.append(s * 255 - 100)
+        else:
+            hsv_low.append(0)
+        if s < 155 / 255:
+            hsv_high.append(s * 255 + 100)
+        else:
+            hsv_high.append(255)
+        hsv_low.append(0)
+        hsv_high.append(255)
+        objects.append(MazeObject(
+                pos=np.array([
+                        col * maze_size_scaling - torso_init[1],
+                        row * maze_size_scaling - torso_init[0]
+                        ], dtype=np.float32),
+                characteristics={
+                        'hsv_low': copy.deepcopy(hsv_low),
+                        'hsv_high': copy.deepcopy(hsv_high),
+                        'threshold': 2.25 if i == goal_index else 1.5,
+                        'target': True if i == goal_index else False,
+                        'rgb': copy.deepcopy(rgb),
+                        'size': copy.deepcopy(size),
+                        'site_type': site_type
+                    })
+                )
+
     maze = SimpleRoom(
         structure=structure,
         objects=objects,
@@ -208,7 +287,7 @@ def create_simple_room_maze():
         scale=1.0,
         reward_threshold=1.0
     )
-    return maze
+    return maze, structure
 
 
 class SimpleRoom(Maze):

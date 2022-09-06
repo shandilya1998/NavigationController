@@ -1,15 +1,14 @@
 import os
 import shutil
-from typing import Type, Dict
+from typing import Callable, Type, Dict
 from neurorobotics.simulations.maze_env import MazeEnv
 from neurorobotics.simulations.agent_model import AgentModel
-from neurorobotics.simulations.maze_task import MazeTask
 import stable_baselines3 as sb3
 
 def train(
         env_class: Type[MazeEnv],
         agent_class: Type[AgentModel],
-        task_class: Type[MazeTask],
+        task_generator: Callable,
         policy_class,
         params: Dict,
         lr_schedule: sb3.common.type_aliases.Schedule,
@@ -44,7 +43,7 @@ def train(
 
     train_env = env_class(
            model_cls=agent_class,
-           maze_task=task_class,
+           maze_task_generator=task_generator,
            max_episode_size=params['max_episode_size'],
            n_steps=params['history_steps']
             )

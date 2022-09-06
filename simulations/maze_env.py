@@ -121,34 +121,32 @@ class MazeEnv(gym.Env):
     :param model_cls: Class of agent to spawn
     :type model_cls: Type[AgentModel]
     :param maze_task_generator: generator method for sampling a random a maze task
-    :type maze_task: Type[maze_task.MazeTask] = maze_task.MazeTask,
+    :type maze_task_generator: Callable
     :param max_episode_size: maximum number of steps permissible in an episode
     :type max_episode_size: int = 2000,
     :param n_steps: number of steps in the past to store state for
     :type n_steps: int = 50,
-    :param include_position: 
+    :param include_position:
     :type include_position: bool = True,
-    :param maze_height: height of maze in simulations 
+    :param maze_height: height of maze in simulations
     :type maze_height: float = 0.5,
-    :param maze_size_scaling: 
+    :param maze_size_scaling:
     :type maze_size_scaling: float = 4.0,
-    :param inner_reward_scaling: 
+    :param inner_reward_scaling:
     :type inner_reward_scaling: float = 1.0,
-    :param restitution_coef: 
+    :param restitution_coef:
     :type restitution_coef: float = 0.8,
-    :param task_kwargs: 
-    :type task_kwargs: dict = {},
-    :param websock_port: 
+    :param websock_port:
     :type websock_port: Optional[int] = None,
-    :param camera_move_x: 
+    :param camera_move_x:
     :type camera_move_x: Optional[float] = None,
-    :param camera_move_y: 
+    :param camera_move_y:
     :type camera_move_y: Optional[float] = None,
-    :param camera_zoom: 
+    :param camera_zoom:
     :type camera_zoom: Optional[float] = None,
-    :param image_shape: 
+    :param image_shape:
     :type image_shape: Tuple[int, int] = (600, 480),
-    :param mode: 
+    :param mode:
     :type mode: Optional[int]= None,
     """
     def __init__(
@@ -156,13 +154,12 @@ class MazeEnv(gym.Env):
         model_cls: Type[AgentModel],
         maze_task_generator: Callable,
         max_episode_size: int = 2000,
-        n_steps = 50,
+        n_steps=50,
         include_position: bool = True,
         maze_height: float = 0.5,
         maze_size_scaling: float = 4.0,
         inner_reward_scaling: float = 1.0,
         restitution_coef: float = 0.8,
-        task_kwargs: dict = {},
         websock_port: Optional[int] = None,
         camera_move_x: Optional[float] = None,
         camera_move_y: Optional[float] = None,
@@ -184,52 +181,12 @@ class MazeEnv(gym.Env):
         self.ep = 0
         self.max_episode_size = max_episode_size
         self._maze_task_generator = maze_task_generator
-        self._task_kwargs = task_kwargs
-        self.elevated = any(maze_env_utils.MazeCell.CHASM in row for row in self._maze_structure)
-        # Are there any movable blocks?
-        self.blocks = any(any(r.can_move() for r in row) for row in self._maze_structure)
         self._maze_height = maze_height
         self._maze_size_scaling = size_scaling = maze_size_scaling
         self._inner_reward_scaling = inner_reward_scaling
         
         # Observe other objectives
         self._restitution_coef = restitution_coef
-        torso_x, torso_y = self._find_robot()
-        self._init_torso_x = torso_x
-        self._init_torso_y = torso_y
-        self._init_positions = [
-            (x - torso_x, y - torso_y) for x, y in self._find_all_robots()
-        ]
-
-        def func(x):
-            x_int, x_frac = int(x), x % 1
-            if x_frac > 0.5:
-                x_int += 1
-            return x_int
-
-        def func2(x):
-            x_int, x_frac = int(x), x % 1 
-            if x_frac > 0.5:
-                x_int += 1
-                x_frac -= 0.5
-            else:
-                x_frac += 0.5
-            return x_int, x_frac
-
-        self._xy_to_rowcol = lambda x, y: (
-            func((y + torso_y) / size_scaling),
-            func((x + torso_x) / size_scaling),
-        )
-        self._xy_to_rowcol_v2 = lambda x, y: (
-            func2((y + torso_y) / size_scaling),
-            func2((x + torso_x) / size_scaling), 
-        )
-        self._rowcol_to_xy = lambda r, c: (
-            c * size_scaling - torso_y,
-            r * size_scaling - torso_x
-        )
-
-        # Let's create MuJoCo XML
         self.model_cls = model_cls
         self._websock_port = websock_port
         self._camera_move_x = camera_move_x
@@ -238,6 +195,7 @@ class MazeEnv(gym.Env):
         self._image_shape = image_shape
         self._mj_offscreen_viewer = None
         self._websock_server_pipe = None
+        # Let's create MuJoCo XML
         self.set_env()
 
     def _ensure_distance_from_target(self, row, row_frac, col, col_frac, pos):
@@ -326,6 +284,45 @@ class MazeEnv(gym.Env):
         return pos, ori
     
     def set_env(self):
+        self._task, self._maze_structure, self._open_position_indices, self._agent_pos = self._maze_task_generator(self._maze_size_scaling)
+        torso_x, torso_y = self._find_robot()
+        self._init_torso_x = torso_x
+        self._init_torso_y = torso_y
+        self._init_positions = [
+            (x - torso_x, y - torso_y) for x, y in self._find_all_robots()
+        ]
+
+        def func(x):
+            x_int, x_frac = int(x), x % 1
+            if x_frac > 0.5:
+                x_int += 1
+            return x_int
+
+        def func2(x):
+            x_int, x_frac = int(x), x % 1 
+            if x_frac > 0.5:
+                x_int += 1
+                x_frac -= 0.5
+            else:
+                x_frac += 0.5
+            return x_int, x_frac
+
+        self._xy_to_rowcol = lambda x, y: (
+            func((y + self._init_torso_y) / self._maze_size_scaling),
+            func((x + self._init_torso_x) / self._maze_size_scaling),
+        )
+        self._xy_to_rowcol_v2 = lambda x, y: (
+            func2((y + self._init_torso_y) / self._maze_size_scaling),
+            func2((x + self._init_torso_x) / self._maze_size_scaling), 
+        )
+        self._rowcol_to_xy = lambda r, c: (
+            c * self._maze_size_scaling - self._init_torso_y,
+            r * self._maze_size_scaling - self._init_torso_x
+        )
+        self.elevated = any(maze_env_utils.MazeCell.CHASM in row for row in self._maze_structure)
+        # Are there any movable blocks?
+        self.blocks = any(any(r.can_move() for r in row) for row in self._maze_structure)
+        
         xml_path = os.path.join(MODEL_DIR, self.model_cls.FILE)
         tree = ET.parse(xml_path)
         worldbody = tree.find(".//worldbody")
@@ -416,7 +413,6 @@ class MazeEnv(gym.Env):
             if "name" not in geom.attrib:
                 raise Exception("Every geom of the torso must have a name")
 
-        self._task, self._maze_structure, self._open_position_indices = self._maze_task_generator(self._maze_size_scaling, **self._task_kwargs)
         for i, goal in enumerate(self._task.objects):
             z = goal.pos[2] if goal.dim >= 3 else 0.1*self._maze_size_scaling
             if goal.custom_size is None:
@@ -476,8 +472,7 @@ class MazeEnv(gym.Env):
         min_bound = [-35, -35, 0.0]
         max_bound = [35, 35, 1.5]
         self.pc_target_bounds = np.array([min_bound, max_bound], dtype=np.float32)
-
-        self._init_pos, self._init_ori = self._set_init(agent)
+        self._init_pos, self._init_ori = self._set_init(self._agent_pos)
         self.wrapped_env.set_xy(self._init_pos)
         self.wrapped_env.set_ori(self._init_ori)
         self.dt = self.wrapped_env.dt
@@ -571,6 +566,12 @@ class MazeEnv(gym.Env):
         self.target_ind, _ = self.target_course.search_target_index(self.state)
 
     def _sample_path(self):
+        """Computes the shortest path from the agent position to the target position using graph
+        theoretic approach.
+
+        :return: Shortest Path from the agent to the target.
+        :rtype: List[int]
+        """
         robot_x, robot_y = self.wrapped_env.get_xy()
         row, col = self._xy_to_rowcol(robot_x, robot_y)
         source = self._structure_to_graph_index(row, col)
@@ -1430,14 +1431,17 @@ class MazeEnv(gym.Env):
             np.linalg.norm(goal) / np.linalg.norm(self._task.objects[self._task.goal_index].pos - self._init_pos),
             self.check_angle(np.arctan2(goal[1], goal[0]) - self.get_ori()) / np.pi
         ], dtype = np.float32)
+        """
         ## Velocity
         max_vel = np.array([
             self.wrapped_env.VELOCITY_LIMITS,
             self.wrapped_env.VELOCITY_LIMITS,
             self.action_space.high[0]
         ])
+        """
+        # Need to normalise all values in the following vector.
         sensors = np.concatenate([
-            self.data.qvel.copy() / max_vel,
+            self.data.qvel.copy(),
             np.array([self.get_ori()], dtype = np.float32),
             np.array([self.reward]).copy()
         ] + [
@@ -1497,7 +1501,9 @@ class MazeEnv(gym.Env):
             'positions' : positions.copy(),
             'loc_map' : loc_map.copy(),
             'prev_loc_map' : self.loc_map[0].copy(),
-            'bbx' : bbx.copy()
+            'bbx' : bbx.copy(),
+            'pos' : self.wrapped_env.get_xy(),
+            'start_pos': self._start_pos
         }
 
         self.loc_map.pop(0)
@@ -1681,8 +1687,8 @@ class MazeEnv(gym.Env):
 
         # Task Reward Computation
         outer_reward = 0
-        outer_reward = self._task.reward(next_pos, bool(next_obs['inframe'][0]), self._start_pos) * 0.005
-        done = self._task.termination(self.wrapped_env.get_xy(),  bool(next_obs['inframe'][0]))
+        outer_reward = self._task.reward(next_obs) * 0.005
+        done = self._task.termination(next_obs)
         info["position"] = self.wrapped_env.get_xy()
 
         # Collision Penalty Computation
@@ -1819,7 +1825,7 @@ class DiscreteMazeEnv(MazeEnv):
     def __init__(
         self,
         model_cls: Type[AgentModel],
-        maze_task: Type[maze_task.MazeTask] = maze_task.MazeTask,
+        maze_task: Type[maze_task.Maze] = maze_task.Maze,
         max_episode_size: int = 2000,
         n_steps = 50,
         include_position: bool = True,
@@ -1827,7 +1833,6 @@ class DiscreteMazeEnv(MazeEnv):
         maze_size_scaling: float = 4.0,
         inner_reward_scaling: float = 1.0,
         restitution_coef: float = 0.8,
-        task_kwargs: dict = {},
         websock_port: Optional[int] = None,
         camera_move_x: Optional[float] = None,
         camera_move_y: Optional[float] = None,
@@ -1845,7 +1850,6 @@ class DiscreteMazeEnv(MazeEnv):
             maze_size_scaling=maze_size_scaling,
             inner_reward_scaling=inner_reward_scaling,
             restitution_coef=restitution_coef,
-            task_kwargs=task_kwargs,
             websock_port=websock_port,
             camera_move_x=camera_move_x,
             camera_move_y=camera_move_y,

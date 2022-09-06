@@ -2,7 +2,7 @@
 """
 import cv2
 from abc import ABC, abstractmethod
-from typing import Dict, List, NamedTuple, Optional, Tuple, Type, Union
+from typing import Callable, Dict, List, NamedTuple, Optional, Tuple, Type, Union
 import numpy as np
 from neurorobotics.utils.cv_utils import blob_detect
 from neurorobotics.simulations.maze_env_utils import MazeCell
@@ -10,7 +10,7 @@ import copy
 from neurorobotics.constants import params
 import colorsys
 import random
-import itertools
+import itertools as it
 
 
 E, B, C, R, M = MazeCell.EMPTY, MazeCell.BLOCK, MazeCell.CHASM, MazeCell.ROBOT, MazeCell.XY_BLOCK
@@ -146,12 +146,6 @@ class Maze(ABC):
         raise NotImplementedError
 
 
-class Scaling(NamedTuple):
-    ant: Optional[float]
-    point: Optional[float]
-    swimmer: Optional[float]
-
-
 MAPS = {
         'u_maze': [
             [B, B, B, B, B],
@@ -161,11 +155,13 @@ MAPS = {
             [B, B, B, B, B],
         ],
         'simple_room': [
-            [B, B, B, B, B, B],
-            [B, E, E, E, E, B],
-            [B, R, E, E, E, B],
-            [B, E, E, E, E, B],
-            [B, B, B, B, B, B]
+            [B, B, B, B, B, B, B],
+            [B, E, E, E, E, E, B],
+            [B, E, E, E, E, E, B],
+            [B, E, E, R, E, E, B],
+            [B, E, E, E, E, E, B],
+            [B, E, E, E, E, E, B],
+            [B, B, B, B, B, B, B]
         ],
         'square_room': [
             [B, B, B, B, B],
@@ -200,18 +196,22 @@ def find_robot(structure, size_scaling):
 
 def create_simple_room_maze(
         maze_size_scaling: float = 4.0,
-        **kwargs
 ):
     structure = MAPS['simple_room']
+    num_objects = 2
     torso_init = find_robot(structure, maze_size_scaling)
     objects = []
     _open_position_indices = []
+    agent_pos = None
     for i in range(len(structure)):
         for j in range(len(structure[i])):
             if not structure[i][j].is_wall_or_chasm():
                 _open_position_indices.append([i, j])
-    object_structure_indices = random.sample(_open_position_indices, 2)    
-    goal_index = np.random.randint(low=0, high=len(objects))
+            if not structure[i][j].is_robot():
+                agent_pos = [i, j]
+    assert agent_pos is not None
+    object_structure_indices = random.sample(_open_position_indices, num_objects)
+    goal_index = np.random.randint(low=0, high=num_objects)
 
     available_hsv = [
             colorsys.rgb_to_hsv(*rgb) for rgb in params['available_rgb']
@@ -287,7 +287,7 @@ def create_simple_room_maze(
         scale=1.0,
         reward_threshold=1.0
     )
-    return maze, structure
+    return maze, structure, _open_position_indices, agent_pos
 
 
 class SimpleRoom(Maze):
@@ -324,209 +324,12 @@ class SimpleRoom(Maze):
         return False
         
 
-
-
-
-class GoalReward4Rooms(MazeTask):
-    REWARD_THRESHOLD: float = 0.9
-    PENALTY: float = -0.0001
-    MAZE_SIZE_SCALING: Scaling = Scaling(4.0, 4.0, 4.0)
-
-    def __init__(self, scale: float, goal: Tuple[int, int] = (6.0, -6.0)) -> None:
-        super().__init__(scale)
-        self.goals = [MazeGoal(np.array(goal) * scale)]
-
-    def reward(self, obs: np.ndarray) -> float:
-        for goal in self.goals:
-            if goal.neighbor(obs):
-                return goal.reward_scale
-        return self.PENALTY
-
-    @staticmethod
-    def create_maze() -> List[List[MazeCell]]:
-        E, B, R = MazeCell.EMPTY, MazeCell.BLOCK, MazeCell.ROBOT
-        return [
-            [B, B, B, B, B, B, B, B, B, B, B, B, B, B, B],
-            [B, E, E, E, E, E, B, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, B, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, B, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, B, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, B, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, E, B, B, B, B, B, B],
-            [B, E, E, E, E, E, E, R, E, E, E, E, E, E, B],
-            [B, B, B, B, B, B, E, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, B, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, B, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, B, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, B, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, B, E, E, E, E, E, B],
-            [B, B, B, B, B, B, B, B, B, B, B, B, B, B, B],
-        ]
-
-class CustomGoalReward4Rooms(GoalReward4Rooms):
-    def __init__(self,
-        scale: float,
-        goal: Tuple[int, int] = (3.0, 4.0),
-        ) -> None:
-        super().__init__(scale, goal)
-
-    def set(self, goals, torso_init):
-        self.goals = []
-        self.colors = []
-        self.scales = []
-        for i, goal in enumerate(goals):
-            row, col, characteristics = goal
-            if characteristics['target']:
-                self.goal_index = i
-            self.colors.append(characteristics['rgb'])
-            self.scales.append(1.0)
-            self.goals.append(MazeVisualGoal(
-                np.array([
-                    col * self.scale - torso_init[1],
-                    row * self.scale - torso_init[0]
-                ]), characteristics, self.scales[i]
-            ))
-
-    def reward(self, pos: np.ndarray, inframe: bool, start_pos: np.ndarray) -> float:
-        reward = 0.0
-        for i, goal in enumerate(self.goals):
-            if i == self.goal_index:
-                if inframe:
-                    reward += 0.5 * goal.reward_scale + (1 - np.linalg.norm(pos - goal.pos) / np.linalg.norm(start_pos - goal.pos))
-                    if np.linalg.norm(pos - goal.pos) <= 2.5 * goal.threshold:
-                        reward += 1.0 * goal.reward_scale
-            else:
-                if goal.neighbor(pos):
-                    reward += -0.1
-        return reward
-
-    def termination(self, pos: np.ndarray, inframe: bool) -> bool:
-        if self.goals[self.goal_index].neighbor(pos):
-            return True
-        return False
-
-    @staticmethod
-    def create_simple_maze() -> List[List[MazeCell]]:
-        E, B, R = MazeCell.EMPTY, MazeCell.BLOCK, MazeCell.ROBOT
-        return [
-            [B, B, B, B, B, B, B, B, B, B, B, B, B, B, B],
-            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, R, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
-            [B, B, B, B, B, B, B, B, B, B, B, B, B, B, B],
-        ]
-
-
-class CustomGoalReward4RoomsV2(GoalReward4Rooms):
-    def __init__(self,
-        scale: float,
-        goal: Tuple[int, int] = (6, -6),
-        ) -> None:
-        super().__init__(scale, goal)
-        self.set()
-
-    def set(self, offset = 0.2):
-        self.goal_index = np.random.randint(low = 0, high = 4)
-        self.colors = []
-        self.scales = []
-        self.goals = []
-        for i in range(4):
-            if i == self.goal_index:
-                self.colors.append(copy.deepcopy(RED))
-                self.scales.append(1.0)
-            else:
-                self.colors.append(copy.deepcopy(GREEN))
-                self.scales.append(1.0)
-
-        self.goals = [ 
-            MazeVisualGoal(np.array([
-                np.random.uniform(6.0 - offset, 6.0 + offset) * self.scale,
-                -np.random.uniform(6.0 - offset, 6.0 + offset) * self.scale
-            ]), self.scales[0], self.colors[0], 2.25),
-            MazeVisualGoal(np.array([
-                np.random.uniform(6.0 - offset, 6.0 + offset) * self.scale,
-                -np.random.uniform(-6.0 - offset, -6.0 + offset) * self.scale
-            ]), self.scales[1], self.colors[1], 2.25),
-            MazeVisualGoal(np.array([
-                np.random.uniform(-6.0 - offset, -6.0 + offset) * self.scale,
-                -np.random.uniform(6.0 - offset, 6.0 + offset) * self.scale 
-            ]), self.scales[2], self.colors[2], 2.25),
-            MazeVisualGoal(np.array([
-                np.random.uniform(-6.0 - offset, -6.0 + offset) * self.scale,
-                -np.random.uniform(-6.0 - offset, -6.0 + offset) * self.scale 
-            ]), self.scales[3], self.colors[3], 2.25),
-        ]   
-
-    def reward(self, pos: np.ndarray, inframe: bool) -> float:
-        goal = self.goals[self.goal_index]
-        reward = 0.0 
-        if inframe:
-            reward = 0.5 * goal.reward_scale
-        if np.linalg.norm(pos - goal.pos) <= 2.5 * goal.threshold:
-            reward += 1.0 * goal.reward_scale
-        return reward
-
-    def termination(self, pos: np.ndarray, inframe: bool) -> bool:
-        if self.goals[self.goal_index].neighbor(pos):
-            return True
-        return False
-
-
-    @staticmethod
-    def create_maze() -> List[List[MazeCell]]:
-        E, B, R = MazeCell.EMPTY, MazeCell.BLOCK, MazeCell.ROBOT
-        return [
-            [B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B],
-            [B, E, E, E, E, E, B, E, E, E, E, E, B, E, E, E, E, E, B],
-            [B, E, E, E, E, E, B, E, E, E, E, E, B, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, B, E, E, E, E, E, B, E, E, E, E, E, B],
-            [B, E, E, E, E, E, B, E, E, E, E, E, B, E, E, E, E, E, B],
-            [B, B, B, E, B, B, B, B, B, E, B, B, B, B, B, E, B, B, B],
-            [B, E, E, E, E, E, B, E, E, E, E, E, B, E, E, E, E, E, B],
-            [B, E, E, E, E, E, B, E, E, E, E, E, B, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, E, R, E, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, B, E, E, E, E, E, B, E, E, E, E, E, B],
-            [B, E, E, E, E, E, B, E, E, E, E, E, B, E, E, E, E, E, B],
-            [B, B, B, E, B, B, B, B, B, E, B, B, B, B, B, E, B, B, B],
-            [B, E, E, E, E, E, B, E, E, E, E, E, B, E, E, E, E, E, B],
-            [B, E, E, E, E, E, B, E, E, E, E, E, B, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, E, E, E, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, B, E, E, E, E, E, B, E, E, E, E, E, B],
-            [B, E, E, E, E, E, B, E, E, E, E, E, B, E, E, E, E, E, B],
-            [B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B],
-        ]
-
-
 class TaskRegistry:
-    REGISTRY: Dict[str, List[Type[MazeTask]]] = {
-        "SimpleRoom": [GoalRewardSimple, DistRewardSimpleRoom, GoalRewardSimpleRoom],
-        "SquareRoom": [DistRewardSquareRoom, GoalRewardSquareRoom, NoRewardSquareRoom],
-        "UMaze": [DistRewardUMaze, GoalRewardUMaze],
-        "Push": [DistRewardPush, GoalRewardPush],
-        "Fall": [DistRewardFall, GoalRewardFall],
-        "2Rooms": [DistReward2Rooms, GoalReward2Rooms, SubGoal2Rooms],
-        "4Rooms": [DistReward4Rooms, GoalReward4Rooms, CustomGoalReward4Rooms, GoalRewardNoObstacle],
-        "TRoom": [DistRewardTRoom, GoalRewardTRoom, SubGoalTRoom],
-        "BlockMaze": [DistRewardBlockMaze, GoalRewardBlockMaze],
-        "Corridor": [DistRewardCorridor, GoalRewardCorridor, NoRewardCorridor],
-        "Billiard": [
-            DistRewardBilliard,  # v0
-            GoalRewardBilliard,  # v1
-            SubGoalBilliard,  # v2
-            BanditBilliard,  # v3
-            NoRewardBilliard,  # v4
-        ],
+    REGISTRY: Dict[str, List[Callable]] = {
+        "SimpleRoom": [create_simple_room_maze],
+        "SquareRoom": [],
+        "BigRoom": [],
+        "Maze": []
     }
 
     @staticmethod
@@ -534,5 +337,5 @@ class TaskRegistry:
         return list(TaskRegistry.REGISTRY.keys())
 
     @staticmethod
-    def tasks(key: str) -> List[Type[MazeTask]]:
+    def tasks(key: str) -> List[Type[Maze]]:
         return TaskRegistry.REGISTRY[key]

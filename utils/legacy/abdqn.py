@@ -70,13 +70,13 @@ class FeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
     def forward(self, observations):
         loc_map = observations['loc_map']
         prev_loc_map = observations['prev_loc_map']
-        scale_1 = observations['scale_1']
-        scale_2 = observations['scale_2']
+        window = observations['window']
+        frame_t = observations['frame_t']
         loc_map = self.cnn1(loc_map)
         prev_loc_map = self.cnn1(prev_loc_map)
         features = self.cnn3(torch.cat([loc_map, prev_loc_map], 1))
         features = torch.cat([self.encoder(torch.cat([
-            scale_1, scale_2
+            window, frame_t
         ], 1)), features], 1)
         features = self.cnn4(features)
         features = self.output(features)

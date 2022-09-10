@@ -17,7 +17,7 @@ import itertools as it
 import os
 import tempfile
 import xml.etree.ElementTree as ET
-from typing import Any, List, Optional, Tuple, Type, Callable
+from typing import Any, List, Optional, Tuple, Type, Callable, Union, Dict
 import gym
 import numpy as np
 import networkx as nx
@@ -238,6 +238,7 @@ class SimpleRoomEnv(Environment):
     :param mode:
     :type mode: Optional[int]= None,
     """
+    n_actions: int = 2
     def __init__(
         self,
         model_cls: Type[AgentModel],
@@ -640,6 +641,9 @@ class SimpleRoomEnv(Environment):
         self.final = [self.wx[-1], self.wy[-1]]
 
     def _find_cubic_spline_path(self):
+        print(self.wx)
+        print(self.wy)
+        print(params['ds'])
         self.cx, self.cy, self.cyaw, self.ck, self.s = calc_spline_course(self.wx, self.wy, params['ds'])
 
     @property
@@ -788,17 +792,17 @@ class SimpleRoomEnv(Environment):
 
     def _set_observation_space(self, observation):
         spaces = {
-            'scale_1' : gym.spaces.Box(
-                low = np.zeros_like(observation['scale_1'], dtype = np.uint8),
-                high = 255 * np.ones_like(observation['scale_1'], dtype = np.uint8),
-                shape = observation['scale_1'].shape,
-                dtype = observation['scale_1'].dtype
+            'window' : gym.spaces.Box(
+                low = np.zeros_like(observation['window'], dtype = np.uint8),
+                high = 255 * np.ones_like(observation['window'], dtype = np.uint8),
+                shape = observation['window'].shape,
+                dtype = observation['window'].dtype
             ),   
-            'scale_2' : gym.spaces.Box(
-                low = np.zeros_like(observation['scale_2'], dtype = np.uint8),
-                high = 255 * np.ones_like(observation['scale_2'], dtype = np.uint8),
-                shape = observation['scale_2'].shape,
-                dtype = observation['scale_2'].dtype
+            'frame_t' : gym.spaces.Box(
+                low = np.zeros_like(observation['frame_t'], dtype = np.uint8),
+                high = 255 * np.ones_like(observation['frame_t'], dtype = np.uint8),
+                shape = observation['frame_t'].shape,
+                dtype = observation['frame_t'].dtype
             ),   
             'sensors' : gym.spaces.Box(
                 low = -np.ones_like(observation['sensors']),
@@ -852,17 +856,17 @@ class SimpleRoomEnv(Environment):
         }
     
         if params['add_ref_scales']:
-            spaces['ref_scale_1'] = gym.spaces.Box(
-                low = np.zeros_like(observation['ref_scale_1'], dtype = np.uint8),
-                high = 255 * np.ones_like(observation['ref_scale_1'], dtype = np.uint8),
-                shape = observation['ref_scale_1'].shape,
-                dtype = observation['ref_scale_1'].dtype
+            spaces['ref_window'] = gym.spaces.Box(
+                low = np.zeros_like(observation['ref_window'], dtype = np.uint8),
+                high = 255 * np.ones_like(observation['ref_window'], dtype = np.uint8),
+                shape = observation['ref_window'].shape,
+                dtype = observation['ref_window'].dtype
             )
-            spaces['ref_scale_2'] = gym.spaces.Box(
-                low = np.zeros_like(observation['ref_scale_2'], dtype = np.uint8),
-                high = 255 * np.ones_like(observation['ref_scale_2'], dtype = np.uint8),
-                shape = observation['ref_scale_2'].shape,
-                dtype = observation['ref_scale_2'].dtype
+            spaces['ref_frame_t'] = gym.spaces.Box(
+                low = np.zeros_like(observation['ref_frame_t'], dtype = np.uint8),
+                high = 255 * np.ones_like(observation['ref_frame_t'], dtype = np.uint8),
+                shape = observation['ref_frame_t'].shape,
+                dtype = observation['ref_frame_t'].dtype
             )
 
         self.observation_space = gym.spaces.Dict(spaces)
@@ -1490,11 +1494,19 @@ class SimpleRoomEnv(Environment):
         """
         raise NotImplementedError
 
-    def _get_obs(self) -> np.ndarray:
+    def __create_attention_window(self, img):
+        bbx = self.detect_target(img)
+        window, bbx = self.get_attention_window(img, bbx)
+        inframe = True if len(bbx) > 0 else False 
+        return window, bbx, inframe
+
+
+    def _get_obs(self) -> Union[np.ndarray, Dict[str, np.ndarray]]:
         """Getter method for current observations.
 
         The following are the mandatory components of the observation `dict`:
         * Current Visual Observation `frame_t`
+        * Attention Window in `frame_t` `window`
         * Current Propreceptive Observation `sensors`
         * Current Estimated Position in global frame of reference `pos`
         * Start Position of the agent in the global frame of reference `start_pos`
@@ -1504,13 +1516,10 @@ class SimpleRoomEnv(Environment):
         :rtype: Union[np.ndarray, Dict[str, np.ndarray]]
         """
         obs = self.wrapped_env._get_obs()
-        # obs['front'] = cv2.resize(obs['front'], (320, 320))
         img = obs['front'].copy()
-        # assert img.shape[0] == img.shape[1]
-        # Target Detection and Attention Window
-        bbx = self.detect_target(img)
-        window, bbx = self.get_attention_window(obs['front'], bbx)
-        inframe = True if len(bbx) > 0 else False 
+        assert img.shape[0] == img.shape[1]
+        # Target Detection and Attention Window Creation
+        window, bbx, inframe = self.__create_attention_window(obs['front'])
 
         # Sampled Action
         sampled_action = self.get_action().astype(np.float32)
@@ -1551,31 +1560,9 @@ class SimpleRoomEnv(Environment):
             fwd_range=self.allo_map_fwd_range,
             height_range = self.allo_map_height_range
         )
-        if params['debug']:
-            size = img.shape[0]
-            cv2.imshow('stream camera', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
-            cv2.imshow('stream attention window', cv2.cvtColor(cv2.resize(
-                window, (size, size)
-            ), cv2.COLOR_RGB2BGR))
-            cv2.imshow('depth stream', (obs['front_depth'] - 0.86) / 0.14)
-            top = self.render('rgb_array')
-            cv2.imshow('position stream', top)
-            #cv2.imshow('bird eye view', cv2.resize(bird_eye_view, (image_width, image_height)))
-            """
-            cv2.imshow('ego map', complete_ego_map)
-            cv2.imshow('borders', border_ego_map)
-            cv2.imshow('floor', floor_ego_map)
-            cv2.imshow('objects', objects_ego_map)
-            cv2.imshow('target', target_ego_map)
-            """
-            cv2.imshow('global egoocentric map', cv2.resize(loc_map[:, :, :3], (image_width, image_height)))
-            cv2.imshow('previous global egocentric map', cv2.resize(self.loc_map[0][:, :, :3], (image_width, image_height)))
-            #cv2.imshow('egocentric map', cv2.resize(ego_map, (image_width, image_height)))
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                pass
 
         shape = window.shape[:2]
-        scale_2 = cv2.resize(obs['front'], shape)
+        frame_t = cv2.resize(obs['front'], shape)
         depth = np.expand_dims(
             cv2.resize(
                 obs['front_depth'].copy(), shape
@@ -1585,9 +1572,9 @@ class SimpleRoomEnv(Environment):
         positions = np.concatenate(self.positions + [self._task.objects[self._task.goal_index].pos], -1)
 
         _obs = {
-            'scale_1' : window.copy(),
-            'scale_2' : scale_2.copy(),
-            'sensors' : sensors,
+            'window' : window.copy(),
+            'frame_t' : frame_t.copy(),
+            'sensors' : sensors.copy(),
             'sampled_action' : sampled_action.copy(),
             'scaled_sampled_action' : scaled_sampled_action.copy(),
             'depth' : depth,
@@ -1604,10 +1591,10 @@ class SimpleRoomEnv(Environment):
         self.loc_map.append(loc_map.copy())
 
         if params['add_ref_scales']:
-            ref_scale_1, ref_scale_2 = self.get_scales(obs['front'].copy(), []) 
-            ref_scale_2 = cv2.resize(ref_scale_2, shape)
-            _obs['ref_scale_1'] = ref_scale_1.copy()
-            _obs['ref_scale_2'] = ref_scale_2.copy()
+            ref_window, ref_frame_t = self.get_scales(obs['front'].copy(), []) 
+            ref_frame_t = cv2.resize(ref_frame_t, shape)
+            _obs['ref_window'] = ref_window.copy()
+            _obs['ref_frame_t'] = ref_frame_t.copy()
 
         return _obs
 
@@ -1732,8 +1719,8 @@ class SimpleRoomEnv(Environment):
         if self._is_in_collision():
             penalty += -0.99 * self._inner_reward_scaling
             self.collision_count += 1
-            obs['scale_1'] = np.zeros_like(obs['scale_1'])
-            obs['scale_2'] = np.zeros_like(obs['scale_2'])
+            obs['window'] = np.zeros_like(obs['window'])
+            obs['frame_t'] = np.zeros_like(obs['frame_t'])
             obs['depth'] = np.zeros_like(obs['depth'])
         
         return obs, penalty
@@ -1801,8 +1788,8 @@ class SimpleRoomEnv(Environment):
             info['is_success'] = False
         if outbound:
             collision_penalty += -0.05 * self._inner_reward_scaling
-            next_obs['scale_1'] = np.zeros_like(next_obs['scale_1'])
-            next_obs['scale_2'] = np.zeros_like(next_obs['scale_2'])
+            next_obs['window'] = np.zeros_like(next_obs['window'])
+            next_obs['frame_t'] = np.zeros_like(next_obs['frame_t'])
             done = True
         if self.t > self.max_episode_size:
             done = True

@@ -270,17 +270,17 @@ class MazeEnv(gym.Env):
 
     def _set_observation_space(self, observation):
         spaces = {
-            'scale_1' : gym.spaces.Box(
-                low = np.zeros_like(observation['scale_1'], dtype = np.uint8),
-                high = 255 * np.ones_like(observation['scale_1'], dtype = np.uint8),
-                shape = observation['scale_1'].shape,
-                dtype = observation['scale_1'].dtype
+            'window' : gym.spaces.Box(
+                low = np.zeros_like(observation['window'], dtype = np.uint8),
+                high = 255 * np.ones_like(observation['window'], dtype = np.uint8),
+                shape = observation['window'].shape,
+                dtype = observation['window'].dtype
             ),   
-            'scale_2' : gym.spaces.Box(
-                low = np.zeros_like(observation['scale_2'], dtype = np.uint8),
-                high = 255 * np.ones_like(observation['scale_2'], dtype = np.uint8),
-                shape = observation['scale_2'].shape,
-                dtype = observation['scale_2'].dtype
+            'frame_t' : gym.spaces.Box(
+                low = np.zeros_like(observation['frame_t'], dtype = np.uint8),
+                high = 255 * np.ones_like(observation['frame_t'], dtype = np.uint8),
+                shape = observation['frame_t'].shape,
+                dtype = observation['frame_t'].dtype
             ),   
             'scale_3' : gym.spaces.Box(
                 low = np.zeros_like(observation['scale_3'], dtype = np.uint8),
@@ -310,17 +310,17 @@ class MazeEnv(gym.Env):
         }
     
         if params['add_ref_scales']:
-            spaces['ref_scale_1'] = gym.spaces.Box(
-                low = np.zeros_like(observation['ref_scale_1'], dtype = np.uint8),
-                high = 255 * np.ones_like(observation['ref_scale_1'], dtype = np.uint8),
-                shape = observation['ref_scale_1'].shape,
-                dtype = observation['ref_scale_1'].dtype
+            spaces['ref_window'] = gym.spaces.Box(
+                low = np.zeros_like(observation['ref_window'], dtype = np.uint8),
+                high = 255 * np.ones_like(observation['ref_window'], dtype = np.uint8),
+                shape = observation['ref_window'].shape,
+                dtype = observation['ref_window'].dtype
             )
-            spaces['ref_scale_2'] = gym.spaces.Box(
-                low = np.zeros_like(observation['ref_scale_2'], dtype = np.uint8),
-                high = 255 * np.ones_like(observation['ref_scale_2'], dtype = np.uint8),
-                shape = observation['ref_scale_2'].shape,
-                dtype = observation['ref_scale_2'].dtype
+            spaces['ref_frame_t'] = gym.spaces.Box(
+                low = np.zeros_like(observation['ref_frame_t'], dtype = np.uint8),
+                high = 255 * np.ones_like(observation['ref_frame_t'], dtype = np.uint8),
+                shape = observation['ref_frame_t'].shape,
+                dtype = observation['ref_frame_t'].dtype
             )
 
         self.observation_space = gym.spaces.Dict(spaces)
@@ -375,8 +375,8 @@ class MazeEnv(gym.Env):
     def get_scales(self, frame, bbx):
         size = frame.shape[0]
         assert frame.shape[0] == frame.shape[1]
-        scale_1 = frame.copy()
-        scale_2 = frame.copy()
+        window = frame.copy()
+        frame_t = frame.copy()
         x, y, w, h = None, None, None, None
 
         if len(bbx) > 0:
@@ -396,16 +396,16 @@ class MazeEnv(gym.Env):
             x, y, w, h, scale, size
         )
 
-        scale_1 = scale_1[y_min:y_max, x_min:x_max]
+        window = window[y_min:y_max, x_min:x_max]
 
         # scale 2
         scale = 2
         x_min, x_max, y_min, y_max = self.__get_scale_indices(
             x, y, w, h, scale, size
         )
-        scale_2 = scale_2[y_min:y_max, x_min:x_max]
+        frame_t = frame_t[y_min:y_max, x_min:x_max]
 
-        return scale_1, scale_2
+        return window, frame_t
 
     def detect_target(self, frame):
         
@@ -437,7 +437,7 @@ class MazeEnv(gym.Env):
 
         # Target Detection and Attention Window
         bbx = self.detect_target(img)
-        scale_1, scale_2 = self.get_scales(obs['front'], bbx)
+        window, frame_t = self.get_scales(obs['front'], bbx)
         inframe = True if len(bbx) > 0 else False 
 
         # Sampled Action
@@ -470,10 +470,10 @@ class MazeEnv(gym.Env):
             size = img.shape[0]
             cv2.imshow('stream front', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
             cv2.imshow('stream scale 1', cv2.cvtColor(cv2.resize(
-                scale_1, (size, size)
+                window, (size, size)
             ), cv2.COLOR_RGB2BGR))
             cv2.imshow('stream scale 2', cv2.cvtColor(cv2.resize(
-                scale_2, (size, size)
+                frame_t, (size, size)
             ), cv2.COLOR_RGB2BGR))
             cv2.imshow('depth stream', obs['front_depth'])
             top = self.render('rgb_array')
@@ -481,8 +481,8 @@ class MazeEnv(gym.Env):
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 pass
 
-        shape = scale_1.shape[:2]
-        scale_2 = cv2.resize(scale_2, shape)
+        shape = window.shape[:2]
+        frame_t = cv2.resize(frame_t, shape)
         scale_3 = cv2.resize(obs['front'], shape)
         depth = np.expand_dims(
             cv2.resize(
@@ -491,8 +491,8 @@ class MazeEnv(gym.Env):
         )
 
         _obs = {
-            'scale_1' : scale_1.copy(),
-            'scale_2' : scale_2.copy(),
+            'window' : window.copy(),
+            'frame_t' : frame_t.copy(),
             'scale_3' : scale_3.copy(),
             'sensors' : sensors,
             'sampled_action' : sampled_action.copy(),
@@ -501,10 +501,10 @@ class MazeEnv(gym.Env):
         }
 
         if params['add_ref_scales']:
-            ref_scale_1, ref_scale_2 = self.get_scales(obs['front'].copy(), []) 
-            ref_scale_2 = cv2.resize(ref_scale_2, shape)
-            _obs['ref_scale_1'] = ref_scale_1.copy()
-            _obs['ref_scale_2'] = ref_scale_2.copy()
+            ref_window, ref_frame_t = self.get_scales(obs['front'].copy(), []) 
+            ref_frame_t = cv2.resize(ref_frame_t, shape)
+            _obs['ref_window'] = ref_window.copy()
+            _obs['ref_frame_t'] = ref_frame_t.copy()
 
         return _obs
 
@@ -639,8 +639,8 @@ class MazeEnv(gym.Env):
             #print('collision')
             penalty += -50.0 * self._inner_reward_scaling
             self.collision_count += 1
-            obs['scale_1'] = np.zeros_like(obs['scale_1'])
-            obs['scale_2'] = np.zeros_like(obs['scale_2'])
+            obs['window'] = np.zeros_like(obs['window'])
+            obs['frame_t'] = np.zeros_like(obs['frame_t'])
             obs['scale_3'] = np.zeros_like(obs['scale_3'])
             obs['depth'] = np.zeros_like(obs['depth'])
         
@@ -700,8 +700,8 @@ class MazeEnv(gym.Env):
             info['is_success'] = False
         if outbound:
             collision_penalty += -10.0 * self._inner_reward_scaling
-            next_obs['scale_1'] = np.zeros_like(obs['scale_1'])
-            next_obs['scale_2'] = np.zeros_like(obs['scale_2'])
+            next_obs['window'] = np.zeros_like(obs['window'])
+            next_obs['frame_t'] = np.zeros_like(obs['frame_t'])
             next_obs['scale_3'] = np.zeros_like(obs['scale_3'])
             done = True
         if self.t > self.max_episode_size:

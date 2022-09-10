@@ -12,8 +12,7 @@ def train(
         policy_class: Union[str, sb3.common.policies.BasePolicy],
         params: Dict,
         lr_schedule: sb3.common.type_aliases.Schedule,
-        action_noise_class: Type[sb3.common.noise.ActionNoise],
-        action_noise_kwargs: Dict,
+        action_noise: sb3.common.noise.ActionNoise,
         policy_kwargs: Dict,
         device: str = 'auto',
         logdir: str = 'assets/outputs/',
@@ -35,7 +34,6 @@ def train(
     """
     if os.path.exists(logdir):
         shutil.rmtree(logdir)
-    
     os.makedirs(logdir)
     os.mkdir(os.path.join(logdir, 'models'))
     os.mkdir(os.path.join(logdir, 'plots'))
@@ -54,53 +52,33 @@ def train(
                     ])
             )
 
-    action_noise = action_noise_class(**action_noise_kwargs)
-
     model = sb3.TD3(
-            policy = policy_class,
-            env = train_env,
-            learning_rate = lr_schedule,
-            buffer_size = params['buffer_size'],
-            learning_starts = params['learning_starts'],
-            batch_size = params['batch_size'],
-            tau = params['tau'],
-            gamma = params['gamma'],
-            train_freq = (1, 'episode'),
-            gradient_steps = -1,
-            action_noise = action_noise,
-            replay_buffer_class = sb3.common.buffers.DictReplayBuffer,
-            replay_buffer_kwargs = None,
-            optimize_memory_usage = False,
-            policy_delay = params['policy_delay'],
-            target_policy_noise = 0.2,
-            target_noise_clip = 0.5,
-            tensorboard_log = logdir,
-            create_eval_env = False,
-            policy_kwargs = policy_kwargs,
-            seed = params['seed'],
-            device = device,
-            _init_setup_model = True,
-            verbose = 2,
-            )
+            policy=policy_class,
+            env=train_env,
+            learning_rate=lr_schedule,
+            buffer_size=params['buffer_size'],
+            learning_starts=params['learning_starts'],
+            batch_size=params['batch_size'],
+            tau=params['tau'],
+            gamma=params['gamma'],
+            train_freq=(1, 'episode'),
+            gradient_steps=-1,
+            action_noise=action_noise,
+            replay_buffer_class=sb3.common.buffers.DictReplayBuffer,
+            replay_buffer_kwargs=None,
+            optimize_memory_usage=False,
+            policy_delay=params['policy_delay'],
+            target_policy_noise=0.2,
+            target_noise_clip=0.5,
+            tensorboard_log=logdir,
+            create_eval_env=False,
+            policy_kwargs=policy_kwargs,
+            seed=params['seed'],
+            device=device,
+            _init_setup_model=True,
+            verbose=2,
+    )
 
-if __name__ == '__main__':
-    # Imports list
-    from neurorobotics.simulations.maze_env import SimpleRoomEnv
-    from neurorobotics.simulations.maze_task import create_simple_room_maze
-    from neurorobotics.simulations.point import PointEnv
-    from neurorobotics.policies import TD3Policy
-    from neurorobotics.constants import params
+    model.learn(100)
 
-
-    """ 
-
-    train(
-        env_class=SimpleRoomEnv,
-        agent_class=PointEnv,
-        task_generator=create_simple_room_maze,
-        policy_class='MlpPolicy',
-        params=params,
-        lr_schedule=
-            )
-    """
-    pass
+    return model

@@ -2,7 +2,7 @@ from neurorobotics.train.td3 import train
 from neurorobotics.simulations.point import PointEnv
 from neurorobotics.simulations.maze_task import create_simple_room_maze
 from neurorobotics.constants import params
-from neurorobotics.simulations.maze_env import MazeEnv
+from neurorobotics.simulations.maze_env import SimpleRoomEnv
 import stable_baselines3 as sb3
 
 
@@ -32,7 +32,7 @@ action_noise_kwargs = {
 
 train(
         logdir='assets/outputs/',
-        env_class=MazeEnv,
+        env_class=SimpleRoomEnv,
         agent_class=PointEnv,
         task_generator=create_simple_room_maze,
         policy_class=sb3.td3.MlpPolicy,

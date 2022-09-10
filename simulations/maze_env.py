@@ -12,6 +12,7 @@ Based on `models`_ and `rllab`_.
         https://github.com/openai/mujoco-py/blob/9dd6d3e8263ba42bfd9499a988b36abc6b8954e9/mujoco_py/generated/wrappers.pxi
 """
 
+from abc import abstractmethod
 import itertools as it
 import os
 import tempfile
@@ -22,18 +23,15 @@ import numpy as np
 import networkx as nx
 from neurorobotics.simulations import maze_env_utils, maze_task
 from neurorobotics.simulations.agent_model import AgentModel
-from neurorobotics.utils.env_utils import calc_spline_course, TargetCourse, proportional_control, \
-    State, pure_pursuit_steer_control
+from neurorobotics.utils.env_utils import calc_spline_course, TargetCourse, State, pure_pursuit_steer_control
 import random
 import copy
 from neurorobotics.constants import params, image_width, image_height
 import math
 import cv2
 import colorsys
-from neurorobotics.simulations.maze_task import Rgb
 import open3d as o3d
 from neurorobotics.utils.point_cloud import rotMatList2NPRotMat
-from neurorobotics.simulations.maze_env_utils import MazeCell
 
 # Directory that contains mujoco xml files.
 MODEL_DIR = os.path.join(os.getcwd(), 'neurorobotics/assets', 'xml')
@@ -115,7 +113,8 @@ def transform_pose(points, current_pose):
     points[:, 1] = points[:, 1] + current_pose[1]
     return points
 
-class MazeEnv(gym.Env):
+
+class Environment(gym.Env):
     """Base Class for a stochastic maze environment.
     
     :param model_cls: Class of agent to spawn
@@ -182,7 +181,7 @@ class MazeEnv(gym.Env):
         self.max_episode_size = max_episode_size
         self._maze_task_generator = maze_task_generator
         self._maze_height = maze_height
-        self._maze_size_scaling = size_scaling = maze_size_scaling
+        self._maze_size_scaling = maze_size_scaling
         self._inner_reward_scaling = inner_reward_scaling
         
         # Observe other objectives
@@ -198,6 +197,310 @@ class MazeEnv(gym.Env):
         # Let's create MuJoCo XML
         self.set_env()
 
+    @abstractmethod
+    def set_env(self):
+        """Processes environment configuration and initialises the environment.
+        """
+        raise NotImplementedError
+
+
+class SimpleRoomEnv(Environment):
+    """Base Class for a stochastic maze environment.
+    
+    :param model_cls: Class of agent to spawn
+    :type model_cls: Type[AgentModel]
+    :param maze_task_generator: generator method for sampling a random a maze task
+    :type maze_task_generator: Callable
+    :param max_episode_size: maximum number of steps permissible in an episode
+    :type max_episode_size: int = 2000,
+    :param n_steps: number of steps in the past to store state for
+    :type n_steps: int = 50,
+    :param include_position:
+    :type include_position: bool = True,
+    :param maze_height: height of maze in simulations
+    :type maze_height: float = 0.5,
+    :param maze_size_scaling:
+    :type maze_size_scaling: float = 4.0,
+    :param inner_reward_scaling:
+    :type inner_reward_scaling: float = 1.0,
+    :param restitution_coef:
+    :type restitution_coef: float = 0.8,
+    :param websock_port:
+    :type websock_port: Optional[int] = None,
+    :param camera_move_x:
+    :type camera_move_x: Optional[float] = None,
+    :param camera_move_y:
+    :type camera_move_y: Optional[float] = None,
+    :param camera_zoom:
+    :type camera_zoom: Optional[float] = None,
+    :param image_shape:
+    :type image_shape: Tuple[int, int] = (600, 480),
+    :param mode:
+    :type mode: Optional[int]= None,
+    """
+    def __init__(
+        self,
+        model_cls: Type[AgentModel],
+        maze_task_generator: Callable,
+        max_episode_size: int = 2000,
+        n_steps=50,
+        include_position: bool = True,
+        maze_height: float = 0.5,
+        maze_size_scaling: float = 4.0,
+        inner_reward_scaling: float = 1.0,
+        restitution_coef: float = 0.8,
+        websock_port: Optional[int] = None,
+        camera_move_x: Optional[float] = None,
+        camera_move_y: Optional[float] = None,
+        camera_zoom: Optional[float] = None,
+        image_shape: Tuple[int, int] = (600, 480),
+        mode=None,
+        **kwargs,
+    ) -> None:
+        super(SimpleRoomEnv, self).__init__(
+                model_cls,
+                maze_task_generator,
+                max_episode_size,
+                n_steps,
+                include_position,
+                maze_height,
+                maze_size_scaling,
+                inner_reward_scaling,
+                restitution_coef,
+                websock_port,
+                camera_move_x,
+                camera_move_y,
+                camera_zoom,
+                image_height,
+                mode,
+                **kwargs)
+
+    def __set_structure(self) -> None:
+        """Sample Maze Configuration from `maze_task_generator`.
+        """
+        self._task, self._maze_structure, self._open_position_indices, self._agent_pos = self._maze_task_generator(self._maze_size_scaling)
+        torso_x, torso_y = self._find_robot()
+        self._init_torso_x = torso_x
+        self._init_torso_y = torso_y
+        self._init_positions = [
+            (x - torso_x, y - torso_y) for x, y in self._find_all_robots()
+        ]
+        self.elevated = any(maze_env_utils.MazeCell.CHASM in row for row in self._maze_structure)
+        # Are there any movable blocks?
+        self.blocks = any(any(r.can_move() for r in row) for row in self._maze_structure)
+
+    def __create_accessory_functions(self) -> None:
+        # Accessory functions.
+        def func(x):
+            x_int, x_frac = int(x), x % 1
+            if x_frac > 0.5:
+                x_int += 1
+            return x_int
+
+        def func2(x):
+            x_int, x_frac = int(x), x % 1 
+            if x_frac > 0.5:
+                x_int += 1
+                x_frac -= 0.5
+            else:
+                x_frac += 0.5
+            return x_int, x_frac
+
+        self._xy_to_rowcol = lambda x, y: (
+            func((y + self._init_torso_y) / self._maze_size_scaling),
+            func((x + self._init_torso_x) / self._maze_size_scaling),
+        )
+
+        self._xy_to_rowcol_v2 = lambda x, y: (
+            func2((y + self._init_torso_y) / self._maze_size_scaling),
+            func2((x + self._init_torso_x) / self._maze_size_scaling),
+        )
+
+        self._rowcol_to_xy = lambda r, c: (
+            c * self._maze_size_scaling - self._init_torso_y,
+            r * self._maze_size_scaling - self._init_torso_x
+        )
+
+    def __create_model(self):
+        # Update a temporary xml for creating MuJoCo world model.
+        xml_path = os.path.join(MODEL_DIR, self.model_cls.FILE)
+        tree = ET.parse(xml_path)
+        worldbody = tree.find(".//worldbody")
+        height_offset = 0.0
+        if self.elevated:
+            # Increase initial z-pos of ant.
+            height_offset = self._maze_height * self._maze_size_scaling
+            torso = tree.find(".//body[@name='torso']")
+            torso.set("pos", f"0 0 {0.75 + height_offset:.2f}")
+        if self.blocks:
+            # If there are movable blocks, change simulation settings to perform
+            # better contact detection.
+            default = tree.find(".//default")
+            default.find(".//geom").set("solimp", ".995 .995 .01")
+        # Set `dt` from `params['dt']`
+        tree.find('.//option').set('timestep', str(params['dt']))
+        self.movable_blocks = []
+        self.object_balls = []
+        self.obstacles = []
+        for i in range(len(self._maze_structure)):
+            for j in range(len(self._maze_structure[0])):
+                struct = self._maze_structure[i][j]
+                if struct.is_robot():
+                    struct = maze_env_utils.MazeCell.SPIN
+                x, y = j * self._maze_size_scaling - self._init_torso_x, i * self._maze_size_scaling - self._init_torso_y
+                h = self._maze_height / 2 * self._maze_size_scaling
+                size = self._maze_size_scaling * 0.5
+                if self.elevated and not struct.is_chasm():
+                    rgba = "0 0 0 1"
+                    ET.SubElement(
+                        worldbody,
+                        "geom",
+                        name=f"elevated_{i}_{j}",
+                        pos=f"{x} {y} {h}",
+                        size=f"{size} {size} {h}",
+                        type="box",
+                        material="MatObj",
+                        contype="1",
+                        conaffinity="1",
+                        rgba=rgba
+                    )
+                    self.obstacles.append(f"elevated_{i}_{j}")
+                if struct.is_block():
+                    # Unmovable block.
+                    # Offset all coordinates so that robot starts at the origin.
+                    rgba = "0 0 0 1"
+                    ET.SubElement(
+                        worldbody,
+                        "geom",
+                        name=f"block_{i}_{j}",
+                        pos=f"{x} {y} {h + height_offset}",
+                        size=f"{size} {size} {h}",
+                        type="box",
+                        material="MatObj",
+                        contype="1",
+                        conaffinity="1",
+                        rgba=rgba,
+                    )
+                    self.obstacles.append(f"block_{i}_{j}")
+                elif struct.can_move():
+                    # Movable block.
+                    self.movable_blocks.append(f"movable_{i}_{j}")
+                    _add_movable_block(
+                        worldbody,
+                        struct,
+                        i,
+                        j,
+                        self._maze_size_scaling,
+                        x,
+                        y,
+                        h,
+                        height_offset,
+                    )
+                    self.obstacles.append(f"movable_{i}_{j}")
+                elif struct.is_object_ball():
+                    # Movable Ball
+                    self.object_balls.append(f"objball_{i}_{j}")
+                    _add_object_ball(worldbody, i, j, x, y, self._task.OBJECT_BALL_SIZE)
+                    self.obstacles.append(f"objball_{i}_{j}")
+        torso = tree.find(".//body[@name='torso']")
+        geoms = torso.findall(".//geom")
+        for geom in geoms:
+            if "name" not in geom.attrib:
+                raise Exception("Every geom of the torso must have a name")
+        for i, goal in enumerate(self._task.objects):
+            z = goal.pos[2] if goal.dim >= 3 else 0.1*self._maze_size_scaling
+            if goal.custom_size is None:
+                size = f"{self._maze_size_scaling * 0.1}"
+            else:
+                if isinstance(goal.custom_size, list):
+                    size = ' '.join(map(str, goal.custom_size))
+                else:
+                    size = f"{goal.custom_size}"
+            ET.SubElement(
+                worldbody,
+                "site",
+                name=f"goal_site{i}",
+                pos=f"{goal.pos[0]} {goal.pos[1]} {z}",
+                size=size,
+                rgba='{} {} {} 1'.format(goal.rgb.red, goal.rgb.green, goal.rgb.blue),
+                material="MatObj",
+                type=f"{goal.site_type}",
+            )    
+        # Create temporary file for MuJoCo to find and load world model from.
+        _, file_path = tempfile.mkstemp(text=True, suffix=".xml")
+        tree.write(file_path)
+        self.world_tree = tree
+
+        # Create required class attributes.
+        self.wrapped_env = self.model_cls(file_path=file_path, **self.kwargs)
+        self.model = self.wrapped_env.model
+        self.data = self.wrapped_env.data
+        self.sim = self.wrapped_env.sim
+
+    def __init_features(self) -> None:
+        self.cam_names = list(self.model.camera_names)
+        index = self.cam_names.index('mtdcam1')
+        self.cam_body_id = self.sim.model.cam_bodyid[index]
+        fovy = math.radians(self.model.cam_fovy[index])
+        f = image_height / (2 * math.tan(fovy / 2))
+        assert image_height == image_width
+        cx = image_width / 2
+        cy = image_height / 2
+        self.cam_mat = np.array(
+                [[f, 0, cx], [0, f, cy], [0, 0, 1]],
+                dtype=np.float32) 
+        self.indices_x = np.repeat(
+            np.expand_dims(np.arange(image_height), 1),
+            image_width, 1
+        ).reshape(-1)
+        self.indices_y = np.repeat(
+            np.expand_dims(np.arange(image_width), 0),
+            image_height, 0
+        ).reshape(-1)
+        self.pcd = o3d.geometry.PointCloud()
+        self.vec = o3d.utility.Vector3dVector()
+        self.cam_pos = self.model.body_pos[self.cam_body_id] + np.array([0, 0, 0.5])
+        mat = rotMatList2NPRotMat(self.sim.model.cam_mat0[index])
+        rot_mat = np.asarray([[1, 0, 0], [0, -1, 0], [0, 0, -1]])
+        mat = np.dot(mat, rot_mat)
+        ext = np.eye(4)
+        ext[:3, :3] = mat
+        ext[:3, 3] = self.cam_pos
+        self.ext = ext
+        min_bound = [-35, -35, 0.0]
+        max_bound = [35, 35, 1.5]
+        self.pc_target_bounds = np.array([min_bound, max_bound], dtype=np.float32)
+
+    def __condolidate_and_startup(self) -> None:
+        self._init_pos, self._init_ori = self._set_init(self._agent_pos)
+        self.wrapped_env.set_xy(self._init_pos)
+        self.wrapped_env.set_ori(self._init_ori)
+        self.dt = self.wrapped_env.dt
+        assert self.dt == params['dt']
+        self.obstacles_ids = []
+        self.agent_ids = []
+        for name in self.model.geom_names:
+            if 'block' in name:
+                self.obstacles_ids.append(self.model._geom_name2id[name])
+            elif 'obj' in name:
+                self.obstacles_ids.append(self.model._geom_name2id[name])
+            elif name != 'floor':
+                self.agent_ids.append(self.model._geom_name2id[name])
+        self._set_action_space()
+        self.last_wrapped_obs = self.wrapped_env._get_obs().copy()
+        action = self.action_space.sample()
+        self.actions = [np.zeros_like(action) for _ in range(self.n_steps)]
+        self.set_goal_path()
+
+    def set_env(self):
+        """Processes environment configuration and initialises the environment.
+        """
+        self.__set_structure() 
+        self.__create_accessory_functions()
+        self.__create_model() 
+        self.__init_features()
+        self.__condolidate_and_startup()
+
     def _ensure_distance_from_target(self, row, row_frac, col, col_frac, pos):
         """
         """
@@ -205,8 +508,8 @@ class MazeEnv(gym.Env):
         (pos_row, _), (pos_col, _) = self._xy_to_rowcol_v2(target_pos[0], target_pos[1])
         if [pos_row, pos_col] == [row, col]:
             row, col = random.choice(self._open_position_indices)
-            row_frac = np.random.uniform(low = -0.4, high = 0.4)
-            col_frac = np.random.uniform(low = -0.4, high = 0.4)
+            row_frac = np.random.uniform(low=-0.4, high=0.4)
+            col_frac = np.random.uniform(low=-0.4, high=0.4)
             pos = self._rowcol_to_xy(row + row_frac, col + col_frac)
             (row, row_frac), (col, col_frac), pos = self._ensure_distance_from_target(
                 row, row_frac, col, col_frac, pos
@@ -283,215 +586,6 @@ class MazeEnv(gym.Env):
 
         return pos, ori
     
-    def set_env(self):
-        self._task, self._maze_structure, self._open_position_indices, self._agent_pos = self._maze_task_generator(self._maze_size_scaling)
-        torso_x, torso_y = self._find_robot()
-        self._init_torso_x = torso_x
-        self._init_torso_y = torso_y
-        self._init_positions = [
-            (x - torso_x, y - torso_y) for x, y in self._find_all_robots()
-        ]
-
-        def func(x):
-            x_int, x_frac = int(x), x % 1
-            if x_frac > 0.5:
-                x_int += 1
-            return x_int
-
-        def func2(x):
-            x_int, x_frac = int(x), x % 1 
-            if x_frac > 0.5:
-                x_int += 1
-                x_frac -= 0.5
-            else:
-                x_frac += 0.5
-            return x_int, x_frac
-
-        self._xy_to_rowcol = lambda x, y: (
-            func((y + self._init_torso_y) / self._maze_size_scaling),
-            func((x + self._init_torso_x) / self._maze_size_scaling),
-        )
-        self._xy_to_rowcol_v2 = lambda x, y: (
-            func2((y + self._init_torso_y) / self._maze_size_scaling),
-            func2((x + self._init_torso_x) / self._maze_size_scaling), 
-        )
-        self._rowcol_to_xy = lambda r, c: (
-            c * self._maze_size_scaling - self._init_torso_y,
-            r * self._maze_size_scaling - self._init_torso_x
-        )
-        self.elevated = any(maze_env_utils.MazeCell.CHASM in row for row in self._maze_structure)
-        # Are there any movable blocks?
-        self.blocks = any(any(r.can_move() for r in row) for row in self._maze_structure)
-        
-        xml_path = os.path.join(MODEL_DIR, self.model_cls.FILE)
-        tree = ET.parse(xml_path)
-        worldbody = tree.find(".//worldbody")
-
-        height_offset = 0.0
-        if self.elevated:
-            # Increase initial z-pos of ant.
-            height_offset = self._maze_height * self._maze_size_scaling
-            torso = tree.find(".//body[@name='torso']")
-            torso.set("pos", f"0 0 {0.75 + height_offset:.2f}")
-        if self.blocks:
-            # If there are movable blocks, change simulation settings to perform
-            # better contact detection.
-            default = tree.find(".//default")
-            default.find(".//geom").set("solimp", ".995 .995 .01")
-
-        tree.find('.//option').set('timestep', str(params['dt']))
-        self.movable_blocks = []
-        self.object_balls = []
-        torso_x, torso_y = self._find_robot()
-        self._init_torso_x = torso_x
-        self._init_torso_y = torso_y
-        self.obstacles = []
-        for i in range(len(self._maze_structure)):
-            for j in range(len(self._maze_structure[0])):
-                struct = self._maze_structure[i][j]
-                if struct.is_robot():
-                    struct = maze_env_utils.MazeCell.SPIN
-                x, y = j * self._maze_size_scaling - torso_x, i * self._maze_size_scaling - torso_y
-                h = self._maze_height / 2 * self._maze_size_scaling
-                size = self._maze_size_scaling * 0.5
-                if self.elevated and not struct.is_chasm():
-                    rgba = "0 0 0 1"
-                    ET.SubElement(
-                        worldbody,
-                        "geom",
-                        name=f"elevated_{i}_{j}",
-                        pos=f"{x} {y} {h}",
-                        size=f"{size} {size} {h}",
-                        type="box",
-                        material="MatObj",
-                        contype="1",
-                        conaffinity="1",
-                        rgba=rgba
-                    )
-                    self.obstacles.append(f"elevated_{i}_{j}")
-                if struct.is_block():
-                    # Unmovable block.
-                    # Offset all coordinates so that robot starts at the origin.
-                    rgba = "0 0 0 1"
-                    ET.SubElement(
-                        worldbody,
-                        "geom",
-                        name=f"block_{i}_{j}",
-                        pos=f"{x} {y} {h + height_offset}",
-                        size=f"{size} {size} {h}",
-                        type="box",
-                        material="MatObj",
-                        contype="1",
-                        conaffinity="1",
-                        rgba=rgba,
-                    )
-                    self.obstacles.append(f"block_{i}_{j}")
-                elif struct.can_move():
-                    # Movable block.
-                    self.movable_blocks.append(f"movable_{i}_{j}")
-                    _add_movable_block(
-                        worldbody,
-                        struct,
-                        i,
-                        j,
-                        self._maze_size_scaling,
-                        x,
-                        y,
-                        h,
-                        height_offset,
-                    )
-                    self.obstacles.append(f"movable_{i}_{j}")
-                elif struct.is_object_ball():
-                    # Movable Ball
-                    self.object_balls.append(f"objball_{i}_{j}")
-                    _add_object_ball(worldbody, i, j, x, y, self._task.OBJECT_BALL_SIZE)
-                    self.obstacles.append(f"objball_{i}_{j}")
-
-        torso = tree.find(".//body[@name='torso']")
-        geoms = torso.findall(".//geom")
-        for geom in geoms:
-            if "name" not in geom.attrib:
-                raise Exception("Every geom of the torso must have a name")
-
-        for i, goal in enumerate(self._task.objects):
-            z = goal.pos[2] if goal.dim >= 3 else 0.1*self._maze_size_scaling
-            if goal.custom_size is None:
-                size = f"{self._maze_size_scaling * 0.1}"
-            else:
-                if isinstance(goal.custom_size, list):
-                    size = ' '.join(map(str, goal.custom_size))
-                else:
-                    size = f"{goal.custom_size}"
-            ET.SubElement(
-                worldbody,
-                "site",
-                name=f"goal_site{i}",
-                pos=f"{goal.pos[0]} {goal.pos[1]} {z}",
-                size=size,
-                rgba='{} {} {} 1'.format(goal.rgb.red, goal.rgb.green, goal.rgb.blue),
-                material = "MatObj",
-                type=f"{goal.site_type}",
-            )
-        
-        _, file_path = tempfile.mkstemp(text=True, suffix=".xml")
-        tree.write(file_path)
-        self.world_tree = tree
-        self.wrapped_env = self.model_cls(file_path=file_path, **self.kwargs)
-        self.model = self.wrapped_env.model
-        self.data = self.wrapped_env.data
-        self.sim = self.wrapped_env.sim
-        self.cam_names = list(self.model.camera_names)
-        index = self.cam_names.index('mtdcam1')
-        self.cam_body_id = self.sim.model.cam_bodyid[index]
-        fovy = math.radians(self.model.cam_fovy[index])
-        f = image_height / (2 * math.tan(fovy / 2))
-        assert image_height == image_width
-        cx = image_width / 2
-        cy = image_height / 2
-        self.cam_mat = np.array(
-                [[f, 0, cx], [0, f, cy], [0, 0, 1]],
-                dtype=np.float32) 
-        self.indices_x = np.repeat(
-            np.expand_dims(np.arange(image_height), 1),
-            image_width, 1
-        ).reshape(-1)
-        self.indices_y = np.repeat(
-            np.expand_dims(np.arange(image_width), 0),
-            image_height, 0
-        ).reshape(-1)
-        self.pcd = o3d.geometry.PointCloud()
-        self.vec = o3d.utility.Vector3dVector()
-        self.cam_pos = self.model.body_pos[self.cam_body_id] + np.array([0, 0, 0.5])
-        mat = rotMatList2NPRotMat(self.sim.model.cam_mat0[index])
-        rot_mat = np.asarray([[1, 0, 0], [0, -1, 0], [0, 0, -1]])
-        mat = np.dot(mat, rot_mat)
-        ext = np.eye(4)
-        ext[:3, :3] = mat
-        ext[:3, 3] = self.cam_pos
-        self.ext = ext
-        min_bound = [-35, -35, 0.0]
-        max_bound = [35, 35, 1.5]
-        self.pc_target_bounds = np.array([min_bound, max_bound], dtype=np.float32)
-        self._init_pos, self._init_ori = self._set_init(self._agent_pos)
-        self.wrapped_env.set_xy(self._init_pos)
-        self.wrapped_env.set_ori(self._init_ori)
-        self.dt = self.wrapped_env.dt
-        assert self.dt == params['dt']
-        self.obstacles_ids = []
-        self.agent_ids = []
-        for name in self.model.geom_names:
-            if 'block' in name:
-                self.obstacles_ids.append(self.model._geom_name2id[name])
-            elif 'obj' in name:
-                self.obstacles_ids.append(self.model._geom_name2id[name])
-            elif name != 'floor':
-                self.agent_ids.append(self.model._geom_name2id[name])
-        self._set_action_space()
-        self.last_wrapped_obs = self.wrapped_env._get_obs().copy()
-        action = self.action_space.sample()
-        self.actions = [np.zeros_like(action) for _ in range(self.n_steps)]
-        self.set_goal_path()
-
     def set_goal_path(self):
         goal = self._task.objects[self._task.goal_index].pos - self.wrapped_env.get_xy()
         self.goals = [goal.copy() for _ in range(self.n_steps)]
@@ -1518,7 +1612,6 @@ class MazeEnv(gym.Env):
         return _obs
 
     def reset(self) -> np.ndarray:
-        self.set_structure()
         self.collision_count = 0
         self.t = 0
         self.total_eps += 1
@@ -1820,359 +1913,6 @@ class MazeEnv(gym.Env):
 
         return np.rot90(np.flipud(img))
 
-
-class DiscreteMazeEnv(MazeEnv):
-    def __init__(
-        self,
-        model_cls: Type[AgentModel],
-        maze_task: Type[maze_task.Maze] = maze_task.Maze,
-        max_episode_size: int = 2000,
-        n_steps = 50,
-        include_position: bool = True,
-        maze_height: float = 0.5,
-        maze_size_scaling: float = 4.0,
-        inner_reward_scaling: float = 1.0,
-        restitution_coef: float = 0.8,
-        websock_port: Optional[int] = None,
-        camera_move_x: Optional[float] = None,
-        camera_move_y: Optional[float] = None,
-        camera_zoom: Optional[float] = None,
-        image_shape: Tuple[int, int] = (600, 480),
-        **kwargs,
-    ) -> None:
-        super(DiscreteMazeEnv, self).__init__(
-            model_cls=model_cls,
-            maze_task=maze_task,
-            max_episode_size=max_episode_size,
-            n_steps=n_steps,
-            include_position=include_position,
-            maze_height=maze_height,
-            maze_size_scaling=maze_size_scaling,
-            inner_reward_scaling=inner_reward_scaling,
-            restitution_coef=restitution_coef,
-            websock_port=websock_port,
-            camera_move_x=camera_move_x,
-            camera_move_y=camera_move_y,
-            camera_zoom=camera_zoom,
-            image_shape=image_shape,
-            **kwargs,
-        )
-        self.target_speed = 4
-
-    def _set_action_space(self):
-        """Set class attribute `_action_space`.
-        """
-        self._action_space = gym.spaces.MultiDiscrete([6, 11])
-
-    def discrete_v(self, v):
-        """Discretize velocity.
-        :param v: Input Velocity
-        :type v: Union[float, np.ndarray]
-        :return: Discretized Velocity
-        :rtype: float
-        """
-        if v < self.target_speed / 8:
-            v = 4
-        else:
-            v = 0
-        return v
-
-    def discrete_vyaw(self, vyaw):
-        """Discretize yaw velocity.
-        :param v: Input Velocity
-        :type v: Union[float, np.ndarray]
-        :return: Discretized Velocity
-        :rtype: float
-        """
-        if vyaw < -1.125:
-            vyaw = 0
-        elif vyaw < -0.5625:
-            vyaw = 1
-        elif vyaw < -0.28125:
-            vyaw = 2
-        elif vyaw < -0.140625:
-            vyaw = 3
-        elif vyaw < -0.046875:
-            vyaw = 4
-        elif vyaw < 0.046875:
-            vyaw = 5
-        elif vyaw < 0.140625:
-            vyaw = 6
-        elif vyaw < 0.28125:
-            vyaw = 7
-        elif vyaw < 0.5625:
-            vyaw = 8
-        elif vyaw < 1.125:
-            vyaw = 9
-        else:
-            vyaw = 10
-        return vyaw
-
-    def get_action(self):
-        """Sample appropriate action from the predefined algorithm.
-        :return: Sampled Action
-        :rtype: np.ndarray
-        """
-        ai = proportional_control(self.target_speed, self.state.v)
-        di, self.target_ind = pure_pursuit_steer_control(
-            self.state, self.target_course, self.target_ind
-        )
-        #yaw = self.state.yaw +  self.state.v / self.state.WB * math.tan(di) * self.dt
-        v = self.state.v + ai * self.dt
-        vyaw = self.state.v / self.state.WB * math.tan(di)
-        #self.state.update(ai, di, self.dt)
-        #v = self.state.v
-        #yaw = self.state.yaw
-        # Refer to simulations/point PointEnv: def step() for more information
-        vyaw = self.discrete_vyaw(vyaw)
-        v = self.discrete_v(v)
-        self.sampled_action = np.array([
-            0,
-            vyaw,
-        ], dtype = np.float32)
-        return self.sampled_action
-
-    def continuous_action(self, action):
-        """Convert discrete action to continuous action.
-        :param action: Discrete action
-        :type action: np.ndarray
-        :return: Continunous action
-        :rtype: np.ndarraiy
-        :raises ValueError: Error raised when discrete actions are out of bounds.
-        """
-        move, omega = action
-        if move == 0:
-            move = self.target_speed
-        elif move == 1:
-            move = self.target_speed / 8
-        elif move == 2:
-            move = self.target_speed / 4
-        elif move == 3:
-            move = self.target_speed / 2
-        elif move == 4:
-            move = 0
-        elif move == 5:
-            move = -self.target_speed / 4
-        else:
-            raise ValueError
-
-        if omega == 0:
-            omega = -1.5
-        elif omega == 1:
-            omega = -0.75
-        elif omega == 2:
-            omega = -0.375
-        elif omega == 3:
-            omega = -0.1875
-        elif omega == 4:
-            omega = -0.092375
-        elif omega == 5:
-            omega = 0.0
-        elif omega == 6:
-            omega = 0.092375
-        elif omega == 7:
-            omega = 0.1875
-        elif omega == 8:
-            omega = 0.375
-        elif omega == 9:
-            omega = 0.75
-        elif omega == 10:
-            omega = 1.5
-        else:
-            raise ValueError
-
-        action = np.array([move, omega], dtype = np.float32)
-        return action
-
-    def _get_obs(self) -> np.ndarray:
-        """Internal method for processing the observation for downstream tasks. Needs to be reimplemented for every new environment.
-        :return: Environment Observation.
-        :rtype: Union[Dict[str, np.ndarray], np.ndarray]
-        """
-        obs = self.wrapped_env._get_obs()
-        #obs['front'] = cv2.resize(obs['front'], (320, 320))
-        img = obs['front'].copy()
-        #assert img.shape[0] == img.shape[1]
-        # Target Detection and Attention Window
-        bbx = self.detect_target(img)
-        inframe = True if len(bbx) > 0 else False 
-        window, bbx = self.get_attention_window(obs['front'], bbx)
-
-        # Sampled Action
-        sampled_action = self.get_action().astype(np.float32)
-
-        # Sensor Readings
-        ## Goal
-        goal = self._task.objects[self._task.goal_index].pos - self.wrapped_env.get_xy()
-        goal = np.array([
-            np.linalg.norm(goal) / np.linalg.norm(self._task.objects[self._task.goal_index].pos - self._init_pos),
-            self.check_angle(np.arctan2(goal[1], goal[0]) - self.get_ori()) / np.pi
-        ], dtype = np.float32)
-        ## Velocity
-        max_vel = np.array([
-            self.wrapped_env.VELOCITY_LIMITS,
-            self.wrapped_env.VELOCITY_LIMITS,
-            self.wrapped_env.action_space.high[1]
-        ])
-        high = self.wrapped_env.action_space.high[1]
-        low = self.wrapped_env.action_space.low[1]
-        sensors = np.concatenate([
-            self.data.qvel.copy() / max_vel,
-            np.array([self.get_ori() / np.pi], dtype = np.float32),
-            np.array([self.reward]).copy()
-        ] + [
-            (action.copy() - low) / (high - low) for action in self.actions
-        ], -1)
-
-        #complete_ego_map, border_ego_map, floor_ego_map, objects_ego_map, target_ego_map = self.get_ego_maps(obs['front_depth'], obs['front'])
-        loc_map = self.get_maps(
-            obs['front_depth'],
-            obs['front'],
-            res = self.resolution,
-            side_range=self.allo_map_side_range,
-            fwd_range=self.allo_map_fwd_range,
-            height_range = self.allo_map_height_range
-        )
-
-        """DEBUGGING CODE. NEEDS TO BE REMOVED.
-        """
-        if params['debug']:
-            size = img.shape[0]
-            cv2.imshow('stream camera', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
-            cv2.imshow('stream attention window', cv2.cvtColor(cv2.resize(
-                window, (size, size)
-            ), cv2.COLOR_RGB2BGR))
-            cv2.imshow('depth stream', (obs['front_depth'] - 0.86) / 0.14)
-            top = self.render('rgb_array')
-            cv2.imshow('position stream', top)
-            # cv2.imshow('bird eye view', cv2.resize(bird_eye_view, (image_width, image_height)))
-            """
-            cv2.imshow('ego map', complete_ego_map)
-            cv2.imshow('borders', border_ego_map)
-            cv2.imshow('floor', floor_ego_map)
-            cv2.imshow('objects', objects_ego_map)
-            cv2.imshow('target', target_ego_map)
-            """
-            cv2.imshow('global egoocentric map', cv2.resize(loc_map[:, :, :3], (image_width, image_height)))
-            cv2.imshow('previous global egocentric map', cv2.resize(self.loc_map[0][:, :, :3], (image_width, image_height)))
-            # cv2.imshow('egocentric map', cv2.resize(ego_map, (image_width, image_height)))
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                pass
-
-        shape = window.shape[:2]
-        scale_2 = cv2.resize(obs['front'], shape)
-        depth = np.expand_dims(
-            cv2.resize(
-                obs['front_depth'].copy(), shape
-            ), 0
-        )
-
-        positions = np.concatenate(self.positions + [self._task.objects[self._task.goal_index].pos], -1)
-
-        _obs = {
-            'scale_1': window.copy(),
-            'scale_2': scale_2.copy(),
-            'sensors': sensors,
-            'sampled_action': sampled_action.copy(),
-            'scaled_sampled_action': sampled_action.copy(),
-            'depth': depth,
-            'inframe': np.array([inframe], dtype=np.float32),
-            'positions': positions.copy(),
-            'loc_map': loc_map.copy(),
-            'prev_loc_map': self.loc_map[0].copy(),
-            'bbx': bbx.copy()
-        }
-
-        self.loc_map.pop(0)
-        self.loc_map.append(loc_map.copy())
-
-        if params['add_ref_scales']:
-            ref_scale_1, ref_scale_2 = self.get_scales(obs['front'].copy(), []) 
-            ref_scale_2 = cv2.resize(ref_scale_2, shape)
-            _obs['ref_scale_1'] = ref_scale_1.copy()
-            _obs['ref_scale_2'] = ref_scale_2.copy()
-
-        return _obs
-
-    def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
-        """
-        """
-        # Proprocessing and Environment Update
-        assert self.action_space.contains(action)
-        action = self.continuous_action(action)
-        self.t += 1
-        self.total_steps += 1
-        info = {}
-        self.actions.pop(0)
-        self.actions.append(action.copy())
-        _, inner_reward, _, info = self.wrapped_env.step(action)
-
-        # Observation and Parameter Gathering
-        x, y = self.wrapped_env.get_xy()
-        yaw = self.get_ori()
-        v = np.linalg.norm(self.data.qvel[:2])
-        self.state.set(x, y, v, yaw)
-        next_pos = self.wrapped_env.get_xy()
-        collision_penalty = 0.0
-        next_obs = self._get_obs()
-        last_coverage = self.get_coverage(self.maps[0])
-        coverage = self.get_coverage(self.maps[-1])
-        coverage_reward = (coverage - last_coverage) * 0.05
-
-        # Computing the reward in "https://ieeexplore.ieee.org/document/8398461"
-        goal = self._task.objects[self._task.goal_index].pos - self.wrapped_env.get_xy()
-        self.goals.pop(0)
-        self.goals.append(goal)
-        self.positions.pop(0)
-        self.positions.append(self.data.qpos.copy())
-        theta_t = self.check_angle(np.arctan2(goal[1], goal[0]) - self.get_ori())
-        qvel = self.wrapped_env.data.qvel.copy()
-        vyaw = qvel[self.wrapped_env.ORI_IND]
-        vmax = self.target_speed
-        if bool(next_obs['inframe'][0]):
-            inner_reward = (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / params['max_vyaw'])) * 0.005
-            inner_reward = self._inner_reward_scaling * inner_reward
-
-        # Task Reward Computation
-        outer_reward = 0
-        outer_reward = self._task.reward(next_pos, bool(next_obs['inframe'][0]), self._start_pos) * 0.005
-        done = self._task.termination(self.wrapped_env.get_xy(),  bool(next_obs['inframe'][0]))
-        info["position"] = self.wrapped_env.get_xy()
-
-        # Collision Penalty Computation
-        index = self._get_current_cell()
-        self._current_cell = index
-        almost_collision, blind, outbound = self.check_position(next_pos)
-        if almost_collision:
-            collision_penalty += -0.005 * self._inner_reward_scaling
-        next_obs, penalty = self.conditional_blind(next_obs, yaw, blind)
-        collision_penalty += penalty
-
-        # Reward and Info Declaration
-        if done:
-            outer_reward += 1.0
-            info['is_success'] = True
-        else:
-            info['is_success'] = False
-        if outbound:
-            collision_penalty += -0.05 * self._inner_reward_scaling
-            next_obs['scale_1'] = np.zeros_like(next_obs['scale_1'])
-            next_obs['scale_2'] = np.zeros_like(next_obs['scale_2'])
-            done = True
-        if self.t > self.max_episode_size:
-            done = True
-        
-        if collision_penalty < -0.05:
-            done = True
-
-        reward = inner_reward + outer_reward + collision_penalty + coverage_reward
-
-        self.reward = reward
-        info['inner_reward'] = inner_reward
-        info['outer_reward'] = outer_reward
-        info['collision_penalty'] = collision_penalty
-        info['coverage_reward'] = coverage_reward
-        return next_obs, reward, done, info
 
 def _add_object_ball(
     worldbody: ET.Element, i: str, j: str, x: float, y: float, size: float

@@ -65,4 +65,3 @@ COPY requirements.txt requirements.txt
 RUN apt install -y swig cmake && pip install -r requirements.txt
 
 RUN export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/root/.mujoco/mujoco210/bin && python3 -c "import mujoco_py"
-RUN mkdir /neurorobotics

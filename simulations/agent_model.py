@@ -15,7 +15,7 @@ class AgentModel(ABC, MujocoEnv, EzPickle):
     RADIUS: Optional[float] = None
 
     def __init__(self, file_path: str, frame_skip: int) -> None:
-        MujocoEnv.__init__(self, file_path, frame_skip)
+        MujocoEnv.__init__(self, file_path, frame_skip, 'mujoco_py')
         EzPickle.__init__(self)
 
     def close(self):

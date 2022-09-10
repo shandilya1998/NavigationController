@@ -1,15 +1,15 @@
 import os
 import shutil
-from typing import Callable, Type, Dict
-from neurorobotics.simulations.maze_env import MazeEnv
+from typing import Callable, Type, Dict, Union
+from neurorobotics.simulations.maze_env import Environment
 from neurorobotics.simulations.agent_model import AgentModel
 import stable_baselines3 as sb3
 
 def train(
-        env_class: Type[MazeEnv],
+        env_class: Type[Environment],
         agent_class: Type[AgentModel],
         task_generator: Callable,
-        policy_class,
+        policy_class: Union[str, sb3.common.policies.BasePolicy],
         params: Dict,
         lr_schedule: sb3.common.type_aliases.Schedule,
         action_noise_class: Type[sb3.common.noise.ActionNoise],
@@ -21,7 +21,7 @@ def train(
     """Executes training scripts according to provided config
     
     :param env_class: class of env to spawn
-    :type env_class: Type[MazeEnv]
+    :type env_class: Type[Environment]
     :param policy_class: policy class to train
     :type policy_class:
     :param params: parameters to be fed to the method. imported from neurorobotics/constants.py
@@ -82,3 +82,25 @@ def train(
             _init_setup_model = True,
             verbose = 2,
             )
+
+if __name__ == '__main__':
+    # Imports list
+    from neurorobotics.simulations.maze_env import SimpleRoomEnv
+    from neurorobotics.simulations.maze_task import create_simple_room_maze
+    from neurorobotics.simulations.point import PointEnv
+    from neurorobotics.policies import TD3Policy
+    from neurorobotics.constants import params
+
+
+    """ 
+
+    train(
+        env_class=SimpleRoomEnv,
+        agent_class=PointEnv,
+        task_generator=create_simple_room_maze,
+        policy_class='MlpPolicy',
+        params=params,
+        lr_schedule=
+            )
+    """
+    pass

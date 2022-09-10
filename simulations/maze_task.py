@@ -155,13 +155,11 @@ MAPS = {
             [B, B, B, B, B],
         ],
         'simple_room': [
-            [B, B, B, B, B, B, B],
-            [B, E, E, E, E, E, B],
-            [B, E, E, E, E, E, B],
-            [B, E, E, R, E, E, B],
-            [B, E, E, E, E, E, B],
-            [B, E, E, E, E, E, B],
-            [B, B, B, B, B, B, B]
+            [B, B, B, B, B],
+            [B, E, E, E, B],
+            [B, E, R, E, B],
+            [B, E, E, E, B],
+            [B, B, B, B, B]
         ],
         'square_room': [
             [B, B, B, B, B],

@@ -577,7 +577,7 @@ class SimpleRoomEnv(Environment):
                     possibilities.pop(index)
 
         ori = np.random.choice([
-                np.random.uniform(low = p - np.pi / 4, high = p + np.pi / 4) for p in possibilities
+            np.random.uniform(low=p-np.pi / 4, high=p+np.pi / 4) for p in possibilities
         ])
 
         if ori > np.pi:
@@ -641,9 +641,6 @@ class SimpleRoomEnv(Environment):
         self.final = [self.wx[-1], self.wy[-1]]
 
     def _find_cubic_spline_path(self):
-        print(self.wx)
-        print(self.wy)
-        print(params['ds'])
         self.cx, self.cy, self.cyaw, self.ck, self.s = calc_spline_course(self.wx, self.wy, params['ds'])
 
     @property

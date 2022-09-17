@@ -40,5 +40,5 @@ model = train(
     action_noise=action_noise,
     policy_kwargs=policy_kwargs,
     device='auto',
-    logdir='assets/outputs'
+    logdir='assets/out'
 )

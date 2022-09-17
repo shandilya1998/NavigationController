@@ -57,7 +57,7 @@ params = {
     'OU_THETA'                    : 0.015,
     'top_view_size'               : 50.,
 
-    'batch_size'                  : 2,
+    'batch_size'                  : 3,
     'lr'                          : 1e-3,
     'final_lr'                    : 1e-5,
     'n_steps'                     : 2000,

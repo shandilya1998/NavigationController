@@ -473,6 +473,7 @@ class SimpleRoomEnv(Environment):
         self.pc_target_bounds = np.array([min_bound, max_bound], dtype=np.float32)
 
     def __condolidate_and_startup(self) -> None:
+        self.target_speed = 2
         self._init_pos, self._init_ori = self._set_init(self._agent_pos)
         self.wrapped_env.set_xy(self._init_pos)
         self.wrapped_env.set_ori(self._init_ori)
@@ -588,6 +589,7 @@ class SimpleRoomEnv(Environment):
         return pos, ori
     
     def set_goal_path(self):
+        
         goal = self._task.objects[self._task.goal_index].pos - self.wrapped_env.get_xy()
         self.goals = [goal.copy() for _ in range(self.n_steps)]
         self.positions = [np.zeros_like(self.data.qpos) for _ in range(self.n_steps)]
@@ -595,8 +597,15 @@ class SimpleRoomEnv(Environment):
         self.sampled_path = self._sample_path()
         self._current_cell = copy.deepcopy(self.sampled_path[0])
         self._find_all_waypoints()
-        self._find_cubic_spline_path()
-        self._setup_vel_control()
+        # self._find_cubic_spline_path()
+        self.state = State(
+            x=self.wrapped_env.sim.data.qpos[0],
+            y=self.wrapped_env.sim.data.qpos[1],
+            yaw=self.wrapped_env.sim.data.qpos[2],
+            v=np.linalg.norm(self.wrapped_env.sim.data.qvel[:2]),
+            WB=0.2 * self._maze_size_scaling,
+        )
+        # self._setup_vel_control()
         self.resolution = 0.5
         self.ego_map_side_range = (-15, 15)
         self.ego_map_fwd_range = (0, 30)
@@ -648,14 +657,6 @@ class SimpleRoomEnv(Environment):
         return self._action_space
 
     def _setup_vel_control(self):
-        self.target_speed = 2
-        self.state = State(
-            x=self.wrapped_env.sim.data.qpos[0],
-            y=self.wrapped_env.sim.data.qpos[1],
-            yaw=self.wrapped_env.sim.data.qpos[2],
-            v=np.linalg.norm(self.wrapped_env.sim.data.qvel[:2]),
-            WB=0.2 * self._maze_size_scaling,
-        )
         self.last_idx = len(self.cx) - 1
         self.target_course = TargetCourse(self.cx, self.cy)
         self.target_ind, _ = self.target_course.search_target_index(self.state)
@@ -807,13 +808,6 @@ class SimpleRoomEnv(Environment):
                 shape = observation['sensors'].shape,
                 dtype = observation['sensors'].dtype
             ),   
-            'sampled_action' : copy.deepcopy(self._action_space),
-            'scaled_sampled_action' : gym.spaces.Box(
-                low = -np.ones_like(observation['scaled_sampled_action']),
-                high = np.ones_like(observation['scaled_sampled_action']),
-                shape = observation['scaled_sampled_action'].shape,
-                dtype = observation['scaled_sampled_action'].dtype
-            ),
             'inframe' : gym.spaces.Box(
                 low = np.zeros_like(observation['inframe']),
                 high = np.ones_like(observation['inframe']),
@@ -1519,10 +1513,10 @@ class SimpleRoomEnv(Environment):
         window, bbx, inframe = self.__create_attention_window(obs['front'])
 
         # Sampled Action
-        sampled_action = self.get_action().astype(np.float32)
+        # sampled_action = self.get_action().astype(np.float32)
         low = self.action_space.low
         high = self.action_space.high
-        scaled_sampled_action = (sampled_action - low) / (high - low)
+        # scaled_sampled_action = (sampled_action - low) / (high - low)
 
         # Sensor Readings
         ## Goal
@@ -1572,8 +1566,6 @@ class SimpleRoomEnv(Environment):
             'window': window.copy(),
             'frame_t': frame_t.copy(),
             'sensors': sensors.copy(),
-            'sampled_action': sampled_action.copy(),
-            'scaled_sampled_action': scaled_sampled_action.copy(),
             'depth': depth,
             'inframe': np.array([inframe], dtype=np.float32),
             'positions': positions.copy(),

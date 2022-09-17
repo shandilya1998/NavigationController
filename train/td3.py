@@ -79,6 +79,6 @@ def train(
             verbose=2,
     )
 
-    model.learn(100)
+    model.learn(params['total_timesteps'])
 
     return model

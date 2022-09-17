@@ -238,7 +238,7 @@ class SimpleRoomEnv(Environment):
     :param mode:
     :type mode: Optional[int]= None,
     """
-    n_actions: int = 2
+    n_actions: int = 1
     def __init__(
         self,
         model_cls: Type[AgentModel],
@@ -1552,10 +1552,10 @@ class SimpleRoomEnv(Environment):
         loc_map = self.get_maps(
             obs['front_depth'],
             obs['front'],
-            res = self.resolution,
+            res=self.resolution,
             side_range=self.allo_map_side_range,
             fwd_range=self.allo_map_fwd_range,
-            height_range = self.allo_map_height_range
+            height_range=self.allo_map_height_range
         )
 
         shape = window.shape[:2]
@@ -1569,18 +1569,18 @@ class SimpleRoomEnv(Environment):
         positions = np.concatenate(self.positions + [self._task.objects[self._task.goal_index].pos], -1)
 
         _obs = {
-            'window' : window.copy(),
-            'frame_t' : frame_t.copy(),
-            'sensors' : sensors.copy(),
-            'sampled_action' : sampled_action.copy(),
-            'scaled_sampled_action' : scaled_sampled_action.copy(),
-            'depth' : depth,
-            'inframe' : np.array([inframe], dtype = np.float32),
-            'positions' : positions.copy(),
-            'loc_map' : loc_map.copy(),
-            'prev_loc_map' : self.loc_map[0].copy(),
-            'bbx' : bbx.copy(),
-            'pos' : self.wrapped_env.get_xy(),
+            'window': window.copy(),
+            'frame_t': frame_t.copy(),
+            'sensors': sensors.copy(),
+            'sampled_action': sampled_action.copy(),
+            'scaled_sampled_action': scaled_sampled_action.copy(),
+            'depth': depth,
+            'inframe': np.array([inframe], dtype=np.float32),
+            'positions': positions.copy(),
+            'loc_map': loc_map.copy(),
+            'prev_loc_map': self.loc_map[0].copy(),
+            'bbx': bbx.copy(),
+            'pos': self.wrapped_env.get_xy(),
             'start_pos': self._start_pos
         }
 
@@ -1601,7 +1601,7 @@ class SimpleRoomEnv(Environment):
         self.total_eps += 1
         self.close()
         self.set_env()
-        action = self.actions[0]
+        action = self._action_space.sample()
         self.actions = [np.zeros_like(action) for i in range(self.n_steps)]
         goal = self._task.objects[self._task.goal_index].pos - self.wrapped_env.get_xy()
         self.goals = [goal.copy() for i in range(self.n_steps)]
@@ -1724,9 +1724,9 @@ class SimpleRoomEnv(Environment):
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         # Proprocessing and Environment Update
-        action = np.clip(action, a_min = self.action_space.low, a_max = self.action_space.high)
+        action = np.clip(action, a_min=self.action_space.low, a_max=self.action_space.high)
         action = np.concatenate([
-            np.array([self.target_speed], dtype = np.float32),
+            np.array([self.target_speed], dtype=np.float32),
             action
         ], 0)
         self.t += 1

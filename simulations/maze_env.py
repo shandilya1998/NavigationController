@@ -280,6 +280,7 @@ class SimpleRoomEnv(Environment):
         """Sample Maze Configuration from `maze_task_generator`.
         """
         self._task, self._maze_structure, self._open_position_indices, self._agent_pos = self._maze_task_generator(self._maze_size_scaling)
+        print(self._agent_pos)
         torso_x, torso_y = self._find_robot()
         self._init_torso_x = torso_x
         self._init_torso_y = torso_y
@@ -475,6 +476,7 @@ class SimpleRoomEnv(Environment):
     def __condolidate_and_startup(self) -> None:
         self.target_speed = 2
         self._init_pos, self._init_ori = self._set_init(self._agent_pos)
+        print(self._init_ori)
         self.wrapped_env.set_xy(self._init_pos)
         self.wrapped_env.set_ori(self._init_ori)
         self.dt = self.wrapped_env.dt
@@ -585,7 +587,9 @@ class SimpleRoomEnv(Environment):
             ori = ori - 2 * np.pi
         elif ori < -np.pi:
             ori = ori + 2 * np.pi
-
+        
+        # Setting Orientation to be fixed for `SimpleRoomEnv`
+        ori = -3 * np.pi / 4
         return pos, ori
     
     def set_goal_path(self):
@@ -790,12 +794,6 @@ class SimpleRoomEnv(Environment):
 
     def _set_observation_space(self, observation):
         spaces = {
-            'window' : gym.spaces.Box(
-                low = np.zeros_like(observation['window'], dtype = np.uint8),
-                high = 255 * np.ones_like(observation['window'], dtype = np.uint8),
-                shape = observation['window'].shape,
-                dtype = observation['window'].dtype
-            ),   
             'frame_t' : gym.spaces.Box(
                 low = np.zeros_like(observation['frame_t'], dtype = np.uint8),
                 high = 255 * np.ones_like(observation['frame_t'], dtype = np.uint8),
@@ -814,29 +812,11 @@ class SimpleRoomEnv(Environment):
                 shape = observation['inframe'].shape,
                 dtype = observation['inframe'].dtype
             ),
-            'depth' : gym.spaces.Box(
-                low = np.zeros_like(observation['depth'], dtype = np.float32),
-                high = np.ones_like(observation['depth'], dtype = np.float32),
-                shape = observation['depth'].shape,
-                dtype = observation['depth'].dtype
-            ),
             'positions' : gym.spaces.Box(
                 low = -np.ones_like(observation['positions']) * 40,
                 high = np.ones_like(observation['positions']) * 40,
                 shape = observation['positions'].shape,
                 dtype = observation['positions'].dtype
-            ),
-            'loc_map' : gym.spaces.Box(
-                low = np.zeros_like(observation['loc_map']),
-                high = 255 * np.ones_like(observation['loc_map']),
-                dtype = observation['loc_map'].dtype,
-                shape = observation['loc_map'].shape
-            ),
-            'prev_loc_map' : gym.spaces.Box(
-                low = np.zeros_like(observation['prev_loc_map']),
-                high = 255 * np.ones_like(observation['prev_loc_map']),
-                dtype = observation['prev_loc_map'].dtype,
-                shape = observation['prev_loc_map'].shape
             ),
             'bbx' : gym.spaces.Box(
                 low = np.zeros_like(observation['bbx']),
@@ -1563,14 +1543,10 @@ class SimpleRoomEnv(Environment):
         positions = np.concatenate(self.positions + [self._task.objects[self._task.goal_index].pos], -1)
 
         _obs = {
-            'window': window.copy(),
             'frame_t': frame_t.copy(),
             'sensors': sensors.copy(),
-            'depth': depth,
             'inframe': np.array([inframe], dtype=np.float32),
             'positions': positions.copy(),
-            'loc_map': loc_map.copy(),
-            'prev_loc_map': self.loc_map[0].copy(),
             'bbx': bbx.copy(),
             'pos': self.wrapped_env.get_xy(),
             'start_pos': self._start_pos
@@ -1708,9 +1684,9 @@ class SimpleRoomEnv(Environment):
         if self._is_in_collision():
             penalty += -0.99 * self._inner_reward_scaling
             self.collision_count += 1
-            obs['window'] = np.zeros_like(obs['window'])
+            #obs['window'] = np.zeros_like(obs['window'])
             obs['frame_t'] = np.zeros_like(obs['frame_t'])
-            obs['depth'] = np.zeros_like(obs['depth'])
+            #obs['depth'] = np.zeros_like(obs['depth'])
         
         return obs, penalty
 

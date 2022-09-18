@@ -45,7 +45,7 @@ params = {
     'burn_in_seq_len'             : 5,
     'total_timesteps'             : int(1e6),
     'history_steps'               : 50,
-    'net_arch'                    : [300, 75],
+    'net_arch'                    : [400, 300],
     'n_critics'                   : 2,
     'ds'                          : 0.01,
     'motor_cortex'                : [256, 128],
@@ -57,7 +57,7 @@ params = {
     'OU_THETA'                    : 0.015,
     'top_view_size'               : 50.,
 
-    'batch_size'                  : 32,
+    'batch_size'                  : 64,
     'lr'                          : 1e-3,
     'final_lr'                    : 1e-5,
     'n_steps'                     : 2000,

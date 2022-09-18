@@ -280,7 +280,6 @@ class SimpleRoomEnv(Environment):
         """Sample Maze Configuration from `maze_task_generator`.
         """
         self._task, self._maze_structure, self._open_position_indices, self._agent_pos = self._maze_task_generator(self._maze_size_scaling)
-        print(self._agent_pos)
         torso_x, torso_y = self._find_robot()
         self._init_torso_x = torso_x
         self._init_torso_y = torso_y
@@ -476,7 +475,6 @@ class SimpleRoomEnv(Environment):
     def __condolidate_and_startup(self) -> None:
         self.target_speed = 2
         self._init_pos, self._init_ori = self._set_init(self._agent_pos)
-        print(self._init_ori)
         self.wrapped_env.set_xy(self._init_pos)
         self.wrapped_env.set_ori(self._init_ori)
         self.dt = self.wrapped_env.dt

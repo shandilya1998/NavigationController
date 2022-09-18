@@ -52,6 +52,20 @@ def train(
                     ])
             )
 
+
+    eval_env = env_class(
+           model_cls=agent_class,
+           maze_task_generator=task_generator,
+           max_episode_size=params['max_episode_size'],
+           n_steps=params['history_steps']
+            )
+
+    eval_env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
+            sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
+                    lambda: sb3.common.monitor.Monitor(eval_env)
+                    ])
+            )
+
     model = sb3.TD3(
             policy=policy_class,
             env=train_env,
@@ -79,6 +93,26 @@ def train(
             verbose=2,
     )
 
-    model.learn(params['total_timesteps'])
+    callbacks = sb3.common.callbacks.CallbackList([
+        sb3.common.callbacks.CheckpointCallback(
+            save_freq=params['save_freq'],
+            save_path=os.path.join(logdir, 'models'),
+            name_prefix='rl_model',
+            verbose=2
+        ),
+        sb3.common.callbacks.EvalCallback(
+            eval_env,
+            best_model_save_path=os.path.join(logdir, 'models'),
+            log_path=os.path.join(logdir, 'models'),
+            eval_freq=params['eval_freq'],
+            render=False,
+            deterministic=True)
+    ])
+
+    model.learn(
+        total_timesteps=params['total_timesteps'],
+        callback=callbacks
+    )
+    model.save(os.path.join(logdir, "final_model"))
 
     return model

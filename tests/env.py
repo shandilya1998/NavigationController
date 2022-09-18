@@ -1,4 +1,4 @@
-from neurorobotics.simulations.maze_env import MazeEnv
+from neurorobotics.simulations.maze_env import SimpleRoomEnv
 from neurorobotics.simulations.point import PointEnv
 from neurorobotics.simulations.maze_task import create_simple_room_maze
 import numpy as np
@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
     assert task_generator is not None
 
-    env = MazeEnv(PointEnv, task_generator)
+    env = SimpleRoomEnv(PointEnv, task_generator)
 
     if os.path.exists(os.path.join('neurorobotics', 'assets', 'plots', 'tests')):
         shutil.rmtree(os.path.join('neurorobotics', 'assets', 'plots', 'tests'))
@@ -56,18 +56,20 @@ if __name__ == '__main__':
     ob = env._get_obs()
 
     total_reward = 0.0
+    #ac = env.action_space.sample()
     ac = env.get_action()
     top = env.render('rgb_array')
-    image_size = (3 * top.shape[0] , 2 * top.shape[1])
+    image_size = (top.shape[0], 2 * top.shape[1])
     video = cv2.VideoWriter(
         'test_env.avi',
-        cv2.VideoWriter_fourcc(*"MJPG"), 10, image_size, isColor = True
+        cv2.VideoWriter_fourcc(*"MJPG"), 10, image_size, isColor=True
     )
 
     speed = []
     angular = []
     while not done:
-        ob, reward, done, info = env.step(ob['sampled_action'])
+        ob, reward, done, info = env.step(ac)
+        #ac = env.action_space.sample()
         speed.append(np.sqrt(env.data.qvel[0] ** 2 + env.data.qvel[1] ** 2))
         angular.append(env.data.qvel[2])
         top = env.render('rgb_array')
@@ -75,24 +77,11 @@ if __name__ == '__main__':
             top,
             cv2.COLOR_RGB2BGR
         )
-        scale_1 = cv2.resize(ob['scale_1'], top.shape[:2])
-        scale_2 = cv2.resize(ob['scale_2'], top.shape[:2])
-        depth = np.repeat(ob['depth'].transpose(1, 2, 0), 3, 2) * 255
-        depth = cv2.resize(depth, top.shape[:2])
-        loc_map = cv2.resize(ob['loc_map'], top.shape[:2])
-        prev_loc_map = cv2.resize(ob['prev_loc_map'], top.shape[:2])
+        frame_t = cv2.resize(ob['frame_t'], top.shape[:2])
 
         image = np.concatenate([
-            np.concatenate([
-                scale_1, scale_2
-            ], 0),
-            np.concatenate([
-                depth, top
-            ], 0),
-            np.concatenate([
-                prev_loc_map, loc_map
-            ], 0)
-        ], 1).astype(np.uint8)
+                frame_t, top
+            ], 0).astype(np.uint8)
 
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
         video.write(image)

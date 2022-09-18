@@ -157,8 +157,8 @@ MAPS = {
         'simple_room': [
             [B, B, B, B, B],
             [B, E, E, E, B],
-            [B, E, R, E, B],
             [B, E, E, E, B],
+            [B, R, E, E, B],
             [B, B, B, B, B]
         ],
         'square_room': [
@@ -192,6 +192,22 @@ def find_robot(structure, size_scaling):
             return j * size_scaling, i * size_scaling
     raise ValueError("No robot in maze specification.")
 
+def check_target_object_distance(agent, target):
+    """Method to check if target is placed in the vicinity of the agent.
+
+    :param target: Target row and column.
+    :type target: Tuple[int, int]
+    :param agent: Agent row and column.
+    :type agent: Tuple[int, int]
+    """
+    arow, acol = agent
+    trow, tcol = target
+    if arow == trow or arow + 1 == trow or arow - 1 == trow:
+        return True
+    if acol == tcol or acol + 1 == tcol or acol - 1 == tcol:
+        return True
+    return False
+
 def create_simple_room_maze(
         maze_size_scaling: float = 4.0,
 ):
@@ -207,8 +223,14 @@ def create_simple_room_maze(
                 _open_position_indices.append([i, j])
             if not structure[i][j].is_robot():
                 agent_pos = [i, j]
+
+    _eligible_position_indices = []
+    for pos in _open_position_indices:
+        if not check_target_object_distance(agent_pos, pos):
+            _eligible_position_indices.append(pos)
+
     assert agent_pos is not None
-    object_structure_indices = random.sample(_open_position_indices, num_objects)
+    object_structure_indices = random.sample(_eligible_position_indices, num_objects)
     goal_index = np.random.randint(low=0, high=num_objects)
 
     available_hsv = [
@@ -262,10 +284,12 @@ def create_simple_room_maze(
             hsv_high.append(255)
         hsv_low.append(0)
         hsv_high.append(255)
+        center_x = (len(structure) // 2) * maze_size_scaling
+        center_y = (len(structure) // 2) * maze_size_scaling
         objects.append(MazeObject(
                 pos=np.array([
-                        col * maze_size_scaling - torso_init[1],
-                        row * maze_size_scaling - torso_init[0]
+                        col * maze_size_scaling - torso_init[0],
+                        row * maze_size_scaling - torso_init[1]
                         ], dtype=np.float32),
                 characteristics={
                         'hsv_low': copy.deepcopy(hsv_low),

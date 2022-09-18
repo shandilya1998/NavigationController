@@ -32,7 +32,7 @@ params = {
     'min_simulation_time'         : 1.0,
     'show_animation'              : False,
     'dt'                          : 0.02,
-    'learning_starts'             : int(1e3),
+    'learning_starts'             : int(1e2),
     'staging_steps'               : int(1e5),
     'imitation_steps'             : int(2e5),
     'render_freq'                 : int(4e4),

@@ -283,15 +283,23 @@ class SimpleRoomEnv(Environment):
         torso_x, torso_y = self._find_robot()
         self._init_torso_x = torso_x
         self._init_torso_y = torso_y
+        center_x = (len(self._maze_structure) // 2) * self._maze_size_scaling
+        center_y = (len(self._maze_structure) // 2) * self._maze_size_scaling
         self._init_positions = [
-            (x - torso_x, y - torso_y) for x, y in self._find_all_robots()
+            (x - self._init_torso_x, y - self._init_torso_y) for x, y in self._find_all_robots()
         ]
         self.elevated = any(maze_env_utils.MazeCell.CHASM in row for row in self._maze_structure)
         # Are there any movable blocks?
         self.blocks = any(any(r.can_move() for r in row) for row in self._maze_structure)
 
     def __create_accessory_functions(self) -> None:
+        """Method Setups up accessory functions for conversion from coordinate space in MuJoCo
+        simulation to networkx maze graph.
+        """
         # Accessory functions.
+        # TODO
+        # Need to fix the following methods for appropriate conversions.
+        # Currently _init_torso_x
         def func(x):
             x_int, x_frac = int(x), x % 1
             if x_frac > 0.5:
@@ -307,6 +315,10 @@ class SimpleRoomEnv(Environment):
                 x_frac += 0.5
             return x_int, x_frac
 
+        # print(self._init_torso_x)
+        # print(self._init_torso_y)
+        center_x = (len(self._maze_structure) // 2) * self._maze_size_scaling
+        center_y = (len(self._maze_structure) // 2) * self._maze_size_scaling
         self._xy_to_rowcol = lambda x, y: (
             func((y + self._init_torso_y) / self._maze_size_scaling),
             func((x + self._init_torso_x) / self._maze_size_scaling),
@@ -321,6 +333,7 @@ class SimpleRoomEnv(Environment):
             c * self._maze_size_scaling - self._init_torso_y,
             r * self._maze_size_scaling - self._init_torso_x
         )
+        print(self._xy_to_rowcol(self._init_torso_x, self._init_torso_y))
 
     def __create_model(self):
         # Update a temporary xml for creating MuJoCo world model.
@@ -343,12 +356,14 @@ class SimpleRoomEnv(Environment):
         self.movable_blocks = []
         self.object_balls = []
         self.obstacles = []
+        center_x = (len(self._maze_structure) // 2) * self._maze_size_scaling
+        center_y = (len(self._maze_structure) // 2) * self._maze_size_scaling
         for i in range(len(self._maze_structure)):
             for j in range(len(self._maze_structure[0])):
                 struct = self._maze_structure[i][j]
                 if struct.is_robot():
                     struct = maze_env_utils.MazeCell.SPIN
-                x, y = j * self._maze_size_scaling - self._init_torso_x, i * self._maze_size_scaling - self._init_torso_y
+                x, y = j * self._maze_size_scaling - self._init_torso_x, i * self._maze_size_scaling - center_y
                 h = self._maze_height / 2 * self._maze_size_scaling
                 size = self._maze_size_scaling * 0.5
                 if self.elevated and not struct.is_chasm():
@@ -472,7 +487,7 @@ class SimpleRoomEnv(Environment):
         max_bound = [35, 35, 1.5]
         self.pc_target_bounds = np.array([min_bound, max_bound], dtype=np.float32)
 
-    def __condolidate_and_startup(self) -> None:
+    def __consolidate_and_startup(self) -> None:
         self.target_speed = 2
         self._init_pos, self._init_ori = self._set_init(self._agent_pos)
         self.wrapped_env.set_xy(self._init_pos)
@@ -501,14 +516,30 @@ class SimpleRoomEnv(Environment):
         self.__create_accessory_functions()
         self.__create_model() 
         self.__init_features()
-        self.__condolidate_and_startup()
+        self.__consolidate_and_startup()
+
+    def __check_target_object_distance(self, agent, target):
+        """Method to check if target is placed in the vicinity of the agent.
+
+        :param target: Target row and column.
+        :type target: Tuple[int, int]
+        :param agent: Agent row and column.
+        :type agent: Tuple[int, int]
+        """
+        arow, acol = agent
+        trow, tcol = target
+        if arow == trow or arow + 1 == trow or arow - 1 == trow:
+            return True
+        if acol == tcol or acol + 1 == tcol or acol - 1 == tcol:
+            return True
+        return False
 
     def _ensure_distance_from_target(self, row, row_frac, col, col_frac, pos):
         """
         """
         target_pos = self._task.objects[self._task.goal_index].pos
         (pos_row, _), (pos_col, _) = self._xy_to_rowcol_v2(target_pos[0], target_pos[1])
-        if [pos_row, pos_col] == [row, col]:
+        if self.__check_target_object_distance([pos_row, pos_col], [row, col]):
             row, col = random.choice(self._open_position_indices)
             row_frac = np.random.uniform(low=-0.4, high=0.4)
             col_frac = np.random.uniform(low=-0.4, high=0.4)
@@ -520,10 +551,10 @@ class SimpleRoomEnv(Environment):
 
     def _set_init(self, agent):
         row, col = agent
-        row_frac = np.random.uniform(low = -0.4, high = 0.4)
-        col_frac = np.random.uniform(low = -0.4, high = 0.4)
+        row_frac = np.random.uniform(low=-0.4, high=0.4)
+        col_frac = np.random.uniform(low=-0.4, high=0.4)
         pos = self._rowcol_to_xy(row + row_frac, col + col_frac)
-        self._start_pos = np.array(pos, dtype = np.float32)
+        self._start_pos = np.array(pos, dtype=np.float32)
         (row, row_frac), (col, col_frac), pos = self._ensure_distance_from_target(
             row, row_frac, col, col_frac, pos
         )
@@ -551,7 +582,7 @@ class SimpleRoomEnv(Environment):
             row = r + d_r + 1
             col = c + d_c + 1
             x, y = self._rowcol_to_xy(row, col)
-            pos = np.array([x, y], dtype = np.float32)
+            pos = np.array([x, y], dtype=np.float32)
 
         (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(pos[0], pos[1])
         neighbors = [
@@ -565,8 +596,7 @@ class SimpleRoomEnv(Environment):
             [row - 1, col - 1]
         ]
 
-        possibilities = [-np.pi, -3 * np.pi / 4, -np.pi / 2, -np.pi / 4, 
-            0.0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi]
+        possibilities = [-np.pi, -3 * np.pi / 4, -np.pi / 2, -np.pi / 4, 0.0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi]
         for neighbor in neighbors:
             r, c = neighbor
             if self._check_structure_index_validity(r, c):
@@ -585,13 +615,14 @@ class SimpleRoomEnv(Environment):
             ori = ori - 2 * np.pi
         elif ori < -np.pi:
             ori = ori + 2 * np.pi
-        
+
         # Setting Orientation to be fixed for `SimpleRoomEnv`
-        ori = -3 * np.pi / 4
+        # ori = -3 * np.pi / 4
+        ori = -np.pi
         return pos, ori
-    
+
     def set_goal_path(self):
-        
+
         goal = self._task.objects[self._task.goal_index].pos - self.wrapped_env.get_xy()
         self.goals = [goal.copy() for _ in range(self.n_steps)]
         self.positions = [np.zeros_like(self.data.qpos) for _ in range(self.n_steps)]
@@ -599,7 +630,7 @@ class SimpleRoomEnv(Environment):
         self.sampled_path = self._sample_path()
         self._current_cell = copy.deepcopy(self.sampled_path[0])
         self._find_all_waypoints()
-        # self._find_cubic_spline_path()
+        self._find_cubic_spline_path()
         self.state = State(
             x=self.wrapped_env.sim.data.qpos[0],
             y=self.wrapped_env.sim.data.qpos[1],
@@ -607,7 +638,7 @@ class SimpleRoomEnv(Environment):
             v=np.linalg.norm(self.wrapped_env.sim.data.qvel[:2]),
             WB=0.2 * self._maze_size_scaling,
         )
-        # self._setup_vel_control()
+        self._setup_vel_control()
         self.resolution = 0.5
         self.ego_map_side_range = (-15, 15)
         self.ego_map_fwd_range = (0, 30)
@@ -676,6 +707,30 @@ class SimpleRoomEnv(Environment):
         goal_pos = self._task.objects[self._task.goal_index].pos[:2]
         row, col = self._xy_to_rowcol(goal_pos[0], goal_pos[1])
         target = self._structure_to_graph_index(row, col)
+        target_pos = self._graph_to_structure_index(target)
+        target_xy = self._rowcol_to_xy(*target_pos) 
+        for node in self._maze_graph.nodes():
+            pos = self._graph_to_structure_index(node)
+            xy = self._rowcol_to_xy(*pos)
+            print(end = '\n')
+            print("===========================================================")
+            print("Graph ID: ", node, " Target ID: ", target)
+            print("Structure Position: ", pos, ' Target Position: ', target_pos)
+            print(
+                    "XY Conversion: ",
+                    xy,
+                    " Robot XY: ",
+                    self.sim.data.qpos[:2].tolist(),
+                    " Target XY: ",
+                    target_xy)
+            ele = self._maze_structure[pos[0]][pos[1]]
+            if ele.is_robot():
+                print("Robot")
+            elif ele.is_block():
+                print("block")
+            elif ele.is_empty():
+                print("Empty")
+            print("===========================================================")
         paths = list(nx.algorithms.shortest_paths.generic.all_shortest_paths(
             self._maze_graph,
             source,
@@ -792,45 +847,59 @@ class SimpleRoomEnv(Environment):
 
     def _set_observation_space(self, observation):
         spaces = {
-            'frame_t' : gym.spaces.Box(
-                low = np.zeros_like(observation['frame_t'], dtype = np.uint8),
-                high = 255 * np.ones_like(observation['frame_t'], dtype = np.uint8),
-                shape = observation['frame_t'].shape,
-                dtype = observation['frame_t'].dtype
+            'frame_t': gym.spaces.Box(
+                low=np.zeros_like(observation['frame_t'], dtype = np.uint8),
+                high=255 * np.ones_like(observation['frame_t'], dtype = np.uint8),
+                shape=observation['frame_t'].shape,
+                dtype=observation['frame_t'].dtype
             ),   
-            'sensors' : gym.spaces.Box(
-                low = -np.ones_like(observation['sensors']),
-                high = np.ones_like(observation['sensors']),
-                shape = observation['sensors'].shape,
-                dtype = observation['sensors'].dtype
+            'sensors': gym.spaces.Box(
+                low=-np.ones_like(observation['sensors']),
+                high=np.ones_like(observation['sensors']),
+                shape=observation['sensors'].shape,
+                dtype=observation['sensors'].dtype
             ),   
-            'inframe' : gym.spaces.Box(
-                low = np.zeros_like(observation['inframe']),
-                high = np.ones_like(observation['inframe']),
-                shape = observation['inframe'].shape,
-                dtype = observation['inframe'].dtype
+            'inframe': gym.spaces.Box(
+                low=np.zeros_like(observation['inframe']),
+                high=np.ones_like(observation['inframe']),
+                shape=observation['inframe'].shape,
+                dtype=observation['inframe'].dtype
             ),
-            'positions' : gym.spaces.Box(
-                low = -np.ones_like(observation['positions']) * 40,
-                high = np.ones_like(observation['positions']) * 40,
-                shape = observation['positions'].shape,
-                dtype = observation['positions'].dtype
+            'positions': gym.spaces.Box(
+                low=-np.ones_like(observation['positions']) * 40,
+                high=np.ones_like(observation['positions']) * 40,
+                shape=observation['positions'].shape,
+                dtype=observation['positions'].dtype
             ),
-            'bbx' : gym.spaces.Box(
-                low = np.zeros_like(observation['bbx']),
-                high = np.ones_like(observation['bbx']) * np.array([image_width, image_height, image_width, image_height], dtype = np.float32),
-                shape = observation['bbx'].shape,
-                dtype = observation['bbx'].dtype
+            'bbx': gym.spaces.Box(
+                low=np.zeros_like(observation['bbx']),
+                high=np.ones_like(observation['bbx']) * np.array([image_width, image_height, image_width, image_height], dtype = np.float32),
+                shape=observation['bbx'].shape,
+                dtype=observation['bbx'].dtype
             ),
+            'sampled_action': gym.spaces.Box(
+                low=self.action_space.low,
+                high=self.action_space.high,
+                shape=self.action_space.shape,
+                dtype=self.action_space.dtype
+            ),
+            'scaled_sampled_action': gym.spaces.Box(
+                low=np.zeros_like(observation['scaled_sampled_action']),
+                high=np.ones_like(observation['scaled_sampled_action']),
+                shape=observation['scaled_sampled_action'].shape,
+                dtype=observation['scaled_sampled_action'].dtype
+            )    
         }
     
         if params['add_ref_scales']:
+            """
             spaces['ref_window'] = gym.spaces.Box(
                 low = np.zeros_like(observation['ref_window'], dtype = np.uint8),
                 high = 255 * np.ones_like(observation['ref_window'], dtype = np.uint8),
                 shape = observation['ref_window'].shape,
                 dtype = observation['ref_window'].dtype
             )
+            """
             spaces['ref_frame_t'] = gym.spaces.Box(
                 low = np.zeros_like(observation['ref_frame_t'], dtype = np.uint8),
                 high = 255 * np.ones_like(observation['ref_frame_t'], dtype = np.uint8),
@@ -850,7 +919,10 @@ class SimpleRoomEnv(Environment):
                 continue
             xmin, xmax = min(xmin, j), max(xmax, j)
             ymin, ymax = min(ymin, i), max(ymax, i)
-        x0, y0 = self._init_torso_x, self._init_torso_y
+
+        x0 = (len(self._maze_structure) // 2) * self._maze_size_scaling
+        y0 = (len(self._maze_structure) // 2) * self._maze_size_scaling
+        # x0, y0 = self._init_torso_x, self._init_torso_y
         scaling = self._maze_size_scaling
         xmin, xmax = (xmin - 0.5) * scaling - x0, (xmax + 0.5) * scaling - x0
         ymin, ymax = (ymin - 0.5) * scaling - y0, (ymax + 0.5) * scaling - y0
@@ -864,12 +936,12 @@ class SimpleRoomEnv(Environment):
         return angle
 
     def _get_scale_indices(self, x, y, w, h, scale, size):
-        center_x, center_y = x + w // 2, y + h // 2 
-        x_min = center_x - size // (scale * 2) 
-        x_max = center_x + size // (scale * 2) 
-        y_min = center_y - size // (scale * 2) 
-        y_max = center_y + size // (scale * 2) 
-        if x_min < 0: 
+        center_x, center_y = x + w // 2, y + h // 2
+        x_min = center_x - size // (scale * 2)
+        x_max = center_x + size // (scale * 2)
+        y_min = center_y - size // (scale * 2)
+        y_max = center_y + size // (scale * 2)
+        if x_min < 0:
             center_x += np.abs(x_min)
             x_max += np.abs(x_min)
             x_min = 0
@@ -877,7 +949,7 @@ class SimpleRoomEnv(Environment):
             offset = x_max - size
             center_x -= offset
             x_min -= offset
-        if y_min < 0: 
+        if y_min < 0:
             center_y += np.abs(y_min)
             y_max += np.abs(y_min)
             y_min = 0
@@ -1059,10 +1131,11 @@ class SimpleRoomEnv(Environment):
         """
         return points
 
-    def process_point_cloud(self,
+    def process_point_cloud(
+        self,
         points,
         side_range=(-10., 10.),
-        fwd_range = (-10., 10.),
+        fwd_range=(-10., 10.),
     ):
         x_points = points[:, 0]
         y_points = points[:, 1]
@@ -1082,14 +1155,15 @@ class SimpleRoomEnv(Environment):
         z_points = z_points[indices]
         return x_points, y_points, z_points
 
-    def _cloud2map(self,
+    def _cloud2map(
+        self,
         points,
-        res = 0.1, 
+        res=0.1,
         side_range=(-10., 10.),
-        fwd_range = (-10., 10.),
+        fwd_range=(-10., 10.),
         height_range=(-2., 2.),
     ):
-       
+
         x_points, y_points, z_points = self.process_point_cloud(
             points=points,
             side_range=side_range,
@@ -1120,58 +1194,58 @@ class SimpleRoomEnv(Environment):
         im = np.zeros([y_max, x_max], dtype=np.uint8)
 
         x_img, y_img, pixel_values = sort_arrays(x_img, y_img, pixel_values)
-        #pixel_values[:] = 255
+        # pixel_values[:] = 255
         im[y_img, x_img] = pixel_values
 
         return im
-    
+
     def get_coverage(self, allo_map):
         explored = allo_map > 0
         coverage = np.sum(explored) / (explored.shape[0] * explored.shape[1])
         return coverage
 
     def _get_borders(self, cloud, hsv):
-        lower = np.array([0,0,0], dtype = "uint8")
-        upper = np.array([180,40,10], dtype = "uint8") 
-        #blur = cv2.GaussianBlur(image, (5,5), 0)
+        lower = np.array([0, 0, 0], dtype="uint8")
+        upper = np.array([180, 40, 10], dtype="uint8")
+        # blur = cv2.GaussianBlur(image, (5,5), 0)
         mask = np.repeat(
             np.expand_dims(
                 cv2.inRange(hsv, lower, upper).reshape(-1), -1
             ), cloud.shape[-1], -1
         )
-        cloud = cv2.bitwise_and(cloud, cloud, mask = mask)
+        cloud = cv2.bitwise_and(cloud, cloud, mask=mask)
         cloud = cloud[~np.all(cloud == 0, axis=1)]
         return cloud
 
     def _get_floor(self, cloud, hsv):
-        lower = np.array([0,0,15], dtype = "uint8")
-        upper = np.array([180, 40,60], dtype = "uint8") 
-        #blur = cv2.GaussianBlur(image, (5,5), 0)
+        lower = np.array([0, 0, 15], dtype="uint8")
+        upper = np.array([180, 40, 60], dtype="uint8")
+        # blur = cv2.GaussianBlur(image, (5,5), 0)
         mask = np.repeat(
             np.expand_dims(
                 cv2.inRange(hsv, lower, upper).reshape(-1), -1
             ), cloud.shape[-1], -1
         )
-        cloud = cv2.bitwise_and(cloud, cloud, mask = mask)
+        cloud = cv2.bitwise_and(cloud, cloud, mask=mask)
         cloud = cloud[~np.all(cloud == 0, axis=1)]
         cloud[:, 2] = 10 * (self.height_range[1] - self.height_range[0]) / 255 + self.height_range[0]
         return cloud
-    
+
     def _get_objects(self, cloud, hsv):
-        lower = np.array([0,40,60], dtype = "uint8")
-        upper = np.array([180,255,255], dtype = "uint8") 
-        #blur = cv2.GaussianBlur(image, (5,5), 0)
+        lower = np.array([0, 40, 60], dtype="uint8")
+        upper = np.array([180, 255, 255], dtype="uint8")
+        # blur = cv2.GaussianBlur(image, (5,5), 0)
         mask = np.repeat(
             np.expand_dims(
                 cv2.inRange(hsv, lower, upper).reshape(-1), -1
             ), cloud.shape[-1], -1
         )
-        cloud = cv2.bitwise_and(cloud, cloud, mask = mask)
+        cloud = cv2.bitwise_and(cloud, cloud, mask=mask)
         cloud = cloud[~np.all(cloud == 0, axis=1)]
         return cloud
 
     def _get_target(self, cloud, hsv):
-        target = self._task.objects[self._task.goal_index] 
+        target = self._task.objects[self._task.goal_index]
         lower = target.min_range
         upper = target.max_range
         mask = np.repeat(
@@ -1179,7 +1253,7 @@ class SimpleRoomEnv(Environment):
                 cv2.inRange(hsv, lower, upper).reshape(-1), -1
             ), cloud.shape[-1], -1
         )
-        cloud = cv2.bitwise_and(cloud, cloud, mask = mask)
+        cloud = cv2.bitwise_and(cloud, cloud, mask=mask)
         cloud = cloud[~np.all(cloud == 0, axis=1)]
         return cloud
 
@@ -1191,22 +1265,23 @@ class SimpleRoomEnv(Environment):
         cloud = self._get_point_cloud(depth=depth)
         complete_ego_map = self._cloud2map(
             cloud,
-            res = self.resolution,
-            side_range = self.ego_map_side_range,
-            fwd_range = self.ego_map_fwd_range,
-            height_range = self.height_range
+            res=self.resolution,
+            side_range=self.ego_map_side_range,
+            fwd_range=self.ego_map_fwd_range,
+            height_range=self.height_range
         )
-        
+
         hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV)
-        
+
         borders_cloud = self._get_borders(cloud, hsv)
-        border_ego_map = self._cloud2map(borders_cloud,
-            res = self.resolution,
-            side_range = self.ego_map_side_range,
-            fwd_range = self.ego_map_fwd_range,
-            height_range = self.height_range
+        border_ego_map = self._cloud2map(
+            borders_cloud,
+            res=self.resolution,
+            side_range=self.ego_map_side_range,
+            fwd_range=self.ego_map_fwd_range,
+            height_range=self.height_range
         )
-        
+
         floor_cloud = self._get_floor(cloud, hsv)
         floor_ego_map = self._cloud2map(floor_cloud,
             res = self.resolution,
@@ -1372,7 +1447,7 @@ class SimpleRoomEnv(Environment):
 
         border_x_img = (-border_y_points / res).astype(np.int32)
         border_y_img = (-border_x_points / res).astype(np.int32)
-        
+       
         border_x_img -= int(np.floor(side_range[0] / res))
         border_y_img += int(np.ceil(fwd_range[1] / res))
 
@@ -1400,7 +1475,7 @@ class SimpleRoomEnv(Environment):
 
         floor_x_img = (-floor_y_points / res).astype(np.int32)
         floor_y_img = (-floor_x_points / res).astype(np.int32)
-        
+       
         floor_x_img -= int(np.floor(side_range[0] / res))
         floor_y_img += int(np.ceil(fwd_range[1] / res))
 
@@ -1491,10 +1566,10 @@ class SimpleRoomEnv(Environment):
         window, bbx, inframe = self.__create_attention_window(obs['front'])
 
         # Sampled Action
-        # sampled_action = self.get_action().astype(np.float32)
+        sampled_action = self.get_action().astype(np.float32)
         low = self.action_space.low
         high = self.action_space.high
-        # scaled_sampled_action = (sampled_action - low) / (high - low)
+        scaled_sampled_action = (sampled_action - low) / (high - low)
 
         # Sensor Readings
         ## Goal
@@ -1547,7 +1622,9 @@ class SimpleRoomEnv(Environment):
             'positions': positions.copy(),
             'bbx': bbx.copy(),
             'pos': self.wrapped_env.get_xy(),
-            'start_pos': self._start_pos
+            'start_pos': self._start_pos,
+            'sampled_action': sampled_action,
+            'scaled_sampled_action': scaled_sampled_action
         }
 
         self.loc_map.pop(0)
@@ -1751,7 +1828,7 @@ class SimpleRoomEnv(Environment):
             info['is_success'] = False
         if outbound:
             collision_penalty += -0.05 * self._inner_reward_scaling
-            next_obs['window'] = np.zeros_like(next_obs['window'])
+            #next_obs['window'] = np.zeros_like(next_obs['window'])
             next_obs['frame_t'] = np.zeros_like(next_obs['frame_t'])
             done = True
         if self.t > self.max_episode_size:

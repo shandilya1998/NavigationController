@@ -152,6 +152,12 @@ class Spline2D:
 
     def __init__(self, x, y):
         self.s = self.__calc_s(x, y)
+        """
+        print("In Class Spline2d class, utils/env_utils.py")
+        print(self.s)
+        print("lenx: ", len(x))
+        print("leny: ", len(y))
+        """
         self.sx = Spline(self.s, x)
         self.sy = Spline(self.s, y)
 

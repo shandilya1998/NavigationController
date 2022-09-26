@@ -32,6 +32,7 @@ import cv2
 import colorsys
 import open3d as o3d
 from neurorobotics.utils.point_cloud import rotMatList2NPRotMat
+import matplotlib.pyplot as plt
 
 # Directory that contains mujoco xml files.
 MODEL_DIR = os.path.join(os.getcwd(), 'neurorobotics/assets', 'xml')
@@ -48,6 +49,7 @@ def scale_to_255(a, minimum, maximum, dtype=np.uint8):
     :type dtype: np.dtype
     """
     return (((a - minimum) / float(maximum - minimum)) * 255).astype(dtype)
+
 
 def sort_arrays(x, y, z):
     """Sorts x and y according to index of z.
@@ -67,18 +69,21 @@ def sort_arrays(x, y, z):
     y = y[indices]
     return x, y, z
 
+
 ANGLE_EPS = 0.001
+
 
 def normalize(v):
     """Normalize array.
-    
-    :param v: 
+
+    :param v:
     """
     return v / np.linalg.norm(v)
 
+
 def get_r_matrix(ax_, angle):
     """ Description.
-    
+
     :param ax_:
     :type ax_:
     :param angle:
@@ -204,6 +209,23 @@ class Environment(gym.Env):
         raise NotImplementedError
 
 
+def func(x):
+    x_int, x_frac = int(x), x % 1
+    if x_frac > 0.5:
+        x_int += 1
+    return x_int
+
+
+def func2(x):
+    x_int, x_frac = int(x), x % 1
+    if x_frac > 0.5:
+        x_int += 1
+        x_frac -= 0.5
+    else:
+        x_frac += 0.5
+    return x_int, x_frac
+
+
 class SimpleRoomEnv(Environment):
     """Base Class for a stochastic maze environment.
     
@@ -239,6 +261,7 @@ class SimpleRoomEnv(Environment):
     :type mode: Optional[int]= None,
     """
     n_actions: int = 1
+    
     def __init__(
         self,
         model_cls: Type[AgentModel],
@@ -280,17 +303,80 @@ class SimpleRoomEnv(Environment):
         """Sample Maze Configuration from `maze_task_generator`.
         """
         self._task, self._maze_structure, self._open_position_indices, self._agent_pos = self._maze_task_generator(self._maze_size_scaling)
+        # print("Agent Position: ", self._agent_pos)
         torso_x, torso_y = self._find_robot()
         self._init_torso_x = torso_x
         self._init_torso_y = torso_y
-        center_x = (len(self._maze_structure) // 2) * self._maze_size_scaling
-        center_y = (len(self._maze_structure) // 2) * self._maze_size_scaling
-        self._init_positions = [
-            (x - self._init_torso_x, y - self._init_torso_y) for x, y in self._find_all_robots()
-        ]
+        # center_x = (len(self._maze_structure) // 2) * self._maze_size_scaling
+        # center_y = (len(self._maze_structure) // 2) * self._maze_size_scaling
         self.elevated = any(maze_env_utils.MazeCell.CHASM in row for row in self._maze_structure)
         # Are there any movable blocks?
         self.blocks = any(any(r.can_move() for r in row) for row in self._maze_structure)
+
+    def _xy_to_rowcol(self, x, y):
+        """
+        print('in `_xy_to_rowcol`')
+        print('x: ', x, ' y: ', y)
+        print(
+            'translated x: ',
+            y + self._init_torso_y,
+            ' translated y: ',
+            x + self._init_torso_x
+        )
+        print(
+            'scaled x: ',
+            (y + self._init_torso_y) / self._maze_size_scaling,
+            ' scaled y: ',
+            (x + self._init_torso_x) / self._maze_size_scaling
+        )
+        """
+
+        row = func((y + self._init_torso_y) / self._maze_size_scaling)
+        col = func((x + self._init_torso_x) / self._maze_size_scaling)
+        # print('row: ', row, ' col: ', col)
+        return row, col
+
+    def _xy_to_rowcol_v2(self, x, y):
+        """
+        print('in `_xy_to_rowcol_v2`')
+        print('x: ', x, ' y: ', y)
+        print(
+            'translated x: ',
+            y + self._init_torso_y,
+            ' translated y: ',
+            x + self._init_torso_x
+        )
+        print(
+            'scaled x: ',
+            (y + self._init_torso_y) / self._maze_size_scaling,
+            ' scaled y: ',
+            (x + self._init_torso_x) / self._maze_size_scaling
+        )
+        """
+
+        row = func2((y + self._init_torso_y) / self._maze_size_scaling)
+        col = func2((x + self._init_torso_x) / self._maze_size_scaling)
+        # print('row: ', row, ' col: ', col)
+        return row, col
+
+    def _rowcol_to_xy(self, row, col):
+        """
+        print('=================================')
+        print('in `_rowcol_to_xy`')
+        print('row: ', row, ' col: ', col)
+        print('init x: ', self._init_torso_x, ' init y: ', self._init_torso_y)
+        print(
+            'scaled col: ',
+            col * self._maze_size_scaling,
+            ' scaled y: ',
+            row * self._maze_size_scaling
+        )
+        """
+        x = col * self._maze_size_scaling - self._init_torso_x
+        y = row * self._maze_size_scaling - self._init_torso_y
+        # print('x: ', x, ' y: ', y)
+        # print('=================================')
+        return x, y
 
     def __create_accessory_functions(self) -> None:
         """Method Setups up accessory functions for conversion from coordinate space in MuJoCo
@@ -300,40 +386,36 @@ class SimpleRoomEnv(Environment):
         # TODO
         # Need to fix the following methods for appropriate conversions.
         # Currently _init_torso_x
-        def func(x):
-            x_int, x_frac = int(x), x % 1
-            if x_frac > 0.5:
-                x_int += 1
-            return x_int
-
-        def func2(x):
-            x_int, x_frac = int(x), x % 1 
-            if x_frac > 0.5:
-                x_int += 1
-                x_frac -= 0.5
-            else:
-                x_frac += 0.5
-            return x_int, x_frac
 
         # print(self._init_torso_x)
         # print(self._init_torso_y)
         center_x = (len(self._maze_structure) // 2) * self._maze_size_scaling
         center_y = (len(self._maze_structure) // 2) * self._maze_size_scaling
+        # print("center", center_x, center_y)
+        """
         self._xy_to_rowcol = lambda x, y: (
             func((y + self._init_torso_y) / self._maze_size_scaling),
             func((x + self._init_torso_x) / self._maze_size_scaling),
         )
-
         self._xy_to_rowcol_v2 = lambda x, y: (
             func2((y + self._init_torso_y) / self._maze_size_scaling),
             func2((x + self._init_torso_x) / self._maze_size_scaling),
+        )
+        """
+        self._xy_to_rowcol = lambda x, y: (
+            func((y + self._init_torso_y) / self._maze_size_scaling),
+            func((x + self._init_torso_x) / self._maze_size_scaling)
+        )
+        self._xy_to_rowcol_v2 = lambda x, y: (
+            func2((y + self._init_torso_y / 2) / self._maze_size_scaling),
+            func2((x + self._init_torso_x / 2) / self._maze_size_scaling)
         )
 
         self._rowcol_to_xy = lambda r, c: (
             c * self._maze_size_scaling - self._init_torso_y,
             r * self._maze_size_scaling - self._init_torso_x
         )
-        print(self._xy_to_rowcol(self._init_torso_x, self._init_torso_y))
+        # print(self._xy_to_rowcol(self._init_torso_x, self._init_torso_y))
 
     def __create_model(self):
         # Update a temporary xml for creating MuJoCo world model.
@@ -356,14 +438,12 @@ class SimpleRoomEnv(Environment):
         self.movable_blocks = []
         self.object_balls = []
         self.obstacles = []
-        center_x = (len(self._maze_structure) // 2) * self._maze_size_scaling
-        center_y = (len(self._maze_structure) // 2) * self._maze_size_scaling
         for i in range(len(self._maze_structure)):
-            for j in range(len(self._maze_structure[0])):
+            for j in range(len(self._maze_structure[i])):
                 struct = self._maze_structure[i][j]
                 if struct.is_robot():
                     struct = maze_env_utils.MazeCell.SPIN
-                x, y = j * self._maze_size_scaling - self._init_torso_x, i * self._maze_size_scaling - center_y
+                x, y = j * self._maze_size_scaling - self._init_torso_x, i * self._maze_size_scaling - self._init_torso_y
                 h = self._maze_height / 2 * self._maze_size_scaling
                 size = self._maze_size_scaling * 0.5
                 if self.elevated and not struct.is_chasm():
@@ -489,9 +569,11 @@ class SimpleRoomEnv(Environment):
 
     def __consolidate_and_startup(self) -> None:
         self.target_speed = 2
+        # print("Position before update: ", self.wrapped_env.data.qpos)
         self._init_pos, self._init_ori = self._set_init(self._agent_pos)
         self.wrapped_env.set_xy(self._init_pos)
         self.wrapped_env.set_ori(self._init_ori)
+        # print("Position after update: ", self.wrapped_env.data.qpos)
         self.dt = self.wrapped_env.dt
         assert self.dt == params['dt']
         self.obstacles_ids = []
@@ -513,7 +595,7 @@ class SimpleRoomEnv(Environment):
         """Processes environment configuration and initialises the environment.
         """
         self.__set_structure() 
-        self.__create_accessory_functions()
+        # self.__create_accessory_functions()
         self.__create_model() 
         self.__init_features()
         self.__consolidate_and_startup()
@@ -528,17 +610,41 @@ class SimpleRoomEnv(Environment):
         """
         arow, acol = agent
         trow, tcol = target
-        if arow == trow or arow + 1 == trow or arow - 1 == trow:
+        if arow == trow:  # or arow + 1 == trow or arow - 1 == trow:
             return True
-        if acol == tcol or acol + 1 == tcol or acol - 1 == tcol:
+        if acol == tcol:  # or acol + 1 == tcol or acol - 1 == tcol:
+            return True
+        if arow + 1 == trow and acol + 1 == tcol:
+            return True
+        if arow - 1 == trow and acol + 1 == tcol:
+            return True
+        if arow + 1 == trow and acol - 1 == tcol:
+            return True
+        if arow - 1 == trow and acol - 1 == tcol:
             return True
         return False
 
     def _ensure_distance_from_target(self, row, row_frac, col, col_frac, pos):
+        """Method update structure index if it is closer than a threshold distance from a given
+        position.
+
+        :param row: Structure Row Index.
+        :type row: int
+        :param row_frac: Structure Row Position Fraction
+        :type row_frac: float
+        :param col: Structure Column Index.
+        :type row: int
+        :param col_frac: Structure Column Position Fraction
+        :type col_frac: float
+        :param pos: Taret Position to maintain distance from.
+        :type pos: np.ndarray
+        :return: Updated structure position.
+        :rtype: Tuple[Tuple[int, int], Tuple[int, int]]
         """
-        """
+        # print('inside `_ensure_distance_from_target`')
+        # print((row, row_frac), (col, col_frac), pos)
         target_pos = self._task.objects[self._task.goal_index].pos
-        (pos_row, _), (pos_col, _) = self._xy_to_rowcol_v2(target_pos[0], target_pos[1])
+        pos_row, pos_col = self._xy_to_rowcol(target_pos[0], target_pos[1])
         if self.__check_target_object_distance([pos_row, pos_col], [row, col]):
             row, col = random.choice(self._open_position_indices)
             row_frac = np.random.uniform(low=-0.4, high=0.4)
@@ -547,44 +653,58 @@ class SimpleRoomEnv(Environment):
             (row, row_frac), (col, col_frac), pos = self._ensure_distance_from_target(
                 row, row_frac, col, col_frac, pos
             )
+        # print((row, row_frac), (col, col_frac), pos)
         return (row, row_frac), (col, col_frac), pos
 
-    def _set_init(self, agent):
-        row, col = agent
-        row_frac = np.random.uniform(low=-0.4, high=0.4)
-        col_frac = np.random.uniform(low=-0.4, high=0.4)
-        pos = self._rowcol_to_xy(row + row_frac, col + col_frac)
-        self._start_pos = np.array(pos, dtype=np.float32)
-        (row, row_frac), (col, col_frac), pos = self._ensure_distance_from_target(
-            row, row_frac, col, col_frac, pos
-        )
-        struct = self._maze_structure[row][col]
+    def __get_empty_neighbors(self, neighbors):
+        eligible = []
+        for neighbor in neighbors:
+            r, c = neighbor
+            if self._check_structure_index_validity(r, c):
+                if not self._maze_structure[r][c].is_block():
+                    eligible.append([r, c])
+        return eligible
+
+    def _ensure_not_a_block(self, struct, pos, row, col, neighbors):
         if struct.is_block():
-            neighbors = [
-                [row + 1, col],
-                [row, col + 1],
-                [row - 1, col],
-                [row, col - 1],
-                [row + 1, col + 1],
-                [row - 1, col + 1],
-                [row + 1, col - 1],
-                [row - 1, col - 1]
-            ]
-            eligible = []
-            for neighbor in neighbors:
-                r, c = neighbor
-                if self._check_structure_index_validity(r, c):
-                    if not self._maze_structure[r][c].is_block():
-                        eligible.append([r, c])
+            eligible = self.__get_empty_neighbors(neighbors)
             choice = random.choice(eligible)
             d_r = choice[0] - row
             d_c = choice[1] - col
-            row = r + d_r + 1
-            col = c + d_c + 1
+            row = row + d_r + 1
+            col = col + d_c + 1
             x, y = self._rowcol_to_xy(row, col)
             pos = np.array([x, y], dtype=np.float32)
+            return pos
+        else:
+            return pos
 
-        (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(pos[0], pos[1])
+    def _set_init(self, agent):
+        row, col = agent
+        # print("row: ", row, " col: ", col)
+        row_frac = np.random.uniform(low=-0.4, high=0.4)
+        col_frac = np.random.uniform(low=-0.4, high=0.4)
+        """
+        print("row frac: ", row_frac, " col frac: ", col_frac)
+        print("Position before ensuring distance from target")
+        print(row + row_frac)
+        print(col + col_frac)
+        """
+
+        # Toggle to allow random shifting within block boundary
+        # pos = self._rowcol_to_xy(row + row_frac, col + col_frac)
+        pos = self._rowcol_to_xy(row, col)
+        # print("_set_init pos after conversion from row col: ", pos)
+        self._start_pos = np.array(pos, dtype=np.float32)
+        target_pos = self._task.objects[self._task.goal_index].pos
+        (row, row_frac), (col, col_frac), target_pos = self._ensure_distance_from_target(
+            row, row_frac, col, col_frac, target_pos
+        )
+        # print("Position after ensuring distance from target")
+        # print(row, row_frac, row + row_frac)
+        # print(col, col_frac, col + col_frac)
+
+        struct = self._maze_structure[row][col]
         neighbors = [
             [row + 1, col],
             [row, col + 1],
@@ -595,7 +715,7 @@ class SimpleRoomEnv(Environment):
             [row + 1, col - 1],
             [row - 1, col - 1]
         ]
-
+        pos = self._ensure_not_a_block(struct, pos, row, col, neighbors)
         possibilities = [-np.pi, -3 * np.pi / 4, -np.pi / 2, -np.pi / 4, 0.0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi]
         for neighbor in neighbors:
             r, c = neighbor
@@ -617,8 +737,8 @@ class SimpleRoomEnv(Environment):
             ori = ori + 2 * np.pi
 
         # Setting Orientation to be fixed for `SimpleRoomEnv`
-        # ori = -3 * np.pi / 4
-        ori = -np.pi
+        # ori = 0.0
+        # ori = -np.pi
         return pos, ori
 
     def set_goal_path(self):
@@ -707,12 +827,14 @@ class SimpleRoomEnv(Environment):
         goal_pos = self._task.objects[self._task.goal_index].pos[:2]
         row, col = self._xy_to_rowcol(goal_pos[0], goal_pos[1])
         target = self._structure_to_graph_index(row, col)
-        target_pos = self._graph_to_structure_index(target)
-        target_xy = self._rowcol_to_xy(*target_pos) 
+        # uncomment next line before uncommenting the block comment in the loop.
+        # target_pos = self._graph_to_structure_index(target)
+        # target_xy = self._rowcol_to_xy(*target_pos)
         for node in self._maze_graph.nodes():
             pos = self._graph_to_structure_index(node)
+            """
             xy = self._rowcol_to_xy(*pos)
-            print(end = '\n')
+            print(end='\n')
             print("===========================================================")
             print("Graph ID: ", node, " Target ID: ", target)
             print("Structure Position: ", pos, ' Target Position: ', target_pos)
@@ -720,10 +842,12 @@ class SimpleRoomEnv(Environment):
                     "XY Conversion: ",
                     xy,
                     " Robot XY: ",
-                    self.sim.data.qpos[:2].tolist(),
+                    self.sim.data.qpos[:2],
                     " Target XY: ",
                     target_xy)
+            """
             ele = self._maze_structure[pos[0]][pos[1]]
+            """
             if ele.is_robot():
                 print("Robot")
             elif ele.is_block():
@@ -731,6 +855,10 @@ class SimpleRoomEnv(Environment):
             elif ele.is_empty():
                 print("Empty")
             print("===========================================================")
+            """
+        # top = self.render(mode='rgb_array') 
+        # plt.imshow(top)
+        # plt.show()
         paths = list(nx.algorithms.shortest_paths.generic.all_shortest_paths(
             self._maze_graph,
             source,
@@ -1391,7 +1519,7 @@ class SimpleRoomEnv(Environment):
 
     def get_local_map(self, global_map):
         half_size = max(global_map.shape[0], global_map.shape[1])
-        ego_map = np.zeros((half_size * 2, half_size * 2, 3), dtype = np.uint8)
+        ego_map = np.zeros((half_size * 2, half_size * 2, 3), dtype=np.uint8)
         xy = self.data.qpos[:2]
         ori = self.data.qpos[2]
         x_img = int(-xy[1] / self.resolution)
@@ -1899,6 +2027,9 @@ class SimpleRoomEnv(Environment):
 
         def xy_to_imgrowcol(x, y):
             (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(x, y)
+            # print('position: ', x, y)
+            # print('v2: ', row, row_frac, col, col_frac)
+            # print('v1', self._xy_to_rowcol(x, y))
             row = block_size * row + int((row_frac) * block_size)
             col = block_size * col + int((col_frac) * block_size)
             return int(row), int(col)
@@ -1908,7 +2039,10 @@ class SimpleRoomEnv(Environment):
         if ori < 0 and ori > -np.pi:
             ori += 2 * np.pi
         row, col = xy_to_imgrowcol(pos[0], pos[1])
-        
+
+        # print('row col of agent: ', row, col)
+        # print('agent position: ', pos)
+
         pt1_x = pos[0] + self._maze_size_scaling * 0.3 * np.cos(ori)
         pt1_y = pos[1] + self._maze_size_scaling * 0.3 * np.sin(ori)
         pt2_x = pos[0] + self._maze_size_scaling * 0.15 * np.cos(2 * np.pi / 3 + ori)
@@ -1916,9 +2050,21 @@ class SimpleRoomEnv(Environment):
         pt3_x = pos[0] + self._maze_size_scaling * 0.15 * np.cos(4 * np.pi / 3 + ori)
         pt3_y = pos[1] + self._maze_size_scaling * 0.15 * np.sin(4 * np.pi / 3 + ori)
 
-        pt1 = xy_to_imgrowcol(pt1_y, pt1_x)
-        pt2 = xy_to_imgrowcol(pt2_y, pt2_x)
-        pt3 = xy_to_imgrowcol(pt3_y, pt3_x)
+        pt1 = xy_to_imgrowcol(pt1_x, pt1_y)
+        pt2 = xy_to_imgrowcol(pt2_x, pt2_y)
+        pt3 = xy_to_imgrowcol(pt3_x, pt3_y)
+        pt1 = (pt1[1], pt1[0])
+        pt2 = (pt2[1], pt2[0])
+        pt3 = (pt3[1], pt3[0])
+
+        """
+        print('pt1 row col:, ', pt1)
+        print('pt1 pos: ', pt1_x, pt1_y)
+        print('pt2 row col: ', pt2)
+        print('pt2 pos: ', pt2_x, pt2_y)
+        print('pt3 row col: ', pt3)
+        print('pt3 pos: ', pt3_x, pt3_y)
+        """
 
         triangle_cnt = np.array( [pt1, pt2, pt3] )
         cv2.drawContours(img, [triangle_cnt], 0, (255,255,255), -1)

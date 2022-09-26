@@ -157,8 +157,8 @@ MAPS = {
         'simple_room': [
             [B, B, B, B, B],
             [B, E, E, E, B],
-            [B, E, E, E, B],
             [B, R, E, E, B],
+            [B, E, E, E, B],
             [B, B, B, B, B]
         ],
         'square_room': [
@@ -202,10 +202,19 @@ def check_target_object_distance(agent, target):
     """
     arow, acol = agent
     trow, tcol = target
-    if arow == trow or arow + 1 == trow or arow - 1 == trow:
+    if arow == trow:  # or arow + 1 == trow or arow - 1 == trow:
         return True
-    if acol == tcol or acol + 1 == tcol or acol - 1 == tcol:
+    if acol == tcol:  # or acol + 1 == tcol or acol - 1 == tcol:
         return True
+    if arow + 1 == trow and acol + 1 == tcol:
+        return True
+    if arow - 1 == trow and acol + 1 == tcol:
+        return True
+    if arow + 1 == trow and acol - 1 == tcol:
+        return True
+    if arow - 1 == trow and acol - 1 == tcol:
+        return True
+
     return False
 
 def create_simple_room_maze(
@@ -221,16 +230,21 @@ def create_simple_room_maze(
         for j in range(len(structure[i])):
             if not structure[i][j].is_wall_or_chasm():
                 _open_position_indices.append([i, j])
-            if not structure[i][j].is_robot():
+            if structure[i][j].is_robot():
                 agent_pos = [i, j]
+    # print(_open_position_indices)
 
     _eligible_position_indices = []
     for pos in _open_position_indices:
+        # print(agent_pos, pos)
         if not check_target_object_distance(agent_pos, pos):
             _eligible_position_indices.append(pos)
 
     assert agent_pos is not None
+    # print(num_objects)
+    # print(_eligible_position_indices)
     object_structure_indices = random.sample(_eligible_position_indices, num_objects)
+    # print(object_structure_indices)
     goal_index = np.random.randint(low=0, high=num_objects)
 
     available_hsv = [

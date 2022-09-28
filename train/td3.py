@@ -3,6 +3,7 @@ import shutil
 from typing import Callable, Type, Dict, Union
 from neurorobotics.simulations.maze_env import Environment
 from neurorobotics.simulations.agent_model import AgentModel
+from neurorobotics.utils.callbacks import Callback
 import stable_baselines3 as sb3
 
 def train(
@@ -45,6 +46,12 @@ def train(
            max_episode_size=params['max_episode_size'],
            n_steps=params['history_steps']
             )
+
+    
+    image_size = ( 
+        int(2 * train_env.top_view_size * len(train_env._maze_structure[0])),
+        int(2 * train_env.top_view_size * len(train_env._maze_structure))
+    )
 
     train_env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
             sb3.common.vec_env.dummy_vec_env.DummyVecEnv([
@@ -100,13 +107,17 @@ def train(
             name_prefix='rl_model',
             verbose=2
         ),
-        sb3.common.callbacks.EvalCallback(
-            eval_env,
-            best_model_save_path=os.path.join(logdir, 'models'),
-            log_path=os.path.join(logdir, 'models'),
+        Callback(
+            eval_env=eval_env,
+            logdir=os.path.join(logdir, 'videos'),
+            n_eval_episodes=5,
             eval_freq=params['eval_freq'],
-            render=False,
-            deterministic=True)
+            render_every=2,
+            image_size=image_size,
+            log_path=os.path.join(logdir, 'evaluations'),
+            best_model_save_path=os.path.join(logdir, 'models'),
+            verbose=2,
+            warn=True)
     ])
 
     model.learn(

@@ -55,7 +55,7 @@ params = {
     'OU_MEAN'                     : 0.00,
     'OU_SIGMA'                    : 0.2,
     'OU_THETA'                    : 0.015,
-    'top_view_size'               : 50.,
+    'top_view_size'               : 200,
 
     'batch_size'                  : 2,
     'lr'                          : 1e-3,

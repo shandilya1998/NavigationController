@@ -1,9 +1,3 @@
-from neurorobotics.utils.td3 import FeaturesExtractor
-from neurorobotics.constants import params
-from neurorobotics.simulations.maze_env import MazeEnv
-from neurorobotics.simulations.point import PointEnv
-from neurorobotics.simulations.maze_task import CustomGoalReward4Rooms
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import os
 import warnings
 import cv2
@@ -14,6 +8,12 @@ import torch
 from neurorobotics.utils import set_seeds
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import matplotlib.pyplot as plt
+from neurorobotics.utils.td3 import FeaturesExtractor
+from neurorobotics.constants import params
+from neurorobotics.simulations.maze_env import MazeEnv
+from neurorobotics.simulations.point import PointEnv
+from neurorobotics.simulations.maze_task import CustomGoalReward4Rooms
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 def linear_schedule(initial_value, final_value):
     """ 

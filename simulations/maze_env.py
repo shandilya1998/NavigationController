@@ -1967,6 +1967,11 @@ class SimpleRoomEnv(Environment):
 
         reward = inner_reward + outer_reward + collision_penalty + coverage_reward
         self.reward = reward
+        info['reward_keys'] = [
+                'inner_reward',
+                'outer_reward',
+                'collision_penalty',
+                'coverage_reward']
         info['inner_reward'] = inner_reward
         info['outer_reward'] = outer_reward
         info['collision_penalty'] = collision_penalty

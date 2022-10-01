@@ -25,3 +25,6 @@ update:
 
 monitor:
 	pio device monitor --port $(port)
+
+compiledb:
+	pio run -t compiledb

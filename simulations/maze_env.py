@@ -717,6 +717,7 @@ class SimpleRoomEnv(Environment):
         ]
         pos = self._ensure_not_a_block(struct, pos, row, col, neighbors)
         possibilities = [-np.pi, -3 * np.pi / 4, -np.pi / 2, -np.pi / 4, 0.0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi]
+        excluded = []
         for neighbor in neighbors:
             r, c = neighbor
             if self._check_structure_index_validity(r, c):
@@ -725,10 +726,17 @@ class SimpleRoomEnv(Environment):
                     _x, _y = self._rowcol_to_xy(r, c)
                     angle = np.arctan2(_y - y, _x - x)
                     index = possibilities.index(angle)
+                    excluded.append(angle)
+                    possibilities.pop(index)
+
+        for ea in excluded:
+            for p in possibilities:
+                if np.abs(ea - p) <= np.pi / 2:
+                    index = possibilities.index(p)
                     possibilities.pop(index)
 
         ori = np.random.choice([
-            np.random.uniform(low=p-np.pi / 4, high=p+np.pi / 4) for p in possibilities
+            np.random.uniform(low=p-np.pi / 12, high=p+np.pi / 12) for p in possibilities
         ])
 
         if ori > np.pi:

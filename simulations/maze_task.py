@@ -308,7 +308,7 @@ def create_simple_room_maze(
                 characteristics={
                         'hsv_low': copy.deepcopy(hsv_low),
                         'hsv_high': copy.deepcopy(hsv_high),
-                        'threshold': 2.25 if i == goal_index else 1.5,
+                        'threshold': 1.5 if i == goal_index else 1.5,
                         'target': True if i == goal_index else False,
                         'rgb': copy.deepcopy(rgb),
                         'size': copy.deepcopy(size),

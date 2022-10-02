@@ -38,7 +38,7 @@ params = {
     'render_freq'                 : int(4e4),
     'save_freq'                   : int(4e4),
     'eval_freq'                   : int(2e4),
-    'buffer_size'                 : int(1.75e5),
+    'buffer_size'                 : int(3e4),
     'max_episode_size'            : int(5e2),
     'max_seq_len'                 : 5,
     'seq_sample_freq'             : 5,
@@ -57,7 +57,7 @@ params = {
     'OU_THETA'                    : 0.015,
     'top_view_size'               : 200,
 
-    'batch_size'                  : 64,
+    'batch_size'                  : 125,
     'lr'                          : 1e-3,
     'final_lr'                    : 1e-5,
     'n_steps'                     : 2000,

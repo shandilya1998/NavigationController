@@ -13,7 +13,6 @@ def train(
         policy_class: Union[str, sb3.common.policies.BasePolicy],
         params: Dict,
         lr_schedule: sb3.common.type_aliases.Schedule,
-        action_noise: sb3.common.noise.ActionNoise,
         policy_kwargs: Dict,
         device: str = 'auto',
         logdir: str = 'assets/outputs/',
@@ -28,10 +27,6 @@ def train(
     :param type: Dict
     :param lr_schedule: learning rate schedule for training model
     :type lr_schedule: sb3.common.type_aliases.Schedule
-    :param action_noise: action noise for td3 model
-    :type action_noise: sb3.common.noise.ActionNoise
-    :param logdir: path of output directory
-    :type param: str
     """
     if os.path.exists(logdir):
         shutil.rmtree(logdir)
@@ -73,24 +68,21 @@ def train(
                     ])
             )
 
-    model = sb3.TD3(
+    model = sb3.PPO(
             policy=policy_class,
             env=train_env,
             learning_rate=lr_schedule,
-            buffer_size=params['buffer_size'],
-            learning_starts=params['learning_starts'],
+            n_steps=params['max_episode_size'],
             batch_size=params['batch_size'],
-            tau=params['tau'],
+            n_epochs=10,
             gamma=params['gamma'],
-            train_freq=(1, 'episode'),
-            gradient_steps=-1,
-            action_noise=action_noise,
-            replay_buffer_class=sb3.common.buffers.DictReplayBuffer,
-            replay_buffer_kwargs=None,
-            optimize_memory_usage=False,
-            policy_delay=params['policy_delay'],
-            target_policy_noise=0.2,
-            target_noise_clip=0.5,
+            gae_lambda=0.95,
+            clip_range=0.2,
+            clip_range_vf=None,
+            ent_coef=0.1,
+            vf_coef=0.5,
+            max_grad_norm=0.5,
+            use_sde=False,
             tensorboard_log=logdir,
             create_eval_env=False,
             policy_kwargs=policy_kwargs,
@@ -104,7 +96,7 @@ def train(
         sb3.common.callbacks.CheckpointCallback(
             save_freq=params['save_freq'],
             save_path=os.path.join(logdir, 'models'),
-            name_prefix='td3_model',
+            name_prefix='ppo_model',
             verbose=2
         ),
         Callback(

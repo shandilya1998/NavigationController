@@ -1,0 +1,132 @@
+[
+    {
+        "command": "/home/shandilya/.platformio/packages/toolchain-atmelavr/bin/avr-g++ -o .pio/build/uno/FrameworkArduino/CDC.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega328p -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60105 -DARDUINO_AVR_UNO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -I/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino -I/home/shandilya/.platformio/packages/framework-arduino-avr/variants/standard /home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/CDC.cpp",
+        "directory": "/home/shandilya/tools/neurorobotics/interfaces/arduino",
+        "file": "/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/CDC.cpp"
+    },
+    {
+        "command": "/home/shandilya/.platformio/packages/toolchain-atmelavr/bin/avr-g++ -o .pio/build/uno/FrameworkArduino/HardwareSerial.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega328p -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60105 -DARDUINO_AVR_UNO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -I/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino -I/home/shandilya/.platformio/packages/framework-arduino-avr/variants/standard /home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/HardwareSerial.cpp",
+        "directory": "/home/shandilya/tools/neurorobotics/interfaces/arduino",
+        "file": "/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/HardwareSerial.cpp"
+    },
+    {
+        "command": "/home/shandilya/.platformio/packages/toolchain-atmelavr/bin/avr-g++ -o .pio/build/uno/FrameworkArduino/HardwareSerial0.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega328p -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60105 -DARDUINO_AVR_UNO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -I/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino -I/home/shandilya/.platformio/packages/framework-arduino-avr/variants/standard /home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/HardwareSerial0.cpp",
+        "directory": "/home/shandilya/tools/neurorobotics/interfaces/arduino",
+        "file": "/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/HardwareSerial0.cpp"
+    },
+    {
+        "command": "/home/shandilya/.platformio/packages/toolchain-atmelavr/bin/avr-g++ -o .pio/build/uno/FrameworkArduino/HardwareSerial1.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega328p -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60105 -DARDUINO_AVR_UNO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -I/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino -I/home/shandilya/.platformio/packages/framework-arduino-avr/variants/standard /home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/HardwareSerial1.cpp",
+        "directory": "/home/shandilya/tools/neurorobotics/interfaces/arduino",
+        "file": "/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/HardwareSerial1.cpp"
+    },
+    {
+        "command": "/home/shandilya/.platformio/packages/toolchain-atmelavr/bin/avr-g++ -o .pio/build/uno/FrameworkArduino/HardwareSerial2.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega328p -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60105 -DARDUINO_AVR_UNO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -I/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino -I/home/shandilya/.platformio/packages/framework-arduino-avr/variants/standard /home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/HardwareSerial2.cpp",
+        "directory": "/home/shandilya/tools/neurorobotics/interfaces/arduino",
+        "file": "/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/HardwareSerial2.cpp"
+    },
+    {
+        "command": "/home/shandilya/.platformio/packages/toolchain-atmelavr/bin/avr-g++ -o .pio/build/uno/FrameworkArduino/HardwareSerial3.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega328p -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60105 -DARDUINO_AVR_UNO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -I/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino -I/home/shandilya/.platformio/packages/framework-arduino-avr/variants/standard /home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/HardwareSerial3.cpp",
+        "directory": "/home/shandilya/tools/neurorobotics/interfaces/arduino",
+        "file": "/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/HardwareSerial3.cpp"
+    },
+    {
+        "command": "/home/shandilya/.platformio/packages/toolchain-atmelavr/bin/avr-g++ -o .pio/build/uno/FrameworkArduino/IPAddress.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega328p -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60105 -DARDUINO_AVR_UNO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -I/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino -I/home/shandilya/.platformio/packages/framework-arduino-avr/variants/standard /home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/IPAddress.cpp",
+        "directory": "/home/shandilya/tools/neurorobotics/interfaces/arduino",
+        "file": "/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/IPAddress.cpp"
+    },
+    {
+        "command": "/home/shandilya/.platformio/packages/toolchain-atmelavr/bin/avr-g++ -o .pio/build/uno/FrameworkArduino/PluggableUSB.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega328p -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60105 -DARDUINO_AVR_UNO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -I/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino -I/home/shandilya/.platformio/packages/framework-arduino-avr/variants/standard /home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/PluggableUSB.cpp",
+        "directory": "/home/shandilya/tools/neurorobotics/interfaces/arduino",
+        "file": "/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/PluggableUSB.cpp"
+    },
+    {
+        "command": "/home/shandilya/.platformio/packages/toolchain-atmelavr/bin/avr-g++ -o .pio/build/uno/FrameworkArduino/Print.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega328p -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60105 -DARDUINO_AVR_UNO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -I/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino -I/home/shandilya/.platformio/packages/framework-arduino-avr/variants/standard /home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/Print.cpp",
+        "directory": "/home/shandilya/tools/neurorobotics/interfaces/arduino",
+        "file": "/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/Print.cpp"
+    },
+    {
+        "command": "/home/shandilya/.platformio/packages/toolchain-atmelavr/bin/avr-g++ -o .pio/build/uno/FrameworkArduino/Stream.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega328p -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60105 -DARDUINO_AVR_UNO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -I/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino -I/home/shandilya/.platformio/packages/framework-arduino-avr/variants/standard /home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/Stream.cpp",
+        "directory": "/home/shandilya/tools/neurorobotics/interfaces/arduino",
+        "file": "/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/Stream.cpp"
+    },
+    {
+        "command": "/home/shandilya/.platformio/packages/toolchain-atmelavr/bin/avr-g++ -o .pio/build/uno/FrameworkArduino/Tone.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega328p -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60105 -DARDUINO_AVR_UNO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -I/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino -I/home/shandilya/.platformio/packages/framework-arduino-avr/variants/standard /home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/Tone.cpp",
+        "directory": "/home/shandilya/tools/neurorobotics/interfaces/arduino",
+        "file": "/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/Tone.cpp"
+    },
+    {
+        "command": "/home/shandilya/.platformio/packages/toolchain-atmelavr/bin/avr-g++ -o .pio/build/uno/FrameworkArduino/USBCore.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega328p -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60105 -DARDUINO_AVR_UNO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -I/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino -I/home/shandilya/.platformio/packages/framework-arduino-avr/variants/standard /home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/USBCore.cpp",
+        "directory": "/home/shandilya/tools/neurorobotics/interfaces/arduino",
+        "file": "/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/USBCore.cpp"
+    },
+    {
+        "command": "/home/shandilya/.platformio/packages/toolchain-atmelavr/bin/avr-gcc -o .pio/build/uno/FrameworkArduino/WInterrupts.c.o -c -std=gnu11 -fno-fat-lto-objects -mmcu=atmega328p -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60105 -DARDUINO_AVR_UNO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -I/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino -I/home/shandilya/.platformio/packages/framework-arduino-avr/variants/standard /home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/WInterrupts.c",
+        "directory": "/home/shandilya/tools/neurorobotics/interfaces/arduino",
+        "file": "/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/WInterrupts.c"
+    },
+    {
+        "command": "/home/shandilya/.platformio/packages/toolchain-atmelavr/bin/avr-g++ -o .pio/build/uno/FrameworkArduino/WMath.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega328p -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60105 -DARDUINO_AVR_UNO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -I/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino -I/home/shandilya/.platformio/packages/framework-arduino-avr/variants/standard /home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/WMath.cpp",
+        "directory": "/home/shandilya/tools/neurorobotics/interfaces/arduino",
+        "file": "/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/WMath.cpp"
+    },
+    {
+        "command": "/home/shandilya/.platformio/packages/toolchain-atmelavr/bin/avr-g++ -o .pio/build/uno/FrameworkArduino/WString.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega328p -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60105 -DARDUINO_AVR_UNO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -I/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino -I/home/shandilya/.platformio/packages/framework-arduino-avr/variants/standard /home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/WString.cpp",
+        "directory": "/home/shandilya/tools/neurorobotics/interfaces/arduino",
+        "file": "/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/WString.cpp"
+    },
+    {
+        "command": "/home/shandilya/.platformio/packages/toolchain-atmelavr/bin/avr-g++ -o .pio/build/uno/FrameworkArduino/abi.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega328p -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60105 -DARDUINO_AVR_UNO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -I/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino -I/home/shandilya/.platformio/packages/framework-arduino-avr/variants/standard /home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/abi.cpp",
+        "directory": "/home/shandilya/tools/neurorobotics/interfaces/arduino",
+        "file": "/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/abi.cpp"
+    },
+    {
+        "command": "/home/shandilya/.platformio/packages/toolchain-atmelavr/bin/avr-gcc -o .pio/build/uno/FrameworkArduino/hooks.c.o -c -std=gnu11 -fno-fat-lto-objects -mmcu=atmega328p -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60105 -DARDUINO_AVR_UNO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -I/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino -I/home/shandilya/.platformio/packages/framework-arduino-avr/variants/standard /home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/hooks.c",
+        "directory": "/home/shandilya/tools/neurorobotics/interfaces/arduino",
+        "file": "/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/hooks.c"
+    },
+    {
+        "command": "/home/shandilya/.platformio/packages/toolchain-atmelavr/bin/avr-g++ -o .pio/build/uno/FrameworkArduino/main.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega328p -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60105 -DARDUINO_AVR_UNO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -I/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino -I/home/shandilya/.platformio/packages/framework-arduino-avr/variants/standard /home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/main.cpp",
+        "directory": "/home/shandilya/tools/neurorobotics/interfaces/arduino",
+        "file": "/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/main.cpp"
+    },
+    {
+        "command": "/home/shandilya/.platformio/packages/toolchain-atmelavr/bin/avr-g++ -o .pio/build/uno/FrameworkArduino/new.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega328p -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60105 -DARDUINO_AVR_UNO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -I/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino -I/home/shandilya/.platformio/packages/framework-arduino-avr/variants/standard /home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/new.cpp",
+        "directory": "/home/shandilya/tools/neurorobotics/interfaces/arduino",
+        "file": "/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/new.cpp"
+    },
+    {
+        "command": "/home/shandilya/.platformio/packages/toolchain-atmelavr/bin/avr-gcc -o .pio/build/uno/FrameworkArduino/wiring.c.o -c -std=gnu11 -fno-fat-lto-objects -mmcu=atmega328p -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60105 -DARDUINO_AVR_UNO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -I/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino -I/home/shandilya/.platformio/packages/framework-arduino-avr/variants/standard /home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/wiring.c",
+        "directory": "/home/shandilya/tools/neurorobotics/interfaces/arduino",
+        "file": "/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/wiring.c"
+    },
+    {
+        "command": "/home/shandilya/.platformio/packages/toolchain-atmelavr/bin/avr-gcc -o .pio/build/uno/FrameworkArduino/wiring_analog.c.o -c -std=gnu11 -fno-fat-lto-objects -mmcu=atmega328p -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60105 -DARDUINO_AVR_UNO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -I/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino -I/home/shandilya/.platformio/packages/framework-arduino-avr/variants/standard /home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/wiring_analog.c",
+        "directory": "/home/shandilya/tools/neurorobotics/interfaces/arduino",
+        "file": "/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/wiring_analog.c"
+    },
+    {
+        "command": "/home/shandilya/.platformio/packages/toolchain-atmelavr/bin/avr-gcc -o .pio/build/uno/FrameworkArduino/wiring_digital.c.o -c -std=gnu11 -fno-fat-lto-objects -mmcu=atmega328p -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60105 -DARDUINO_AVR_UNO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -I/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino -I/home/shandilya/.platformio/packages/framework-arduino-avr/variants/standard /home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/wiring_digital.c",
+        "directory": "/home/shandilya/tools/neurorobotics/interfaces/arduino",
+        "file": "/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/wiring_digital.c"
+    },
+    {
+        "command": "/home/shandilya/.platformio/packages/toolchain-atmelavr/bin/avr-as -mmcu=atmega328p -o .pio/build/uno/FrameworkArduino/wiring_pulse.S.o /home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/wiring_pulse.S",
+        "directory": "/home/shandilya/tools/neurorobotics/interfaces/arduino",
+        "file": "/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/wiring_pulse.S"
+    },
+    {
+        "command": "/home/shandilya/.platformio/packages/toolchain-atmelavr/bin/avr-gcc -o .pio/build/uno/FrameworkArduino/wiring_pulse.c.o -c -std=gnu11 -fno-fat-lto-objects -mmcu=atmega328p -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60105 -DARDUINO_AVR_UNO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -I/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino -I/home/shandilya/.platformio/packages/framework-arduino-avr/variants/standard /home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/wiring_pulse.c",
+        "directory": "/home/shandilya/tools/neurorobotics/interfaces/arduino",
+        "file": "/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/wiring_pulse.c"
+    },
+    {
+        "command": "/home/shandilya/.platformio/packages/toolchain-atmelavr/bin/avr-gcc -o .pio/build/uno/FrameworkArduino/wiring_shift.c.o -c -std=gnu11 -fno-fat-lto-objects -mmcu=atmega328p -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60105 -DARDUINO_AVR_UNO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -I/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino -I/home/shandilya/.platformio/packages/framework-arduino-avr/variants/standard /home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/wiring_shift.c",
+        "directory": "/home/shandilya/tools/neurorobotics/interfaces/arduino",
+        "file": "/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino/wiring_shift.c"
+    },
+    {
+        "command": "/home/shandilya/.platformio/packages/toolchain-atmelavr/bin/avr-g++ -o .pio/build/uno/src/oscillator.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega328p -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60105 -DARDUINO_AVR_UNO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -Iinclude -Isrc -I/home/shandilya/.platformio/packages/framework-arduino-avr/cores/arduino -I/home/shandilya/.platformio/packages/framework-arduino-avr/variants/standard src/oscillator.cpp",
+        "directory": "/home/shandilya/tools/neurorobotics/interfaces/arduino",
+        "file": "/home/shandilya/tools/neurorobotics/interfaces/arduino/src/oscillator.cpp"
+    }
+]

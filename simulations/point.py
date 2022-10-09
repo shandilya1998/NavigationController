@@ -67,7 +67,7 @@ class PointEnv(AgentModel):
         )
         self.rs1 = RunningStats()
         self.rs2 = RunningStats()
-        super().__init__(file_path, 1)
+        super().__init__(file_path, 100)
         obs = self._get_obs()
         spaces = {}
         for key, item in obs.items():

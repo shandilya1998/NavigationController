@@ -16,7 +16,7 @@ from neurorobotics.utils.env_utils import convert_observation_to_space
 from collections import defaultdict, OrderedDict
 import math
 import cv2
-from neurorobotics.constants import image_width, image_height
+from neurorobotics.constants import image_width, image_height, params
 
 class RunningStats:
 
@@ -67,7 +67,7 @@ class PointEnv(AgentModel):
         )
         self.rs1 = RunningStats()
         self.rs2 = RunningStats()
-        super().__init__(file_path, 1)
+        super().__init__(file_path, params['frame_skip'])
         obs = self._get_obs()
         spaces = {}
         for key, item in obs.items():

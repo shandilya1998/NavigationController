@@ -434,7 +434,7 @@ class SimpleRoomEnv(Environment):
             default = tree.find(".//default")
             default.find(".//geom").set("solimp", ".995 .995 .01")
         # Set `dt` from `params['dt']`
-        tree.find('.//option').set('timestep', str(params['dt']))
+        tree.find('.//option').set('timestep', str(params['dt'] / params['frame_skip']))
         self.movable_blocks = []
         self.object_balls = []
         self.obstacles = []

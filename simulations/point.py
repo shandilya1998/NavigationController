@@ -58,7 +58,7 @@ class PointEnv(AgentModel):
     RADIUS: float = 0.4
     VELOCITY_LIMITS: float = 10.0
 
-    def __init__(self, file_path: Optional[str] = 'point.xml') -> None:
+    def __init__(self, file_path: Optional[str] = 'point.xml', frame_skip: Optional[int] = 10) -> None:
         file_path = os.path.join(
             os.getcwd(),
             'assets',
@@ -67,7 +67,7 @@ class PointEnv(AgentModel):
         )
         self.rs1 = RunningStats()
         self.rs2 = RunningStats()
-        super().__init__(file_path, params['frame_skip'])
+        super().__init__(file_path, frame_skip)
         obs = self._get_obs()
         spaces = {}
         for key, item in obs.items():

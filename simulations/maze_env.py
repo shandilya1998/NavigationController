@@ -11,8 +11,7 @@ Based on `models`_ and `rllab`_.
     REFER TO THE FOLLOWING FOR GEOM AND BODY NAMES IN MODEL:
         https://github.com/openai/mujoco-py/blob/9dd6d3e8263ba42bfd9499a988b36abc6b8954e9/mujoco_py/generated/wrappers.pxi
 """
-
-from abc import abstractmethod
+#pylint: disable=wrong-import-position
 import itertools as it
 import os
 import tempfile
@@ -32,7 +31,6 @@ import cv2
 import colorsys
 import open3d as o3d
 from neurorobotics.utils.point_cloud import rotMatList2NPRotMat
-import matplotlib.pyplot as plt
 
 # Directory that contains mujoco xml files.
 MODEL_DIR = os.path.join(os.getcwd(), 'neurorobotics/assets', 'xml')
@@ -119,6 +117,23 @@ def transform_pose(points, current_pose):
     return points
 
 
+def func(x):
+    x_int, x_frac = int(x), x % 1
+    if x_frac > 0.5:
+        x_int += 1
+    return x_int
+
+
+def func2(x):
+    x_int, x_frac = int(x), x % 1
+    if x_frac > 0.5:
+        x_int += 1
+        x_frac -= 0.5
+    else:
+        x_frac += 0.5
+    return x_int, x_frac
+
+
 class Environment(gym.Env):
     """Base Class for a stochastic maze environment.
     
@@ -159,7 +174,7 @@ class Environment(gym.Env):
         maze_task_generator: Callable,
         max_episode_size: int = 2000,
         n_steps=50,
-        include_position: bool = True,
+        frame_skip: int = 10,
         maze_height: float = 0.5,
         maze_size_scaling: float = 4.0,
         inner_reward_scaling: float = 1.0,
@@ -174,6 +189,7 @@ class Environment(gym.Env):
     ) -> None:
         """INITIALIZE.
         """
+        self.frame_skip = frame_skip
         self.mode = mode
         self.collision_count = 0
         self.n_steps = n_steps
@@ -201,104 +217,7 @@ class Environment(gym.Env):
         self._websock_server_pipe = None
         # Let's create MuJoCo XML
         self.set_env()
-
-    @abstractmethod
-    def set_env(self):
-        """Processes environment configuration and initialises the environment.
-        """
-        raise NotImplementedError
-
-
-def func(x):
-    x_int, x_frac = int(x), x % 1
-    if x_frac > 0.5:
-        x_int += 1
-    return x_int
-
-
-def func2(x):
-    x_int, x_frac = int(x), x % 1
-    if x_frac > 0.5:
-        x_int += 1
-        x_frac -= 0.5
-    else:
-        x_frac += 0.5
-    return x_int, x_frac
-
-
-class SimpleRoomEnv(Environment):
-    """Base Class for a stochastic maze environment.
-    
-    :param model_cls: Class of agent to spawn
-    :type model_cls: Type[AgentModel]
-    :param maze_task_generator: generator method for sampling a random a maze task
-    :type maze_task_generator: Callable
-    :param max_episode_size: maximum number of steps permissible in an episode
-    :type max_episode_size: int = 2000,
-    :param n_steps: number of steps in the past to store state for
-    :type n_steps: int = 50,
-    :param include_position:
-    :type include_position: bool = True,
-    :param maze_height: height of maze in simulations
-    :type maze_height: float = 0.5,
-    :param maze_size_scaling:
-    :type maze_size_scaling: float = 4.0,
-    :param inner_reward_scaling:
-    :type inner_reward_scaling: float = 1.0,
-    :param restitution_coef:
-    :type restitution_coef: float = 0.8,
-    :param websock_port:
-    :type websock_port: Optional[int] = None,
-    :param camera_move_x:
-    :type camera_move_x: Optional[float] = None,
-    :param camera_move_y:
-    :type camera_move_y: Optional[float] = None,
-    :param camera_zoom:
-    :type camera_zoom: Optional[float] = None,
-    :param image_shape:
-    :type image_shape: Tuple[int, int] = (600, 480),
-    :param mode:
-    :type mode: Optional[int]= None,
-    """
-    n_actions: int = 1
-    
-    def __init__(
-        self,
-        model_cls: Type[AgentModel],
-        maze_task_generator: Callable,
-        max_episode_size: int = 2000,
-        n_steps=50,
-        include_position: bool = True,
-        maze_height: float = 0.5,
-        maze_size_scaling: float = 4.0,
-        inner_reward_scaling: float = 1.0,
-        restitution_coef: float = 0.8,
-        websock_port: Optional[int] = None,
-        camera_move_x: Optional[float] = None,
-        camera_move_y: Optional[float] = None,
-        camera_zoom: Optional[float] = None,
-        image_shape: Tuple[int, int] = (600, 480),
-        mode=None,
-        **kwargs,
-    ) -> None:
-        super(SimpleRoomEnv, self).__init__(
-                model_cls,
-                maze_task_generator,
-                max_episode_size,
-                n_steps,
-                include_position,
-                maze_height,
-                maze_size_scaling,
-                inner_reward_scaling,
-                restitution_coef,
-                websock_port,
-                camera_move_x,
-                camera_move_y,
-                camera_zoom,
-                image_height,
-                mode,
-                **kwargs)
-
+ 
     def __set_structure(self) -> None:
         """Sample Maze Configuration from `maze_task_generator`.
         """
@@ -377,46 +296,7 @@ class SimpleRoomEnv(Environment):
         # print('x: ', x, ' y: ', y)
         # print('=================================')
         return x, y
-
-    def __create_accessory_functions(self) -> None:
-        """Method Setups up accessory functions for conversion from coordinate space in MuJoCo
-        simulation to networkx maze graph.
-        """
-        # Accessory functions.
-        # TODO
-        # Need to fix the following methods for appropriate conversions.
-        # Currently _init_torso_x
-
-        # print(self._init_torso_x)
-        # print(self._init_torso_y)
-        center_x = (len(self._maze_structure) // 2) * self._maze_size_scaling
-        center_y = (len(self._maze_structure) // 2) * self._maze_size_scaling
-        # print("center", center_x, center_y)
-        """
-        self._xy_to_rowcol = lambda x, y: (
-            func((y + self._init_torso_y) / self._maze_size_scaling),
-            func((x + self._init_torso_x) / self._maze_size_scaling),
-        )
-        self._xy_to_rowcol_v2 = lambda x, y: (
-            func2((y + self._init_torso_y) / self._maze_size_scaling),
-            func2((x + self._init_torso_x) / self._maze_size_scaling),
-        )
-        """
-        self._xy_to_rowcol = lambda x, y: (
-            func((y + self._init_torso_y) / self._maze_size_scaling),
-            func((x + self._init_torso_x) / self._maze_size_scaling)
-        )
-        self._xy_to_rowcol_v2 = lambda x, y: (
-            func2((y + self._init_torso_y / 2) / self._maze_size_scaling),
-            func2((x + self._init_torso_x / 2) / self._maze_size_scaling)
-        )
-
-        self._rowcol_to_xy = lambda r, c: (
-            c * self._maze_size_scaling - self._init_torso_y,
-            r * self._maze_size_scaling - self._init_torso_x
-        )
-        # print(self._xy_to_rowcol(self._init_torso_x, self._init_torso_y))
-
+    
     def __create_model(self):
         # Update a temporary xml for creating MuJoCo world model.
         xml_path = os.path.join(MODEL_DIR, self.model_cls.FILE)
@@ -528,7 +408,10 @@ class SimpleRoomEnv(Environment):
         self.world_tree = tree
 
         # Create required class attributes.
-        self.wrapped_env = self.model_cls(file_path=file_path, **self.kwargs)
+        self.wrapped_env = self.model_cls(
+            file_path=file_path,
+            frame_skip=self.frame_skip,
+            **self.kwargs)
         self.model = self.wrapped_env.model
         self.data = self.wrapped_env.data
         self.sim = self.wrapped_env.sim
@@ -594,9 +477,8 @@ class SimpleRoomEnv(Environment):
     def set_env(self):
         """Processes environment configuration and initialises the environment.
         """
-        self.__set_structure() 
-        # self.__create_accessory_functions()
-        self.__create_model() 
+        self.__set_structure()
+        self.__create_model()
         self.__init_features()
         self.__consolidate_and_startup()
 
@@ -838,9 +720,9 @@ class SimpleRoomEnv(Environment):
         # uncomment next line before uncommenting the block comment in the loop.
         # target_pos = self._graph_to_structure_index(target)
         # target_xy = self._rowcol_to_xy(*target_pos)
+        """
         for node in self._maze_graph.nodes():
             pos = self._graph_to_structure_index(node)
-            """
             xy = self._rowcol_to_xy(*pos)
             print(end='\n')
             print("===========================================================")
@@ -853,9 +735,7 @@ class SimpleRoomEnv(Environment):
                     self.sim.data.qpos[:2],
                     " Target XY: ",
                     target_xy)
-            """
             ele = self._maze_structure[pos[0]][pos[1]]
-            """
             if ele.is_robot():
                 print("Robot")
             elif ele.is_block():
@@ -863,10 +743,8 @@ class SimpleRoomEnv(Environment):
             elif ele.is_empty():
                 print("Empty")
             print("===========================================================")
-            """
+        """
         # top = self.render(mode='rgb_array') 
-        # plt.imshow(top)
-        # plt.show()
         paths = list(nx.algorithms.shortest_paths.generic.all_shortest_paths(
             self._maze_graph,
             source,
@@ -975,77 +853,6 @@ class SimpleRoomEnv(Environment):
 
     def get_ori(self) -> float:
         return self.wrapped_env.get_ori()
-
-    def _set_action_space(self):
-        low = self.wrapped_env.action_space.low[1:]
-        high = self.wrapped_env.action_space.high[1:]
-        self._action_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
-
-    def _set_observation_space(self, observation):
-        spaces = {
-            'frame_t': gym.spaces.Box(
-                low=np.zeros_like(observation['frame_t'], dtype = np.uint8),
-                high=255 * np.ones_like(observation['frame_t'], dtype = np.uint8),
-                shape=observation['frame_t'].shape,
-                dtype=observation['frame_t'].dtype
-            ),   
-            'sensors': gym.spaces.Box(
-                low=-np.ones_like(observation['sensors']),
-                high=np.ones_like(observation['sensors']),
-                shape=observation['sensors'].shape,
-                dtype=observation['sensors'].dtype
-            ),   
-            'inframe': gym.spaces.Box(
-                low=np.zeros_like(observation['inframe']),
-                high=np.ones_like(observation['inframe']),
-                shape=observation['inframe'].shape,
-                dtype=observation['inframe'].dtype
-            ),
-            'positions': gym.spaces.Box(
-                low=-np.ones_like(observation['positions']) * 40,
-                high=np.ones_like(observation['positions']) * 40,
-                shape=observation['positions'].shape,
-                dtype=observation['positions'].dtype
-            ),
-            'bbx': gym.spaces.Box(
-                low=np.zeros_like(observation['bbx']),
-                high=np.ones_like(observation['bbx']) * np.array([image_width, image_height, image_width, image_height], dtype = np.float32),
-                shape=observation['bbx'].shape,
-                dtype=observation['bbx'].dtype
-            ),
-            'sampled_action': gym.spaces.Box(
-                low=self.action_space.low,
-                high=self.action_space.high,
-                shape=self.action_space.shape,
-                dtype=self.action_space.dtype
-            ),
-            'scaled_sampled_action': gym.spaces.Box(
-                low=np.zeros_like(observation['scaled_sampled_action']),
-                high=np.ones_like(observation['scaled_sampled_action']),
-                shape=observation['scaled_sampled_action'].shape,
-                dtype=observation['scaled_sampled_action'].dtype
-            )    
-        }
-    
-        if params['add_ref_scales']:
-            """
-            spaces['ref_window'] = gym.spaces.Box(
-                low = np.zeros_like(observation['ref_window'], dtype = np.uint8),
-                high = 255 * np.ones_like(observation['ref_window'], dtype = np.uint8),
-                shape = observation['ref_window'].shape,
-                dtype = observation['ref_window'].dtype
-            )
-            """
-            spaces['ref_frame_t'] = gym.spaces.Box(
-                low = np.zeros_like(observation['ref_frame_t'], dtype = np.uint8),
-                high = 255 * np.ones_like(observation['ref_frame_t'], dtype = np.uint8),
-                shape = observation['ref_frame_t'].shape,
-                dtype = observation['ref_frame_t'].dtype
-            )
-
-        self.observation_space = gym.spaces.Dict(spaces)
-
-        return self.observation_space
 
     def _xy_limits(self) -> Tuple[float, float, float, float]:
         xmin, ymin, xmax, ymax = 100, 100, -100, -100
@@ -1243,7 +1050,7 @@ class SimpleRoomEnv(Environment):
     def _get_point_cloud(self, depth):
         depth_img = self._get_depth(depth)
         depth_img = depth_img.reshape(-1)
-        points = np.zeros(depth.shape + (3,), dtype = np.float64).reshape(-1, 3)
+        points = np.zeros(depth.shape + (3,), dtype=np.float64).reshape(-1, 3)
         points[:, 1] = (self.indices_x - self.cam_mat[0, 2]) * depth_img / self.cam_mat[0, 0]
         points[:, 0] = (self.indices_y - self.cam_mat[1, 2]) * depth_img / self.cam_mat[1, 1]
         points[:, 2] = depth_img
@@ -1419,27 +1226,30 @@ class SimpleRoomEnv(Environment):
         )
 
         floor_cloud = self._get_floor(cloud, hsv)
-        floor_ego_map = self._cloud2map(floor_cloud,
-            res = self.resolution,
-            side_range = self.ego_map_side_range,
-            fwd_range = self.ego_map_fwd_range,
-            height_range = self.height_range
+        floor_ego_map = self._cloud2map(
+            floor_cloud,
+            res=self.resolution,
+            side_range=self.ego_map_side_range,
+            fwd_range=self.ego_map_fwd_range,
+            height_range=self.height_range
         )
         floor_ego_map[floor_ego_map > 0] = 255 - floor_ego_map[floor_ego_map > 0]
         
         objects_cloud = self._get_objects(cloud, hsv)
-        objects_ego_map = self._cloud2map(objects_cloud, 
-            res = self.resolution,
-            side_range = self.ego_map_side_range,
-            fwd_range = self.ego_map_fwd_range,
-            height_range = self.height_range
+        objects_ego_map = self._cloud2map(
+            objects_cloud,
+            res=self.resolution,
+            side_range=self.ego_map_side_range,
+            fwd_range=self.ego_map_fwd_range,
+            height_range=self.height_range
         )
         target_cloud = self._get_target(cloud, hsv)
-        target_ego_map = self._cloud2map(target_cloud,
-            res = self.resolution,
-            side_range = self.ego_map_side_range,
-            fwd_range = self.ego_map_fwd_range,
-            height_range = self.height_range
+        target_ego_map = self._cloud2map(
+            target_cloud,
+            res=self.resolution,
+            side_range=self.ego_map_side_range,
+            fwd_range=self.ego_map_fwd_range,
+            height_range=self.height_range
         )
         return complete_ego_map, border_ego_map, floor_ego_map, objects_ego_map, target_ego_map
 
@@ -1473,25 +1283,28 @@ class SimpleRoomEnv(Environment):
         floor_cloud = self.inv_transform_cloud_pose(g_floor_cloud, xy, R)
         objects_cloud = self.inv_transform_cloud_pose(g_objects_cloud, xy, R)
         
-        border_ego_map = self._cloud2map(borders_cloud,
-            res = self.resolution,
-            side_range = self.ego_map_side_range,
-            fwd_range = self.ego_map_fwd_range,
-            height_range = self.height_range
+        border_ego_map = self._cloud2map(
+            borders_cloud,
+            res=self.resolution,
+            side_range=self.ego_map_side_range,
+            fwd_range=self.ego_map_fwd_range,
+            height_range=self.height_range
         )
 
-        floor_ego_map = self._cloud2map(floor_cloud,
-            res = self.resolution,
-            side_range = self.ego_map_side_range,
-            fwd_range = self.ego_map_fwd_range,
-            height_range = self.height_range
+        floor_ego_map = self._cloud2map(
+            floor_cloud,
+            res=self.resolution,
+            side_range=self.ego_map_side_range,
+            fwd_range=self.ego_map_fwd_range,
+            height_range=self.height_range
         )
 
-        objects_ego_map = self._cloud2map(objects_cloud, 
-            res = self.resolution,
-            side_range = self.ego_map_side_range,
-            fwd_range = self.ego_map_fwd_range,
-            height_range = self.height_range
+        objects_ego_map = self._cloud2map(
+            objects_cloud, 
+            res=self.resolution,
+            side_range=self.ego_map_side_range,
+            fwd_range=self.ego_map_fwd_range,
+            height_range=self.height_range
         )
         return np.stack([border_ego_map, floor_ego_map, objects_ego_map], -1)
 
@@ -1567,14 +1380,14 @@ class SimpleRoomEnv(Environment):
         loc_map = ego_map[start: end, start: end]
         return loc_map
 
-    def get_maps(self,
+    def get_maps(
+            self,
             depth,
             rgb,
-            res = 0.1,
-            side_range = (-40, 40),
-            fwd_range = (-40, 40),
-            height_range = (0, 1.5)
-        ):
+            res=0.1,
+            side_range=(-40, 40),
+            fwd_range=(-40, 40),
+            height_range=(0, 1.5)):
         borders_cloud, floor_cloud, objects_cloud = self.get_ego_clouds(depth, rgb)
 
         border_x_points = borders_cloud[:, 0]
@@ -1662,6 +1475,382 @@ class SimpleRoomEnv(Environment):
         # ego_map = self.get_ego_map(borders_cloud, floor_cloud, objects_cloud)
         loc_map = self.get_local_map(self.map)
         return loc_map
+    
+    @property
+    def viewer(self) -> Any:
+        if self._websock_port is not None:
+            return self._mj_viewer
+        else:
+            return self.wrapped_env.viewer
+
+    def _render_image(self) -> np.ndarray:
+        self._mj_offscreen_viewer._set_mujoco_buffers()
+        self._mj_offscreen_viewer.render(640, 480)
+        return np.asarray(
+            self._mj_offscreen_viewer.read_pixels(640, 480, depth=False)[::-1, :, :],
+            dtype=np.uint8,
+        )
+
+    """
+    def _render_image(self) -> np.ndarray:
+        self._mj_offscreen_viewer._set_mujoco_buffers()
+        self._mj_offscreen_viewer.render(*self._image_shape)
+        pixels = self._mj_offscreen_viewer.read_pixels(*self._image_shape, depth=False)
+        return np.asarray(pixels[::-1, :, :], dtype=np.uint8)
+    """
+
+    def _maybe_move_camera(self, viewer: Any) -> None:
+        from mujoco_py import const
+
+        if self._camera_move_x is not None:
+            viewer.move_camera(const.MOUSE_ROTATE_V, self._camera_move_x, 0.0)
+        if self._camera_move_y is not None:
+            viewer.move_camera(const.MOUSE_ROTATE_H, 0.0, self._camera_move_y)
+        if self._camera_zoom is not None:
+            viewer.move_camera(const.MOUSE_ZOOM, 0, self._camera_zoom)
+ 
+    def _find_robot(self) -> Tuple[float, float]:
+        structure = self._maze_structure
+        size_scaling = self._maze_size_scaling
+        for i, j in it.product(range(len(structure)), range(len(structure[0]))):
+            if structure[i][j].is_robot():
+                return j * size_scaling, i * size_scaling
+        raise ValueError("No robot in maze specification.")
+
+    def _find_all_robots(self) -> List[Tuple[float, float]]:
+        structure = self._maze_structure
+        size_scaling = self._maze_size_scaling
+        coords = []
+        for i, j in it.product(range(len(structure)), range(len(structure[0]))):
+            if structure[i][j].is_robot():
+                coords.append((j * size_scaling, i * size_scaling))
+        return coords
+
+    def _objball_positions(self):
+        return [
+            self.wrapped_env.get_body_com(name)[:2].copy() for name in self.object_balls
+        ]
+
+    def _is_in_collision(self):
+        for contact in self.data.contact:
+            geom1 = contact.geom1
+            geom2 = contact.geom2
+            if geom1 != 0 and geom2 != 0:
+                if geom1 in self.obstacles_ids:
+                    if geom2 in self.agent_ids:
+                        return True
+                if geom2 in self.obstacles_ids:
+                    if geom1 in self.agent_ids:
+                        return True
+            else:
+                return False
+
+    def check_position(self, pos):
+        (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(pos[0], pos[1])
+        blind = [False, False, False, False]
+        collision = False
+        outbound = False
+        neighbors = [
+            (row, col + 1),
+            (row, col - 1),
+            (row + 1, col),
+            (row - 1, col),
+        ]
+        row_frac -= 0.5
+        col_frac -= 0.5
+        rpos = np.array([row_frac, col_frac], dtype = np.float32)
+        if row > 0 and col > 0 and row < len(self._maze_structure) - 1 and col < len(self._maze_structure[0]) - 1:
+            for i, (nrow, ncol) in enumerate(neighbors):
+                if not self._maze_structure[nrow][ncol].is_empty():
+                    rdir = (nrow - row)
+                    cdir = (ncol - col)
+                    direction = np.array([rdir, cdir], dtype = np.float32)
+                    distance = np.dot(rpos, direction)
+                    if distance > 0.325:
+                        collision = True
+                    if distance > 0.35:
+                        blind[i] = True
+        else:
+            outbound = True
+        return collision, blind, outbound
+
+    def conditional_blind(self, obs, yaw, b):
+        penalty = 0.0
+        for direction in b:
+            if direction:
+                penalty += -0.005 * self._inner_reward_scaling
+        
+        if self._is_in_collision():
+            penalty += -0.99 * self._inner_reward_scaling
+            self.collision_count += 1
+            #obs['window'] = np.zeros_like(obs['window'])
+            obs['frame_t'] = np.zeros_like(obs['frame_t'])
+            #obs['depth'] = np.zeros_like(obs['depth'])
+        
+        return obs, penalty
+    
+    def _get_current_cell(self):
+        robot_x, robot_y = self.wrapped_env.get_xy()
+        row, col = self._xy_to_rowcol(robot_x, robot_y)
+        index = self._structure_to_graph_index(row, col)
+        return index
+
+    def close(self) -> None:
+        self.wrapped_env.close()
+        if self._websock_server_pipe is not None:
+            self._websock_server_pipe.send(None)
+
+    def xy_to_imgrowcol(self, x, y): 
+        (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(x, y)
+        row = self.top_view_size * row + int(row_frac * self.top_view_size)
+        col = self.top_view_size * col + int(col_frac * self.top_view_size)
+        return row, col 
+
+    def render(self, mode = 'human', **kwargs):
+        if mode == 'rgb_array':
+            return self.get_top_view()
+        elif mode == "human" and self._websock_port is not None:
+            if self._mj_offscreen_viewer is None:
+                from mujoco_py import MjRenderContextOffscreen as MjRCO
+                from mujoco_maze.websock_viewer import start_server
+
+                self._mj_offscreen_viewer = MjRCO(self.wrapped_env.sim)
+                self._maybe_move_camera(self._mj_offscreen_viewer)
+                self._websock_server_pipe = start_server(self._websock_port)
+            return self._websock_server_pipe.send(self._render_image())
+        else:
+            if self.wrapped_env.viewer is None:
+                self.wrapped_env.render(mode, **kwargs)
+                self._maybe_move_camera(self.wrapped_env.viewer)
+            return self.wrapped_env.render(mode, **kwargs) 
+
+    def get_top_view(self):
+        block_size = self.top_view_size
+
+        img = np.zeros(
+            (int(block_size * len(self._maze_structure)), int(block_size * len(self._maze_structure[0])), 3),
+            dtype = np.uint8
+        )
+
+        for i in range(len(self._maze_structure)):
+            for j in range(len(self._maze_structure[0])):
+                if  self._maze_structure[i][j].is_wall_or_chasm():
+                    img[
+                        int(block_size * i): int(block_size * (i + 1)),
+                        int(block_size * j): int(block_size * (j + 1))
+                    ] = 128
+
+
+        def xy_to_imgrowcol(x, y):
+            (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(x, y)
+            # print('position: ', x, y)
+            # print('v2: ', row, row_frac, col, col_frac)
+            # print('v1', self._xy_to_rowcol(x, y))
+            row = block_size * row + int((row_frac) * block_size)
+            col = block_size * col + int((col_frac) * block_size)
+            return int(row), int(col)
+
+        pos = self.wrapped_env.get_xy() 
+        ori = self.wrapped_env.get_ori()
+        if ori < 0 and ori > -np.pi:
+            ori += 2 * np.pi
+        row, col = xy_to_imgrowcol(pos[0], pos[1])
+
+        # print('row col of agent: ', row, col)
+        # print('agent position: ', pos)
+
+        pt1_x = pos[0] + self._maze_size_scaling * 0.3 * np.cos(ori)
+        pt1_y = pos[1] + self._maze_size_scaling * 0.3 * np.sin(ori)
+        pt2_x = pos[0] + self._maze_size_scaling * 0.15 * np.cos(2 * np.pi / 3 + ori)
+        pt2_y = pos[1] + self._maze_size_scaling * 0.15 * np.sin(2 * np.pi / 3 + ori)
+        pt3_x = pos[0] + self._maze_size_scaling * 0.15 * np.cos(4 * np.pi / 3 + ori)
+        pt3_y = pos[1] + self._maze_size_scaling * 0.15 * np.sin(4 * np.pi / 3 + ori)
+
+        pt1 = xy_to_imgrowcol(pt1_x, pt1_y)
+        pt2 = xy_to_imgrowcol(pt2_x, pt2_y)
+        pt3 = xy_to_imgrowcol(pt3_x, pt3_y)
+        pt1 = (pt1[1], pt1[0])
+        pt2 = (pt2[1], pt2[0])
+        pt3 = (pt3[1], pt3[0])
+
+        """
+        print('pt1 row col:, ', pt1)
+        print('pt1 pos: ', pt1_x, pt1_y)
+        print('pt2 row col: ', pt2)
+        print('pt2 pos: ', pt2_x, pt2_y)
+        print('pt3 row col: ', pt3)
+        print('pt3 pos: ', pt3_x, pt3_y)
+        """
+
+        triangle_cnt = np.array( [pt1, pt2, pt3] )
+        cv2.drawContours(img, [triangle_cnt], 0, (255,255,255), -1)
+
+        #img[row - int(block_size / 10): row + int(block_size / 20), col - int(block_size / 20): col + int(block_size / 20)] = [255, 255, 255]
+        for i, goal in enumerate(self._task.objects):
+            pos = goal.pos
+            row, col = xy_to_imgrowcol(pos[0], pos[1])
+            if i == self._task.goal_index:
+                img[
+                    row - int(block_size / 10): row + int(block_size / 10),
+                    col - int(block_size / 10): col + int(block_size / 10)
+                ] = [0, 0, 255]
+            else:
+                img[
+                    row - int(block_size / 10): row + int(block_size / 10),
+                    col - int(block_size / 10): col + int(block_size / 10)
+                ] = [0, 255, 0]
+
+        return np.rot90(np.flipud(img))
+
+
+class SimpleRoomEnv(Environment):
+    """Base Class for a stochastic maze environment.
+    
+    :param model_cls: Class of agent to spawn
+    :type model_cls: Type[AgentModel]
+    :param maze_task_generator: generator method for sampling a random a maze task
+    :type maze_task_generator: Callable
+    :param max_episode_size: maximum number of steps permissible in an episode
+    :type max_episode_size: int
+    :param n_steps: number of steps in the past to store state for
+    :type n_steps: int
+    :param frame_skip:
+    :type frame_skip: int
+    :param maze_height: height of maze in simulations
+    :type maze_height: float
+    :param maze_size_scaling:
+    :type maze_size_scaling: float
+    :param inner_reward_scaling:
+    :type inner_reward_scaling: float
+    :param restitution_coef:
+    :type restitution_coef: float
+    :param websock_port:
+    :type websock_port: Optional[int]
+    :param camera_move_x:
+    :type camera_move_x: Optional[float]
+    :param camera_move_y:
+    :type camera_move_y: Optional[float]
+    :param camera_zoom:
+    :type camera_zoom: Optional[float]
+    :param image_shape:
+    :type image_shape: Tuple[int, int]
+    :param mode:
+    :type mode: Optional[int]
+    """
+    n_actions: int = 1
+
+    def __init__(
+        self,
+        model_cls: Type[AgentModel],
+        maze_task_generator: Callable,
+        max_episode_size: int = 2000,
+        n_steps=50,
+        frame_skip: int = 10,
+        maze_height: float = 0.5,
+        maze_size_scaling: float = 4.0,
+        inner_reward_scaling: float = 1.0,
+        restitution_coef: float = 0.8,
+        websock_port: Optional[int] = None,
+        camera_move_x: Optional[float] = None,
+        camera_move_y: Optional[float] = None,
+        camera_zoom: Optional[float] = None,
+        image_shape: Tuple[int, int] = (600, 480),
+        mode=None,
+        **kwargs,
+    ) -> None:
+        super(SimpleRoomEnv, self).__init__(
+                model_cls,
+                maze_task_generator,
+                max_episode_size,
+                n_steps,
+                frame_skip,
+                maze_height,
+                maze_size_scaling,
+                inner_reward_scaling,
+                restitution_coef,
+                websock_port,
+                camera_move_x,
+                camera_move_y,
+                camera_zoom,
+                image_shape,
+                mode,
+                **kwargs)
+
+    def _set_action_space(self):
+        low = self.wrapped_env.action_space.low[1:]
+        high = self.wrapped_env.action_space.high[1:]
+        self._action_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
+
+    def _set_observation_space(self, observation):
+        spaces = {
+            'frame_t': gym.spaces.Box(
+                low=np.zeros_like(observation['frame_t'], dtype=np.uint8),
+                high=255 * np.ones_like(observation['frame_t'], dtype=np.uint8),
+                shape=observation['frame_t'].shape,
+                dtype=observation['frame_t'].dtype
+            ),   
+            'sensors': gym.spaces.Box(
+                low=-np.ones_like(observation['sensors']),
+                high=np.ones_like(observation['sensors']),
+                shape=observation['sensors'].shape,
+                dtype=observation['sensors'].dtype
+            ),   
+            'inframe': gym.spaces.Box(
+                low=np.zeros_like(observation['inframe']),
+                high=np.ones_like(observation['inframe']),
+                shape=observation['inframe'].shape,
+                dtype=observation['inframe'].dtype
+            ),
+            'positions': gym.spaces.Box(
+                low=-np.ones_like(observation['positions']) * 40,
+                high=np.ones_like(observation['positions']) * 40,
+                shape=observation['positions'].shape,
+                dtype=observation['positions'].dtype
+            ),
+            'bbx': gym.spaces.Box(
+                low=np.zeros_like(observation['bbx']),
+                high=np.ones_like(
+                    observation['bbx']
+                ) * np.array(
+                    [image_width, image_height, image_width, image_height],
+                    dtype=np.float32
+                ),
+                shape=observation['bbx'].shape,
+                dtype=observation['bbx'].dtype
+            ),
+            'sampled_action': gym.spaces.Box(
+                low=self.action_space.low,
+                high=self.action_space.high,
+                shape=self.action_space.shape,
+                dtype=self.action_space.dtype
+            ),
+            'scaled_sampled_action': gym.spaces.Box(
+                low=np.zeros_like(observation['scaled_sampled_action']),
+                high=np.ones_like(observation['scaled_sampled_action']),
+                shape=observation['scaled_sampled_action'].shape,
+                dtype=observation['scaled_sampled_action'].dtype
+            )
+        }
+
+        if params['add_ref_scales']:
+            """
+            spaces['ref_window'] = gym.spaces.Box(
+                low = np.zeros_like(observation['ref_window'], dtype = np.uint8),
+                high = 255 * np.ones_like(observation['ref_window'], dtype = np.uint8),
+                shape = observation['ref_window'].shape,
+                dtype = observation['ref_window'].dtype
+            )
+            """
+            spaces['ref_frame_t'] = gym.spaces.Box(
+                low=np.zeros_like(observation['ref_frame_t'], dtype=np.uint8),
+                high=255 * np.ones_like(observation['ref_frame_t'], dtype=np.uint8),
+                shape=observation['ref_frame_t'].shape,
+                dtype=observation['ref_frame_t'].dtype
+            )
+
+        self.observation_space = gym.spaces.Dict(spaces)
+
+        return self.observation_space
 
     def get_known_blobs(
             self,
@@ -1788,119 +1977,6 @@ class SimpleRoomEnv(Environment):
         obs = self._get_obs()
         return obs
 
-    @property
-    def viewer(self) -> Any:
-        if self._websock_port is not None:
-            return self._mj_viewer
-        else:
-            return self.wrapped_env.viewer
-
-    def _render_image(self) -> np.ndarray:
-        self._mj_offscreen_viewer._set_mujoco_buffers()
-        self._mj_offscreen_viewer.render(640, 480)
-        return np.asarray(
-            self._mj_offscreen_viewer.read_pixels(640, 480, depth=False)[::-1, :, :],
-            dtype=np.uint8,
-        )
-
-    """
-    def _render_image(self) -> np.ndarray:
-        self._mj_offscreen_viewer._set_mujoco_buffers()
-        self._mj_offscreen_viewer.render(*self._image_shape)
-        pixels = self._mj_offscreen_viewer.read_pixels(*self._image_shape, depth=False)
-        return np.asarray(pixels[::-1, :, :], dtype=np.uint8)
-    """
-
-    def _maybe_move_camera(self, viewer: Any) -> None:
-        from mujoco_py import const
-
-        if self._camera_move_x is not None:
-            viewer.move_camera(const.MOUSE_ROTATE_V, self._camera_move_x, 0.0)
-        if self._camera_move_y is not None:
-            viewer.move_camera(const.MOUSE_ROTATE_H, 0.0, self._camera_move_y)
-        if self._camera_zoom is not None:
-            viewer.move_camera(const.MOUSE_ZOOM, 0, self._camera_zoom)
- 
-    def _find_robot(self) -> Tuple[float, float]:
-        structure = self._maze_structure
-        size_scaling = self._maze_size_scaling
-        for i, j in it.product(range(len(structure)), range(len(structure[0]))):
-            if structure[i][j].is_robot():
-                return j * size_scaling, i * size_scaling
-        raise ValueError("No robot in maze specification.")
-
-    def _find_all_robots(self) -> List[Tuple[float, float]]:
-        structure = self._maze_structure
-        size_scaling = self._maze_size_scaling
-        coords = []
-        for i, j in it.product(range(len(structure)), range(len(structure[0]))):
-            if structure[i][j].is_robot():
-                coords.append((j * size_scaling, i * size_scaling))
-        return coords
-
-    def _objball_positions(self):
-        return [
-            self.wrapped_env.get_body_com(name)[:2].copy() for name in self.object_balls
-        ]
-
-    def _is_in_collision(self):
-        for contact in self.data.contact:
-            geom1 = contact.geom1
-            geom2 = contact.geom2
-            if geom1 != 0 and geom2 != 0:
-                if geom1 in self.obstacles_ids:
-                    if geom2 in self.agent_ids:
-                        return True
-                if geom2 in self.obstacles_ids:
-                    if geom1 in self.agent_ids:
-                        return True
-            else:
-                return False
-
-    def check_position(self, pos):
-        (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(pos[0], pos[1])
-        blind = [False, False, False, False]
-        collision = False
-        outbound = False
-        neighbors = [
-            (row, col + 1),
-            (row, col - 1),
-            (row + 1, col),
-            (row - 1, col),
-        ]
-        row_frac -= 0.5
-        col_frac -= 0.5
-        rpos = np.array([row_frac, col_frac], dtype = np.float32)
-        if row > 0 and col > 0 and row < len(self._maze_structure) - 1 and col < len(self._maze_structure[0]) - 1:
-            for i, (nrow, ncol) in enumerate(neighbors):
-                if not self._maze_structure[nrow][ncol].is_empty():
-                    rdir = (nrow - row)
-                    cdir = (ncol - col)
-                    direction = np.array([rdir, cdir], dtype = np.float32)
-                    distance = np.dot(rpos, direction)
-                    if distance > 0.325:
-                        collision = True
-                    if distance > 0.35:
-                        blind[i] = True
-        else:
-            outbound = True
-        return collision, blind, outbound
-
-    def conditional_blind(self, obs, yaw, b):
-        penalty = 0.0
-        for direction in b:
-            if direction:
-                penalty += -0.005 * self._inner_reward_scaling
-        
-        if self._is_in_collision():
-            penalty += -0.99 * self._inner_reward_scaling
-            self.collision_count += 1
-            #obs['window'] = np.zeros_like(obs['window'])
-            obs['frame_t'] = np.zeros_like(obs['frame_t'])
-            #obs['depth'] = np.zeros_like(obs['depth'])
-        
-        return obs, penalty
-
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         # Proprocessing and Environment Update
         action = np.clip(action, a_min=self.action_space.low, a_max=self.action_space.high)
@@ -1985,119 +2061,6 @@ class SimpleRoomEnv(Environment):
         info['collision_penalty'] = collision_penalty
         info['coverage_reward'] = coverage_reward
         return next_obs, reward, done, info
-
-    def _get_current_cell(self):
-        robot_x, robot_y = self.wrapped_env.get_xy()
-        row, col = self._xy_to_rowcol(robot_x, robot_y)
-        index = self._structure_to_graph_index(row, col)
-        return index
-
-    def close(self) -> None:
-        self.wrapped_env.close()
-        if self._websock_server_pipe is not None:
-            self._websock_server_pipe.send(None)
-
-    def xy_to_imgrowcol(self, x, y): 
-        (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(x, y)
-        row = self.top_view_size * row + int(row_frac * self.top_view_size)
-        col = self.top_view_size * col + int(col_frac * self.top_view_size)
-        return row, col 
-
-    def render(self, mode = 'human', **kwargs):
-        if mode == 'rgb_array':
-            return self.get_top_view()
-        elif mode == "human" and self._websock_port is not None:
-            if self._mj_offscreen_viewer is None:
-                from mujoco_py import MjRenderContextOffscreen as MjRCO
-                from mujoco_maze.websock_viewer import start_server
-
-                self._mj_offscreen_viewer = MjRCO(self.wrapped_env.sim)
-                self._maybe_move_camera(self._mj_offscreen_viewer)
-                self._websock_server_pipe = start_server(self._websock_port)
-            return self._websock_server_pipe.send(self._render_image())
-        else:
-            if self.wrapped_env.viewer is None:
-                self.wrapped_env.render(mode, **kwargs)
-                self._maybe_move_camera(self.wrapped_env.viewer)
-            return self.wrapped_env.render(mode, **kwargs) 
-
-    def get_top_view(self):
-        block_size = self.top_view_size
-
-        img = np.zeros(
-            (int(block_size * len(self._maze_structure)), int(block_size * len(self._maze_structure[0])), 3),
-            dtype = np.uint8
-        )
-
-        for i in range(len(self._maze_structure)):
-            for j in range(len(self._maze_structure[0])):
-                if  self._maze_structure[i][j].is_wall_or_chasm():
-                    img[
-                        int(block_size * i): int(block_size * (i + 1)),
-                        int(block_size * j): int(block_size * (j + 1))
-                    ] = 128
-
-
-        def xy_to_imgrowcol(x, y):
-            (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(x, y)
-            # print('position: ', x, y)
-            # print('v2: ', row, row_frac, col, col_frac)
-            # print('v1', self._xy_to_rowcol(x, y))
-            row = block_size * row + int((row_frac) * block_size)
-            col = block_size * col + int((col_frac) * block_size)
-            return int(row), int(col)
-
-        pos = self.wrapped_env.get_xy() 
-        ori = self.wrapped_env.get_ori()
-        if ori < 0 and ori > -np.pi:
-            ori += 2 * np.pi
-        row, col = xy_to_imgrowcol(pos[0], pos[1])
-
-        # print('row col of agent: ', row, col)
-        # print('agent position: ', pos)
-
-        pt1_x = pos[0] + self._maze_size_scaling * 0.3 * np.cos(ori)
-        pt1_y = pos[1] + self._maze_size_scaling * 0.3 * np.sin(ori)
-        pt2_x = pos[0] + self._maze_size_scaling * 0.15 * np.cos(2 * np.pi / 3 + ori)
-        pt2_y = pos[1] + self._maze_size_scaling * 0.15 * np.sin(2 * np.pi / 3 + ori)
-        pt3_x = pos[0] + self._maze_size_scaling * 0.15 * np.cos(4 * np.pi / 3 + ori)
-        pt3_y = pos[1] + self._maze_size_scaling * 0.15 * np.sin(4 * np.pi / 3 + ori)
-
-        pt1 = xy_to_imgrowcol(pt1_x, pt1_y)
-        pt2 = xy_to_imgrowcol(pt2_x, pt2_y)
-        pt3 = xy_to_imgrowcol(pt3_x, pt3_y)
-        pt1 = (pt1[1], pt1[0])
-        pt2 = (pt2[1], pt2[0])
-        pt3 = (pt3[1], pt3[0])
-
-        """
-        print('pt1 row col:, ', pt1)
-        print('pt1 pos: ', pt1_x, pt1_y)
-        print('pt2 row col: ', pt2)
-        print('pt2 pos: ', pt2_x, pt2_y)
-        print('pt3 row col: ', pt3)
-        print('pt3 pos: ', pt3_x, pt3_y)
-        """
-
-        triangle_cnt = np.array( [pt1, pt2, pt3] )
-        cv2.drawContours(img, [triangle_cnt], 0, (255,255,255), -1)
-
-        #img[row - int(block_size / 10): row + int(block_size / 20), col - int(block_size / 20): col + int(block_size / 20)] = [255, 255, 255]
-        for i, goal in enumerate(self._task.objects):
-            pos = goal.pos
-            row, col = xy_to_imgrowcol(pos[0], pos[1])
-            if i == self._task.goal_index:
-                img[
-                    row - int(block_size / 10): row + int(block_size / 10),
-                    col - int(block_size / 10): col + int(block_size / 10)
-                ] = [0, 0, 255]
-            else:
-                img[
-                    row - int(block_size / 10): row + int(block_size / 10),
-                    col - int(block_size / 10): col + int(block_size / 10)
-                ] = [0, 255, 0]
-
-        return np.rot90(np.flipud(img))
 
 
 def _add_object_ball(

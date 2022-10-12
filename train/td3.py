@@ -44,8 +44,9 @@ def train(
            model_cls=agent_class,
            maze_task_generator=task_generator,
            max_episode_size=params['max_episode_size'],
-           n_steps=params['history_steps']
-            )
+           n_steps=params['history_steps'],
+           frame_skip=params['frame_skip']
+    )
 
     
     image_size = ( 
@@ -64,8 +65,9 @@ def train(
            model_cls=agent_class,
            maze_task_generator=task_generator,
            max_episode_size=params['max_episode_size'],
-           n_steps=params['history_steps']
-            )
+           n_steps=params['history_steps'],
+           frame_skip=params['frame_skip']
+    )
 
     eval_env = sb3.common.vec_env.vec_transpose.VecTransposeImage(
             sb3.common.vec_env.dummy_vec_env.DummyVecEnv([

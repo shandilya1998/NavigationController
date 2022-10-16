@@ -630,6 +630,7 @@ class Environment(gym.Env):
         # Setting Orientation to be fixed for `SimpleRoomEnv`
         # ori = 0.0
         # ori = -np.pi
+        self._start_ori = ori
         return pos, ori
 
     def set_goal_path(self):
@@ -1964,7 +1965,7 @@ class SimpleRoomEnv(Environment):
             'inframe': np.array([inframe], dtype=np.float32),
             'positions': positions.copy(),
             'bbx': bbx.copy(),
-            'pos': self.data.qpos[:3],
+            'achieved_goal': self.data.qpos[:3],
             'start_pos': self._start_pos,
             'sampled_action': sampled_action,
             'scaled_sampled_action': scaled_sampled_action
@@ -2209,9 +2210,13 @@ class LocalPlannerEnv(SimpleRoomEnv):
             (action.copy() - self.action_space.low) / (self.action_space.high - self.action_space.low) for action in self.actions
         ], -1)
 
+        start_pos = np.concatenate([
+                    self._start_pos,
+                    np.array([self._start_ori], dtype=np.float32)], -1)
         _obs = {
             'sensors': sensors.copy(),
-            'pos': self.data.qpos[:3],
+            'achieved_goal': self.data.qpos[:3] - start_pos,
+            'desired_goal': self._task.objects[self._task.goal_index].pos,
             'start_pos': self._start_pos,
             'sampled_action': sampled_action,
             'scaled_sampled_action': scaled_sampled_action

@@ -249,15 +249,15 @@ MAPS = {
             [B, B, B, B],
         ],
         'local_planner': [
-            [E, E, E, E, E, E, E, E, E],
-            [E, E, E, E, E, E, E, E, E],
-            [E, E, E, E, E, E, E, E, E],
-            [E, E, E, E, E, E, E, E, E],
-            [E, E, E, E, R, E, E, E, E],
-            [E, E, E, E, E, E, E, E, E],
-            [E, E, E, E, E, E, E, E, E],
-            [E, E, E, E, E, E, E, E, E],
-            [E, E, E, E, E, E, E, E, E],
+            [B, B, B, B, B, B, B, B, B],
+            [B, E, E, E, E, E, E, E, B],
+            [B, E, E, E, E, E, E, E, B],
+            [B, E, E, E, E, E, E, E, B],
+            [B, E, E, E, R, E, E, E, B],
+            [B, E, E, E, E, E, E, E, B],
+            [B, E, E, E, E, E, E, E, B],
+            [B, E, E, E, E, E, E, E, B],
+            [B, B, B, B, B, B, B, B, B],
         ]
 }
 
@@ -387,18 +387,18 @@ class SimpleRoom(Maze):
                 if observations['inframe']:
                     reward += 0.5 * obj.reward_scale + (
                             1 - np.linalg.norm(
-                                    observations['pos'] - obj.pos
+                                    observations['achieved_goal'] - obj.pos
                             ) / np.linalg.norm(
                                     observations['start_pos'] - obj.pos))
-                    if np.linalg.norm(observations['pos'] - obj.pos) <= 2.5 * obj.threshold:
+                    if np.linalg.norm(observations['achieved_goal'] - obj.pos) <= 2.5 * obj.threshold:
                         reward += 1.0 * obj.reward_scale
             else:
-                if obj.neighbor(observations['pos']):
+                if obj.neighbor(observations['achieved_goal']):
                     reward += -0.1
         return reward
 
     def termination(self, observations: Union[np.ndarray, Dict[str, np.ndarray]]) -> bool:
-        if self.objects[self.goal_index].neighbor(observations['pos']):
+        if self.objects[self.goal_index].neighbor(observations['achieved_goal']):
             return True
         return False
 
@@ -472,13 +472,13 @@ class LocalPlanner(Maze):
         super().__init__(structure, objects, goal_index, scale, reward_threshold)
 
     def reward(self, observations: Union[np.ndarray, Dict[str, np.ndarray]]) -> float:
-        euc_dist = self.objects[self.goal_index].euc_dist(observations['pos'][:2])
-        ori_dist = self.objects[self.goal_index].ori_dist(observations['pos'][-1])
+        euc_dist = self.objects[self.goal_index].euc_dist(observations['achieved_goal'][:2])
+        ori_dist = self.objects[self.goal_index].ori_dist(observations['achieved_goal'][-1])
         return -(euc_dist + ori_dist)
 
     def termination(self, observations: Union[np.ndarray, Dict[str, np.ndarray]]) -> bool:
-        # Need to ensure observations['pos'] contains the appropriate values.
-        return self.objects[self.goal_index].attained(observations['pos'])
+        # Need to ensure observations['achieved_goal'] contains the appropriate values.
+        return self.objects[self.goal_index].attained(observations['achieved_goal'])
 
 
 class TaskRegistry:

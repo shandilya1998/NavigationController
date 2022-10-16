@@ -39,6 +39,39 @@ def get_hsv_ranges(rgb):
         return (94, 80, 2), (126, 255, 255)
 
 
+def find_robot(structure, size_scaling):
+    for i, j in it.product(range(len(structure)), range(len(structure[0]))):
+        if structure[i][j].is_robot():
+            return j * size_scaling, i * size_scaling
+    raise ValueError("No robot in maze specification.")
+
+
+def check_target_object_distance(agent, target):
+    """Method to check if target is placed in the vicinity of the agent.
+
+    :param target: Target row and column.
+    :type target: Tuple[int, int]
+    :param agent: Agent row and column.
+    :type agent: Tuple[int, int]
+    """
+    arow, acol = agent
+    trow, tcol = target
+    if arow == trow:  # or arow + 1 == trow or arow - 1 == trow:
+        return True
+    if acol == tcol:  # or acol + 1 == tcol or acol - 1 == tcol:
+        return True
+    if arow + 1 == trow and acol + 1 == tcol:
+        return True
+    if arow - 1 == trow and acol + 1 == tcol:
+        return True
+    if arow + 1 == trow and acol - 1 == tcol:
+        return True
+    if arow - 1 == trow and acol - 1 == tcol:
+        return True
+
+    return False
+
+
 class MazeObject:
     def __init__(
         self,
@@ -57,6 +90,7 @@ class MazeObject:
         self.min_range = np.array(characteristics['hsv_low'], dtype=np.float32)
         self.max_range = np.array(characteristics['hsv_high'], dtype=np.float32)
         self.is_target = characteristics['target']
+        self.kind = 'object'
 
     def neighbor(self, obs: np.ndarray) -> float:
         return np.linalg.norm(obs[: self.dim] - self.pos) <= self.threshold
@@ -76,6 +110,37 @@ class MazeObject:
         return True, reversemask
 
 
+class MazePosition:
+    def __init__(
+        self,
+        pos: np.ndarray,
+        characteristics: Dict[str, Union[int, float, np.ndarray]],
+        reward_scale: float = 1.0,
+    ) -> None:
+        assert 0.0 <= reward_scale <= 1.0
+        self.pos = pos
+        self.dim = pos.shape[0] - 1
+        self.reward_scale = reward_scale
+        self.is_target = characteristics['target']
+        self.threshold = characteristics['threshold']
+        self.position_error_threshold = characteristics['position_error_threshold']
+        self.custom_size = None
+        self.kind = 'position'
+        self.ori = pos[-1]
+
+    def neighbor(self, pos: np.ndarray) -> float:
+        return np.linalg.norm(pos[: self.dim] - self.pos[:self.dim]) <= self.threshold
+
+    def euc_dist(self, pos: np.ndarray) -> float:
+        return np.sum(np.square(pos[: self.dim] - self.pos[:self.dim])) ** 0.5
+
+    def ori_dist(self, ori: float) -> float:
+        return np.abs(ori - self.ori)
+
+    def attained(self, pos: np.ndarray) -> bool:
+        return self.euc_dist(pos[:self.dim]) + self.ori_dist(self.pos[-1]) < self.position_error_threshold
+
+
 class Maze(ABC):
     """Base Class for all maze tasks
 
@@ -91,7 +156,7 @@ class Maze(ABC):
     def __init__(
             self,
             structure: List[List[int]],
-            objects: List[MazeObject],
+            objects: List[Union[MazeObject, MazePosition]],
             goal_index: int,
             scale: float,
             reward_threshold: float
@@ -182,40 +247,20 @@ MAPS = {
             [B, C, C, B],
             [B, E, E, B],
             [B, B, B, B],
+        ],
+        'local_planner': [
+            [E, E, E, E, E, E, E, E, E],
+            [E, E, E, E, E, E, E, E, E],
+            [E, E, E, E, E, E, E, E, E],
+            [E, E, E, E, E, E, E, E, E],
+            [E, E, E, E, R, E, E, E, E],
+            [E, E, E, E, E, E, E, E, E],
+            [E, E, E, E, E, E, E, E, E],
+            [E, E, E, E, E, E, E, E, E],
+            [E, E, E, E, E, E, E, E, E],
         ]
 }
 
-
-def find_robot(structure, size_scaling):
-    for i, j in it.product(range(len(structure)), range(len(structure[0]))):
-        if structure[i][j].is_robot():
-            return j * size_scaling, i * size_scaling
-    raise ValueError("No robot in maze specification.")
-
-def check_target_object_distance(agent, target):
-    """Method to check if target is placed in the vicinity of the agent.
-
-    :param target: Target row and column.
-    :type target: Tuple[int, int]
-    :param agent: Agent row and column.
-    :type agent: Tuple[int, int]
-    """
-    arow, acol = agent
-    trow, tcol = target
-    if arow == trow:  # or arow + 1 == trow or arow - 1 == trow:
-        return True
-    if acol == tcol:  # or acol + 1 == tcol or acol - 1 == tcol:
-        return True
-    if arow + 1 == trow and acol + 1 == tcol:
-        return True
-    if arow - 1 == trow and acol + 1 == tcol:
-        return True
-    if arow + 1 == trow and acol - 1 == tcol:
-        return True
-    if arow - 1 == trow and acol - 1 == tcol:
-        return True
-
-    return False
 
 def create_simple_room_maze(
         maze_size_scaling: float = 4.0,
@@ -298,8 +343,6 @@ def create_simple_room_maze(
             hsv_high.append(255)
         hsv_low.append(0)
         hsv_high.append(255)
-        center_x = (len(structure) // 2) * maze_size_scaling
-        center_y = (len(structure) // 2) * maze_size_scaling
         objects.append(MazeObject(
                 pos=np.array([
                         col * maze_size_scaling - torso_init[0],
@@ -358,7 +401,85 @@ class SimpleRoom(Maze):
         if self.objects[self.goal_index].neighbor(observations['pos']):
             return True
         return False
-        
+
+
+def create_local_planner_area(
+        maze_size_scaling: float = 4.0,
+):
+    structure = MAPS['local_planner']
+    num_objects = 1
+    torso_init = find_robot(structure, maze_size_scaling)
+    objects = []
+    _open_position_indices = []
+    agent_pos = None
+    for i in range(len(structure)):
+        for j in range(len(structure[i])):
+            if not structure[i][j].is_wall_or_chasm():
+                _open_position_indices.append([i, j])
+            if structure[i][j].is_robot():
+                agent_pos = [i, j]
+    # print(_open_position_indices)
+
+    _eligible_position_indices = []
+    for pos in _open_position_indices:
+        # print(agent_pos, pos)
+        if not check_target_object_distance(agent_pos, pos):
+            _eligible_position_indices.append(pos)
+
+    assert agent_pos is not None
+    # print(num_objects)
+    # print(_eligible_position_indices)
+    object_structure_indices = random.sample(_eligible_position_indices, num_objects)
+    # print(object_structure_indices)
+    goal_index = np.random.randint(low=0, high=num_objects)
+
+    objects = []
+
+    for i, [row, col] in enumerate(object_structure_indices):
+        ori = np.random.uniform(low=-np.pi, high=np.pi)
+        objects.append(MazePosition(
+                pos=np.array([
+                        col * maze_size_scaling - torso_init[0],
+                        row * maze_size_scaling - torso_init[1],
+                        ori
+                        ], dtype=np.float32),
+                characteristics={
+                        'threshold': 1.5 if i == goal_index else 1.5,
+                        'target': True if i == goal_index else False,
+                        'position_error_threshold' : 1e-2
+                    })
+                )
+
+    maze = LocalPlanner(
+        structure=structure,
+        objects=objects,
+        goal_index=goal_index,
+        scale=1.0,
+        reward_threshold=1.0
+    )
+    return maze, structure, _open_position_indices, agent_pos
+
+
+class LocalPlanner(Maze):
+    def __init__(
+            self,
+            structure: List[List[MazeCell]],
+            objects: List[MazePosition],
+            goal_index: int,
+            scale: float,
+            reward_threshold: float
+    ) -> None:
+        super().__init__(structure, objects, goal_index, scale, reward_threshold)
+
+    def reward(self, observations: Union[np.ndarray, Dict[str, np.ndarray]]) -> float:
+        euc_dist = self.objects[self.goal_index].euc_dist(observations['pos'][:2])
+        ori_dist = self.objects[self.goal_index].ori_dist(observations['pos'][-1])
+        return -(euc_dist + ori_dist)
+
+    def termination(self, observations: Union[np.ndarray, Dict[str, np.ndarray]]) -> bool:
+        # Need to ensure observations['pos'] contains the appropriate values.
+        return self.objects[self.goal_index].attained(observations['pos'])
+
 
 class TaskRegistry:
     REGISTRY: Dict[str, List[Callable]] = {

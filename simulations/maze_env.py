@@ -296,7 +296,7 @@ class Environment(gym.Env):
         # print('x: ', x, ' y: ', y)
         # print('=================================')
         return x, y
-    
+
     def __create_model(self):
         # Update a temporary xml for creating MuJoCo world model.
         xml_path = os.path.join(MODEL_DIR, self.model_cls.FILE)
@@ -384,24 +384,25 @@ class Environment(gym.Env):
             if "name" not in geom.attrib:
                 raise Exception("Every geom of the torso must have a name")
         for i, goal in enumerate(self._task.objects):
-            z = goal.pos[2] if goal.dim >= 3 else 0.1*self._maze_size_scaling
-            if goal.custom_size is None:
-                size = f"{self._maze_size_scaling * 0.1}"
-            else:
-                if isinstance(goal.custom_size, list):
-                    size = ' '.join(map(str, goal.custom_size))
+            if goal.kind == 'object':
+                z = goal.pos[2] if goal.dim >= 3 else 0.1*self._maze_size_scaling
+                if goal.custom_size is None:
+                    size = f"{self._maze_size_scaling * 0.1}"
                 else:
-                    size = f"{goal.custom_size}"
-            ET.SubElement(
-                worldbody,
-                "site",
-                name=f"goal_site{i}",
-                pos=f"{goal.pos[0]} {goal.pos[1]} {z}",
-                size=size,
-                rgba='{} {} {} 1'.format(goal.rgb.red, goal.rgb.green, goal.rgb.blue),
-                material="MatObj",
-                type=f"{goal.site_type}",
-            )    
+                    if isinstance(goal.custom_size, list):
+                        size = ' '.join(map(str, goal.custom_size))
+                    else:
+                        size = f"{goal.custom_size}"
+                ET.SubElement(
+                    worldbody,
+                    "site",
+                    name=f"goal_site{i}",
+                    pos=f"{goal.pos[0]} {goal.pos[1]} {z}",
+                    size=size,
+                    rgba='{} {} {} 1'.format(goal.rgb.red, goal.rgb.green, goal.rgb.blue),
+                    material="MatObj",
+                    type=f"{goal.site_type}",
+                )
         # Create temporary file for MuJoCo to find and load world model from.
         _, file_path = tempfile.mkstemp(text=True, suffix=".xml")
         tree.write(file_path)
@@ -525,7 +526,7 @@ class Environment(gym.Env):
         """
         # print('inside `_ensure_distance_from_target`')
         # print((row, row_frac), (col, col_frac), pos)
-        target_pos = self._task.objects[self._task.goal_index].pos
+        target_pos = self._task.objects[self._task.goal_index].pos[:2]
         pos_row, pos_col = self._xy_to_rowcol(target_pos[0], target_pos[1])
         if self.__check_target_object_distance([pos_row, pos_col], [row, col]):
             row, col = random.choice(self._open_position_indices)
@@ -578,7 +579,7 @@ class Environment(gym.Env):
         pos = self._rowcol_to_xy(row, col)
         # print("_set_init pos after conversion from row col: ", pos)
         self._start_pos = np.array(pos, dtype=np.float32)
-        target_pos = self._task.objects[self._task.goal_index].pos
+        target_pos = self._task.objects[self._task.goal_index].pos[:2]
         (row, row_frac), (col, col_frac), target_pos = self._ensure_distance_from_target(
             row, row_frac, col, col_frac, target_pos
         )
@@ -633,7 +634,7 @@ class Environment(gym.Env):
 
     def set_goal_path(self):
 
-        goal = self._task.objects[self._task.goal_index].pos - self.wrapped_env.get_xy()
+        goal = self._task.objects[self._task.goal_index].pos[:2] - self.wrapped_env.get_xy()
         self.goals = [goal.copy() for _ in range(self.n_steps)]
         self.positions = [np.zeros_like(self.data.qpos) for _ in range(self.n_steps)]
         self._create_maze_graph()
@@ -1558,13 +1559,13 @@ class Environment(gym.Env):
         ]
         row_frac -= 0.5
         col_frac -= 0.5
-        rpos = np.array([row_frac, col_frac], dtype = np.float32)
+        rpos = np.array([row_frac, col_frac], dtype=np.float32)
         if row > 0 and col > 0 and row < len(self._maze_structure) - 1 and col < len(self._maze_structure[0]) - 1:
             for i, (nrow, ncol) in enumerate(neighbors):
                 if not self._maze_structure[nrow][ncol].is_empty():
                     rdir = (nrow - row)
                     cdir = (ncol - col)
-                    direction = np.array([rdir, cdir], dtype = np.float32)
+                    direction = np.array([rdir, cdir], dtype=np.float32)
                     distance = np.dot(rpos, direction)
                     if distance > 0.325:
                         collision = True
@@ -1579,16 +1580,13 @@ class Environment(gym.Env):
         for direction in b:
             if direction:
                 penalty += -0.005 * self._inner_reward_scaling
-        
         if self._is_in_collision():
             penalty += -0.99 * self._inner_reward_scaling
             self.collision_count += 1
-            #obs['window'] = np.zeros_like(obs['window'])
-            obs['frame_t'] = np.zeros_like(obs['frame_t'])
-            #obs['depth'] = np.zeros_like(obs['depth'])
-        
+            if 'frame_t' in obs.keys():
+                obs['frame_t'] = np.zeros_like(obs['frame_t'])
         return obs, penalty
-    
+
     def _get_current_cell(self):
         robot_x, robot_y = self.wrapped_env.get_xy()
         row, col = self._xy_to_rowcol(robot_x, robot_y)
@@ -1600,13 +1598,13 @@ class Environment(gym.Env):
         if self._websock_server_pipe is not None:
             self._websock_server_pipe.send(None)
 
-    def xy_to_imgrowcol(self, x, y): 
+    def xy_to_imgrowcol(self, x, y):
         (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(x, y)
         row = self.top_view_size * row + int(row_frac * self.top_view_size)
         col = self.top_view_size * col + int(col_frac * self.top_view_size)
-        return row, col 
+        return row, col
 
-    def render(self, mode = 'human', **kwargs):
+    def render(self, mode='human', **kwargs):
         if mode == 'rgb_array':
             return self.get_top_view()
         elif mode == "human" and self._websock_port is not None:
@@ -1622,24 +1620,23 @@ class Environment(gym.Env):
             if self.wrapped_env.viewer is None:
                 self.wrapped_env.render(mode, **kwargs)
                 self._maybe_move_camera(self.wrapped_env.viewer)
-            return self.wrapped_env.render(mode, **kwargs) 
+            return self.wrapped_env.render(mode, **kwargs)
 
     def get_top_view(self):
         block_size = self.top_view_size
 
         img = np.zeros(
             (int(block_size * len(self._maze_structure)), int(block_size * len(self._maze_structure[0])), 3),
-            dtype = np.uint8
+            dtype=np.uint8
         )
 
         for i in range(len(self._maze_structure)):
             for j in range(len(self._maze_structure[0])):
-                if  self._maze_structure[i][j].is_wall_or_chasm():
+                if self._maze_structure[i][j].is_wall_or_chasm():
                     img[
                         int(block_size * i): int(block_size * (i + 1)),
                         int(block_size * j): int(block_size * (j + 1))
                     ] = 128
-
 
         def xy_to_imgrowcol(x, y):
             (row, row_frac), (col, col_frac) = self._xy_to_rowcol_v2(x, y)
@@ -1650,7 +1647,7 @@ class Environment(gym.Env):
             col = block_size * col + int((col_frac) * block_size)
             return int(row), int(col)
 
-        pos = self.wrapped_env.get_xy() 
+        pos = self.wrapped_env.get_xy()
         ori = self.wrapped_env.get_ori()
         if ori < 0 and ori > -np.pi:
             ori += 2 * np.pi
@@ -1704,7 +1701,7 @@ class Environment(gym.Env):
 
 
 class SimpleRoomEnv(Environment):
-    """Base Class for a stochastic maze environment.
+    """Simple Room Environment.
     
     :param model_cls: Class of agent to spawn
     :type model_cls: Type[AgentModel]
@@ -1869,6 +1866,27 @@ class SimpleRoomEnv(Environment):
         inframe = True if len(bbx) > 0 else False 
         return window, bbx, inframe
 
+    def get_current_frame(self, resize=False) -> np.ndarray:
+        """Returns the current frame from the camera buffer.
+
+        :param resize: Boolean switch to resize the ouput frame to observation shape.
+        :type resize: bool
+        :return: RGB Image
+        :rtype: np.ndarray
+        """
+        rgb = self.sim.render(
+                width=image_width,
+                height=image_height,
+                camera_name='mtdcam1',
+                depth=False
+                )
+        rgb = np.flipud(rgb)
+        if resize:
+            window, _, _ = self.__create_attention_window(rgb.copy())
+            shape = window.shape[:2]
+            rgb = cv2.resize(rgb, shape)
+        return rgb
+
 
     def _get_obs(self) -> Union[np.ndarray, Dict[str, np.ndarray]]:
         """Getter method for current observations.
@@ -1898,9 +1916,9 @@ class SimpleRoomEnv(Environment):
 
         # Sensor Readings
         ## Goal
-        goal = self._task.objects[self._task.goal_index].pos - self.wrapped_env.get_xy()
+        goal = self._task.objects[self._task.goal_index].pos[:2] - self.wrapped_env.get_xy()
         goal = np.array([
-            np.linalg.norm(goal) / np.linalg.norm(self._task.objects[self._task.goal_index].pos - self._init_pos),
+                np.linalg.norm(goal) / np.linalg.norm(self._task.objects[self._task.goal_index].pos[:2] - self._init_pos),
             self.check_angle(np.arctan2(goal[1], goal[0]) - self.get_ori()) / np.pi
         ], dtype = np.float32)
         """
@@ -1938,7 +1956,7 @@ class SimpleRoomEnv(Environment):
             ), 0
         )
 
-        positions = np.concatenate(self.positions + [self._task.objects[self._task.goal_index].pos], -1)
+        positions = np.concatenate(self.positions + [self._task.objects[self._task.goal_index].pos][:2], -1)
 
         _obs = {
             'frame_t': frame_t.copy(),
@@ -1946,7 +1964,7 @@ class SimpleRoomEnv(Environment):
             'inframe': np.array([inframe], dtype=np.float32),
             'positions': positions.copy(),
             'bbx': bbx.copy(),
-            'pos': self.wrapped_env.get_xy(),
+            'pos': self.data.qpos[:3],
             'start_pos': self._start_pos,
             'sampled_action': sampled_action,
             'scaled_sampled_action': scaled_sampled_action
@@ -1971,7 +1989,7 @@ class SimpleRoomEnv(Environment):
         self.set_env()
         action = self._action_space.sample()
         self.actions = [np.zeros_like(action) for i in range(self.n_steps)]
-        goal = self._task.objects[self._task.goal_index].pos - self.wrapped_env.get_xy()
+        goal = self._task.objects[self._task.goal_index].pos[:2] - self.wrapped_env.get_xy()
         self.goals = [goal.copy() for i in range(self.n_steps)]
         self.positions = [np.zeros_like(self.data.qpos) for _ in range(self.n_steps)]
         obs = self._get_obs()
@@ -2004,7 +2022,7 @@ class SimpleRoomEnv(Environment):
         coverage_reward = (coverage - last_coverage) * 0.05
 
         # Computing the reward in "https://ieeexplore.ieee.org/document/8398461"
-        goal = self._task.objects[self._task.goal_index].pos - self.wrapped_env.get_xy()
+        goal = self._task.objects[self._task.goal_index].pos[:2] - self.wrapped_env.get_xy()
         self.goals.pop(0)
         self.goals.append(goal)
         self.positions.pop(0)
@@ -2013,9 +2031,10 @@ class SimpleRoomEnv(Environment):
         qvel = self.wrapped_env.data.qvel.copy()
         vyaw = qvel[self.wrapped_env.ORI_IND]
         vmax = self.target_speed
-        if bool(next_obs['inframe'][0]):
-            inner_reward = (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / params['max_vyaw'])) * 0.005
-            inner_reward = self._inner_reward_scaling * inner_reward
+        if 'inframe' in next_obs.keys():
+            if bool(next_obs['inframe'][0]):
+                inner_reward = (v / vmax) * np.cos(theta_t) * (1 - (np.abs(vyaw) / params['max_vyaw'])) * 0.005
+                inner_reward = self._inner_reward_scaling * inner_reward
 
         # Task Reward Computation
         outer_reward = 0
@@ -2041,7 +2060,8 @@ class SimpleRoomEnv(Environment):
         if outbound:
             collision_penalty += -0.05 * self._inner_reward_scaling
             #next_obs['window'] = np.zeros_like(next_obs['window'])
-            next_obs['frame_t'] = np.zeros_like(next_obs['frame_t'])
+            if 'frame_t' in next_obs.keys():
+                next_obs['frame_t'] = np.zeros_like(next_obs['frame_t'])
             done = True
         if self.t > self.max_episode_size:
             done = True
@@ -2061,6 +2081,143 @@ class SimpleRoomEnv(Environment):
         info['collision_penalty'] = collision_penalty
         info['coverage_reward'] = coverage_reward
         return next_obs, reward, done, info
+
+
+class LocalPlannerEnv(SimpleRoomEnv):
+    """Local Planner Environment for Short Term Planning.
+    
+    :param model_cls: Class of agent to spawn
+    :type model_cls: Type[AgentModel]
+    :param maze_task_generator: generator method for sampling a random a maze task
+    :type maze_task_generator: Callable
+    :param max_episode_size: maximum number of steps permissible in an episode
+    :type max_episode_size: int
+    :param n_steps: number of steps in the past to store state for
+    :type n_steps: int
+    :param frame_skip:
+    :type frame_skip: int
+    :param maze_height: height of maze in simulations
+    :type maze_height: float
+    :param maze_size_scaling:
+    :type maze_size_scaling: float
+    :param inner_reward_scaling:
+    :type inner_reward_scaling: float
+    :param restitution_coef:
+    :type restitution_coef: float
+    :param websock_port:
+    :type websock_port: Optional[int]
+    :param camera_move_x:
+    :type camera_move_x: Optional[float]
+    :param camera_move_y:
+    :type camera_move_y: Optional[float]
+    :param camera_zoom:
+    :type camera_zoom: Optional[float]
+    :param image_shape:
+    :type image_shape: Tuple[int, int]
+    :param mode:
+    :type mode: Optional[int]
+    """
+    n_actions: int = 1
+
+    def __init__(
+        self,
+        model_cls: Type[AgentModel],
+        maze_task_generator: Callable,
+        max_episode_size: int = 2000,
+        n_steps=50,
+        frame_skip: int = 10,
+        maze_height: float = 0.5,
+        maze_size_scaling: float = 4.0,
+        inner_reward_scaling: float = 1.0,
+        restitution_coef: float = 0.8,
+        websock_port: Optional[int] = None,
+        camera_move_x: Optional[float] = None,
+        camera_move_y: Optional[float] = None,
+        camera_zoom: Optional[float] = None,
+        image_shape: Tuple[int, int] = (600, 480),
+        mode=None,
+        **kwargs,
+    ) -> None:
+        super(LocalPlannerEnv, self).__init__(
+                model_cls,
+                maze_task_generator,
+                max_episode_size,
+                n_steps,
+                frame_skip,
+                maze_height,
+                maze_size_scaling,
+                inner_reward_scaling,
+                restitution_coef,
+                websock_port,
+                camera_move_x,
+                camera_move_y,
+                camera_zoom,
+                image_shape,
+                mode,
+                **kwargs)
+
+    def _set_action_space(self):
+        """Sets the action space for this maze environment.
+        TODO: Set this as x, y, w and set appropriate limits on each.
+        """
+        low = self.wrapped_env.action_space.low[1:]
+        high = self.wrapped_env.action_space.high[1:]
+        self._action_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
+
+    def _set_observation_space(self, observation):
+        """Sets the observation space for this maze environment
+        TODO: Remove all memory intensive spaces and leave only a bare minimum needed to train the local planner.
+        """
+        spaces = {}
+        for key in observation.keys():
+            spaces[key] = gym.spaces.Box(
+                low=np.zeros_like(observation[key], dtype=np.uint8),
+                high=255 * np.ones_like(observation[key], dtype=np.uint8),
+                shape=observation[key].shape,
+                dtype=observation[key].dtype
+            )
+
+        self.observation_space = gym.spaces.Dict(spaces)
+
+        return self.observation_space
+
+    def _get_obs(self) -> Union[np.ndarray, Dict[str, np.ndarray]]:
+        """Getter method for current observations.
+
+        The following are the mandatory components of the observation `dict`:
+        * Current Visual Observation `frame_t`
+        * Attention Window in `frame_t` `window`
+        * Current Propreceptive Observation `sensors`
+        * Current Estimated Position in global frame of reference `pos`
+        * Start Position of the agent in the global frame of reference `start_pos`
+        * Information if the target object is present in the frame or not `inframe`
+
+        :return: Current Observations.
+        :rtype: Union[np.ndarray, Dict[str, np.ndarray]]
+        """
+        obs = self.wrapped_env._get_obs()
+
+        # Sampled Action
+        sampled_action = self.get_action().astype(np.float32)
+        low = self.action_space.low
+        high = self.action_space.high
+        scaled_sampled_action = (sampled_action - low) / (high - low)
+        sensors = np.concatenate([
+            obs,
+            np.array([self.reward]).copy()
+        ] + [
+            (action.copy() - self.action_space.low) / (self.action_space.high - self.action_space.low) for action in self.actions
+        ], -1)
+
+        _obs = {
+            'sensors': sensors.copy(),
+            'pos': self.data.qpos[:3],
+            'start_pos': self._start_pos,
+            'sampled_action': sampled_action,
+            'scaled_sampled_action': scaled_sampled_action
+        }
+
+        return _obs
 
 
 def _add_object_ball(

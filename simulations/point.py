@@ -69,15 +69,25 @@ class PointEnv(AgentModel):
         self.rs2 = RunningStats()
         super().__init__(file_path, frame_skip)
         obs = self._get_obs()
-        spaces = {}
-        for key, item in obs.items():
-            dtype = item.dtype
-            high = np.ones_like(item, dtype = dtype) * 255
-            low = np.zeros_like(item, dtype = dtype)
-            spaces[key] = gym.spaces.Box(
-                low, high, shape = item.shape, dtype = dtype
-            )
-        self.observation_space = gym.spaces.Dict(spaces)
+        spaces = None
+        if isinstance(obs, dict):
+            spaces = {}
+            for key, item in obs.items():
+                dtype = item.dtype
+                high = np.ones_like(item, dtype = dtype) * 255
+                low = np.zeros_like(item, dtype = dtype)
+                spaces[key] = gym.spaces.Box(
+                    low, high, shape = item.shape, dtype = dtype
+                )
+            self.observation_space = gym.spaces.Dict(spaces)
+        else:
+            self.observations_paces = gym.spaces.Box(
+                    dtype=obs.dtype,
+                    low=-np.inf,
+                    high=np.inf,
+                    shape=obs.shape
+                    )
+            
 
     def _set_action_space(self):
         # Modify def _setup_model(**kwargs) in class RTD3 if action space is modified
@@ -230,26 +240,12 @@ class PointEnv(AgentModel):
         self.set_state(qpos, self.data.qvel)
 
 
-class PointEnvV2(PointEnv):
-    def __init__(self, file_path: Optional[str] = 'point.xml') -> None:
-        super(PointEnvV2, self).__init__(file_path)
+class BlindPointEnv(PointEnv):
+    def __init__(self, file_path: Optional[str] = 'point.xml', frame_skip: [Optional] = 10) -> None:
+        super(BlindPointEnv, self).__init__(file_path, frame_skip=frame_skip)
     
-    def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
-        speed = action[0]
-        yaw = action[1]
-        dx = speed * np.cos(yaw) * self.dt
-        dy = speed * np.sin(yaw) * self.dt
-        qpos = self.sim.data.qpos.copy()
-        next_qpos = np.array([
-            qpos[0] + dx,
-            qpos[1] + dy,
-            yaw
-        ], dtype = np.float32)
-        qvel = self.sim.data.qvel.copy()
-        self.set_state(next_qpos, qvel)
-        for _ in range(0, self.frame_skip):
-            self.sim.step()
-        next_obs = self._get_obs()
-        reward = np.sum(np.square(self.data.qvel[:2] / self.VELOCITY_LIMITS)) / 2
-        reward = -np.square(self.data.qvel[2]) * 1e-3
-        return next_obs, reward, False, {}
+    def _get_obs(self):
+        return np.concatenate([
+                self.sim.data.qpos[:3],
+                self.sim.data.qvel[:3],
+                ], -1)

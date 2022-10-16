@@ -1,6 +1,6 @@
-from neurorobotics.simulations.maze_env import SimpleRoomEnv
-from neurorobotics.simulations.point import PointEnv
-from neurorobotics.simulations.maze_task import create_simple_room_maze
+from neurorobotics.simulations.maze_env import SimpleRoomEnv, LocalPlannerEnv
+from neurorobotics.simulations.point import BlindPointEnv, PointEnv
+from neurorobotics.simulations.maze_task import create_local_planner_area, create_simple_room_maze
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
@@ -25,12 +25,22 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     task_generator = None
+    env_class = None
+    agent_class = None
     if args.env == 'SimpleRoom':
+        env_class = SimpleRoomEnv
         task_generator = create_simple_room_maze
+        agent_class = PointEnv
+    if args.env == 'LocalPlanner':
+        env_class = LocalPlannerEnv
+        task_generator = create_local_planner_area
+        agent_class = BlindPointEnv
 
     assert task_generator is not None
+    assert env_class is not None
+    assert agent_class is not None
 
-    env = SimpleRoomEnv(PointEnv, task_generator)
+    env = env_class(agent_class, task_generator, max_episode_size=100)
 
     if os.path.exists(os.path.join('neurorobotics', 'assets', 'plots', 'tests')):
         shutil.rmtree(os.path.join('neurorobotics', 'assets', 'plots', 'tests'))
@@ -77,8 +87,11 @@ if __name__ == '__main__':
             top,
             cv2.COLOR_RGB2BGR
         )
-        frame_t = cv2.resize(ob['frame_t'], top.shape[:2])
-
+        frame_t = None
+        if 'frame_t' in ob.keys():
+            frame_t = cv2.resize(ob['frame_t'], top.shape[:2])
+        else:
+            frame_t = cv2.resize(env.get_current_frame(), top.shape[:2])
         image = np.concatenate([
                 frame_t, top
             ], 0).astype(np.uint8)

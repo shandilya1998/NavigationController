@@ -459,7 +459,6 @@ class Environment(gym.Env):
         self.wrapped_env.set_ori(self._init_ori)
         # print("Position after update: ", self.wrapped_env.data.qpos)
         self.dt = self.wrapped_env.dt
-        print(self.dt, params['dt'])
         assert self.dt * params['frame_skip']  == params['dt']
         self.obstacles_ids = []
         self.agent_ids = []

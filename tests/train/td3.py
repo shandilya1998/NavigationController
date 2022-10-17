@@ -3,12 +3,12 @@ import numpy as np
 import torch
 import argparse
 from neurorobotics.train.td3 import train
-from neurorobotics.simulations.maze_env import SimpleRoomEnv
-from neurorobotics.simulations.maze_task import create_simple_room_maze
-from neurorobotics.simulations.point import PointEnv
+from neurorobotics.simulations.maze_env import SimpleRoomEnv, LocalPlannerEnv
+from neurorobotics.simulations.maze_task import create_simple_room_maze, create_local_planner_area
+from neurorobotics.simulations.point import PointEnv, BlindPointEnv
 from neurorobotics.constants import params
 from neurorobotics.utils.schedules import linear_schedule
-from neurorobotics.utils.feature_extractors import DictToTensorFeaturesExtractor
+from neurorobotics.utils.feature_extractors import DictToTensorFeaturesExtractor, LocalPlannerFeaturesExtractor
 
 
 if __name__ == '__main__':
@@ -18,7 +18,28 @@ if __name__ == '__main__':
         type=str,
         help='Path to logging directory'
     )
+    parser.add_argument(
+        '--env',
+        type=str,
+        help='Environment to use for training td3 policy'
+
+    )
     args = parser.parse_args()
+
+    env_class = None
+    agent_class = None
+    task_generator = None
+    features_extractor_class = None
+    if args.env == 'SimpleRoom':
+        env_class = SimpleRoomEnv
+        agent_class = PointEnv
+        task_generator = create_simple_room_maze
+        features_extractor_class = DictToTensorFeaturesExtractor
+    elif args.env == 'LocalPlanner':
+        env_class = LocalPlannerEnv
+        agent_class = BlindPointEnv
+        task_generator = create_local_planner_area
+        features_extractor_class = LocalPlannerFeaturesExtractor
 
     action_noise = sb3.common.noise.OrnsteinUhlenbeckActionNoise(
         params['OU_MEAN'] * np.ones(SimpleRoomEnv.n_actions),
@@ -29,7 +50,7 @@ if __name__ == '__main__':
     policy_kwargs = {
         'net_arch': params['net_arch'],
         'activation_fn': torch.nn.ReLU,
-        'features_extractor_class': DictToTensorFeaturesExtractor,
+        'features_extractor_class': features_extractor_class,
         'features_extractor_kwargs': {
             'features_dim': params['num_ctx'],
         },
@@ -41,9 +62,9 @@ if __name__ == '__main__':
     }
 
     model = train(
-        env_class=SimpleRoomEnv,
-        agent_class=PointEnv,
-        task_generator=create_simple_room_maze,
+        env_class=env_class,
+        agent_class=agent_class,
+        task_generator=task_generator,
         policy_class='MultiInputPolicy',
         params=params,
         lr_schedule=linear_schedule(params['lr'], params['final_lr']),

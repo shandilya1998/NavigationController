@@ -452,14 +452,15 @@ class Environment(gym.Env):
         self.pc_target_bounds = np.array([min_bound, max_bound], dtype=np.float32)
 
     def __consolidate_and_startup(self) -> None:
-        self.target_speed = 2
+        self.target_speed = 2.25
         # print("Position before update: ", self.wrapped_env.data.qpos)
         self._init_pos, self._init_ori = self._set_init(self._agent_pos)
         self.wrapped_env.set_xy(self._init_pos)
         self.wrapped_env.set_ori(self._init_ori)
         # print("Position after update: ", self.wrapped_env.data.qpos)
         self.dt = self.wrapped_env.dt
-        assert self.dt == params['dt']
+        print(self.dt, params['dt'])
+        assert self.dt * params['frame_skip']  == params['dt']
         self.obstacles_ids = []
         self.agent_ids = []
         for name in self.model.geom_names:

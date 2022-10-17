@@ -241,7 +241,7 @@ class PointEnv(AgentModel):
 
 
 class BlindPointEnv(PointEnv):
-    def __init__(self, file_path: Optional[str] = 'point.xml', frame_skip: [Optional] = 10) -> None:
+    def __init__(self, file_path: Optional[str] = 'point.xml', frame_skip: [Optional] = 1) -> None:
         super(BlindPointEnv, self).__init__(file_path, frame_skip=frame_skip)
     
     def _get_obs(self):

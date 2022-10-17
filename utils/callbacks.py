@@ -174,37 +174,38 @@ class Callback(sb3.common.callbacks.EventCallback):
                             COMPONENTS[component].append(_locals['infos'][0][component])
                     screen = self.eval_env.render(mode="rgb_array")
                     size = screen.shape[:2]
-                    screen = cv2.cvtColor(screen, cv2.COLOR_RGB2BGR)
-                    # PyTorch uses CxHxW vs HxWxC gym (and tensorflow) image convention
-                    frame_t = cv2.resize(
-                        _locals['observations']['frame_t'][0, :3].transpose(1, 2, 0),
-                        size
-                    )
+                    if 'frame_t' in _locals['observations'].keys():
+                        screen = cv2.cvtColor(screen, cv2.COLOR_RGB2BGR)
+                        # PyTorch uses CxHxW vs HxWxC gym (and tensorflow) image convention
+                        frame_t = cv2.resize(
+                            _locals['observations']['frame_t'][0, :3].transpose(1, 2, 0),
+                            size
+                        )
 
 
-                    ax.clear()
-                    ax.plot(REWARDS, color='r', linestyle='--')
-                    canvas.draw()
-                    image = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
-                    image = image.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-                    image = cv2.resize(image, size)
+                        ax.clear()
+                        ax.plot(REWARDS, color='r', linestyle='--')
+                        canvas.draw()
+                        image = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
+                        image = image.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+                        image = cv2.resize(image, size)
 
-                    ax1.clear()
-                    for i, (component, lst) in enumerate(COMPONENTS.items()):
-                        ax1.plot(lst, color=COLORS[i], linestyle='--', label=component)
-                    ax1.legend(loc='upper left')
-                    canvas1.draw()
-                    image1 = np.frombuffer(canvas1.tostring_rgb(), dtype='uint8')
-                    image1 = image1.reshape(fig1.canvas.get_width_height()[::-1] + (3,))
-                    image1 = cv2.resize(image1, size)
+                        ax1.clear()
+                        for i, (component, lst) in enumerate(COMPONENTS.items()):
+                            ax1.plot(lst, color=COLORS[i], linestyle='--', label=component)
+                        ax1.legend(loc='upper left')
+                        canvas1.draw()
+                        image1 = np.frombuffer(canvas1.tostring_rgb(), dtype='uint8')
+                        image1 = image1.reshape(fig1.canvas.get_width_height()[::-1] + (3,))
+                        image1 = cv2.resize(image1, size)
 
-                    observation = np.concatenate([
-                        np.concatenate([screen, image], 0),
-                        np.concatenate([frame_t, image1], 0),
-                    ], 1).astype(np.uint8)
-                    observation = cv2.cvtColor(observation, cv2.COLOR_RGB2BGR)
+                        observation = np.concatenate([
+                            np.concatenate([screen, image], 0),
+                            np.concatenate([frame_t, image1], 0),
+                        ], 1).astype(np.uint8)
+                        observation = cv2.cvtColor(observation, cv2.COLOR_RGB2BGR)
 
-                    video.write(observation)
+                        video.write(observation)
                     if _locals['done']:
                         REWARDS.clear()
                         COLORS.clear()

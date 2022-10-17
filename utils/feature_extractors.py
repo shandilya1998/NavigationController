@@ -7,7 +7,7 @@ from typing import Dict
 
 class DictToTensorFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
     """Feature Extractor for `MlpPolicy` and similar policy architectures with a simple tensor
-    input.
+    input. Combines Visual Input with Proprioreceptive Input.
 
     :param observation_space: Observation Configuration.
     :type observation_space: gym.Space
@@ -51,3 +51,38 @@ class DictToTensorFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtracto
         inp = torch.cat([observations['sensors'], visual_f], -1)
         features = self.mlp(inp)
         return features
+
+
+class LocalPlannerFeaturesExtractor(sb3.common.torch_layers.BaseFeaturesExtractor):
+    """Feature Extractor for `MlpPolicy` and similar policy architectures with a simple tensor
+    input. Combines Proprioreceptive Input with Goal Information.
+
+    :param observation_space: Observation Configuration.
+    :type observation_space: gym.Space
+    :param features_dim: Output 1D Tensor Dimension
+    :type features_dim: int
+    """
+    def __init__(
+            self,
+            observation_space: gym.spaces.Dict,
+            features_dim: int
+    ):
+        super(LocalPlannerFeaturesExtractor, self).__init__(observation_space, features_dim)
+        input_dim = observation_space['sensors'].shape[-1] + \
+            observation_space['achieved_goal'].shape[-1] + \
+            observation_space['desired_goal'].shape[-1]
+        self.mlp = torch.nn.Sequential(
+            torch.nn.Linear(input_dim, features_dim),
+            torch.nn.ReLU()
+        )
+
+    def forward(
+            self,
+            observations: Dict[str, torch.Tensor]
+    ) -> torch.Tensor:
+        x = torch.cat([
+                observations['sensors'],
+                observations['achieved_goal'],
+                observations['desired_goal']
+                ], -1)
+        return self.mlp(x)

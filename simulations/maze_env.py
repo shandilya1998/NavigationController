@@ -218,7 +218,7 @@ class Environment(gym.Env):
         # Let's create MuJoCo XML
         self.set_env()
  
-    def __set_structure(self) -> None:
+    def _set_structure(self) -> None:
         """Sample Maze Configuration from `maze_task_generator`.
         """
         self._task, self._maze_structure, self._open_position_indices, self._agent_pos = self._maze_task_generator(self._maze_size_scaling)
@@ -478,7 +478,7 @@ class Environment(gym.Env):
     def set_env(self):
         """Processes environment configuration and initialises the environment.
         """
-        self.__set_structure()
+        self._set_structure()
         self.__create_model()
         self.__init_features()
         self.__consolidate_and_startup()
@@ -497,6 +497,7 @@ class Environment(gym.Env):
             return True
         if acol == tcol:  # or acol + 1 == tcol or acol - 1 == tcol:
             return True
+        """
         if arow + 1 == trow and acol + 1 == tcol:
             return True
         if arow - 1 == trow and acol + 1 == tcol:
@@ -505,6 +506,7 @@ class Environment(gym.Env):
             return True
         if arow - 1 == trow and acol - 1 == tcol:
             return True
+        """
         return False
 
     def _ensure_distance_from_target(self, row, row_frac, col, col_frac, pos):
@@ -2156,6 +2158,84 @@ class LocalPlannerEnv(SimpleRoomEnv):
                 image_shape,
                 mode,
                 **kwargs)
+
+    def _set_init(self, agent):
+        row, col = agent
+        # print("row: ", row, " col: ", col)
+        row_frac = np.random.uniform(low=-0.4, high=0.4)
+        col_frac = np.random.uniform(low=-0.4, high=0.4)
+        """
+        print("row frac: ", row_frac, " col frac: ", col_frac)
+        print("Position before ensuring distance from target")
+        print(row + row_frac)
+        print(col + col_frac)
+        """
+
+        # Toggle to allow random shifting within block boundary
+        # pos = self._rowcol_to_xy(row + row_frac, col + col_frac)
+        pos = self._rowcol_to_xy(row, col)
+        # print("_set_init pos after conversion from row col: ", pos)
+        self._start_pos = np.array(pos, dtype=np.float32)
+        target_pos = self._task.objects[self._task.goal_index].pos[:2]
+        (row, row_frac), (col, col_frac), target_pos = self._ensure_distance_from_target(
+            row, row_frac, col, col_frac, target_pos
+        )
+        # print("Position after ensuring distance from target")
+        # print(row, row_frac, row + row_frac)
+        # print(col, col_frac, col + col_frac)
+
+        struct = self._maze_structure[row][col]
+        neighbors = [
+            [row + 1, col],
+            [row, col + 1],
+            [row - 1, col],
+            [row, col - 1],
+            [row + 1, col + 1],
+            [row - 1, col + 1],
+            [row + 1, col - 1],
+            [row - 1, col - 1]
+        ]
+        pos = self._ensure_not_a_block(struct, pos, row, col, neighbors)
+        possibilities = [-np.pi, -3 * np.pi / 4, -np.pi / 2, -np.pi / 4, 0.0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi]
+        excluded = []
+        for neighbor in neighbors:
+            r, c = neighbor
+            if self._check_structure_index_validity(r, c):
+                if self._maze_structure[r][c].is_block():
+                    x, y = self._rowcol_to_xy(row, col)
+                    _x, _y = self._rowcol_to_xy(r, c)
+                    angle = np.arctan2(_y - y, _x - x)
+                    index = possibilities.index(angle)
+                    excluded.append(angle)
+                    possibilities.pop(index)
+
+        for ea in excluded:
+            for p in possibilities:
+                if np.abs(ea - p) <= np.pi / 2:
+                    index = possibilities.index(p)
+                    possibilities.pop(index)
+
+        ori = self._agent_ori
+
+        # Setting Orientation to be fixed for `SimpleRoomEnv`
+        # ori = 0.0
+        # ori = -np.pi
+        self._start_ori = ori
+        return pos, ori
+    
+    def _set_structure(self) -> None:
+        """Sample Maze Configuration from `maze_task_generator`.
+        """
+        self._task, self._maze_structure, self._open_position_indices, self._agent_pos, self._agent_ori = self._maze_task_generator(self._maze_size_scaling)
+        # print("Agent Position: ", self._agent_pos)
+        torso_x, torso_y = self._find_robot()
+        self._init_torso_x = torso_x
+        self._init_torso_y = torso_y
+        # center_x = (len(self._maze_structure) // 2) * self._maze_size_scaling
+        # center_y = (len(self._maze_structure) // 2) * self._maze_size_scaling
+        self.elevated = any(maze_env_utils.MazeCell.CHASM in row for row in self._maze_structure)
+        # Are there any movable blocks?
+        self.blocks = any(any(r.can_move() for r in row) for row in self._maze_structure)
 
     def _set_action_space(self):
         """Sets the action space for this maze environment.

@@ -60,6 +60,7 @@ def check_target_object_distance(agent, target):
         return True
     if acol == tcol:  # or acol + 1 == tcol or acol - 1 == tcol:
         return True
+    """
     if arow + 1 == trow and acol + 1 == tcol:
         return True
     if arow - 1 == trow and acol + 1 == tcol:
@@ -68,7 +69,7 @@ def check_target_object_distance(agent, target):
         return True
     if arow - 1 == trow and acol - 1 == tcol:
         return True
-
+    """
     return False
 
 
@@ -138,6 +139,7 @@ class MazePosition:
         return np.abs(ori - self.ori)
 
     def attained(self, pos: np.ndarray) -> bool:
+        # print(self.euc_dist(pos[:self.dim]), self.ori_dist(pos[-1]))
         return self.euc_dist(pos[:self.dim]) + self.ori_dist(self.pos[-1]) < self.position_error_threshold
 
 
@@ -249,15 +251,11 @@ MAPS = {
             [B, B, B, B],
         ],
         'local_planner': [
-            [B, B, B, B, B, B, B, B, B],
-            [B, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, B],
-            [B, E, E, E, R, E, E, E, B],
-            [B, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, B],
-            [B, E, E, E, E, E, E, E, B],
-            [B, B, B, B, B, B, B, B, B],
+            [B, B, B, B, B],
+            [B, E, E, E, B],
+            [B, E, R, E, B],
+            [B, E, E, E, B],
+            [B, B, B, B, B],
         ]
 }
 
@@ -435,6 +433,7 @@ def create_local_planner_area(
 
     objects = []
 
+    ori = 0.0
     for i, [row, col] in enumerate(object_structure_indices):
         ori = np.random.uniform(low=-np.pi, high=np.pi)
         objects.append(MazePosition(
@@ -446,9 +445,16 @@ def create_local_planner_area(
                 characteristics={
                         'threshold': 1.5 if i == goal_index else 1.5,
                         'target': True if i == goal_index else False,
-                        'position_error_threshold' : 1e-2
+                        'position_error_threshold' : params['error_threshold']
                     })
                 )
+
+    agent_ori =  np.random.uniform(low=ori-np.pi/4, high=ori+np.pi/4)
+    if agent_ori > np.pi:
+        agent_ori = agent_ori - 2 * np.pi
+    elif agent_ori < -np.pi:
+        agent_ori = agent_ori + 2 * np.pi
+
 
     maze = LocalPlanner(
         structure=structure,
@@ -457,7 +463,7 @@ def create_local_planner_area(
         scale=1.0,
         reward_threshold=1.0
     )
-    return maze, structure, _open_position_indices, agent_pos
+    return maze, structure, _open_position_indices, agent_pos, agent_ori
 
 
 class LocalPlanner(Maze):

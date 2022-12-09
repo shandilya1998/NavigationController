@@ -9,6 +9,7 @@
 *avi
 key.json
 assets/plots/tests/
+assets/outputs
 assets/
 Python*
 nvidia-container-runtime-script.sh

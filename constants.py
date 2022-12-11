@@ -5,7 +5,7 @@ debug = False
 
 params = {
     'input_size_low_level_control': 6,
-    'track_list'                  : [ 
+    'track_list'                  : [
                                         'joint_pos',
                                         'action',
                                         'velocity',
@@ -63,7 +63,7 @@ params = {
     'final_lr'                    : 1e-5,
     'n_steps'                     : 2000,
     'gamma'                       : 0.98,
-    'tau'                         : 0.99, 
+    'tau'                         : 0.99,
     'n_updates'                   : 32,
     'num_ctx'                     : 512,
     'actor_lr'                    : 1e-3,
@@ -76,24 +76,24 @@ params = {
     'seed'                        : 281,
     'target_speed'                : 8.0,
     'lr_schedule_preprocesing'    : [
-                                        {   
+                                        {
                                             'name' : 'ExponentialLRSchedule',
                                             'class' : torch.optim.lr_scheduler.ExponentialLR,
-                                            'kwargs' : { 
+                                            'kwargs' : {
                                                 'gamma' : 0.99,
                                                 'last_epoch' : - 1,
                                                 'verbose' : False
-                                            }   
+                                            }
                                         }, {
                                             'name' : 'ReduceLROnPlateauSchedule',
                                             'class' : torch.optim.lr_scheduler.ReduceLROnPlateau,
-                                            'kwargs' : { 
+                                            'kwargs' : {
                                                 'mode' : 'min',
                                                 'factor' : 0.5,
-                                                'patience' : 10, 
+                                                'patience' : 10,
                                                 'threshold' : 1e-5,
-                                            }   
-                                        }   
+                                            }
+                                        }
                                     ],
     'preprocessing'               : {
                                         'num_epochs'      : 1000
@@ -133,8 +133,22 @@ params_environment = {
     'target_rgb'                  : [0.7, 0.1, 0.1]
 }
 
+params_hopf = {
+    'degree'                      : 15,
+    'thresholds'                  : np.array([
+                                        0.0,
+                                        np.pi / 6,
+                                        5 * np.pi / 6,
+                                        np.pi,
+                                        3 * np.pi / 2,
+                                        3 * np.pi / 2 + np.pi / 6,
+                                        2 * np.pi
+                                    ], dtype = np.float32),
+}
+
 params.update(params_quadruped)
 params.update(params_environment)
+params.update(params_hopf)
 
 image_height = 298
 image_width = 298

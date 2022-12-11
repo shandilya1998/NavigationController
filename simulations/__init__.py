@@ -9,6 +9,7 @@ A maze environment using mujoco that supports custom tasks and robots.
 import gym
 from neurorobotics.simulations.maze_task import TaskRegistry
 from neurorobotics.simulations.point import PointEnv
+from neurorobotics.simulations.quadruped import Quadruped
 
 for maze_id in TaskRegistry.keys():
     for i, task_gen in enumerate(TaskRegistry.tasks(maze_id)):

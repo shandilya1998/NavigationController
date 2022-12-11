@@ -1,11 +1,10 @@
 import gym
 import numpy as np
-from constants import params
-import random
+from neurorobotics.constants import params
 import os
 import mujoco_py
 from neurorobotics.utils.env_utils import convert_observation_to_space
-from neurorobotics.networks.cpg import hopf_mod_step
+from neurorobotics.networks.cpg import ModifiedHopfCPG
 import copy
 import xml.etree.ElementTree as ET
 import tempfile
@@ -14,7 +13,7 @@ import tempfile
 class Quadruped(gym.GoalEnv, gym.utils.EzPickle):
     def __init__(self,
                  learning_task = 'rl',
-                 model_path = 'ant.xml',
+                 model_path = 'quadruped.xml',
                  frame_skip = 5,
                  render = False,
                  gait = 'trot',
@@ -43,14 +42,13 @@ class Quadruped(gym.GoalEnv, gym.utils.EzPickle):
         if model_path.startswith("/"):
             fullpath = model_path
         else:
-            fullpath = os.path.join(os.getcwd(), "assets", model_path)
+            fullpath = os.path.join(os.getcwd(), "neurorobotics/assets/xml", model_path)
         if not os.path.exists(fullpath):
             raise IOError("File %s does not exist" % fullpath)
         self._frame_skip = frame_skip
         self.gait = gait
         self.task = task
         self.direction = direction
-        self.policy_type = policy_type
         assert self.gait in params['gait_list']
         assert self.task in params['task_list']
         assert self.direction in params['direction_list']
@@ -124,6 +122,7 @@ class Quadruped(gym.GoalEnv, gym.utils.EzPickle):
         self._is_render = render
         self._num_joints = self.init_qpos.shape[-1] - 7
         self._num_legs = params['num_legs']
+        self.hopf_mod_step = ModifiedHopfCPG(self._num_legs).forward
         self.joint_pos = self.sim.data.qpos[-self._num_joints:]
 
         self.end_eff = params['end_eff']
@@ -266,7 +265,6 @@ class Quadruped(gym.GoalEnv, gym.utils.EzPickle):
         self._frequency = omega / (2 * np.pi)
         self._amplitude = mu
         self.omega = omega
-        self.w = w
         self.z = z
 
     def _create_command_lst(self):
@@ -344,11 +342,6 @@ class Quadruped(gym.GoalEnv, gym.utils.EzPickle):
         self._set_leg_params()
         self._set_init_gamma() # set init leg phase
         self.gamma = self.init_gamma.copy()
-        if self.policy_type == 'MultiInputPolicy':
-            self.commands =  self._create_command_lst()
-            self.command = random.choice(self.commands)
-            self.desired_goal = self.command.copy()
-            self.achieved_goal = self.sim.data.qvel[:6].copy()
 
         if self.task != 'turn':
             low = np.array([0, 0], dtype = np.float32)
@@ -412,10 +405,9 @@ class Quadruped(gym.GoalEnv, gym.utils.EzPickle):
         #print(self.init_gamma)
         self.z = self._get_z()
         self.omega = np.zeros((4,), dtype = np.float32)
-        self.w = np.zeros((4,), dtype = np.float32)
         self.mu = np.zeros((4,), dtype = np.float32)
         self.heading_ctrl *= 1.0
-        self.C = np.load('assets/out/plots/coef.npy')
+        self.C = np.load('neurorobotics/assets/out/hopf/coef.npy')
         return self.init_gamma
 
     def _get_init_gamma(self, gait, task, direction):
@@ -481,15 +473,6 @@ class Quadruped(gym.GoalEnv, gym.utils.EzPickle):
         self.z = self._get_z()
         self.sim.reset()
         self.ob = self.reset_model()
-        if self.policy_type == 'MultiInputPolicy':
-            """
-                modify this according to observation space
-            """
-            self.achieved_goal = self.sim.data.qvel[:6].copy()
-            self.command = random.choice(self.commands)
-            if self.verbose > 0:
-                print('[Quadruped] Command is `{}` with gait `{}` in task `{}` and direction `{}`'.format(self.command, self.gait, self.task, self.direction))
-            self.desired_goal = self.command.copy()
 
         if len(self._track_lst) > 0 and self.verbose > 0:
             for item in self._track_lst:
@@ -510,18 +493,7 @@ class Quadruped(gym.GoalEnv, gym.utils.EzPickle):
         """
             modify this according to observation space
         """
-        ob = {}
-        if self.policy_type == 'MultiInputPolicy':
-            ob = {
-                'observation' : np.concatenate([
-                    self.joint_pos,
-                    self.sim.data.sensordata.copy()
-                ], -1),
-                'desired_goal' : self.desired_goal,
-                'achieved_goal' : self.achieved_goal
-            }
-        else:
-            ob = np.concatenate([self.joint_pos, self.sim.data.sensordata.copy()], -1)
+        ob = np.concatenate([self.joint_pos, self.sim.data.sensordata.copy()], -1)
         return ob
 
     def step(self, action, callback=None):
@@ -565,13 +537,9 @@ class Quadruped(gym.GoalEnv, gym.utils.EzPickle):
         self._track_item['sensordata'].append(self.sim.data.sensordata.copy())
         self._track_item['qpos'].append(self.sim.data.qpos.copy())
         self._track_item['qvel'].append(self.sim.data.qvel.copy())
-        ob =  self._get_obs()
-        self._track_item['achieved_goal'].append(ob['achieved_goal'].copy())
-        self._track_item['desired_goal'].append(ob['desired_goal'].copy())
-        self._track_item['observation'].append(ob['observation'].copy())
+        #self._track_item['observation'].append(ob['observation'].copy())
         self._track_item['heading_ctrl'].append(self.heading_ctrl.copy())
         self._track_item['omega_o'].append(self.omega.copy())
-        self._track_item['omega'].append(self.w.copy())
         self._track_item['z'].append(self.z.copy())
         self._track_item['mu'].append(self.mu.copy())
         self._track_item['reward'].append(np.array([self._reward], dtype = np.float32))
@@ -685,9 +653,8 @@ class Quadruped(gym.GoalEnv, gym.utils.EzPickle):
             omg.extend([omega[0], omega[1], omega[1], omega[0]])
         self.mu = np.array(amp, dtype = np.float32)
         self.omega = np.array(omg, dtype = np.float32) * self.heading_ctrl
-        self.z, w = hopf_mod_step(self.omega, self.mu, self.z, self.C,
+        self.z = self.hopf_mod_step(self.omega, self.mu, self.z, self.C,
                 params['degree'], self.dt)
-        self.w = w
         out = []
         for i in range(self._num_legs):
             direction = 1.0
@@ -700,7 +667,7 @@ class Quadruped(gym.GoalEnv, gym.utils.EzPickle):
             out.append(knee * direction)
             out.append((-0.35 * knee  + 1.3089) * direction)
         out = np.array(out, dtype = np.float32)
-        return out, w.max()
+        return out
 
     def do_simulation(self, action, n_frames, callback=None):
         #print(self._n_steps)
@@ -717,8 +684,6 @@ class Quadruped(gym.GoalEnv, gym.utils.EzPickle):
         """
             modify this according to needs
         """
-        reward_velocity = 0.0
-        reward_energy = 0.0
         penalty = 0.0
         done = False
         phase = 0.0
@@ -726,10 +691,10 @@ class Quadruped(gym.GoalEnv, gym.utils.EzPickle):
             print(self._n_steps)
         while(np.abs(phase) <= np.pi * self._update_action_every):
             if params['version'] == 0:
-                self.joint_pos, timer_omega = self._get_joint_pos(self._amplitude, omega)
+                self.joint_pos = self._get_joint_pos(self._amplitude, omega)
             elif params['version'] == 1:
-                self.joint_pos, timer_omega = self._get_joint_pos_v2(self._amplitude, omega)
-            posbefore = self.get_body_com("torso").copy()
+                self.joint_pos = self._get_joint_pos_v2(self._amplitude, omega)
+            timer_omega = max(omega)
             penalty = 0.0
             if np.isnan(self.joint_pos).any():
                 self.joint_pos = np.nan_to_num(self.joint_pos)
@@ -737,68 +702,20 @@ class Quadruped(gym.GoalEnv, gym.utils.EzPickle):
             self.sim.data.ctrl[:] = self.joint_pos
             for _ in range(n_frames):
                 self.sim.step()
-            posafter = self.get_body_com("torso").copy()
-            velocity = (posafter - posbefore) / self.dt
-            ang_vel = self.sim.data.qvel[3:6]
-            #self.d1, self.d2, self.d3, self.stability, upright = self.calculate_stability_reward(self.desired_goal)
-            if self.policy_type == 'MultiInputPolicy':
-                """
-                    modify this according to observation space
-                """
-                if len(self._track_item['achieved_goal']) \
-                        > params['window_size']:
-                    self.achieved_goal = sum([np.concatenate([
-                        velocity,
-                        ang_vel
-                    ], -1)] + self._track_item[
-                        'achieved_goal'
-                        ][-params['window_size'] + 1:]
-                    ) / params['window_size']
-                else:
-                    self.achieved_goal = sum([np.concatenate([
-                        velocity,
-                        ang_vel
-                    ], -1)] + [self._track_item[
-                        'achieved_goal'][0]] * (params['window_size'] - 1)
-                    ) / params['window_size']
             if self._is_render:
                 self.render()
-            if self.policy_type == 'MultiInputPolicy':
-                reward_velocity += np.linalg.norm(
-                    self.achieved_goal - self.desired_goal
-                )
-            else:
-                reward_velocity += np.abs(
-                    self.achieved_goal[0] - self.desired_goal[0]
-                )
-            reward_energy += -np.linalg.norm(
-                self.sim.data.actuator_force * self.sim.data.qvel[-self._num_joints:]
-            ) - np.linalg.norm(np.clip(self.sim.data.cfrc_ext, -1, 1).flat)
             """
             if not upright:
                 done = True
             """
             counter += 1
             phase += timer_omega * self.dt * counter
-            self._track_attr()
             self._step += 1
             if self._step % params['max_step_length'] == 0:
                 break
         self._n_steps += 1
-        reward_distance = 1 - np.exp(-np.linalg.norm(self.sim.data.qpos[:2]))
-        reward_velocity = np.exp(params['reward_velocity_coef'] * reward_velocity)
-        reward_energy = np.exp(params['reward_energy_coef'] * reward_energy)
-        reward = reward_distance + reward_velocity + reward_energy + penalty
-        self.rewards = np.array([
-            reward_velocity,
-            reward_distance,
-            reward_energy,
-            penalty
-        ], dtype = np.float32)
+        reward = 0.0
         info = {
-            'reward_velocity' : reward_velocity,
-            'reward_distance' : reward_distance,
-            'reward_energy' : reward_energy,
             'reward' : reward,
             'penalty' : penalty
         }

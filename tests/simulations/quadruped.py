@@ -1,3 +1,5 @@
+import shutil
+import cv2
 import matplotlib.pyplot as plt
 import  numpy as np
 import argparse
@@ -5,7 +7,7 @@ from neurorobotics.constants import params
 import os
 
 
-def test_env(env, render = True):
+def test_env(out_path, env, render = True):
     t = 0
     ac = env.action_space.sample()
     omega = 3.55
@@ -39,13 +41,24 @@ def test_env(env, render = True):
             elif env.direction == 'right':
                 mu = np.array([mu1, mu2], dtype = np.float32)
                 ac = np.array([omega / (2 * np.pi), mu[0], omega / (2 * np.pi), mu[1]], dtype = np.float32)
+    frame_rate = 10
+    frame_width = 320
+    frame_height = 240
+    writer = cv2.VideoWriter(
+        os.path.join(out_path, "video.avi"),
+        cv2.VideoWriter_fourcc(*'MJPG'),
+        frame_rate,
+        (frame_width, frame_height)
+    )
     while True:
         _ = env.step(ac)
         if render:
-            env.render()
+            frame = env.render(mode='rgb_array', width=frame_width, height=frame_height)
+            writer.write(frame)
         t += 1
-        if t > 750:
+        if t > 100:
             break
+    writer.release()
     fig, axes = plt.subplots(4,3, figsize = (15, 20))
     i = 0
     joint_pos = np.nan_to_num(np.vstack(env._track_item['joint_pos']))
@@ -63,13 +76,14 @@ def test_env(env, render = True):
         axes[int(i / 3)][i % 3].set_ylabel('joint position (radian)')
         axes[int(i / 3)][i % 3].legend()
         i += 1
-    fig.savefig(os.path.join('assets', 'plots', 'ant_joint_pos.png'))
+    fig.savefig(os.path.join(out_path, 'ant_joint_pos.png'))
     env.reset()
     return env
 
 
 if __name__ =='__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument("--out_path", type=str, help="output path of saved files.")
     parser.add_argument("--gait", type=str, help="gait to perform, one of trot, ds_crawl, ls_crawl, trot")
     parser.add_argument("--task", type=str, help="task to perform, one of turn, straight, rotate")
     parser.add_argument("--direction", type=str, help="direction of motion, one of left, right, forward, backward")
@@ -77,7 +91,7 @@ if __name__ =='__main__':
 
     from neurorobotics.simulations import Quadruped
     env = Quadruped(
-        model_path = 'ant_v2.xml',
+        model_path = 'quadruped.xml',
         frame_skip = 3,
         render = True,
         gait = args.gait,
@@ -85,4 +99,8 @@ if __name__ =='__main__':
         direction = args.direction,
     )
     #env = QuadrupedV2()
-    env = test_env(env, True)
+    out_path = os.path.join(args.out_path, "quadruped")
+    if os.path.exists(out_path):
+        shutil.rmtree(out_path)
+    os.mkdir(out_path)
+    env = test_env(out_path, env, True)

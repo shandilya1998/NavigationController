@@ -1,596 +1,61 @@
-Sending build context to Docker daemon  10.24kB
-Step 1/11 : FROM ubuntu:20.04
- ---> 20fffa419e3a
-Step 2/11 : LABEL maintainer="shandilya.shreyas@gmail.com"
- ---> Using cache
- ---> 08a8e088305a
-Step 3/11 : LABEL version="0.0"
- ---> Using cache
- ---> fe1742ce53fa
-Step 4/11 : LABEL description="This is custom Docker Image for `neuroengineering-tools`."
- ---> Using cache
- ---> 22e331d13791
-Step 5/11 : ARG DEBIAN_FRONTEND=noninteractive
- ---> Using cache
- ---> f84fd7930aca
-Step 6/11 : RUN apt update
- ---> Using cache
- ---> da48283d7ab6
-Step 7/11 : RUN apt install -y --no-install-recommends wget         curl         xz-utils         build-essential         zlib1g-dev         zip         unzip         python3-pip python3-dev         libreadline-gplv2-dev         libncursesw5-dev         libssl-dev         libosmesa6-dev         libsqlite3-dev         tk-dev         libgdbm-dev         libc6-dev         libbz2-dev         libgl1-mesa-glx         libgl1-mesa-dev         patchelf         libglfw3-dev         libglew-dev         libsqlite3-dev         libpng-dev         libjpeg-dev         git-all         liblzma-dev         tzdata         software-properties-common         net-tools         vim         xpra         xserver-xorg-dev         libopengl0         libosmesa6-dev         libgl1-mesa-glx         libglfw3         libgl1-mesa-dev         libglew-dev         patchelf &&     mkdir /root/.mujoco &&     wget -q https://mujoco.org/download/mujoco210-linux-x86_64.tar.gz -O mujoco.tar.gz &&     tar -zxf mujoco.tar.gz -C "/root/.mujoco" &&     rm mujoco.tar.gz &&     echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/root/.mujoco/mujoco210/bin' >> ~/.bashrc &&     echo "/root/.mujoco/mujoco210/bin" > /etc/ld.so.conf.d/mujoco_ld_lib_path.conf &&     ldconfig &&     pip3 install --upgrade pip &&     pip install -U 'mujoco-py<2.2,>=2.1'
- ---> Using cache
- ---> 25f602980719
-Step 8/11 : COPY requirements.txt requirements.txt
- ---> Using cache
- ---> 5cb57cadac86
-Step 9/11 : RUN apt install -y swig cmake && pip install -r requirements.txt
- ---> Running in db856d9b0400
-[91m
-WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+failed to fetch metadata: fork/exec /Users/shandilya/.docker/cli-plugins/docker-buildx: no such file or directory
 
-[0mReading package lists...
-Building dependency tree...
-Reading state information...
-The following additional packages will be installed:
-  cmake-data libarchive13 libjsoncpp1 librhash0 libuv1 swig4.0
-Suggested packages:
-  cmake-doc ninja-build lrzip swig-doc swig-examples swig4.0-examples
-  swig4.0-doc
-The following NEW packages will be installed:
-  cmake cmake-data libarchive13 libjsoncpp1 librhash0 libuv1 swig swig4.0
-0 upgraded, 8 newly installed, 0 to remove and 5 not upgraded.
-Need to get 6964 kB of archives.
-After this operation, 34.9 MB of additional disk space will be used.
-Get:1 http://archive.ubuntu.com/ubuntu focal-updates/main amd64 libuv1 amd64 1.34.2-1ubuntu1.3 [80.8 kB]
-Get:2 http://archive.ubuntu.com/ubuntu focal/main amd64 cmake-data all 3.16.3-1ubuntu1 [1612 kB]
-Get:3 http://archive.ubuntu.com/ubuntu focal-updates/main amd64 libarchive13 amd64 3.4.0-2ubuntu1.2 [327 kB]
-Get:4 http://archive.ubuntu.com/ubuntu focal/main amd64 libjsoncpp1 amd64 1.7.4-3.1ubuntu2 [75.6 kB]
-Get:5 http://archive.ubuntu.com/ubuntu focal/main amd64 librhash0 amd64 1.3.9-1 [113 kB]
-Get:6 http://archive.ubuntu.com/ubuntu focal/main amd64 cmake amd64 3.16.3-1ubuntu1 [3669 kB]
-Get:7 http://archive.ubuntu.com/ubuntu focal/universe amd64 swig4.0 amd64 4.0.1-5build1 [1081 kB]
-Get:8 http://archive.ubuntu.com/ubuntu focal/universe amd64 swig all 4.0.1-5build1 [5528 B]
-[91mdebconf: delaying package configuration, since apt-utils is not installed
-[0mFetched 6964 kB in 7s (931 kB/s)
-Selecting previously unselected package libuv1:amd64.
-(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 47390 files and directories currently installed.)
-Preparing to unpack .../0-libuv1_1.34.2-1ubuntu1.3_amd64.deb ...
-Unpacking libuv1:amd64 (1.34.2-1ubuntu1.3) ...
-Selecting previously unselected package cmake-data.
-Preparing to unpack .../1-cmake-data_3.16.3-1ubuntu1_all.deb ...
-Unpacking cmake-data (3.16.3-1ubuntu1) ...
-Selecting previously unselected package libarchive13:amd64.
-Preparing to unpack .../2-libarchive13_3.4.0-2ubuntu1.2_amd64.deb ...
-Unpacking libarchive13:amd64 (3.4.0-2ubuntu1.2) ...
-Selecting previously unselected package libjsoncpp1:amd64.
-Preparing to unpack .../3-libjsoncpp1_1.7.4-3.1ubuntu2_amd64.deb ...
-Unpacking libjsoncpp1:amd64 (1.7.4-3.1ubuntu2) ...
-Selecting previously unselected package librhash0:amd64.
-Preparing to unpack .../4-librhash0_1.3.9-1_amd64.deb ...
-Unpacking librhash0:amd64 (1.3.9-1) ...
-Selecting previously unselected package cmake.
-Preparing to unpack .../5-cmake_3.16.3-1ubuntu1_amd64.deb ...
-Unpacking cmake (3.16.3-1ubuntu1) ...
-Selecting previously unselected package swig4.0.
-Preparing to unpack .../6-swig4.0_4.0.1-5build1_amd64.deb ...
-Unpacking swig4.0 (4.0.1-5build1) ...
-Selecting previously unselected package swig.
-Preparing to unpack .../7-swig_4.0.1-5build1_all.deb ...
-Unpacking swig (4.0.1-5build1) ...
-Setting up libarchive13:amd64 (3.4.0-2ubuntu1.2) ...
-Setting up libuv1:amd64 (1.34.2-1ubuntu1.3) ...
-Setting up librhash0:amd64 (1.3.9-1) ...
-Setting up cmake-data (3.16.3-1ubuntu1) ...
-Install cmake-data for emacs
-Setting up swig4.0 (4.0.1-5build1) ...
-Setting up libjsoncpp1:amd64 (1.7.4-3.1ubuntu2) ...
-Setting up swig (4.0.1-5build1) ...
-Setting up cmake (3.16.3-1ubuntu1) ...
-Processing triggers for libc-bin (2.31-0ubuntu9.9) ...
-Collecting absl-py==0.13.0
-  Downloading absl_py-0.13.0-py3-none-any.whl (132 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 132.1/132.1 kB 586.5 kB/s eta 0:00:00
-Collecting addict==2.4.0
-  Downloading addict-2.4.0-py3-none-any.whl (3.8 kB)
-Collecting ai2thor==4.1.0
-  Downloading ai2thor-4.1.0-py2.py3-none-any.whl (64 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 64.3/64.3 kB 3.0 MB/s eta 0:00:00
-Collecting alabaster==0.7.12
-  Downloading alabaster-0.7.12-py2.py3-none-any.whl (14 kB)
-Collecting ale-py==0.7.1
-  Downloading ale_py-0.7.1-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (1.6 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.6/1.6 MB 907.5 kB/s eta 0:00:00
-Collecting anyio==3.3.4
-  Downloading anyio-3.3.4-py3-none-any.whl (78 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 78.0/78.0 kB 1.2 MB/s eta 0:00:00
-Collecting argon2-cffi==21.1.0
-  Downloading argon2_cffi-21.1.0-cp35-abi3-manylinux_2_5_x86_64.manylinux1_x86_64.whl (96 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 96.1/96.1 kB 1.1 MB/s eta 0:00:00
-Collecting astunparse==1.6.3
-  Downloading astunparse-1.6.3-py2.py3-none-any.whl (12 kB)
-Collecting async-generator==1.10
-  Downloading async_generator-1.10-py3-none-any.whl (18 kB)
-Collecting atari-py==0.2.6
-  Downloading atari-py-0.2.6.tar.gz (790 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 790.2/790.2 kB 351.1 kB/s eta 0:00:00
-  Preparing metadata (setup.py): started
-  Preparing metadata (setup.py): finished with status 'done'
-Collecting attrs==21.2.0
-  Downloading attrs-21.2.0-py2.py3-none-any.whl (53 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 53.7/53.7 kB 743.2 kB/s eta 0:00:00
-Collecting autopep8==1.6.0
-  Downloading autopep8-1.6.0-py2.py3-none-any.whl (45 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 45.3/45.3 kB 731.0 kB/s eta 0:00:00
-Collecting aws-requests-auth==0.4.3
-  Downloading aws_requests_auth-0.4.3-py2.py3-none-any.whl (6.8 kB)
-Collecting Babel==2.9.1
-  Downloading Babel-2.9.1-py2.py3-none-any.whl (8.8 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 8.8/8.8 MB 360.5 kB/s eta 0:00:00
-Collecting backcall==0.2.0
-  Downloading backcall-0.2.0-py2.py3-none-any.whl (11 kB)
-Collecting bleach==4.1.0
-  Downloading bleach-4.1.0-py2.py3-none-any.whl (157 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 157.9/157.9 kB 625.3 kB/s eta 0:00:00
-Collecting botocore==1.23.41
-  Downloading botocore-1.23.41-py3-none-any.whl (8.5 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 8.5/8.5 MB 1.8 MB/s eta 0:00:00
-Collecting box2d-py==2.3.8
-  Downloading box2d-py-2.3.8.tar.gz (374 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 374.5/374.5 kB 2.9 MB/s eta 0:00:00
-  Preparing metadata (setup.py): started
-  Preparing metadata (setup.py): finished with status 'done'
-Collecting cached-property==1.5.2
-  Downloading cached_property-1.5.2-py2.py3-none-any.whl (7.6 kB)
-Collecting cachetools==4.2.2
-  Downloading cachetools-4.2.2-py3-none-any.whl (11 kB)
-Collecting certifi==2021.5.30
-  Downloading certifi-2021.5.30-py2.py3-none-any.whl (145 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 145.5/145.5 kB 3.3 MB/s eta 0:00:00
-Collecting cffi==1.14.6
-  Downloading cffi-1.14.6-cp38-cp38-manylinux1_x86_64.whl (411 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 411.7/411.7 kB 2.2 MB/s eta 0:00:00
-Collecting charset-normalizer==2.0.4
-  Downloading charset_normalizer-2.0.4-py3-none-any.whl (36 kB)
-Collecting clang==5.0
-  Downloading clang-5.0.tar.gz (30 kB)
-  Preparing metadata (setup.py): started
-  Preparing metadata (setup.py): finished with status 'done'
-Collecting cloudpickle==1.6.0
-  Downloading cloudpickle-1.6.0-py3-none-any.whl (23 kB)
-Collecting contextvars==2.4
-  Downloading contextvars-2.4.tar.gz (9.6 kB)
-  Preparing metadata (setup.py): started
-  Preparing metadata (setup.py): finished with status 'done'
-Collecting cycler==0.10.0
-  Downloading cycler-0.10.0-py2.py3-none-any.whl (6.5 kB)
-Collecting Cython==0.29.24
-  Downloading Cython-0.29.24-cp38-cp38-manylinux1_x86_64.whl (1.9 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.9/1.9 MB 2.4 MB/s eta 0:00:00
-Collecting dataclasses==0.6
-  Downloading dataclasses-0.6-py3-none-any.whl (14 kB)
-Collecting decorator==4.4.2
-  Downloading decorator-4.4.2-py2.py3-none-any.whl (9.2 kB)
-Collecting defusedxml==0.7.1
-  Downloading defusedxml-0.7.1-py2.py3-none-any.whl (25 kB)
-Collecting dm-reverb==0.4.0
-  Downloading dm_reverb-0.4.0-cp38-cp38-manylinux2010_x86_64.whl (14.7 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 14.7/14.7 MB 2.5 MB/s eta 0:00:00
-Collecting dm-tree==0.1.6
-  Downloading dm_tree-0.1.6-cp38-cp38-manylinux_2_24_x86_64.whl (94 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 94.7/94.7 kB 3.3 MB/s eta 0:00:00
-Collecting docopt==0.6.2
-  Downloading docopt-0.6.2.tar.gz (25 kB)
-  Preparing metadata (setup.py): started
-  Preparing metadata (setup.py): finished with status 'done'
-Collecting docutils==0.17.1
-  Downloading docutils-0.17.1-py2.py3-none-any.whl (575 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 575.5/575.5 kB 3.0 MB/s eta 0:00:00
-Collecting entrypoints==0.3
-  Downloading entrypoints-0.3-py2.py3-none-any.whl (11 kB)
-Collecting fasteners==0.16.3
-  Downloading fasteners-0.16.3-py2.py3-none-any.whl (28 kB)
-Collecting flake8==4.0.1
-  Downloading flake8-4.0.1-py2.py3-none-any.whl (64 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 64.1/64.1 kB 2.7 MB/s eta 0:00:00
-Collecting flatbuffers==1.12
-  Downloading flatbuffers-1.12-py2.py3-none-any.whl (15 kB)
-Collecting gast==0.4.0
-  Downloading gast-0.4.0-py3-none-any.whl (9.8 kB)
-Collecting gin-config==0.5.0
-  Downloading gin_config-0.5.0-py3-none-any.whl (61 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 61.3/61.3 kB 2.8 MB/s eta 0:00:00
-Collecting gitdb==4.0.9
-  Downloading gitdb-4.0.9-py3-none-any.whl (63 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 63.1/63.1 kB 2.5 MB/s eta 0:00:00
-Collecting GitPython==3.1.18
-  Downloading GitPython-3.1.18-py3-none-any.whl (170 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 170.1/170.1 kB 3.3 MB/s eta 0:00:00
-Collecting glfw==2.1.0
-  Downloading glfw-2.1.0-py2.py27.py3.py30.py31.py32.py33.py34.py35.py36.py37.py38-none-manylinux2014_x86_64.whl (205 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 205.2/205.2 kB 3.6 MB/s eta 0:00:00
-Collecting google-api-core==2.1.1
-  Downloading google_api_core-2.1.1-py2.py3-none-any.whl (95 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 95.1/95.1 kB 2.6 MB/s eta 0:00:00
-Collecting google-api-python-client==2.27.0
-  Downloading google_api_python_client-2.27.0-py2.py3-none-any.whl (7.7 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 7.7/7.7 MB 3.0 MB/s eta 0:00:00
-Collecting google-auth==1.35.0
-  Downloading google_auth-1.35.0-py2.py3-none-any.whl (152 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 152.9/152.9 kB 1.9 MB/s eta 0:00:00
-Collecting google-auth-httplib2==0.1.0
-  Downloading google_auth_httplib2-0.1.0-py2.py3-none-any.whl (9.3 kB)
-Collecting google-auth-oauthlib==0.4.6
-  Downloading google_auth_oauthlib-0.4.6-py2.py3-none-any.whl (18 kB)
-Collecting google-cloud==0.34.0
-  Downloading google_cloud-0.34.0-py2.py3-none-any.whl (1.8 kB)
-Collecting google-cloud-core==2.1.0
-  Downloading google_cloud_core-2.1.0-py2.py3-none-any.whl (27 kB)
-Collecting google-cloud-storage==1.42.3
-  Downloading google_cloud_storage-1.42.3-py2.py3-none-any.whl (105 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 106.0/106.0 kB 2.6 MB/s eta 0:00:00
-Collecting google-crc32c==1.3.0
-  Downloading google_crc32c-1.3.0-cp38-cp38-manylinux_2_12_x86_64.manylinux2010_x86_64.whl (37 kB)
-Collecting google-pasta==0.2.0
-  Downloading google_pasta-0.2.0-py3-none-any.whl (57 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 57.5/57.5 kB 2.5 MB/s eta 0:00:00
-Collecting google-resumable-media==2.0.3
-  Downloading google_resumable_media-2.0.3-py2.py3-none-any.whl (75 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 75.5/75.5 kB 1.9 MB/s eta 0:00:00
-Collecting googleapis-common-protos==1.53.0
-  Downloading googleapis_common_protos-1.53.0-py2.py3-none-any.whl (198 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 198.2/198.2 kB 2.7 MB/s eta 0:00:00
-Collecting graphviz==0.19.1
-  Downloading graphviz-0.19.1-py3-none-any.whl (46 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 46.3/46.3 kB 2.4 MB/s eta 0:00:00
-Collecting grip==4.5.2
-  Downloading grip-4.5.2.tar.gz (145 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 145.6/145.6 kB 2.4 MB/s eta 0:00:00
-  Preparing metadata (setup.py): started
-  Preparing metadata (setup.py): finished with status 'done'
-Collecting grpcio==1.39.0
-  Downloading grpcio-1.39.0-cp38-cp38-manylinux2014_x86_64.whl (4.3 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.3/4.3 MB 1.6 MB/s eta 0:00:00
-Collecting gym==0.19.0
-  Downloading gym-0.19.0.tar.gz (1.6 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.6/1.6 MB 2.0 MB/s eta 0:00:00
-  Preparing metadata (setup.py): started
-  Preparing metadata (setup.py): finished with status 'done'
-Collecting h5py==3.1.0
-  Downloading h5py-3.1.0-cp38-cp38-manylinux1_x86_64.whl (4.4 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.4/4.4 MB 2.5 MB/s eta 0:00:00
-Collecting hiddenlayer==0.3
-  Downloading hiddenlayer-0.3-py3-none-any.whl (19 kB)
-Collecting httplib2==0.20.1
-  Downloading httplib2-0.20.1-py3-none-any.whl (96 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 96.5/96.5 kB 3.3 MB/s eta 0:00:00
-Collecting idna==3.2
-  Downloading idna-3.2-py3-none-any.whl (59 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 59.6/59.6 kB 3.3 MB/s eta 0:00:00
-Collecting imageio==2.9.0
-  Downloading imageio-2.9.0-py3-none-any.whl (3.3 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.3/3.3 MB 3.2 MB/s eta 0:00:00
-Collecting imageio-ffmpeg==0.4.5
-  Downloading imageio_ffmpeg-0.4.5-py3-none-manylinux2010_x86_64.whl (26.9 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 26.9/26.9 MB 2.9 MB/s eta 0:00:00
-Collecting imagesize==1.3.0
-  Downloading imagesize-1.3.0-py2.py3-none-any.whl (5.2 kB)
-Collecting immutables==0.16
-  Downloading immutables-0.16-cp38-cp38-manylinux_2_5_x86_64.manylinux1_x86_64.whl (108 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 108.1/108.1 kB 2.4 MB/s eta 0:00:00
-Collecting importlib-metadata==4.8.1
-  Downloading importlib_metadata-4.8.1-py3-none-any.whl (17 kB)
-Collecting importlib-resources==5.2.2
-  Downloading importlib_resources-5.2.2-py3-none-any.whl (27 kB)
-Collecting ipykernel==5.5.6
-  Downloading ipykernel-5.5.6-py3-none-any.whl (121 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 121.0/121.0 kB 3.2 MB/s eta 0:00:00
-Collecting ipython==7.16.1
-  Downloading ipython-7.16.1-py3-none-any.whl (785 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 785.1/785.1 kB 3.2 MB/s eta 0:00:00
-Collecting ipython-genutils==0.2.0
-  Downloading ipython_genutils-0.2.0-py2.py3-none-any.whl (26 kB)
-Collecting ipywidgets==7.7.0
-  Downloading ipywidgets-7.7.0-py2.py3-none-any.whl (123 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 123.4/123.4 kB 2.8 MB/s eta 0:00:00
-Collecting jedi==0.18.0
-  Downloading jedi-0.18.0-py2.py3-none-any.whl (1.4 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.4/1.4 MB 2.2 MB/s eta 0:00:00
-Collecting Jinja2==3.0.3
-  Downloading Jinja2-3.0.3-py3-none-any.whl (133 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 133.6/133.6 kB 2.0 MB/s eta 0:00:00
-Collecting jmespath==0.10.0
-  Downloading jmespath-0.10.0-py2.py3-none-any.whl (24 kB)
-Collecting joblib==1.1.0
-  Downloading joblib-1.1.0-py2.py3-none-any.whl (306 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 307.0/307.0 kB 2.7 MB/s eta 0:00:00
-Collecting json5==0.9.6
-  Downloading json5-0.9.6-py2.py3-none-any.whl (18 kB)
-Collecting jsonschema==3.2.0
-  Downloading jsonschema-3.2.0-py2.py3-none-any.whl (56 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 56.3/56.3 kB 1.2 MB/s eta 0:00:00
-Collecting jupyter-client==7.0.6
-  Downloading jupyter_client-7.0.6-py3-none-any.whl (125 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 125.0/125.0 kB 1.7 MB/s eta 0:00:00
-Collecting jupyter-core==4.9.1
-  Downloading jupyter_core-4.9.1-py3-none-any.whl (86 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 86.7/86.7 kB 1.9 MB/s eta 0:00:00
-Collecting jupyter-server==1.11.2
-  Downloading jupyter_server-1.11.2-py3-none-any.whl (394 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 394.1/394.1 kB 2.3 MB/s eta 0:00:00
-Collecting jupyterlab==3.2.3
-  Downloading jupyterlab-3.2.3-py3-none-any.whl (8.6 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 8.6/8.6 MB 1.8 MB/s eta 0:00:00
-Collecting jupyterlab-pygments==0.1.2
-  Downloading jupyterlab_pygments-0.1.2-py2.py3-none-any.whl (4.6 kB)
-Collecting jupyterlab-server==2.8.2
-  Downloading jupyterlab_server-2.8.2-py3-none-any.whl (58 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 58.1/58.1 kB 813.3 kB/s eta 0:00:00
-Collecting kafka-python==2.0.2
-  Downloading kafka_python-2.0.2-py2.py3-none-any.whl (246 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 246.5/246.5 kB 709.4 kB/s eta 0:00:00
-Collecting keras==2.6.0
-  Downloading keras-2.6.0-py2.py3-none-any.whl (1.3 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 1.1 MB/s eta 0:00:00
-Collecting Keras-Preprocessing==1.1.2
-  Downloading Keras_Preprocessing-1.1.2-py2.py3-none-any.whl (42 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 42.6/42.6 kB 916.2 kB/s eta 0:00:00
-Collecting kiwisolver==1.3.1
-  Downloading kiwisolver-1.3.1-cp38-cp38-manylinux1_x86_64.whl (1.2 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.2/1.2 MB 975.3 kB/s eta 0:00:00
-Collecting libtcod-cffi==5.0.0
-  Downloading libtcod_cffi-5.0.0-py2.py3-none-any.whl (11 kB)
-Collecting lockfile==0.12.2
-  Downloading lockfile-0.12.2-py2.py3-none-any.whl (13 kB)
-Collecting lz4==3.1.3
-  Downloading lz4-3.1.3-cp38-cp38-manylinux2010_x86_64.whl (1.8 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 1.1 MB/s eta 0:00:00
-Collecting Markdown==3.3.4
-  Downloading Markdown-3.3.4-py3-none-any.whl (97 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 97.6/97.6 kB 608.1 kB/s eta 0:00:00
-Collecting MarkupSafe==2.0.1
-  Downloading MarkupSafe-2.0.1-cp38-cp38-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl (30 kB)
-Collecting matplotlib==3.3.4
-  Downloading matplotlib-3.3.4-cp38-cp38-manylinux1_x86_64.whl (11.6 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 11.6/11.6 MB 1.3 MB/s eta 0:00:00
-Collecting mccabe==0.6.1
-  Downloading mccabe-0.6.1-py2.py3-none-any.whl (8.6 kB)
-Collecting mistune==0.8.4
-  Downloading mistune-0.8.4-py2.py3-none-any.whl (16 kB)
-Collecting moviepy==1.0.3
-  Downloading moviepy-1.0.3.tar.gz (388 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 388.3/388.3 kB 1.3 MB/s eta 0:00:00
-  Preparing metadata (setup.py): started
-  Preparing metadata (setup.py): finished with status 'done'
-Collecting msgpack==1.0.3
-  Downloading msgpack-1.0.3-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (322 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 322.4/322.4 kB 1.9 MB/s eta 0:00:00
-Requirement already satisfied: mujoco-py==2.1.2.14 in /usr/local/lib/python3.8/dist-packages (from -r requirements.txt (line 101)) (2.1.2.14)
-Collecting nbclassic==0.3.4
-  Downloading nbclassic-0.3.4-py3-none-any.whl (25 kB)
-Collecting nbclient==0.5.8
-  Downloading nbclient-0.5.8-py3-none-any.whl (70 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 70.1/70.1 kB 1.3 MB/s eta 0:00:00
-Collecting nbconvert==6.0.7
-  Downloading nbconvert-6.0.7-py3-none-any.whl (552 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 552.1/552.1 kB 1.2 MB/s eta 0:00:00
-Collecting nbformat==5.1.3
-  Downloading nbformat-5.1.3-py3-none-any.whl (178 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 178.9/178.9 kB 1.8 MB/s eta 0:00:00
-Collecting nest-asyncio==1.5.1
-  Downloading nest_asyncio-1.5.1-py3-none-any.whl (5.0 kB)
-Collecting networkx==2.5.1
-  Downloading networkx-2.5.1-py3-none-any.whl (1.6 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.6/1.6 MB 2.1 MB/s eta 0:00:00
-Collecting notebook==6.4.5
-  Downloading notebook-6.4.5-py3-none-any.whl (9.9 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 9.9/9.9 MB 1.7 MB/s eta 0:00:00
-Collecting numpy==1.19.5
-  Downloading numpy-1.19.5-cp38-cp38-manylinux2010_x86_64.whl (14.9 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 14.9/14.9 MB 1.4 MB/s eta 0:00:00
-Collecting numpy-quaternion==2022.4.1
-  Downloading numpy_quaternion-2022.4.1-cp38-cp38-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl (200 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 200.8/200.8 kB 1.3 MB/s eta 0:00:00
-Collecting oauthlib==3.1.1
-  Downloading oauthlib-3.1.1-py2.py3-none-any.whl (146 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 146.2/146.2 kB 1.5 MB/s eta 0:00:00
-Collecting open3d==0.15.2
-  Downloading open3d-0.15.2-cp38-cp38-manylinux_2_27_x86_64.whl (408.7 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 408.7/408.7 MB 1.4 MB/s eta 0:00:00
-Collecting opencv-python==4.5.3.56
-  Downloading opencv_python-4.5.3.56-cp38-cp38-manylinux2014_x86_64.whl (49.9 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 49.9/49.9 MB 985.0 kB/s eta 0:00:00
-Collecting opt-einsum==3.3.0
-  Downloading opt_einsum-3.3.0-py3-none-any.whl (65 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 65.5/65.5 kB 1.1 MB/s eta 0:00:00
-Collecting packaging==21.2
-  Downloading packaging-21.2-py3-none-any.whl (40 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 40.7/40.7 kB 567.1 kB/s eta 0:00:00
-Collecting pandas==1.1.5
-  Downloading pandas-1.1.5-cp38-cp38-manylinux1_x86_64.whl (9.3 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 9.3/9.3 MB 762.1 kB/s eta 0:00:00
-Collecting pandocfilters==1.5.0
-  Downloading pandocfilters-1.5.0-py2.py3-none-any.whl (8.7 kB)
-Collecting parso==0.8.2
-  Downloading parso-0.8.2-py2.py3-none-any.whl (94 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 94.0/94.0 kB 593.4 kB/s eta 0:00:00
-Collecting path-and-address==2.0.1
-  Downloading path-and-address-2.0.1.zip (6.5 kB)
-  Preparing metadata (setup.py): started
-  Preparing metadata (setup.py): finished with status 'done'
-Collecting pexpect==4.8.0
-  Downloading pexpect-4.8.0-py2.py3-none-any.whl (59 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 59.0/59.0 kB 712.0 kB/s eta 0:00:00
-Collecting pickleshare==0.7.5
-  Downloading pickleshare-0.7.5-py2.py3-none-any.whl (6.9 kB)
-Collecting Pillow==8.3.2
-  Downloading Pillow-8.3.2-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (3.0 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.0/3.0 MB 1.4 MB/s eta 0:00:00
-Collecting pip-autoremove==0.10.0
-  Downloading pip_autoremove-0.10.0-py2.py3-none-any.whl (5.0 kB)
-Collecting portpicker==1.5.0
-  Downloading portpicker-1.5.0-py3-none-any.whl (14 kB)
-Collecting proglog==0.1.9
-  Downloading proglog-0.1.9.tar.gz (10 kB)
-  Preparing metadata (setup.py): started
-  Preparing metadata (setup.py): finished with status 'done'
-Collecting progressbar2==3.55.0
-  Downloading progressbar2-3.55.0-py2.py3-none-any.whl (26 kB)
-Collecting prometheus-client==0.12.0
-  Downloading prometheus_client-0.12.0-py2.py3-none-any.whl (57 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 57.2/57.2 kB 1.8 MB/s eta 0:00:00
-Collecting prompt-toolkit==3.0.22
-  Downloading prompt_toolkit-3.0.22-py3-none-any.whl (374 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 374.3/374.3 kB 1.4 MB/s eta 0:00:00
-Collecting protobuf==3.17.3
-  Downloading protobuf-3.17.3-cp38-cp38-manylinux_2_5_x86_64.manylinux1_x86_64.whl (1.0 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.0/1.0 MB 1.6 MB/s eta 0:00:00
-Collecting psutil==5.8.0
-  Downloading psutil-5.8.0-cp38-cp38-manylinux2010_x86_64.whl (296 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 296.0/296.0 kB 1.7 MB/s eta 0:00:00
-Collecting ptyprocess==0.7.0
-  Downloading ptyprocess-0.7.0-py2.py3-none-any.whl (13 kB)
-Collecting pyasn1==0.4.8
-  Downloading pyasn1-0.4.8-py2.py3-none-any.whl (77 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 77.1/77.1 kB 3.2 MB/s eta 0:00:00
-Collecting pyasn1-modules==0.2.8
-  Downloading pyasn1_modules-0.2.8-py2.py3-none-any.whl (155 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 155.3/155.3 kB 1.6 MB/s eta 0:00:00
-Collecting pycodestyle==2.8.0
-  Downloading pycodestyle-2.8.0-py2.py3-none-any.whl (42 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 42.1/42.1 kB 991.6 kB/s eta 0:00:00
-Collecting pycparser==2.20
-  Downloading pycparser-2.20-py2.py3-none-any.whl (112 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 112.0/112.0 kB 1.4 MB/s eta 0:00:00
-Collecting pyDeprecate==0.3.2
-  Downloading pyDeprecate-0.3.2-py3-none-any.whl (10 kB)
-Collecting pyflakes==2.4.0
-  Downloading pyflakes-2.4.0-py2.py3-none-any.whl (69 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 69.7/69.7 kB 1.4 MB/s eta 0:00:00
-Collecting pyglet==1.5.19
-  Downloading pyglet-1.5.19-py3-none-any.whl (1.1 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.1/1.1 MB 1.9 MB/s eta 0:00:00
-Collecting Pygments==2.10.0
-  Downloading Pygments-2.10.0-py3-none-any.whl (1.0 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.0/1.0 MB 1.4 MB/s eta 0:00:00
-Collecting pyparsing==2.4.7
-  Downloading pyparsing-2.4.7-py2.py3-none-any.whl (67 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 67.8/67.8 kB 1.6 MB/s eta 0:00:00
-Collecting pyquaternion==0.9.9
-  Downloading pyquaternion-0.9.9-py3-none-any.whl (14 kB)
-Collecting pyrsistent==0.18.0
-  Downloading pyrsistent-0.18.0-cp38-cp38-manylinux1_x86_64.whl (118 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 118.3/118.3 kB 1.6 MB/s eta 0:00:00
-Collecting python-dateutil==2.8.2
-  Downloading python_dateutil-2.8.2-py2.py3-none-any.whl (247 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 247.7/247.7 kB 1.8 MB/s eta 0:00:00
-Collecting python-utils==3.1.0
-  Downloading python_utils-3.1.0-py2.py3-none-any.whl (19 kB)
-Collecting python-xlib==0.31
-  Downloading python_xlib-0.31-py2.py3-none-any.whl (179 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 179.0/179.0 kB 2.2 MB/s eta 0:00:00
-Collecting pytorch-msssim==0.2.1
-  Downloading pytorch_msssim-0.2.1-py3-none-any.whl (7.2 kB)
-Collecting pytz==2021.1
-  Downloading pytz-2021.1-py2.py3-none-any.whl (510 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 510.8/510.8 kB 1.6 MB/s eta 0:00:00
-Collecting PyYAML==6.0
-  Downloading PyYAML-6.0-cp38-cp38-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl (701 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 701.2/701.2 kB 2.0 MB/s eta 0:00:00
-Collecting pyzmq==22.3.0
-  Downloading pyzmq-22.3.0-cp38-cp38-manylinux_2_12_x86_64.manylinux2010_x86_64.whl (1.1 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.1/1.1 MB 1.7 MB/s eta 0:00:00
-Collecting requests==2.26.0
-  Downloading requests-2.26.0-py2.py3-none-any.whl (62 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 62.3/62.3 kB 1.4 MB/s eta 0:00:00
-Collecting requests-oauthlib==1.3.0
-  Downloading requests_oauthlib-1.3.0-py2.py3-none-any.whl (23 kB)
-Collecting rsa==4.7.2
-  Downloading rsa-4.7.2-py3-none-any.whl (34 kB)
-Collecting scikit-learn==0.24.2
-  Downloading scikit_learn-0.24.2-cp38-cp38-manylinux2010_x86_64.whl (24.9 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 24.9/24.9 MB 472.9 kB/s eta 0:00:00
-Collecting scipy==1.5.4
-  Downloading scipy-1.5.4-cp38-cp38-manylinux1_x86_64.whl (25.8 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 25.8/25.8 MB 2.2 MB/s eta 0:00:00
-Collecting Send2Trash==1.8.0
-  Downloading Send2Trash-1.8.0-py3-none-any.whl (18 kB)
-Collecting six==1.15.0
-  Downloading six-1.15.0-py2.py3-none-any.whl (10 kB)
-Collecting sk-video==1.1.10
-  Downloading sk_video-1.1.10-py2.py3-none-any.whl (2.3 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.3/2.3 MB 2.2 MB/s eta 0:00:00
-Collecting sklearn==0.0
-  Downloading sklearn-0.0.tar.gz (1.1 kB)
-  Preparing metadata (setup.py): started
-  Preparing metadata (setup.py): finished with status 'done'
-Collecting smmap==5.0.0
-  Downloading smmap-5.0.0-py3-none-any.whl (24 kB)
-Collecting sniffio==1.2.0
-  Downloading sniffio-1.2.0-py3-none-any.whl (10 kB)
-Collecting snowballstemmer==2.2.0
-  Downloading snowballstemmer-2.2.0-py2.py3-none-any.whl (93 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 93.0/93.0 kB 1.9 MB/s eta 0:00:00
-Collecting Sphinx==5.0.1
-  Downloading Sphinx-5.0.1-py3-none-any.whl (3.1 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.1/3.1 MB 2.1 MB/s eta 0:00:00
-Collecting sphinx-rtd-theme==1.0.0
-  Downloading sphinx_rtd_theme-1.0.0-py2.py3-none-any.whl (2.8 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.8/2.8 MB 2.8 MB/s eta 0:00:00
-Collecting sphinxcontrib-applehelp==1.0.2
-  Downloading sphinxcontrib_applehelp-1.0.2-py2.py3-none-any.whl (121 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 121.2/121.2 kB 2.2 MB/s eta 0:00:00
-Collecting sphinxcontrib-devhelp==1.0.2
-  Downloading sphinxcontrib_devhelp-1.0.2-py2.py3-none-any.whl (84 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 84.7/84.7 kB 2.4 MB/s eta 0:00:00
-Collecting sphinxcontrib-htmlhelp==2.0.0
-  Downloading sphinxcontrib_htmlhelp-2.0.0-py2.py3-none-any.whl (100 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100.5/100.5 kB 2.0 MB/s eta 0:00:00
-Collecting sphinxcontrib-jsmath==1.0.1
-  Downloading sphinxcontrib_jsmath-1.0.1-py2.py3-none-any.whl (5.1 kB)
-Collecting sphinxcontrib-qthelp==1.0.3
-  Downloading sphinxcontrib_qthelp-1.0.3-py2.py3-none-any.whl (90 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 90.6/90.6 kB 2.1 MB/s eta 0:00:00
-Collecting sphinxcontrib-serializinghtml==1.1.5
-  Downloading sphinxcontrib_serializinghtml-1.1.5-py2.py3-none-any.whl (94 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 94.0/94.0 kB 1.9 MB/s eta 0:00:00
-Collecting stable-baselines3==1.1.0
-  Downloading stable_baselines3-1.1.0-py3-none-any.whl (172 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 172.6/172.6 kB 2.6 MB/s eta 0:00:00
-Collecting tcod==13.0.0
-  Downloading tcod-13.0.0-cp36-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (3.3 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.3/3.3 MB 2.3 MB/s eta 0:00:00
-Collecting tdl==6.0.0
-  Downloading tdl-6.0.0-py2.py3-none-any.whl (1.1 kB)
-Collecting tensorboard==2.6.0
-  Downloading tensorboard-2.6.0-py3-none-any.whl (5.6 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.6/5.6 MB 2.2 MB/s eta 0:00:00
-Collecting tensorboard-data-server==0.6.1
-  Downloading tensorboard_data_server-0.6.1-py3-none-manylinux2010_x86_64.whl (4.9 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.9/4.9 MB 2.4 MB/s eta 0:00:00
-Collecting tensorboard-plugin-wit==1.8.0
-  Downloading tensorboard_plugin_wit-1.8.0-py3-none-any.whl (781 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 781.2/781.2 kB 2.4 MB/s eta 0:00:00
-Collecting tensorflow==2.6.0
-  Downloading tensorflow-2.6.0-cp38-cp38-manylinux2010_x86_64.whl (458.4 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 458.4/458.4 MB 1.4 MB/s eta 0:00:00
-Collecting tensorflow-estimator==2.6.0
-  Downloading tensorflow_estimator-2.6.0-py2.py3-none-any.whl (462 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 462.9/462.9 kB 2.4 MB/s eta 0:00:00
-Collecting tensorflow-probability==0.14.1
-  Downloading tensorflow_probability-0.14.1-py2.py3-none-any.whl (5.7 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.7/5.7 MB 2.7 MB/s eta 0:00:00
-Collecting termcolor==1.1.0
-  Downloading termcolor-1.1.0.tar.gz (3.9 kB)
-  Preparing metadata (setup.py): started
-  Preparing metadata (setup.py): finished with status 'done'
-Collecting terminado==0.12.1
-  Downloading terminado-0.12.1-py3-none-any.whl (15 kB)
-Collecting testpath==0.5.0
-  Downloading testpath-0.5.0-py3-none-any.whl (84 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 84.9/84.9 kB 1.1 MB/s eta 0:00:00
-Collecting threadpoolctl==3.1.0
-  Downloading threadpoolctl-3.1.0-py3-none-any.whl (14 kB)
-Collecting toml==0.10.2
-  Downloading toml-0.10.2-py2.py3-none-any.whl (16 kB)
-Collecting tomli==1.2.3
-  Downloading tomli-1.2.3-py3-none-any.whl (12 kB)
-Collecting torch==1.9.0
-  Downloading torch-1.9.0-cp38-cp38-manylinux1_x86_64.whl (831.4 MB)
+DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
+            Install the buildx component to build images with BuildKit:
+            https://docs.docker.com/go/buildx/
+
+Sending build context to Docker daemon  4.096kB
+Step 1/9 : FROM ros:noetic-ros-core-focal
+ ---> a79359d8f99c
+Step 2/9 : LABEL maintainer="shandilya.shreyas@gmail.com"
+ ---> Using cache
+ ---> 7914e2eeb6a4
+Step 3/9 : LABEL version="0.0"
+ ---> Using cache
+ ---> 73e355e55171
+Step 4/9 : LABEL description="This is custom Docker Image for `neuroengineering-tools`."
+ ---> Using cache
+ ---> 29bf3a0fe6ab
+Step 5/9 : ARG DEBIAN_FRONTEND=noninteractive
+ ---> Using cache
+ ---> 25b58001da4b
+Step 6/9 : RUN apt update
+ ---> Using cache
+ ---> 19edd2a66b44
+Step 7/9 : RUN apt install -y --no-install-recommends wget         curl         xz-utils 	vim         build-essential         zlib1g-dev         zip         unzip         python3-pip python3-dev         libreadline-gplv2-dev         libncursesw5-dev         libssl-dev         libosmesa6-dev         libsqlite3-dev         tk-dev         libgdbm-dev         libc6-dev         libbz2-dev         libgl1-mesa-glx         libgl1-mesa-dev         patchelf         libglfw3-dev         libglew-dev         libsqlite3-dev         libpng-dev         libjpeg-dev         git-all         liblzma-dev         tzdata         software-properties-common         net-tools         vim         xpra         xserver-xorg-dev         libopengl0         libosmesa6-dev         libgl1-mesa-glx         libglfw3         libgl1-mesa-dev         libglew-dev 	cmake 	swig 	libgstreamer1.0-dev 	libgstreamer-plugins-base1.0-dev 	libgstreamer-plugins-bad1.0-dev 	gstreamer1.0-plugins-base 	gstreamer1.0-plugins-good 	gstreamer1.0-plugins-bad 	gstreamer1.0-plugins-ugly 	gstreamer1.0-libav 	gstreamer1.0-tools 	gstreamer1.0-x 	gstreamer1.0-alsa 	gstreamer1.0-gl 	gstreamer1.0-gtk3 	gstreamer1.0-qt5 	gstreamer1.0-pulseaudio         patchelf &&     mkdir /root/.mujoco &&     wget -q https://github.com/deepmind/mujoco/releases/download/2.3.3/mujoco-2.3.3-linux-aarch64.tar.gz -O mujoco.tar.gz &&     tar -zxf mujoco.tar.gz -C "/root/.mujoco" &&     rm mujoco.tar.gz &&     echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/root/.mujoco/mujoco210/bin' >> ~/.bashrc &&     echo "/root/.mujoco/mujoco210/bin" > /etc/ld.so.conf.d/mujoco_ld_lib_path.conf &&     ldconfig &&     pip3 install --upgrade pip &&     pip install -U mujoco
+ ---> Using cache
+ ---> a9ebb12bdb83
+Step 8/9 : RUN export LD_LIBRARY_PATH=/root/.mujoco/mujoco210/bin:$LD_LIBRARY_PATH && python3 -c "import mujoco"
+ ---> Using cache
+ ---> cee88edd78d7
+Step 9/9 : RUN pip install -U gymnasium
+ ---> Running in 99d742be6fbe
+Collecting gymnasium
+  Downloading gymnasium-0.28.1-py3-none-any.whl (925 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 925.5/925.5 kB 9.8 MB/s eta 0:00:00
+Collecting importlib-metadata>=4.8.0
+  Downloading importlib_metadata-6.3.0-py3-none-any.whl (22 kB)
+Collecting farama-notifications>=0.0.1
+  Downloading Farama_Notifications-0.0.4-py3-none-any.whl (2.5 kB)
+Collecting cloudpickle>=1.2.0
+  Downloading cloudpickle-2.2.1-py3-none-any.whl (25 kB)
+Collecting typing-extensions>=4.3.0
+  Downloading typing_extensions-4.5.0-py3-none-any.whl (27 kB)
+Collecting jax-jumpy>=1.0.0
+  Downloading jax_jumpy-1.0.0-py3-none-any.whl (20 kB)
+Collecting numpy>=1.21.0
+  Downloading numpy-1.24.2-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (14.0 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 14.0/14.0 MB 11.3 MB/s eta 0:00:00
+Collecting zipp>=0.5
+  Downloading zipp-3.15.0-py3-none-any.whl (6.8 kB)
+Installing collected packages: farama-notifications, zipp, typing-extensions, numpy, cloudpickle, jax-jumpy, importlib-metadata, gymnasium
+  Attempting uninstall: numpy
+    Found existing installation: numpy 1.17.4
+    Uninstalling numpy-1.17.4:
+      Successfully uninstalled numpy-1.17.4
+Successfully installed cloudpickle-2.2.1 farama-notifications-0.0.4 gymnasium-0.28.1 importlib-metadata-6.3.0 jax-jumpy-1.0.0 numpy-1.24.2 typing-extensions-4.5.0 zipp-3.15.0
+[91mWARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+[0mRemoving intermediate container 99d742be6fbe
+ ---> 2ead9816adf6
+Successfully built 2ead9816adf6
+Successfully tagged neurorobotics:latest
